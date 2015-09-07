@@ -15,6 +15,7 @@ the hassle of flash or the web.
 * gst-plugins-good
 * gst-plugins-bad
 * gst-plugins-ugly
+
 ### From source
 ```
 mkdir build
@@ -27,6 +28,6 @@ ninja install
 Soon
 
 ## Screenshots
-![](/data/screenshots/scrot_games.png?raw=true)
 ![](/data/screenshots/scrot_streams.png?raw=true)
+![](/data/screenshots/scrot_games.png?raw=true)
 ![](/data/screenshots/scrot_player.png?raw=true)
