@@ -1,0 +1,11 @@
+.gt-streams-view-child .overlay-box,
+.gt-games-view-child .overlay-box
+{
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.fuck-you
+{
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 0;
+}

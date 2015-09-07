@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtPlayer" parent="GtkEventBox">
+    <child>
+      <object class="GtkRevealer" id="fullscreen_bar_revealer">
+        <property name="visible">False</property>
+        <property name="valign">start</property>
+        <child>
+          <object class="GtPlayerHeaderBar" id="fullscreen_bar">
+            <property name="visible">True</property>
+            <property name="player">GtPlayer</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

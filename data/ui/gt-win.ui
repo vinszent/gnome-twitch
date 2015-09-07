@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtWin" parent="GtkApplicationWindow">
+    <property name="title">Gnome Twitch</property>
+    <property name="default-height">900</property>
+    <property name="default-width">1300</property>
+    <child type="titlebar">
+      <object class="GtkStack" id="header_stack">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtBrowseHeaderBar" id="browse_header_bar">
+            <property name="visible">True</property>
+            <property name="streams-view">streams_view</property>
+            <child type="title">
+              <object class="GtkStackSwitcher">
+                <property name="visible">True</property>
+                <property name="stack">browse_stack</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="name">browse</property>
+            <property name="title">Browse</property>
+          </packing>
+        </child> 
+        <child>
+          <object class="GtPlayerHeaderBar" id="player_header_bar">
+            <property name="visible">True</property>
+            <property name="player">player</property> 
+          </object>
+          <packing>
+            <property name="name">player</property>
+            <property name="title">Player</property>
+          </packing>
+        </child> 
+      </object>
+    </child>
+    <child>
+      <object class="GtkStack" id="main_stack">
+        <property name="visible">True</property>
+        <property name="transition-type">over-up-down</property>
+        <property name="transition-duration">300</property>
+        <child>
+          <object class="GtkStack" id="browse_stack">
+            <property name="visible">True</property>
+            <property name="transition-type">slide-left-right</property>
+            <child>
+              <object class="GtStreamsView" id="streams_view">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="name">streams</property>
+                <property name="title">Streams</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtGamesView" id="games_view">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="name">games</property>
+                <property name="title">Games</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">browse</property>
+            <property name="title">Browse</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtPlayer" id="player">
+            <property name="visible">True</property>
+            <property name="expand">True</property>
+          </object>
+          <packing>
+            <property name="name">player</property>
+            <property name="title">Player</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

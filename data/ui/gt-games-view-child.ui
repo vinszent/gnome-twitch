@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtGamesViewChild" parent="GtkFlowBoxChild">
+    <style>
+      <class name="gt-games-view-child"/>
+    </style>
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkEventBox" id="event_box">
+            <property name="visible">True</property>
+            <property name="width-request">200</property>
+            <property name="halign">center</property>
+            <signal name="enter-notify-event" handler="motion_enter_cb"/>
+            <signal name="leave-notify-event" handler="motion_leave_cb"/>
+            <child>
+              <object class="GtkOverlay">
+                <property name="visible">True</property>
+                <child type="overlay">
+                  <object class="GtkRevealer" id="middle_revealer">
+                    <property name="visible">True</property>
+                    <property name="transition-type">crossfade</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <style>
+                          <class name="overlay-box"/>
+                        </style>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="icon-name">mail-reply-sender</property> 
+                            <property name="icon-size">5</property>
+                            <property name="halign">center</property>
+                            <property name="valign">center</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImage" id="preview_image">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="name_label">
+            <property name="visible">True</property>
+            <property name="wrap">True</property>
+            <attributes>
+              <attribute name="size" value="13000"/>
+            </attributes>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
