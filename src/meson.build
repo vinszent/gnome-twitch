@@ -16,4 +16,4 @@ src = ['main.c', 'gt-app.c', 'gt-win.c', 'gt-twitch.c', 'gt-twitch-stream.c',
        'gt-games-view.c', 'gt-games-view-child.c', 'utils.c', res]
 
 
-executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, gst_dep, gst_video_dep], install : true)
+executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, gst_dep, gst_video_dep], install : true, c_args : '-Wno-unused-variable')
