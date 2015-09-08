@@ -10,6 +10,8 @@ typedef struct
     GtkWidget* fullscreen_bar_revealer;
     GtkWidget* fullscreen_bar;
 
+    GtkWidget* player_box;
+
     GstElement* playbin;
 
     gboolean playing;
@@ -20,7 +22,7 @@ typedef struct
     GtTwitchStream* twitch_stream;
 } GtPlayerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_EVENT_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_OVERLAY)
 
 enum 
 {
@@ -63,12 +65,12 @@ fullscreen_cb(GtkWidget* widget,
     if (fullscreen)
     {
         gtk_widget_set_visible(priv->fullscreen_bar_revealer, TRUE);
-        g_signal_handler_unblock(self, priv->motion_notify_hndl_id);
+        g_signal_handler_unblock(priv->player_box, priv->motion_notify_hndl_id);
     }
     else
     {
         gtk_widget_set_visible(priv->fullscreen_bar_revealer, FALSE);
-        g_signal_handler_block(self, priv->motion_notify_hndl_id);
+        g_signal_handler_block(priv->player_box, priv->motion_notify_hndl_id);
     }
 }
 
@@ -174,6 +176,7 @@ gt_player_class_init(GtPlayerClass* klass)
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), unfullscreen_button_cb);
 
     props[PROP_PLAYING] = g_param_spec_boolean("playing",
@@ -239,14 +242,14 @@ gt_player_init(GtPlayer* self)
     if (visual)
         gtk_widget_set_visual(GTK_WIDGET(self), visual);
 
-    gtk_widget_add_events(GTK_WIDGET(self), GDK_POINTER_MOTION_MASK);
+    gtk_widget_add_events(GTK_WIDGET(priv->player_box), GDK_POINTER_MOTION_MASK);
 
-    g_signal_connect(self, "realize", G_CALLBACK(realize_cb), self);
-    priv->motion_notify_hndl_id = g_signal_connect(self,
+    g_signal_connect(priv->player_box, "realize", G_CALLBACK(realize_cb), self);
+    priv->motion_notify_hndl_id = g_signal_connect(priv->player_box,
                                                    "motion-notify-event",
                                                    G_CALLBACK(motion_notify_cb),
                                                    self);
-    g_signal_handler_block(self, priv->motion_notify_hndl_id);
+    g_signal_handler_block(priv->player_box, priv->motion_notify_hndl_id);
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
 }
