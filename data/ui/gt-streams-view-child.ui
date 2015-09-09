@@ -30,6 +30,7 @@
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
                         <style>
                           <class name="overlay-box"/>
                         </style>
@@ -39,10 +40,55 @@
                             <property name="icon-name">media-playback-start</property> 
                             <property name="icon-size">5</property>
                             <property name="halign">center</property>
-                          </object>
-                          <packing>
+                            <property name="valign">center</property>
                             <property name="expand">True</property>
-                          </packing>
+                            <style>
+                              <class name="play-image"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="spacing">7</property>
+                            <style>
+                              <class name="info-box"/>
+                            </style>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="icon-name">system-users-symbolic</property> 
+                                <style>
+                                  <class name="info-image"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="viewers_label">
+                                <property name="visible">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="icon-name">camera-web-symbolic</property> 
+                                <style>
+                                  <class name="info-image"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="pack-type">end</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="time_label">
+                                <property name="visible">True</property>
+                              </object>
+                              <packing>
+                                <property name="pack-type">end</property>
+                              </packing>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>

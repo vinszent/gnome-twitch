@@ -13,6 +13,7 @@ typedef struct
     GdkPixbuf* preview;
 
     gint64 viewers;
+    GDateTime* created_at; 
 } GtTwitchStreamPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchStream, gt_twitch_stream, G_TYPE_OBJECT)
@@ -26,6 +27,8 @@ enum
     PROP_NAME,
     PROP_DISPLAY_NAME,
     PROP_PREVIEW,
+    PROP_VIEWERS,
+    PROP_CREATED_AT,
     NUM_PROPS
 };
 
@@ -84,6 +87,12 @@ get_property (GObject*    obj,
         case PROP_PREVIEW:
             g_value_set_object(val, priv->preview);
             break;
+        case PROP_VIEWERS:
+            g_value_set_int64(val, priv->viewers);
+            break;
+        case PROP_CREATED_AT:
+            g_value_set_pointer(val, priv->created_at);
+            break;    
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -130,6 +139,12 @@ set_property(GObject*      obj,
             utils_pixbuf_scale_simple(&priv->preview,
                                       320, 180,
                                       GDK_INTERP_BILINEAR);
+            break;
+        case PROP_VIEWERS:
+            priv->viewers = g_value_get_int64(val);
+            break;
+        case PROP_CREATED_AT:
+            priv->created_at = g_value_get_pointer(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -178,6 +193,15 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
                                               "Preview of stream",
                                               GDK_TYPE_PIXBUF,
                                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_VIEWERS] = g_param_spec_int64("viewers",
+                                             "Viewers",
+                                             "Number of viewers",
+                                             0, G_MAXINT64, 0,
+                                             G_PARAM_READWRITE);
+    props[PROP_CREATED_AT] = g_param_spec_pointer("created-at",
+                                                  "Created At",
+                                                  "Created at",
+                                                  G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,

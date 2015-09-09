@@ -96,6 +96,20 @@ gt_twitch_init(GtTwitch* self)
     priv->soup = soup_session_new();
 }
 
+static GDateTime*
+parse_time(const gchar* time)
+{
+    GDateTime* ret = NULL;
+
+    gint year, month, day, hour, min, sec;
+
+    sscanf(time, "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &min, &sec);
+
+    ret = g_date_time_new_utc(year, month, day, hour, min, sec);
+
+    return ret;
+}
+
 static GList*
 parse_playlist(const gchar* playlist)
 {
@@ -301,6 +315,14 @@ gt_twitch_top_streams(GtTwitch* self, gint n, gint offset, gchar* game)
         json_reader_read_member(reader, "_id");
         stream = gt_twitch_stream_new(json_reader_get_int_value(reader));
         g_object_force_floating(G_OBJECT(stream));
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "viewers");
+        g_object_set(stream, "viewers", json_reader_get_int_value(reader), NULL);
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "created_at");
+        g_object_set(stream, "created_at", parse_time(json_reader_get_string_value(reader)), NULL);
         json_reader_end_member(reader);
 
         json_reader_read_member(reader, "channel");
@@ -572,6 +594,10 @@ gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset)
         json_reader_read_member(reader, "_id");
         stream = gt_twitch_stream_new(json_reader_get_int_value(reader));
         g_object_force_floating(G_OBJECT(stream));
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "viewers");
+        g_object_set(stream, "viewers", json_reader_get_int_value(reader), NULL);
         json_reader_end_member(reader);
 
         json_reader_read_member(reader, "channel");

@@ -10,6 +10,8 @@ typedef struct
     GtkWidget* game_label;
     GtkWidget* event_box;
     GtkWidget* middle_revealer;
+    GtkWidget* viewers_label;
+    GtkWidget* time_label;
 } GtStreamsViewChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtStreamsViewChild, gt_streams_view_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -110,20 +112,36 @@ constructed(GObject* obj)
     GdkPixbuf* preview;
     gchar* name;
     gchar* game;
+    gint64 viewers;
+    GDateTime* created_at;
+    GDateTime* now;
+    GTimeSpan dif;
 
     g_object_get(priv->stream, 
                  "preview", &preview, 
                  "display-name", &name,
                  "game", &game,
+                 "viewers", &viewers,
+                 "created-at", &created_at,
                  NULL);
+
+    now = g_date_time_new_now_utc();
+    dif = g_date_time_difference(now, created_at);
 
     gtk_label_set_label(GTK_LABEL(priv->name_label), name);
     gtk_label_set_label(GTK_LABEL(priv->game_label), game);
+    gtk_label_set_label(GTK_LABEL(priv->viewers_label), viewers > 1e4 ? 
+                        g_strdup_printf("%2.1fk", (double) viewers / 1e3) : 
+                        g_strdup_printf("%ld", viewers)); //TODO: Too lazy now, but the printf needs to be freed
+    gtk_label_set_label(GTK_LABEL(priv->time_label), dif > 3.6*1e9 ?
+                        g_strdup_printf("%2.1fh", (double) dif / 3.6e9) :
+                        g_strdup_printf("%ldm", dif / (gint64) 6e7));
     gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview);
 
     g_object_unref(preview);
     g_free(name);
     g_free(game);
+    g_date_time_unref(now);
 
     G_OBJECT_CLASS(gt_streams_view_child_parent_class)->constructed(obj);
 }
@@ -158,6 +176,8 @@ gt_streams_view_child_class_init(GtStreamsViewChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, game_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, event_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, middle_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, viewers_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, time_label);
 }
 
 static void
