@@ -1,7 +1,7 @@
 #TODO
 
 ## Bugs
-* Need to put fullscreen bar in something that has its own window. Otherwise it tries to draw on the player's window which then gets over written by the player.
+[x] FIXED in #1. Need to put fullscreen bar in something that has its own window. Otherwise it tries to draw on the player's window which then gets over written by the player. 
 
 ## Roadmap
 * Settings!
