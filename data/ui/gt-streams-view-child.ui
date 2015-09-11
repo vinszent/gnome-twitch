@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtStreamsViewChild" parent="GtkFlowBoxChild">
+    <property name="valign">start</property>
     <style>
       <class name="gt-streams-view-child"/>
     </style>
@@ -17,6 +18,7 @@
             <signal name="leave-notify-event" handler="motion_leave_cb"/>
             <child>
               <object class="GtkOverlay">
+                <property name="height-request">180</property>
                 <property name="visible">True</property>
                 <child>
                   <object class="GtkImage" id="preview_image">
