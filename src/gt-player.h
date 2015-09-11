@@ -17,7 +17,7 @@ struct _GtPlayer
 };
 
 GtPlayer* gt_player_new(void);
-void gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream, GtTwitchStreamQuality qual);
+void gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream);
 void gt_player_play(GtPlayer* self);
 void gt_player_pause(GtPlayer* self);
 void gt_player_stop(GtPlayer* self);

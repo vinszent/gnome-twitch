@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <enum id="com.gnome-twitch.GtTwitchStreamQuality">
+    <value nick="source" value='0'/>
+    <value nick="high" value='1'/>
+    <value nick="medium" value='2'/>
+    <value nick="low" value='3'/>
+  </enum>
+  <schema path="/com/gnome-twitch/app/" id="com.gnome-twitch.app">
+    <key name="default-quality" enum="com.gnome-twitch.GtTwitchStreamQuality">
+      <default>"source"</default>
+      <summary>Default quality</summary>
+      <description>Default quality selected when opening a stream</description>
+    </key>
+  </schema>
+</schemalist>
+

@@ -12,6 +12,8 @@ typedef struct
 
     GtkWidget* player_box;
 
+    GSettings* settings;
+
     GstElement* playbin;
 
     gboolean playing;
@@ -252,12 +254,12 @@ gt_player_init(GtPlayer* self)
     g_signal_handler_block(priv->player_box, priv->motion_notify_hndl_id);
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
+    priv->settings = g_settings_new("com.gnome-twitch.app");
 }
 
 
 void
-/* gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStreamData* stream) */
-gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream, GtTwitchStreamQuality qual)
+gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     gchar* status;
@@ -266,6 +268,10 @@ gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream, GtTwitchStr
     gchar* token;
     gchar* sig;
     GtTwitchStreamData* stream_data;
+    GVariant* default_quality;
+    GtTwitchStreamQuality _default_quality;
+    GAction* quality_action;
+    GtWin* win;
 
     priv->twitch_stream = stream;
 
@@ -275,13 +281,20 @@ gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream, GtTwitchStr
                  "status", &status,
                  NULL);
 
+    default_quality = g_settings_get_value(priv->settings, "default-quality");
+    _default_quality = g_settings_get_enum(priv->settings, "default-quality");
+
+    win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
+    quality_action = g_action_map_lookup_action(G_ACTION_MAP(win), "player_set_quality");
+    g_action_change_state(quality_action, default_quality);
+
     gtk_header_bar_set_title(GTK_HEADER_BAR(priv->fullscreen_bar), status);
     gtk_header_bar_set_subtitle(GTK_HEADER_BAR(priv->fullscreen_bar), display_name);
 
     gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
     stream_data = gt_twitch_stream_by_quality(main_app->twitch,
                                               name,
-                                              qual,
+                                              _default_quality,
                                               token, sig);
 
     g_object_set(priv->playbin, "uri", stream_data->url, NULL);

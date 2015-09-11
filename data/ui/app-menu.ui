@@ -4,7 +4,7 @@
     <section>
       <item>
         <attribute name="label">Settings</attribute>
-        <attribute name="action"></attribute>
+        <attribute name="action">win.show_settings</attribute>
       </item>
     </section>
     <section>

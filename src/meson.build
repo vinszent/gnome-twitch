@@ -13,7 +13,8 @@ res = gnome.compile_resources('gt-resources', '../data/gnome-twitch.gresource.xm
 src = ['main.c', 'gt-app.c', 'gt-win.c', 'gt-twitch.c', 'gt-twitch-stream.c',
        'gt-player.c', 'gt-streams-view.c', 'gt-streams-view-child.c', 
        'gt-player-header-bar.c', 'gt-browse-header-bar.c', 'gt-twitch-game.c',
-       'gt-games-view.c', 'gt-games-view-child.c', 'utils.c', res]
+       'gt-games-view.c', 'gt-games-view-child.c', 'gt-settings-dlg.c', 
+       'gt-enums.c', 'utils.c', res]
 
 
 executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, gst_dep, gst_video_dep], install : true, c_args : '-Wno-unused-variable')

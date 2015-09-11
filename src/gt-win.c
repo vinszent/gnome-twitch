@@ -7,6 +7,8 @@
 #include "gt-browse-header-bar.h"
 #include "gt-streams-view.h"
 #include "gt-games-view.h"
+#include "gt-settings-dlg.h"
+#include "gt-enums.h"
 #include "utils.h"
 #include "config.h"
 
@@ -20,6 +22,8 @@ typedef struct
     GtkWidget* browse_stack;
     GtkWidget* player_header_bar;
     GtkWidget* browse_header_bar;
+
+    GtSettingsDlg* settings_dlg;
 
     gboolean fullscreen;
 } GtWinPrivate;
@@ -52,19 +56,18 @@ player_set_quality_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GEnumClass* eclass;
 
-    gchar* qual = g_variant_dup_string(par, NULL);
+    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
 
-    if (g_strcmp0(qual, "source") == 0)
-        gt_player_set_quality(GT_PLAYER(priv->player), GT_TWITCH_STREAM_QUALITY_SOURCE);
-    else if (g_strcmp0(qual, "high") == 0)
-        gt_player_set_quality(GT_PLAYER(priv->player), GT_TWITCH_STREAM_QUALITY_HIGH);
-    else if (g_strcmp0(qual, "medium") == 0)
-        gt_player_set_quality(GT_PLAYER(priv->player), GT_TWITCH_STREAM_QUALITY_MEDIUM);
-    else if (g_strcmp0(qual, "low") == 0)
-        gt_player_set_quality(GT_PLAYER(priv->player), GT_TWITCH_STREAM_QUALITY_LOW);
+    GEnumValue* qual = g_enum_get_value_by_nick(eclass, 
+                                                g_variant_get_string(par, NULL));
+
+    gt_player_set_quality(GT_PLAYER(priv->player), qual->value);
 
     g_simple_action_set_state(action, par);
+
+    g_type_class_unref(eclass);
 }
 
 static void
@@ -88,10 +91,22 @@ show_about_cb(GSimpleAction* action,
                           NULL);
 }
 
+static void
+show_settings_cb(GSimpleAction* action,
+                 GVariant* par,
+                 gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gtk_window_present(GTK_WINDOW(priv->settings_dlg));
+}
+
 static GActionEntry win_actions[] = 
 {
     {"player_set_quality", player_set_quality_cb, "s", "'source'", NULL},
-    {"show_about", show_about_cb, NULL, NULL, NULL}
+    {"show_about", show_about_cb, NULL, NULL, NULL},
+    {"show_settings", show_settings_cb, NULL, NULL, NULL}
 };
 
 static void
@@ -225,6 +240,9 @@ gt_win_init(GtWin* self)
     GT_TYPE_STREAMS_VIEW;
     GT_TYPE_GAMES_VIEW;
 
+    priv->settings_dlg = gt_settings_dlg_new(self);
+    g_object_ref(priv->settings_dlg);
+
     gtk_widget_init_template(GTK_WIDGET(self));
 
     g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
@@ -264,14 +282,7 @@ gt_win_open_twitch_stream(GtWin* self, GtTwitchStream* chan)
                  NULL);
 
 
-    /* gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig); */
-
-    /* gt_player_open_twitch_stream(GT_PLAYER(priv->player),  */
-                                 /* gt_twitch_stream_by_quality(main_app->twitch, */
-                                                             /* name, */
-                                                             /* GT_TWITCH_STREAM_QUALITY_SOURCE, */
-                                                             /* token, sig)); */
-    gt_player_open_twitch_stream(GT_PLAYER(priv->player), chan, GT_TWITCH_STREAM_QUALITY_SOURCE);
+    gt_player_open_twitch_stream(GT_PLAYER(priv->player), chan);
 
     g_free(name);
     g_free(status);
