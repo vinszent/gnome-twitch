@@ -248,6 +248,7 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
+    gtk_style_context_remove_class(gtk_widget_get_style_context(priv->volume_button), GTK_STYLE_CLASS_FLAT);
 
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
     g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
