@@ -28,11 +28,11 @@
             <child>
               <object class="GtkFlowBox" id="games_flow">
                 <property name="visible">True</property>
-                <property name="activate-on-single-click">True</property>
                 <property name="selection-mode">none</property>
                 <property name="hexpand">True</property>
                 <property name="row-spacing">10</property>
                 <property name="column-spacing">10</property>
+                <property name="homogeneous">True</property>
               </object>
             </child> 
             <child>
