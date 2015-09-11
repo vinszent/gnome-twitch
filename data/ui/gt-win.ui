@@ -2,8 +2,8 @@
 <interface>
   <template class="GtWin" parent="GtkApplicationWindow">
     <property name="title">Gnome Twitch</property>
-    <property name="default-height">900</property>
-    <property name="default-width">1300</property>
+    <property name="default-height">710</property>
+    <property name="default-width">1050</property>
     <child type="titlebar">
       <object class="GtkStack" id="header_stack">
         <property name="visible">True</property>
