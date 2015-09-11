@@ -16,12 +16,16 @@ g_value_dup_string_allow_null(const GValue* val)
 {
     if (g_value_get_string(val))
         return g_value_dup_string(val);
+
+    return NULL;
 }
 
 void
 gtk_container_clear(GtkContainer* cont)
 {
-    for(GList* l = gtk_container_get_children(cont);
+    GList* l = NULL;
+
+    for(l = gtk_container_get_children(cont);
         l != NULL; l = l->next)
     {
         gtk_container_remove(cont, GTK_WIDGET(l->data));

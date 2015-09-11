@@ -292,9 +292,10 @@ gt_streams_view_init(GtStreamsView* self)
 void
 gt_streams_view_append_streams(GtStreamsView* self, GList* streams)
 {
+    GList* l = NULL;
     GtStreamsViewPrivate* priv = gt_streams_view_get_instance_private(self);
 
-    for (GList* l = streams; l != NULL; l = l->next)
+    for (l = streams; l != NULL; l = l->next)
     {
         GtStreamsViewChild* child = gt_streams_view_child_new(GT_TWITCH_STREAM(l->data));
         gtk_widget_show_all(GTK_WIDGET(child));

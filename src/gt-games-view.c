@@ -278,9 +278,10 @@ gt_games_view_init(GtGamesView* self)
 void
 gt_games_view_append_games(GtGamesView* self, GList* games)
 {
+    GList* l = NULL;
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    for (GList* l = games; l != NULL; l = l->next)
+    for (l = games; l != NULL; l = l->next)
     {
         GtGamesViewChild* child = gt_games_view_child_new(GT_TWITCH_GAME(l->data));
         gtk_widget_show_all(GTK_WIDGET(child));
