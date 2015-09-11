@@ -600,6 +600,10 @@ gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset)
         g_object_set(stream, "viewers", json_reader_get_int_value(reader), NULL);
         json_reader_end_member(reader);
 
+        json_reader_read_member(reader, "created_at");
+        g_object_set(stream, "created-at", parse_time(json_reader_get_string_value(reader)), NULL);
+        json_reader_end_member(reader);
+
         json_reader_read_member(reader, "channel");
 
         json_reader_read_member(reader, "status");
