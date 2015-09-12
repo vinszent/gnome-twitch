@@ -57,6 +57,7 @@
           <object class="GtkLabel" id="name_label">
             <property name="visible">True</property>
             <property name="wrap">True</property>
+            <property name="max-width-chars">12</property>
             <attributes>
               <attribute name="size" value="13000"/>
             </attributes>
