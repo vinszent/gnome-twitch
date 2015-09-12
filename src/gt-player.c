@@ -174,7 +174,7 @@ gt_player_class_init(GtPlayerClass* klass)
     object_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-player.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-player.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar);

@@ -28,9 +28,17 @@ gt_app_new(void)
 {
     return g_object_new(GT_TYPE_APP, 
                         "application-id", "com.gnome-twitch.app",
+                        "flags", G_APPLICATION_NON_UNIQUE,
                         NULL);
 }
 
+static void
+show_settings_dialog_cb(GSimpleAction* action,
+                        GVariant* par,
+                        gpointer udata)
+{
+
+}
 
 static void
 quit_cb(GSimpleAction* action,
@@ -44,6 +52,7 @@ quit_cb(GSimpleAction* action,
 
 static GActionEntry app_actions[] = 
 {
+    {"show_settings_dialog", show_settings_dialog_cb, NULL, NULL, NULL},
     {"quit", quit_cb, NULL, NULL, NULL}
 };
 
@@ -55,17 +64,16 @@ activate(GApplication* app)
     GtkBuilder* menu_bld;
     GMenuModel* app_menu;
 
+    priv->win = gt_win_new(self);
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     app_actions,
                                     G_N_ELEMENTS(app_actions),
                                     self);
 
-    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
+    menu_bld = gtk_builder_new_from_resource("/org/gnome/gnome-twitch/ui/app-menu.ui");
     app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
-    gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(app_menu));
+    gtk_application_set_app_menu(GTK_APPLICATION(app), app_menu);
     g_object_unref(menu_bld);
-
-    priv->win = gt_win_new(self);
 
     gtk_window_present(GTK_WINDOW(priv->win));
 }
@@ -139,7 +147,4 @@ gt_app_init(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     self->twitch = gt_twitch_new();
-
-    /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
-    /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
 }
