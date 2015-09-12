@@ -33,6 +33,8 @@ finalize(GObject* object)
     GtSettingsDlg* self = (GtSettingsDlg*) object;
     GtSettingsDlgPrivate* priv = gt_settings_dlg_get_instance_private(self);
 
+    g_object_unref(priv->settings);
+
     G_OBJECT_CLASS(gt_settings_dlg_parent_class)->finalize(object);
 }
 

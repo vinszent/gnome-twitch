@@ -23,8 +23,6 @@ typedef struct
     GtkWidget* player_header_bar;
     GtkWidget* browse_header_bar;
 
-    GtSettingsDlg* settings_dlg;
-
     gboolean fullscreen;
 } GtWinPrivate;
 
@@ -86,8 +84,10 @@ show_about_cb(GSimpleAction* action,
                           "authors", &authors,
                           "license-type", GTK_LICENSE_GPL_3_0,
                           "copyright", "Copyright © 2015 Vincent Szolnoky",
-                          "comments", "GNOME app for accessing twitch.tv",
+                          "comments", "Enjoy Twitch on your GNOME desktop",
                           "logo-icon-name", "gnome-twitch",
+                          "website", "https://github.com/Ippytraxx/gnome-twitch",
+                          "website-label", "Github",
                           NULL);
 }
 
@@ -99,7 +99,9 @@ show_settings_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    gtk_window_present(GTK_WINDOW(priv->settings_dlg));
+    GtSettingsDlg* settings_dlg = gt_settings_dlg_new(self);
+
+    gtk_window_present(GTK_WINDOW(settings_dlg));
 }
 
 static GActionEntry win_actions[] = 
@@ -240,8 +242,6 @@ gt_win_init(GtWin* self)
     GT_TYPE_STREAMS_VIEW;
     GT_TYPE_GAMES_VIEW;
 
-    priv->settings_dlg = gt_settings_dlg_new(self);
-    g_object_ref(priv->settings_dlg);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
