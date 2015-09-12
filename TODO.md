@@ -5,14 +5,14 @@
 
 ## Roadmap
 * Settings!
-  * Quality
-  * Volume
+  * DONE ~~Quality~~
+  * DONE ~~Volume~~
   * Window size
 * Add extra info to games and streams
-  * Viewer count
-  * Time online
-  * Follow count
-* Favourite streams
+  * DONE ~~Viewer count~~
+  * DONE ~~Time online~~
+  * Follow count (maybe put this in a popup somewhere?)
+* CURRENTLY WORKING ON Favourite streams 
   * Notifications when one comes online
 * Followed streams (requires logging in)
 * Chat (requires logging in)
