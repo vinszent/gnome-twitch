@@ -25,7 +25,7 @@ mesonconf -Dprefix=/usr
 ninja install
 ```
 ### Distro packages
-Soon
+* [Arch linux]("https://aur4.archlinux.org/packages/gnome-twitch-git/")
 
 ## Screenshots
 ![](/data/screenshots/scrot_streams.png?raw=true)
