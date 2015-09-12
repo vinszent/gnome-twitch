@@ -9,6 +9,11 @@
     padding-top: 30px; /* FIXME: Roughly centered fix later*/
 }
 
+.gt-streams-view-child .overlay-box .label
+{
+    color: rgba(109, 115, 128, 1);
+}
+
 .gt-streams-view-child .overlay-box .info-image
 {
     color: rgba(109, 115, 128, 1);
