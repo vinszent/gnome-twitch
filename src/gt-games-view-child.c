@@ -146,7 +146,7 @@ gt_games_view_child_class_init(GtGamesViewChildClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-games-view-child.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-games-view-child.ui");
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesViewChild, preview_image);

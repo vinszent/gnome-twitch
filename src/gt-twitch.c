@@ -113,10 +113,12 @@ parse_time(const gchar* time)
 static GList*
 parse_playlist(const gchar* playlist)
 {
+    gchar **l = NULL;
+    gchar **m = NULL;
     GList* ret = NULL;
     gchar** lines = g_strsplit(playlist, "\n", 0);
 
-    for (gchar** l = lines; *l != NULL; l++)
+    for (l = lines; *l != NULL; l++)
     {
         if (strncmp(*l, STREAM_INFO, strlen(STREAM_INFO)) == 0)
         {
@@ -125,7 +127,7 @@ parse_playlist(const gchar* playlist)
 
             gchar** values = g_strsplit(*l, ",", 0);
 
-            for (gchar** m = values; *m != NULL; m++)
+            for (m = values; *m != NULL; m++)
             {
                 gchar** split = g_strsplit(*m, "=", 0);
 
@@ -267,9 +269,10 @@ gt_twitch_stream_by_quality(GtTwitch* self,
                             GtTwitchStreamQuality qual, 
                             gchar* token, gchar* sig)
 {
+    GList* l = NULL;
     GList* streams = gt_twitch_all_streams(self, stream, token, sig);
 
-    for (GList* l = streams; l != NULL; l = l->next)
+    for (l = streams; l != NULL; l = l->next)
     {
         GtTwitchStreamData* s = (GtTwitchStreamData*) l->data;
 
@@ -285,14 +288,15 @@ gt_twitch_stream_by_quality(GtTwitch* self,
 GList*
 gt_twitch_top_streams(GtTwitch* self, gint n, gint offset, gchar* game)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
+    gint i;
     gchar* uri;
+    SoupMessage* msg;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
     JsonArray* streams;
     GList* ret = NULL;
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     uri = g_strdup_printf(TOP_STREAMS_URI, n, offset, game); //TODO: Add game argument
     msg = soup_message_new("GET", uri);
@@ -306,7 +310,7 @@ gt_twitch_top_streams(GtTwitch* self, gint n, gint offset, gchar* game)
 
     json_reader_read_member(reader, "streams");
 
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    for (i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchStream* stream;
 
@@ -379,14 +383,15 @@ GList*
 gt_twitch_top_games(GtTwitch* self,
                     gint n, gint offset)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
+    gint i;
     gchar* uri;
+    SoupMessage* msg;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
     JsonArray* streams;
     GList* ret = NULL;
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     uri = g_strdup_printf(TOP_GAMES_URI, n, offset);
     msg = soup_message_new("GET", uri);
@@ -400,7 +405,7 @@ gt_twitch_top_games(GtTwitch* self,
 
     json_reader_read_member(reader, "top");
 
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    for (i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchGame* game;
 
@@ -519,6 +524,8 @@ gt_twitch_top_streams_async(GtTwitch* self, gint n, gint offset, gchar* game,
     g_task_run_in_thread(task, top_streams_async_cb);
 
     g_object_unref(task);
+
+    return NULL;
 }
 
 static void
@@ -560,19 +567,22 @@ gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset,
     g_task_run_in_thread(task, top_games_async_cb);
 
     g_object_unref(task);
+
+    return NULL;
 }
 
 GList*
 gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
+    gint i;
     gchar* uri;
+    SoupMessage* msg;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
     JsonArray* streams;
     GList* ret = NULL;
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     uri = g_strdup_printf(SEARCH_STREAMS_URI, query, n, offset);
     msg = soup_message_new("GET", uri);
@@ -585,7 +595,7 @@ gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset)
     reader = json_reader_new(node);
 
     json_reader_read_member(reader, "streams");
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    for (i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchStream* stream;
 
@@ -656,14 +666,15 @@ gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset)
 GList*
 gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
+    gint i;
     gchar* uri;
+    SoupMessage* msg;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
     JsonArray* streams;
     GList* ret = NULL;
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     uri = g_strdup_printf(SEARCH_GAMES_URI, query);
     msg = soup_message_new("GET", uri);
@@ -676,7 +687,7 @@ gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset)
     reader = json_reader_new(node);
 
     json_reader_read_member(reader, "games");
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    for (i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchGame* game;
 

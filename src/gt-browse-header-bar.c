@@ -145,7 +145,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-browse-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, home_button_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_button_cb);

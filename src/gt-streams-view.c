@@ -256,7 +256,7 @@ gt_streams_view_class_init(GtStreamsViewClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-streams-view.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-streams-view.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsView, streams_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsView, streams_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsView, search_bar);
@@ -292,9 +292,10 @@ gt_streams_view_init(GtStreamsView* self)
 void
 gt_streams_view_append_streams(GtStreamsView* self, GList* streams)
 {
+    GList* l = NULL;
     GtStreamsViewPrivate* priv = gt_streams_view_get_instance_private(self);
 
-    for (GList* l = streams; l != NULL; l = l->next)
+    for (l = streams; l != NULL; l = l->next)
     {
         GtStreamsViewChild* child = gt_streams_view_child_new(GT_TWITCH_STREAM(l->data));
         gtk_widget_show_all(GTK_WIDGET(child));

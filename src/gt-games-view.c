@@ -245,7 +245,7 @@ gt_games_view_class_init(GtGamesViewClass* klass)
     object_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-games-view.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-games-view.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_bar);
@@ -278,9 +278,10 @@ gt_games_view_init(GtGamesView* self)
 void
 gt_games_view_append_games(GtGamesView* self, GList* games)
 {
+    GList* l = NULL;
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    for (GList* l = games; l != NULL; l = l->next)
+    for (l = games; l != NULL; l = l->next)
     {
         GtGamesViewChild* child = gt_games_view_child_new(GT_TWITCH_GAME(l->data));
         gtk_widget_show_all(GTK_WIDGET(child));

@@ -218,7 +218,7 @@ gt_win_class_init(GtWinClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-win.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-win.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, main_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, streams_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, games_view);
@@ -253,7 +253,7 @@ gt_win_init(GtWin* self)
 
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
-    gtk_css_provider_load_from_resource(css, "/com/gnome-twitch/gnome-twitch-style.css");
+    gtk_css_provider_load_from_resource(css, "/org/gnome/gnome-twitch/gnome-twitch-style.css");
     gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);

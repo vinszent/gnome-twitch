@@ -157,7 +157,7 @@ gt_streams_view_child_class_init(GtStreamsViewChildClass* klass)
     object_class->constructed = constructed;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-streams-view-child.ui");
+                                                "/org/gnome/gnome-twitch/ui/gt-streams-view-child.ui");
 
     props[PROP_TWITCH_STREAM] = g_param_spec_object("twitch-stream",
                                                      "Twitch stream",
