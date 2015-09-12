@@ -12,6 +12,9 @@
       <summary>Default quality</summary>
       <description>Default quality selected when opening a stream</description>
     </key>
+    <key name="volume" type="d">
+      <default>0.3</default>
+    </key>
   </schema>
 </schemalist>
 

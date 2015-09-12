@@ -130,7 +130,7 @@ get_property (GObject*    obj,
             g_value_set_boolean(val, priv->playing);
             break;
         case PROP_VOLUME:
-            g_value_set_double(val, priv->playing);
+            g_value_set_double(val, priv->volume);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -255,6 +255,10 @@ gt_player_init(GtPlayer* self)
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
     priv->settings = g_settings_new("com.gnome-twitch.app");
+
+    g_settings_bind(priv->settings, "volume",
+                    self, "volume",
+                    G_SETTINGS_BIND_DEFAULT);
 }
 
 

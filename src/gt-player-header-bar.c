@@ -183,9 +183,9 @@ realize(GtkWidget* widget,
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
     GtkWidget* toplevel;
 
-    g_object_bind_property(priv->volume_button, "value",
-                           priv->player, "volume",
-                           G_BINDING_BIDIRECTIONAL);
+    g_object_bind_property(priv->player, "volume",
+                           priv->volume_button, "value",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
     toplevel = gtk_widget_get_toplevel(GTK_WIDGET(self));
 
