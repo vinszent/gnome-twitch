@@ -1,5 +1,10 @@
-gnome = import('gnome')
-
 install_data('gnome-twitch.desktop', install_dir : 'share/applications')
-install_data('gnome-twitch.png', install_dir : 'share/icons/hicolor/256x256/apps')
+install_data('icons/hicolor/16x16/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/22x22/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/24x24/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/32x32/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/48x48/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/256x256/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/512x512/apps/gnome-twitch.png', install_dir : 'share')
+install_data('icons/hicolor/scalable/apps/gnome-twitch.svg', install_dir : 'share')
 install_data('gnome-twitch.gschema.xml', install_dir : 'share/glib-2.0/schemas/')
