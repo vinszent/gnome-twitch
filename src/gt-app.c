@@ -27,7 +27,7 @@ GtApp*
 gt_app_new(void)
 {
     return g_object_new(GT_TYPE_APP, 
-                        "application-id", "com.gnome-twitch.app",
+                        "application-id", "org.gnome.gnome-twitch.app",
                         "flags", G_APPLICATION_NON_UNIQUE,
                         NULL);
 }

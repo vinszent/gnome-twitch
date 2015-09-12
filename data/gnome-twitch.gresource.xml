@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-    <gresource prefix="/com/gnome-twitch">
+    <gresource prefix="/org/gnome/gnome-twitch">
       <file preprocess="xml-stripblanks">ui/gt-win.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-streams-view.ui</file>

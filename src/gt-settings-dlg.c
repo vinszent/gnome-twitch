@@ -89,7 +89,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-settings-dlg.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/org/gnome/gnome-twitch/ui/gt-settings-dlg.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
 }
 
@@ -100,7 +100,7 @@ gt_settings_dlg_init(GtSettingsDlg* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    priv->settings = g_settings_new("com.gnome-twitch.app");
+    priv->settings = g_settings_new("org.gnome.gnome-twitch.app");
 
     g_settings_bind(priv->settings, "default-quality",
                     priv->quality_combo, "active-id",

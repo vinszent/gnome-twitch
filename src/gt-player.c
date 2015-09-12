@@ -254,7 +254,7 @@ gt_player_init(GtPlayer* self)
     g_signal_handler_block(priv->player_box, priv->motion_notify_hndl_id);
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
-    priv->settings = g_settings_new("com.gnome-twitch.app");
+    priv->settings = g_settings_new("org.gnome.gnome-twitch.app");
 }
 
 
