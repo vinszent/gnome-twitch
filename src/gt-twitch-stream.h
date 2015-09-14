@@ -15,6 +15,7 @@ struct _GtTwitchStream
 };
 
 GtTwitchStream* gt_twitch_stream_new(gint64 id);
+void gt_twitch_stream_toggle_favourited(GtTwitchStream* self);
 void gt_twitch_stream_free_list(GList* list);
 
 G_END_DECLS

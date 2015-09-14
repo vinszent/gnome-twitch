@@ -4,11 +4,6 @@
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-.gt-streams-view-child .overlay-box .play-image
-{
-    padding-top: 30px; /* FIXME: Roughly centered fix later*/
-}
-
 .gt-streams-view-child .overlay-box .label
 {
     color: rgba(109, 115, 128, 1);
@@ -18,4 +13,21 @@
 {
     color: rgba(109, 115, 128, 1);
     padding: 7px;
+}
+
+.gt-streams-view-child .overlay-box .favourite-button
+{
+    background-color: rgba(0, 0, 0, 0);
+    border-style: none;
+}
+
+.gt-streams-view-child .overlay-box .favourite-button:not(.favourited):hover GtkImage
+{
+    transition: 150ms ease-in-out;
+    color: gold;
+}
+
+.gt-streams-view-child .overlay-box .favourite-button.favourited GtkImage
+{
+    color: gold;
 }

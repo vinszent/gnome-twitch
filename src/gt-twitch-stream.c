@@ -14,6 +14,9 @@ typedef struct
 
     gint64 viewers;
     GDateTime* created_at; 
+
+    gboolean favourited;
+    gboolean online;
 } GtTwitchStreamPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchStream, gt_twitch_stream, G_TYPE_OBJECT)
@@ -29,6 +32,8 @@ enum
     PROP_PREVIEW,
     PROP_VIEWERS,
     PROP_CREATED_AT,
+    PROP_FAVOURITED,
+    PROP_ONLINE,
     NUM_PROPS
 };
 
@@ -52,6 +57,8 @@ finalize(GObject* object)
     g_free(priv->display_name);
     g_free(priv->game);
     g_free(priv->status);
+
+    g_date_time_unref(priv->created_at);
 
     g_clear_object(&priv->preview);
 
@@ -93,6 +100,12 @@ get_property (GObject*    obj,
         case PROP_CREATED_AT:
             g_value_set_pointer(val, priv->created_at);
             break;    
+        case PROP_FAVOURITED:
+            g_value_set_boolean(val, priv->favourited);
+            break;
+        case PROP_ONLINE:
+            g_value_set_boolean(val, priv->online);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -145,6 +158,12 @@ set_property(GObject*      obj,
             break;
         case PROP_CREATED_AT:
             priv->created_at = g_value_get_pointer(val);
+            break;
+        case PROP_FAVOURITED:
+            priv->favourited = g_value_get_boolean(val);
+            break;
+        case PROP_ONLINE:
+            priv->online = g_value_get_boolean(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -202,6 +221,16 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
                                                   "Created At",
                                                   "Created at",
                                                   G_PARAM_READWRITE);
+    props[PROP_FAVOURITED] = g_param_spec_boolean("favourited",
+                                                  "Favourited",
+                                                  "Whether the stream is favourited",
+                                                  FALSE,
+                                                  G_PARAM_READWRITE);
+    props[PROP_ONLINE] = g_param_spec_boolean("online",
+                                              "Online",
+                                              "Whether the stream is online",
+                                              FALSE,
+                                              G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -211,6 +240,16 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
 static void
 gt_twitch_stream_init(GtTwitchStream* self)
 {
+}
+
+void
+gt_twitch_stream_toggle_favourited(GtTwitchStream* self)
+{
+    GtTwitchStreamPrivate* priv = gt_twitch_stream_get_instance_private(self);
+
+    priv->favourited = !priv->favourited;
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FAVOURITED]);
 }
 
 void

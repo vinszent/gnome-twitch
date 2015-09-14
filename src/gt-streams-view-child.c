@@ -12,6 +12,7 @@ typedef struct
     GtkWidget* middle_revealer;
     GtkWidget* viewers_label;
     GtkWidget* time_label;
+    GtkWidget* favourite_button;
 } GtStreamsViewChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtStreamsViewChild, gt_streams_view_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -53,6 +54,34 @@ motion_leave_cb(GtkWidget* widget,
     GtStreamsViewChildPrivate* priv = gt_streams_view_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
+}
+
+static void
+favourite_button_cb(GtkButton* button,
+                    gpointer udata)
+{
+    GtStreamsViewChild* self = GT_STREAMS_VIEW_CHILD(udata);
+    GtStreamsViewChildPrivate* priv = gt_streams_view_child_get_instance_private(self);
+
+    gt_twitch_stream_toggle_favourited(priv->stream);
+}
+
+static void
+stream_favourited_cb(GObject* obj,
+                     GParamSpec* pspec,
+                     gpointer udata)
+{
+    GtStreamsViewChild* self = GT_STREAMS_VIEW_CHILD(udata);
+    GtStreamsViewChildPrivate* priv = gt_streams_view_child_get_instance_private(self);
+
+    gboolean favourited;
+
+    g_object_get(priv->stream, "favourited", &favourited, NULL);
+
+    if (favourited)
+        ADD_STYLE_CLASS(priv->favourite_button, "favourited");
+    else
+        REMOVE_STYLE_CLASS(priv->favourite_button, "favourited");
 }
 
 static void
@@ -138,6 +167,8 @@ constructed(GObject* obj)
                         g_strdup_printf("%ldm", dif / (gint64) 6e7));
     gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview);
 
+    g_signal_connect(priv->stream, "notify::favourited", G_CALLBACK(stream_favourited_cb), self);
+
     g_object_unref(preview);
     g_free(name);
     g_free(game);
@@ -171,6 +202,7 @@ gt_streams_view_child_class_init(GtStreamsViewChildClass* klass)
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
+    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), favourite_button_cb);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, preview_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, name_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, game_label);
@@ -178,6 +210,7 @@ gt_streams_view_child_class_init(GtStreamsViewChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, middle_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, viewers_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, time_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtStreamsViewChild, favourite_button);
 }
 
 static void

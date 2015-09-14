@@ -37,6 +37,28 @@
                           <class name="overlay-box"/>
                         </style>
                         <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="orientation">horizontal</property>
+                            <child>
+                              <object class="GtkButton" id="favourite_button">
+                                <property name="visible">True</property>
+                                <property name="halign">start</property>
+                                <signal name="clicked" handler="favourite_button_cb"/>
+                                <style>
+                                  <class name="favourite-button"/>
+                                </style>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="icon-name">starred-symbolic</property>      
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="icon-name">media-playback-start</property> 
@@ -53,9 +75,6 @@
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="spacing">7</property>
-                            <style>
-                              <class name="info-box"/>
-                            </style>
                             <child>
                               <object class="GtkImage">
                                 <property name="visible">True</property>
