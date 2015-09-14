@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<interface>
+<interface domain="gnome-twitch">
   <template class="GtWin" parent="GtkApplicationWindow">
     <property name="title">Gnome Twitch</property>
     <property name="default-height">710</property>
@@ -50,7 +50,7 @@
               </object>
               <packing>
                 <property name="name">streams</property>
-                <property name="title">Streams</property>
+                <property name="title" translatable="yes">Streams</property>
               </packing>
             </child>
             <child>
@@ -59,7 +59,7 @@
               </object>
               <packing>
                 <property name="name">games</property>
-                <property name="title">Games</property>
+                <property name="title" translatable="yes">Games</property>
               </packing>
             </child>
           </object>

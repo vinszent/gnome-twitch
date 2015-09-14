@@ -3,17 +3,17 @@
   <menu id="app_menu">
     <section>
       <item>
-        <attribute name="label">Settings</attribute>
+        <attribute name="label" translatable="yes">Settings</attribute>
         <attribute name="action">win.show_settings</attribute>
       </item>
     </section>
     <section>
       <item>
-        <attribute name="label">About</attribute>
+        <attribute name="label" translatable="yes">About</attribute>
         <attribute name="action">win.show_about</attribute>
       </item> 
       <item>
-        <attribute name="label">Quit</attribute>
+        <attribute name="label" translatable="yes">Quit</attribute>
         <attribute name="action">app.quit</attribute>
       </item>
     </section>

@@ -1,6 +1,7 @@
 #include "gt-win.h"
 #include <gdk/gdkx.h>
 #include <glib/gprintf.h>
+#include <glib/gi18n.h>
 #include "gt-twitch.h"
 #include "gt-player.h"
 #include "gt-player-header-bar.h"
@@ -84,7 +85,7 @@ show_about_cb(GSimpleAction* action,
                           "authors", &authors,
                           "license-type", GTK_LICENSE_GPL_3_0,
                           "copyright", "Copyright © 2015 Vincent Szolnoky",
-                          "comments", "Enjoy Twitch on your GNOME desktop",
+                          "comments", _("Enjoy Twitch on your GNOME desktop"),
                           "logo-icon-name", "gnome-twitch",
                           "website", "https://github.com/Ippytraxx/gnome-twitch",
                           "website-label", "Github",

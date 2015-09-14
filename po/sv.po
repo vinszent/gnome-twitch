@@ -1,0 +1,63 @@
+# gnome-twitch Swedish translation
+# Copyright (C) 2015 Vincent Szolnoky
+# This file is distributed under the same license as the gnome-twitch package.
+# Vincent <ippytraxx@installgentoo.com>, 2015.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-09-14 14:31+0200\n"
+"PO-Revision-Date: 2015-09-14 16:14+0200\n"
+"Last-Translator: Vincent <ippytraxx@installgentoo.com>\n"
+"Language-Team: Swedish <>\n"
+"Language: sv_SE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 1.8.4\n"
+
+#: data/ui/gt-win.ui:62
+msgid "Games"
+msgstr "Spel"
+
+#: data/ui/gt-win.ui:53
+msgid "Streams"
+msgstr "Livekanaler"
+
+#: data/ui/app-menu.ui:6
+msgid "Settings"
+msgstr "Inställningar"
+
+#: data/ui/app-menu.ui:12
+msgid "About"
+msgstr "Om"
+
+#: data/ui/app-menu.ui:16
+msgid "Quit"
+msgstr "Avsluta"
+
+#: data/ui/gt-settings-dlg.ui:17
+msgid "Default video quality: "
+msgstr "Standard videokvalitet: "
+
+#: data/ui/gt-settings-dlg.ui:28
+msgid "Source"
+msgstr "Käll"
+
+#: data/ui/gt-settings-dlg.ui:29
+msgid "High"
+msgstr "Hög"
+
+#: data/ui/gt-settings-dlg.ui:30
+msgid "Medium"
+msgstr "Mellan"
+
+#: data/ui/gt-settings-dlg.ui:31
+msgid "Low"
+msgstr "Låg"
+
+#: src/gt-win.c:88
+msgid "Enjoy Twitch on your GNOME desktop"
+msgstr "Njut av Twitch på dit GNOME skrivbord"

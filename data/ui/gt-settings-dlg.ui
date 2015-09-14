@@ -3,7 +3,7 @@
   <template class="GtSettingsDlg" parent="GtkDialog">
     <property name="modal">True</property>
     <property name="resizable">False</property>
-    <property name="title">Settings</property>
+    <property name="title" translatable="yes">Settings</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -14,7 +14,7 @@
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="label">Default stream quality: </property> 
+                <property name="label" translatable="yes">Default video quality: </property> 
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -25,10 +25,10 @@
               <object class="GtkComboBoxText" id="quality_combo">
                 <property name="visible">True</property>
                 <items>
-                  <item id="source">Source</item>
-                  <item id="high">High</item>
-                  <item id="medium">Medium</item>
-                  <item id="low">Low</item>
+                  <item id="source" translatable="yes">Source</item>
+                  <item id="high" translatable="yes">High</item>
+                  <item id="medium" translatable="yes">Medium</item>
+                  <item id="low" translatable="yes">Low</item>
                 </items>
               </object>
               <packing>
