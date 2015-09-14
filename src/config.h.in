@@ -2,5 +2,6 @@
 #define _CONFIG_H
 
 #define GT_VERSION "@version@"
+#define GT_LOCALE_DIR "@localedir@"
 
 #endif

@@ -7,6 +7,7 @@ gst_video_dep = dependency('gstreamer-video-1.0')
 
 conf_data = configuration_data()
 conf_data.set('version', VERSION)
+conf_data.set('localedir', LOCALEDIR)
 configure_file(input : 'config.h.in', output : 'config.h', install_dir : '.', configuration : conf_data)
 
 res = gnome.compile_resources('gt-resources', '../data/gnome-twitch.gresource.xml', source_dir : '../data')
