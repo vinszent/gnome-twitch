@@ -3,6 +3,9 @@
 
 #include <gtk/gtk.h>
 
+#define MAX_QUERY 50
+#define NO_GAME ""
+
 G_BEGIN_DECLS
 
 #define GT_TYPE_TWITCH (gt_twitch_get_type())

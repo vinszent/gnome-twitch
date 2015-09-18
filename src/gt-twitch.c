@@ -266,6 +266,7 @@ parse_channel(GtTwitch* self, JsonReader* reader)
 
     json_reader_read_member(reader, "large");
     ret->preview = download_picture(self, json_reader_get_string_value(reader));
+    g_object_ref_sink(ret->preview);
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
@@ -561,7 +562,7 @@ top_channels_async_cb(GTask* task,
 
     ret = gt_twitch_top_channels(data->twitch, data->n, data->offset, data->game);
 
-    g_task_return_pointer(task, ret, NULL); //TODO: Create free function
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_free_list);
 }
 
 GList*
@@ -603,7 +604,7 @@ top_games_async_cb(GTask* task,
 
     ret = gt_twitch_top_games(data->twitch, data->n, data->offset);
 
-    g_task_return_pointer(task, ret, NULL); //TODO: Create free function
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_game_free_list);
 }
 
 GList*
@@ -958,6 +959,7 @@ channel_raw_data_cb(GTask* task,
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_raw_data_free);
 }
 
+// This was a bit unecessary, but at least it's here if it's ever needed
 void
 gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
                           GCancellable* cancel,

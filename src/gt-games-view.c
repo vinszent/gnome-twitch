@@ -6,8 +6,6 @@
 #include "utils.h"
 #include <string.h>
 
-#define MAX_QUERY 50 
-
 typedef struct
 {
     GtkWidget* games_scroll;
