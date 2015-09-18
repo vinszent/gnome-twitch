@@ -17,6 +17,7 @@ struct _GtTwitchChannel
 GtTwitchChannel* gt_twitch_channel_new(gint64 id);
 void gt_twitch_channel_toggle_favourited(GtTwitchChannel* self);
 void gt_twitch_channel_free_list(GList* list);
+gboolean gt_twitch_channel_compare(GtTwitchChannel* self, gpointer other);
 
 G_END_DECLS
 
