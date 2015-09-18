@@ -23,6 +23,7 @@ void gt_channels_view_stop_search(GtChannelsView* self);
 void gt_channels_view_show_game_channels(GtChannelsView* self, GtTwitchGame* game);
 void gt_channels_view_clear_game_channels(GtChannelsView* self);
 void gt_channels_view_refresh(GtChannelsView* self);
+gboolean gt_channels_view_is_channel_favourited(GtChannelsView* self, GtTwitchChannel* chan);
 
 G_END_DECLS
 
