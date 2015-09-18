@@ -1,5 +1,9 @@
 #include "gt-app.h"
 #include "gt-win.h"
+#include <glib/gstdio.h>
+#include <errno.h>
+
+#define DATA_DIR g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL)
 
 typedef struct
 {
@@ -31,6 +35,21 @@ gt_app_new(void)
                         NULL);
 }
 
+static void
+init_dirs()
+{
+    gchar* fp = DATA_DIR;
+
+    int err = g_mkdir(fp, 0777);
+    
+    if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
+    {
+        g_print("Error creating data dir\n"); //TODO: Convert to log func
+    }
+
+    g_free(fp);
+}
+
 
 static void
 quit_cb(GSimpleAction* action,
@@ -54,6 +73,8 @@ activate(GApplication* app)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
     GtkBuilder* menu_bld;
     GMenuModel* app_menu;
+
+    init_dirs();
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     app_actions,
