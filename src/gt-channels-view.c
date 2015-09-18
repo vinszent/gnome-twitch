@@ -102,8 +102,9 @@ load_favourite_channels(GtChannelsView* self)
 
     for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
     {
-        priv->favourite_channels = g_list_append(priv->favourite_channels, 
-                                                json_gobject_deserialize(GT_TYPE_TWITCH_CHANNEL, l->data));
+        GtTwitchChannel* chan = GT_TWITCH_CHANNEL(json_gobject_deserialize(GT_TYPE_TWITCH_CHANNEL, l->data));
+        g_object_set(chan, "auto-update", TRUE, NULL);
+        priv->favourite_channels = g_list_append(priv->favourite_channels, chan);
     }
 
 finish:
