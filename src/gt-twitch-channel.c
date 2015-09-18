@@ -22,6 +22,7 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
+    gboolean auto_update;
 
     guint update_id;
 } GtTwitchChannelPrivate;
@@ -48,6 +49,7 @@ enum
     PROP_CREATED_AT,
     PROP_FAVOURITED,
     PROP_ONLINE,
+    PROP_AUTO_UPDATE,
     NUM_PROPS
 };
 
@@ -80,6 +82,7 @@ update_set_cb(gpointer udata)
                  "game", setd->raw->game,
                  "preview", setd->raw->preview,
                  "created-at", setd->raw->stream_started_time,
+                 "online", setd->raw->online,
                  NULL);
 
     gt_twitch_channel_raw_data_free(setd->raw);
@@ -92,7 +95,7 @@ update_cb(gpointer data,
     GtTwitchChannel* self = GT_TWITCH_CHANNEL(data);
     GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
-    GtTwitchChannelRawData* raw = gt_twitch_channel_raw_data(main_app->twitch, priv->name);
+    GtTwitchChannelRawData* raw = gt_twitch_channel_with_stream_raw_data(main_app->twitch, priv->name);
     UpdateSetData* setd = g_malloc(sizeof(UpdateSetData));
     setd->self = self;
     setd->raw = raw;
@@ -108,6 +111,20 @@ update(GtTwitchChannel* self)
     g_thread_pool_push(update_pool, self, NULL);
 
     return TRUE;
+}
+
+static void
+auto_update_cb(GObject* src,
+               GParamSpec* pspec,
+               gpointer udata)
+{
+    GtTwitchChannel* self = GT_TWITCH_CHANNEL(src);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
+
+    if (priv->auto_update)
+        priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
+    else
+        g_source_remove(priv->update_id);
 }
 
 static void
@@ -171,6 +188,9 @@ get_property (GObject*    obj,
         case PROP_ONLINE:
             g_value_set_boolean(val, priv->online);
             break;
+        case PROP_AUTO_UPDATE:
+            g_value_set_boolean(val, priv->auto_update);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -230,6 +250,9 @@ set_property(GObject*      obj,
             break;
         case PROP_ONLINE:
             priv->online = g_value_get_boolean(val);
+            break;
+        case PROP_AUTO_UPDATE:
+            priv->auto_update = g_value_get_boolean(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -297,6 +320,11 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
                                               "Whether the channel is online",
                                               FALSE,
                                               G_PARAM_READWRITE);
+    props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update",
+                        "Auto Update",
+                        "Whether it should update itself automatically",
+                        FALSE,
+                        G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -310,7 +338,7 @@ gt_twitch_channel_init(GtTwitchChannel* self)
 {
     GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
-    priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
+    g_signal_connect(self, "auto-update", G_CALLBACK(auto_update_cb), NULL);
 }
 
 static GParamSpec**
