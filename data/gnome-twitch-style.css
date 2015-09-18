@@ -22,13 +22,18 @@
     border-style: none;
 }
 
-.gt-channels-view-child .overlay-box .favourite-button:not(.favourited):hover GtkImage
+.gt-channels-view-child .overlay-box .favourite-button:hover GtkImage
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-channels-view-child .overlay-box .favourite-button.favourited GtkImage
+.gt-channels-view-child .overlay-box .favourite-button GtkImage
+{
+    color: rgba(109, 115, 128, 1);
+}
+
+.gt-channels-view-child .overlay-box .favourite-button:checked GtkImage
 {
     color: gold;
 }

@@ -67,24 +67,6 @@ favourite_button_cb(GtkButton* button,
 }
 
 static void
-channel_favourited_cb(GObject* obj,
-                     GParamSpec* pspec,
-                     gpointer udata)
-{
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
-
-    gboolean favourited;
-
-    g_object_get(priv->channel, "favourited", &favourited, NULL);
-
-    if (favourited)
-        ADD_STYLE_CLASS(priv->favourite_button, "favourited");
-    else
-        REMOVE_STYLE_CLASS(priv->favourite_button, "favourited");
-}
-
-static void
 finalize(GObject* object)
 {
     GtChannelsViewChild* self = (GtChannelsViewChild*) object;
@@ -170,8 +152,11 @@ constructed(GObject* obj)
     g_object_bind_property(priv->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "favourited",
+                           priv->favourite_button, "active",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
-    g_signal_connect(priv->channel, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
+    /* g_signal_connect(priv->channel, "notify::favourited", G_CALLBACK(channel_favourited_cb), self); */
 
     g_object_unref(preview);
     g_free(name);

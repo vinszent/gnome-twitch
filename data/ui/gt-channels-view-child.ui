@@ -41,12 +41,11 @@
                             <property name="visible">True</property>
                             <property name="orientation">horizontal</property>
                             <child>
-                              <object class="GtkButton" id="favourite_button">
+                              <object class="GtkToggleButton" id="favourite_button">
                                 <property name="visible">True</property>
                                 <property name="halign">start</property>
-                                <signal name="clicked" handler="favourite_button_cb"/>
                                 <style>
-                                  <class name="favourite-button"/>
+                                    <class name="favourite-button"/>
                                 </style>
                                 <child>
                                   <object class="GtkImage">
