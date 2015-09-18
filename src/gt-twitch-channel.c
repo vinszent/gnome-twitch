@@ -22,6 +22,8 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
+
+    guint update_id;
 } GtTwitchChannelPrivate;
 
 static GThreadPool* update_pool;
@@ -59,6 +61,30 @@ gt_twitch_channel_new(gint64 id)
                         NULL);
 }
 
+typedef struct
+{
+    GtTwitchChannel* self;
+    GtTwitchChannelRawData* raw;
+} UpdateSetData;
+
+static void
+update_set_cb(gpointer udata)
+{
+    UpdateSetData* setd = (UpdateSetData*) udata;
+
+    g_object_set(setd->self,
+                 "name", setd->raw->name,
+                 "viewers", setd->raw->viewers,
+                 "display-name", setd->raw->display_name,
+                 "status", setd->raw->status,
+                 "game", setd->raw->game,
+                 "preview", setd->raw->preview,
+                 "created-at", setd->raw->stream_started_time,
+                 NULL);
+
+    gt_twitch_channel_raw_data_free(setd->raw);
+}
+
 static void
 update_cb(gpointer data,
           gpointer udata)
@@ -67,16 +93,11 @@ update_cb(gpointer data,
     GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     GtTwitchChannelRawData* raw = gt_twitch_channel_raw_data(main_app->twitch, priv->name);
+    UpdateSetData* setd = g_malloc(sizeof(UpdateSetData));
+    setd->self = self;
+    setd->raw = raw;
 
-    g_object_set(self,
-                 "name", raw->name,
-                 "viewers", raw->viewers,
-                 "display-name", raw->display_name,
-                 "status", raw->status,
-                 "game", raw->game,
-                 "preview", raw->preview,
-                 "created-at", raw->stream_started_time,
-                 NULL);
+    g_idle_add((GSourceFunc) update_set_cb, setd);
 }
 
 static gboolean
@@ -103,6 +124,8 @@ finalize(GObject* object)
     g_date_time_unref(priv->created_at);
 
     g_clear_object(&priv->preview);
+
+    g_source_remove(priv->update_id);
 
     G_OBJECT_CLASS(gt_twitch_channel_parent_class)->finalize(object);
 }
@@ -200,6 +223,7 @@ set_property(GObject*      obj,
             break;
         case PROP_CREATED_AT:
             priv->created_at = g_value_get_pointer(val);
+            g_date_time_ref(priv->created_at);
             break;
         case PROP_FAVOURITED:
             priv->favourited = g_value_get_boolean(val);
@@ -284,7 +308,9 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
 static void
 gt_twitch_channel_init(GtTwitchChannel* self)
 {
-    g_timeout_add(30e3, (GSourceFunc) update, self);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
+
+    priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
 }
 
 static GParamSpec**
