@@ -2,6 +2,9 @@
 #include "gt-twitch.h"
 #include "gt-app.h"
 #include "utils.h"
+#include <json-glib/json-glib.h>
+
+#define N_JSON_PROPS 2
 
 typedef struct
 {
@@ -19,13 +22,16 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
-
-    GCancellable* cancel;
 } GtTwitchChannelPrivate;
 
 static GThreadPool* update_pool;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChannel, gt_twitch_channel, G_TYPE_OBJECT)
+static void
+json_serializable_iface_init(JsonSerializableIface* iface);
+
+G_DEFINE_TYPE_WITH_CODE(GtTwitchChannel, gt_twitch_channel, G_TYPE_OBJECT,
+                        G_ADD_PRIVATE(GtTwitchChannel)
+                        G_IMPLEMENT_INTERFACE(JSON_TYPE_SERIALIZABLE, json_serializable_iface_init))
 
 enum 
 {
@@ -281,6 +287,26 @@ gt_twitch_channel_init(GtTwitchChannel* self)
     g_timeout_add(30e3, (GSourceFunc) update, self);
 }
 
+static GParamSpec**
+json_list_props(JsonSerializable* json,
+                guint* n_pspecs)
+{
+    GParamSpec** json_props = g_malloc_n(N_JSON_PROPS, sizeof(GParamSpec*));
+
+    json_props[0] = props[PROP_NAME];
+    json_props[1] = props[PROP_ID];
+
+    *n_pspecs = N_JSON_PROPS;
+
+    return json_props;
+}
+
+static void
+json_serializable_iface_init(JsonSerializableIface* iface)
+{
+    iface->list_properties = json_list_props;
+}
+
 void
 gt_twitch_channel_toggle_favourited(GtTwitchChannel* self)
 {
@@ -295,4 +321,30 @@ void
 gt_twitch_channel_free_list(GList* list)
 {
     g_list_free_full(list, g_object_unref);
+}
+
+gboolean
+gt_twitch_channel_compare(GtTwitchChannel* self,
+                          gpointer other)
+{
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
+    gboolean ret = TRUE;
+
+    if (GT_IS_TWITCH_CHANNEL(other))
+    {
+        gchar* name;
+        gint64 id;
+
+        g_object_get(G_OBJECT(other),
+                     "name", &name,
+                     "id", &id,
+                     NULL);
+
+
+        ret = !(g_strcmp0(priv->name, name) == 0 && priv->id == id);
+
+        g_free(name);
+    }
+
+    return ret;
 }
