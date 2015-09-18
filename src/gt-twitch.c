@@ -7,12 +7,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define ACCESS_TOKEN_URI "http://api.twitch.tv/api/channels/%s/access_token"
+#define ACCESS_TOKEN_URI    "http://api.twitch.tv/api/channels/%s/access_token"
 #define STREAM_PLAYLIST_URI "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&p=%d"
-#define TOP_CHANNELS_URI "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
-#define TOP_GAMES_URI "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
+#define TOP_CHANNELS_URI    "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
+#define TOP_GAMES_URI       "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
 #define SEARCH_CHANNELS_URI "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d&hls=true"
-#define SEARCH_GAMES_URI "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
+#define SEARCH_GAMES_URI    "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
+#define STREAMS_URI         "https://api.twitch.tv/kraken/streams/%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -30,6 +31,28 @@ enum
 };
 
 static GParamSpec* props[NUM_PROPS];
+
+typedef struct
+{
+    GtTwitch* twitch;
+
+    gint64 int_1;
+    gint64 int_2;
+    gint64 int_3;
+
+    gchar* str_1;
+    gchar* str_2;
+    gchar* str_3;
+} GenericTaskData;
+
+static void
+generic_task_data_free(GenericTaskData* data)
+{
+    g_free(data->str_1);
+    g_free(data->str_2);
+    g_free(data->str_3);
+    g_free(data);
+}
 
 GtTwitch*
 gt_twitch_new(void)
@@ -94,6 +117,37 @@ gt_twitch_init(GtTwitch* self)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     priv->soup = soup_session_new();
+}
+
+static void
+send_message(GtTwitch* self, SoupMessage* msg)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+
+    soup_session_send_message(priv->soup, msg);
+
+    /* g_print("\n\n%s\n\n", msg->response_body->data); */
+}
+
+static GdkPixbuf*
+download_picture(GtTwitch* self, const gchar* url)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    GdkPixbufLoader* loader;
+    GdkPixbuf* ret;
+    GInputStream* input;
+
+    msg = soup_message_new("GET", url);
+    input = soup_session_send(priv->soup, msg, NULL, NULL);
+
+    ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
+    g_object_force_floating(G_OBJECT(ret));
+
+    g_input_stream_close(input, NULL, NULL);
+    g_object_unref(msg);
+
+    return ret;
 }
 
 static GDateTime*
@@ -174,33 +228,47 @@ parse_playlist(const gchar* playlist)
     return ret;
 }
 
-static void
-send_message(GtTwitch* self, SoupMessage* msg)
+static GtTwitchChannelRawData*
+parse_channel(GtTwitch* self, JsonReader* reader)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    GtTwitchChannelRawData* ret = g_malloc0(sizeof(GtTwitchChannelRawData));
 
-    soup_session_send_message(priv->soup, msg);
+    json_reader_read_member(reader, "game");
+    if (!json_reader_get_null_value(reader))
+        ret->game = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
 
-    /* g_print("\n\n%s\n\n", msg->response_body->data); */
-}
+    json_reader_read_member(reader, "viewers");
+    ret->viewers = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
 
-static GdkPixbuf*
-download_picture(GtTwitch* self, const gchar* url)
-{
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    GdkPixbufLoader* loader;
-    GdkPixbuf* ret;
-    GInputStream* input;
+    json_reader_read_member(reader, "created_at");
+    ret->stream_started_time = parse_time(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
 
-    msg = soup_message_new("GET", url);
-    input = soup_session_send(priv->soup, msg, NULL, NULL);
+    json_reader_read_member(reader, "channel");
 
-    ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
-    g_object_force_floating(G_OBJECT(ret));
+    json_reader_read_member(reader, "name");
+    ret->name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
 
-    g_input_stream_close(input, NULL, NULL);
-    g_object_unref(msg);
+    json_reader_read_member(reader, "display_name");
+    ret->display_name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "status");
+    ret->status = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "preview");
+
+    json_reader_read_member(reader, "large");
+    ret->preview = download_picture(self, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_end_member(reader);
 
     return ret;
 }
@@ -523,9 +591,9 @@ gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game,
 
 static void
 top_games_async_cb(GTask* task,
-                      gpointer source,
-                      gpointer task_data,
-                      GCancellable* cancel)
+                   gpointer source,
+                   gpointer task_data,
+                   GCancellable* cancel)
 {
     TopDataClosure* data = task_data;
     GList* ret;
@@ -840,4 +908,85 @@ gt_twitch_stream_free(GtTwitchStreamData* channel)
     g_free(channel->url);
 
     g_free(channel);
+}
+
+GtTwitchChannelRawData*
+gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GtTwitchChannelRawData* ret;
+
+    uri = g_strdup_printf(STREAMS_URI, name);
+    msg = soup_message_new("GET", uri);
+
+    send_message(self, msg);
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "stream");
+
+    ret = parse_channel(self, reader);
+
+    json_reader_end_member(reader);
+
+    return ret;
+}
+
+
+static void
+channel_raw_data_cb(GTask* task,
+                    gpointer source,
+                    gpointer task_data,
+                    GCancellable* cancel)
+{
+    GtTwitchChannelRawData* ret;
+    GenericTaskData* data = task_data;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_channel_raw_data(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_raw_data_free);
+}
+
+void
+gt_channel_raw_data_async(GtTwitch* self, const gchar* name,
+                          GCancellable* cancel,
+                          GAsyncReadyCallback cb,
+                          gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = g_new0(GenericTaskData, 1);
+    data->twitch = self;
+    data->str_1 = g_strdup(name);
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, channel_raw_data_cb);
+
+    g_object_unref(task);
+}
+
+void gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data)
+{
+    g_free(data->game);
+    g_free(data->status);
+    g_free(data->name);
+    g_free(data->display_name);
+    g_date_time_unref(data->stream_started_time);
+    g_object_unref(data->preview);
+    g_free(data);
 }
