@@ -14,6 +14,7 @@
 #define SEARCH_CHANNELS_URI "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d&hls=true"
 #define SEARCH_GAMES_URI    "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
 #define STREAMS_URI         "https://api.twitch.tv/kraken/streams/%s"
+#define CHANNELS_URI        "https://api.twitch.tv/kraken/channels/%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -228,50 +229,52 @@ parse_playlist(const gchar* playlist)
     return ret;
 }
 
-static GtTwitchChannelRawData*
-parse_channel(GtTwitch* self, JsonReader* reader)
+static void
+parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
 {
-    GtTwitchChannelRawData* ret = g_malloc0(sizeof(GtTwitchChannelRawData));
-
-    json_reader_read_member(reader, "game");
-    if (!json_reader_get_null_value(reader))
-        ret->game = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-
-    json_reader_read_member(reader, "viewers");
-    ret->viewers = json_reader_get_int_value(reader);
-    json_reader_end_member(reader);
-
-    json_reader_read_member(reader, "created_at");
-    ret->stream_started_time = parse_time(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-
-    json_reader_read_member(reader, "channel");
-
     json_reader_read_member(reader, "name");
-    ret->name = g_strdup(json_reader_get_string_value(reader));
+    data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "display_name");
-    ret->display_name = g_strdup(json_reader_get_string_value(reader));
+    data->display_name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "status");
-    ret->status = g_strdup(json_reader_get_string_value(reader));
+    data->status = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
+}
+
+static void
+parse_stream(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
+{
+    json_reader_read_member(reader, "game");
+    if (!json_reader_get_null_value(reader))
+        data->game = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "viewers");
+    data->viewers = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "created_at");
+    data->stream_started_time = parse_time(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "channel");
+    
+    parse_channel(self, reader, data);
 
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "preview");
 
     json_reader_read_member(reader, "large");
-    ret->preview = download_picture(self, json_reader_get_string_value(reader));
-    g_object_ref_sink(ret->preview);
+    data->preview = download_picture(self, json_reader_get_string_value(reader));
+    g_object_ref_sink(data->preview);
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
-
-    return ret;
 }
 
 void
@@ -920,7 +923,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GtTwitchChannelRawData* ret;
+    GtTwitchChannelRawData* ret = NULL;
 
     uri = g_strdup_printf(STREAMS_URI, name);
     msg = soup_message_new("GET", uri);
@@ -932,15 +935,61 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     node = json_parser_get_root(parser);
     reader = json_reader_new(node);
 
-    json_reader_read_member(reader, "stream");
+    ret = g_new0(GtTwitchChannelRawData, 1);
+    parse_channel(self, reader, ret);
 
-    ret = parse_channel(self, reader);
-
-    json_reader_end_member(reader);
+    g_object_unref(msg);
+    g_object_unref(parser);
+    g_object_unref(reader);
+    g_free(uri);
 
     return ret;
 }
 
+GtTwitchChannelRawData*
+gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GtTwitchChannelRawData* ret = NULL;
+
+    uri = g_strdup_printf(CHANNELS_URI, name);
+    msg = soup_message_new("GET", uri);
+
+    send_message(self, msg);
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "stream");
+
+    if (json_reader_get_null_value(reader))
+    {
+        ret = gt_twitch_channel_raw_data(self, name);
+        ret->online = FALSE;
+    }
+    else
+    {
+        ret = g_new0(GtTwitchChannelRawData, 1);
+        parse_stream(self, reader, ret);
+        ret->online = TRUE;
+    }
+
+    json_reader_end_member(reader);
+
+    g_object_unref(msg);
+    g_object_unref(parser);
+    g_object_unref(reader);
+    g_free(uri);
+
+    return ret;
+}
 
 static void
 channel_raw_data_cb(GTask* task,

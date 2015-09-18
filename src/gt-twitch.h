@@ -45,6 +45,7 @@ typedef struct _GtTwitchChannelRawData
     gchar* name;
     gchar* display_name;
     GdkPixbuf* preview;
+    gboolean online;
 } GtTwitchChannelRawData;
 
 GtTwitch*               gt_twitch_new(void);
@@ -61,6 +62,7 @@ GList*                  gt_twitch_search_games(GtTwitch* self, gchar* query, gin
 void                    gt_twitch_search_games_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_stream_free(GtTwitchStreamData* channel);
 GtTwitchChannelRawData* gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name);
+GtTwitchChannelRawData* gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data);
 
