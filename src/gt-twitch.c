@@ -959,7 +959,7 @@ channel_raw_data_cb(GTask* task,
 }
 
 void
-gt_channel_raw_data_async(GtTwitch* self, const gchar* name,
+gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
                           GCancellable* cancel,
                           GAsyncReadyCallback cb,
                           gpointer udata)

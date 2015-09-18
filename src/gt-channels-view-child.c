@@ -165,7 +165,11 @@ constructed(GObject* obj)
     gtk_label_set_label(GTK_LABEL(priv->time_label), dif > 3.6*1e9 ?
                         g_strdup_printf("%2.1fh", (double) dif / 3.6e9) :
                         g_strdup_printf("%ldm", dif / (gint64) 6e7));
-    gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview);
+    /* gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview); */
+
+    g_object_bind_property(priv->channel, "preview",
+                           priv->preview_image, "pixbuf",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     g_signal_connect(priv->channel, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
 

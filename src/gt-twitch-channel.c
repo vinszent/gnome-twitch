@@ -1,4 +1,6 @@
 #include "gt-twitch-channel.h"
+#include "gt-twitch.h"
+#include "gt-app.h"
 #include "utils.h"
 
 typedef struct
@@ -17,7 +19,11 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
+
+    GCancellable* cancel;
 } GtTwitchChannelPrivate;
+
+static GThreadPool* update_pool;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChannel, gt_twitch_channel, G_TYPE_OBJECT)
 
@@ -45,6 +51,36 @@ gt_twitch_channel_new(gint64 id)
     return g_object_new(GT_TYPE_TWITCH_CHANNEL, 
                         "id", id,
                         NULL);
+}
+
+static void
+update_cb(gpointer data,
+          gpointer udata)
+{
+    GtTwitchChannel* self = GT_TWITCH_CHANNEL(data);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
+
+    GtTwitchChannelRawData* raw = gt_twitch_channel_raw_data(main_app->twitch, priv->name);
+
+    g_object_set(self,
+                 "name", raw->name,
+                 "viewers", raw->viewers,
+                 "display-name", raw->display_name,
+                 "status", raw->status,
+                 "game", raw->game,
+                 "preview", raw->preview,
+                 "created-at", raw->stream_started_time,
+                 NULL);
+}
+
+static gboolean
+update(GtTwitchChannel* self)
+{
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
+
+    g_thread_pool_push(update_pool, self, NULL);
+
+    return TRUE;
 }
 
 static void
@@ -235,11 +271,14 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
                                       props);
+
+    update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
 }
 
 static void
 gt_twitch_channel_init(GtTwitchChannel* self)
 {
+    g_timeout_add(30e3, (GSourceFunc) update, self);
 }
 
 void
