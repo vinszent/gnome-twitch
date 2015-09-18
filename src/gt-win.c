@@ -6,7 +6,7 @@
 #include "gt-player.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
-#include "gt-streams-view.h"
+#include "gt-channels-view.h"
 #include "gt-games-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-enums.h"
@@ -16,7 +16,7 @@
 typedef struct
 {
     GtkWidget* main_stack;
-    GtkWidget* streams_view;
+    GtkWidget* channels_view;
     GtkWidget* games_view;
     GtkWidget* player;
     GtkWidget* header_stack;
@@ -32,7 +32,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
 enum 
 {
     PROP_0,
-    PROP_STREAMS_VIEW,
+    PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
     PROP_FULLSCREEN,
     NUM_PROPS
@@ -161,8 +161,8 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_STREAMS_VIEW:
-            g_value_set_object(val, priv->streams_view);
+        case PROP_CHANNELS_VIEW:
+            g_value_set_object(val, priv->channels_view);
             break;
         case PROP_GAMES_VIEW:
             g_value_set_object(val, priv->games_view);
@@ -199,10 +199,10 @@ gt_win_class_init(GtWinClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    props[PROP_STREAMS_VIEW] = g_param_spec_object("streams-view",
-                           "Streams View",
-                           "Streams View",
-                           GT_TYPE_STREAMS_VIEW,
+    props[PROP_CHANNELS_VIEW] = g_param_spec_object("channels-view",
+                           "Channels View",
+                           "Channels View",
+                           GT_TYPE_CHANNELS_VIEW,
                            G_PARAM_READABLE);
 
     props[PROP_GAMES_VIEW] = g_param_spec_object("games-view",
@@ -223,7 +223,7 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
                                                 "/com/gnome-twitch/ui/gt-win.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, main_stack);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, streams_view);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channels_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, games_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, player);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, header_stack);
@@ -240,7 +240,7 @@ gt_win_init(GtWin* self)
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
     GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
-    GT_TYPE_STREAMS_VIEW;
+    GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
 
 
@@ -266,7 +266,7 @@ gt_win_init(GtWin* self)
 }
 
 void
-gt_win_open_twitch_stream(GtWin* self, GtTwitchStream* chan)
+gt_win_open_twitch_channel(GtWin* self, GtTwitchChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
@@ -283,7 +283,7 @@ gt_win_open_twitch_stream(GtWin* self, GtTwitchStream* chan)
                  NULL);
 
 
-    gt_player_open_twitch_stream(GT_PLAYER(priv->player), chan);
+    gt_player_open_twitch_channel(GT_PLAYER(priv->player), chan);
 
     g_free(name);
     g_free(status);
@@ -307,14 +307,14 @@ gt_win_browse_view(GtWin* self)
 }
 
 void
-gt_win_browse_streams_view(GtWin* self)
+gt_win_browse_channels_view(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     gt_win_browse_view(self);
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->browse_stack),
-                                     "streams");
+                                     "channels");
 }
 
 void
@@ -333,8 +333,8 @@ gt_win_start_search(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->streams_view)
-        gt_streams_view_start_search(GT_STREAMS_VIEW(priv->streams_view));
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_start_search(GT_CHANNELS_VIEW(priv->channels_view));
     else
         gt_games_view_start_search(GT_GAMES_VIEW(priv->games_view));
 }
@@ -344,8 +344,8 @@ gt_win_stop_search(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->streams_view)
-        gt_streams_view_stop_search(GT_STREAMS_VIEW(priv->streams_view));
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_stop_search(GT_CHANNELS_VIEW(priv->channels_view));
     else
         gt_games_view_stop_search(GT_GAMES_VIEW(priv->games_view));
 
@@ -357,18 +357,18 @@ gt_win_refresh_view(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->streams_view)
-        gt_streams_view_refresh(GT_STREAMS_VIEW(priv->streams_view));
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
     else
         gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
 }
 
-GtStreamsView*
-gt_win_get_streams_view(GtWin* self)
+GtChannelsView*
+gt_win_get_channels_view(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    return GT_STREAMS_VIEW(priv->streams_view);
+    return GT_CHANNELS_VIEW(priv->channels_view);
 }
 
 GtGamesView*

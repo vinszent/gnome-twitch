@@ -6,8 +6,8 @@ typedef struct
 {
     GtPlayer* player;
 
-    gchar* stream_name;
-    gchar* stream_status;
+    gchar* channel_name;
+    gchar* channel_status;
 
     GtkWidget* status_label;
     GtkWidget* name_label;
@@ -30,8 +30,8 @@ enum
 {
     PROP_0,
     PROP_PLAYER,
-    PROP_STREAM_NAME,
-    PROP_STREAM_STATUS,
+    PROP_CHANNEL_NAME,
+    PROP_CHANNEL_STATUS,
     PROP_FULLSCREEN,
     NUM_PROPS
 };
@@ -122,11 +122,11 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_STREAM_NAME:
-            g_value_set_string(val, priv->stream_name);
+        case PROP_CHANNEL_NAME:
+            g_value_set_string(val, priv->channel_name);
             break;
-        case PROP_STREAM_STATUS:
-            g_value_set_string(val, priv->stream_status);
+        case PROP_CHANNEL_STATUS:
+            g_value_set_string(val, priv->channel_status);
             break;
         case PROP_PLAYER:
             g_value_set_object(val, priv->player);
@@ -150,17 +150,17 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_STREAM_NAME:
-            if (priv->stream_name)
-                g_free(priv->stream_name);
-            priv->stream_name = g_value_dup_string(val);
-            gtk_header_bar_set_subtitle(GTK_HEADER_BAR(self), priv->stream_name);
+        case PROP_CHANNEL_NAME:
+            if (priv->channel_name)
+                g_free(priv->channel_name);
+            priv->channel_name = g_value_dup_string(val);
+            gtk_header_bar_set_subtitle(GTK_HEADER_BAR(self), priv->channel_name);
             break;
-        case PROP_STREAM_STATUS:
-            if (priv->stream_status)
-                g_free(priv->stream_status);
-            priv->stream_status = g_value_dup_string(val);
-            gtk_header_bar_set_title(GTK_HEADER_BAR(self), priv->stream_status);
+        case PROP_CHANNEL_STATUS:
+            if (priv->channel_status)
+                g_free(priv->channel_status);
+            priv->channel_status = g_value_dup_string(val);
+            gtk_header_bar_set_title(GTK_HEADER_BAR(self), priv->channel_status);
             break;
         case PROP_PLAYER:
             if (priv->player)
@@ -208,14 +208,14 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
                                              "Associated player",
                                              GT_TYPE_PLAYER,
                                              G_PARAM_WRITABLE | G_PARAM_CONSTRUCT);
-    props[PROP_STREAM_NAME] = g_param_spec_string("name",
+    props[PROP_CHANNEL_NAME] = g_param_spec_string("name",
                                            "Name",
-                                           "Name of stream",
+                                           "Name of channel",
                                            NULL,
                                            G_PARAM_WRITABLE);
-    props[PROP_STREAM_STATUS] = g_param_spec_string("status",
+    props[PROP_CHANNEL_STATUS] = g_param_spec_string("status",
                                              "Status",
-                                             "Staus of stream",
+                                             "Staus of channel",
                                              NULL,
                                              G_PARAM_WRITABLE);
     props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",

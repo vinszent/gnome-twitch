@@ -1,11 +1,11 @@
 #include "gt-browse-header-bar.h"
 #include "gt-win.h"
 #include "utils.h"
-#include "gt-streams-view.h"
+#include "gt-channels-view.h"
 
 typedef struct
 {
-    GtStreamsView* streams_view;
+    GtChannelsView* channels_view;
 
     GtkWidget* home_button_revealer;
     GtkWidget* search_button;
@@ -16,7 +16,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtBrowseHeaderBar, gt_browse_header_bar, GTK_TYPE_HEA
 enum 
 {
     PROP_0,
-    PROP_STREAMS_VIEW,
+    PROP_CHANNELS_VIEW,
     NUM_PROPS
 };
 
@@ -47,7 +47,7 @@ home_button_cb(GtkButton* button,
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
 
-    gt_streams_view_clear_game_streams(priv->streams_view);
+    gt_channels_view_clear_game_channels(priv->channels_view);
 }
 
 static void
@@ -81,8 +81,8 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_STREAMS_VIEW:
-            g_value_set_object(val, priv->streams_view);
+        case PROP_CHANNELS_VIEW:
+            g_value_set_object(val, priv->channels_view);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -100,10 +100,10 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_STREAMS_VIEW:
-            if (priv->streams_view)
-                g_object_unref(priv->streams_view);
-            priv->streams_view = g_value_ref_sink_object(val);
+        case PROP_CHANNELS_VIEW:
+            if (priv->channels_view)
+                g_object_unref(priv->channels_view);
+            priv->channels_view = g_value_ref_sink_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -117,8 +117,8 @@ realize(GtkWidget* widget,
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
 
-    g_object_bind_property(priv->streams_view,
-                           "showing-game-streams",
+    g_object_bind_property(priv->channels_view,
+                           "showing-game-channels",
                            priv->home_button_revealer,
                            "reveal-child",
                             G_BINDING_DEFAULT);
@@ -134,10 +134,10 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    props[PROP_STREAMS_VIEW] = g_param_spec_object("streams-view",
-                           "Streams View",
-                           "Streams View",
-                           GT_TYPE_STREAMS_VIEW,
+    props[PROP_CHANNELS_VIEW] = g_param_spec_object("channels-view",
+                           "Channels View",
+                           "Channels View",
+                           GT_TYPE_CHANNELS_VIEW,
                            G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,

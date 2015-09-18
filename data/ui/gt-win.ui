@@ -10,7 +10,7 @@
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
-            <property name="streams-view">streams_view</property>
+            <property name="channels-view">channels_view</property>
             <child type="title">
               <object class="GtkStackSwitcher">
                 <property name="visible">True</property>
@@ -45,12 +45,12 @@
             <property name="visible">True</property>
             <property name="transition-type">slide-left-right</property>
             <child>
-              <object class="GtStreamsView" id="streams_view">
+              <object class="GtChannelsView" id="channels_view">
                 <property name="visible">True</property>
               </object>
               <packing>
-                <property name="name">streams</property>
-                <property name="title" translatable="yes">Streams</property>
+                <property name="name">channels</property>
+                <property name="title" translatable="yes">Channels</property>
               </packing>
             </child>
             <child>

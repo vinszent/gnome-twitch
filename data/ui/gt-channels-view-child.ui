@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtStreamsViewChild" parent="GtkFlowBoxChild">
+  <template class="GtChannelsViewChild" parent="GtkFlowBoxChild">
     <property name="valign">start</property>
     <style>
-      <class name="gt-streams-view-child"/>
+      <class name="gt-channels-view-child"/>
     </style>
     <child>
       <object class="GtkBox">

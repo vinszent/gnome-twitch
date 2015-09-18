@@ -141,11 +141,11 @@ child_activated_cb(GtkFlowBox* flow,
 
     g_object_get(chan, "twitch-game", &game, NULL);
 
-    gt_streams_view_show_game_streams(gt_win_get_streams_view(win),
+    gt_channels_view_show_game_channels(gt_win_get_channels_view(win),
                                       game);
 
 
-    gt_win_browse_streams_view(win);
+    gt_win_browse_channels_view(win);
 
     g_object_unref(game);
 }

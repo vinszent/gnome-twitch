@@ -1,4 +1,4 @@
-#include "gt-twitch-stream.h"
+#include "gt-twitch-channel.h"
 #include "utils.h"
 
 typedef struct
@@ -17,9 +17,9 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
-} GtTwitchStreamPrivate;
+} GtTwitchChannelPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchStream, gt_twitch_stream, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChannel, gt_twitch_channel, G_TYPE_OBJECT)
 
 enum 
 {
@@ -39,10 +39,10 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtTwitchStream*
-gt_twitch_stream_new(gint64 id)
+GtTwitchChannel*
+gt_twitch_channel_new(gint64 id)
 {
-    return g_object_new(GT_TYPE_TWITCH_STREAM, 
+    return g_object_new(GT_TYPE_TWITCH_CHANNEL, 
                         "id", id,
                         NULL);
 }
@@ -50,8 +50,8 @@ gt_twitch_stream_new(gint64 id)
 static void
 finalize(GObject* object)
 {
-    GtTwitchStream* self = (GtTwitchStream*) object;
-    GtTwitchStreamPrivate* priv = gt_twitch_stream_get_instance_private(self);
+    GtTwitchChannel* self = (GtTwitchChannel*) object;
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     g_free(priv->name);
     g_free(priv->display_name);
@@ -62,7 +62,7 @@ finalize(GObject* object)
 
     g_clear_object(&priv->preview);
 
-    G_OBJECT_CLASS(gt_twitch_stream_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_twitch_channel_parent_class)->finalize(object);
 }
 
 static void
@@ -71,8 +71,8 @@ get_property (GObject*    obj,
               GValue*     val,
               GParamSpec* pspec)
 {
-    GtTwitchStream* self = GT_TWITCH_STREAM(obj);
-    GtTwitchStreamPrivate* priv = gt_twitch_stream_get_instance_private(self);
+    GtTwitchChannel* self = GT_TWITCH_CHANNEL(obj);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     switch (prop)
     {
@@ -117,8 +117,8 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtTwitchStream* self = GT_TWITCH_STREAM(obj);
-    GtTwitchStreamPrivate* priv = gt_twitch_stream_get_instance_private(self);
+    GtTwitchChannel* self = GT_TWITCH_CHANNEL(obj);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     switch (prop)
     {
@@ -171,7 +171,7 @@ set_property(GObject*      obj,
 }
 
 static void
-gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
+gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
@@ -181,7 +181,7 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
 
     props[PROP_ID] = g_param_spec_int64("id",
                                        "ID",
-                                       "ID of stream",
+                                       "ID of channel",
                                        0,
                                        G_MAXINT64,
                                        0,
@@ -189,27 +189,27 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
 
     props[PROP_NAME] = g_param_spec_string("name",
                                            "Name",
-                                           "Name of stream",
+                                           "Name of channel",
                                            NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_STATUS] = g_param_spec_string("status",
                                            "Status",
-                                           "Status of stream",
+                                           "Status of channel",
                                            NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_DISPLAY_NAME] = g_param_spec_string("display-name",
                                                    "Display Name",
-                                                   "Display Name of stream",
+                                                   "Display Name of channel",
                                                    NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_GAME] = g_param_spec_string("game",
                                            "Game",
-                                           "Game being played by stream",
+                                           "Game being played by channel",
                                            NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_PREVIEW] = g_param_spec_object("preview",
                                               "Preview",
-                                              "Preview of stream",
+                                              "Preview of channel",
                                               GDK_TYPE_PIXBUF,
                                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_VIEWERS] = g_param_spec_int64("viewers",
@@ -223,12 +223,12 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
                                                   G_PARAM_READWRITE);
     props[PROP_FAVOURITED] = g_param_spec_boolean("favourited",
                                                   "Favourited",
-                                                  "Whether the stream is favourited",
+                                                  "Whether the channel is favourited",
                                                   FALSE,
                                                   G_PARAM_READWRITE);
     props[PROP_ONLINE] = g_param_spec_boolean("online",
                                               "Online",
-                                              "Whether the stream is online",
+                                              "Whether the channel is online",
                                               FALSE,
                                               G_PARAM_READWRITE);
 
@@ -238,14 +238,14 @@ gt_twitch_stream_class_init(GtTwitchStreamClass* klass)
 }
 
 static void
-gt_twitch_stream_init(GtTwitchStream* self)
+gt_twitch_channel_init(GtTwitchChannel* self)
 {
 }
 
 void
-gt_twitch_stream_toggle_favourited(GtTwitchStream* self)
+gt_twitch_channel_toggle_favourited(GtTwitchChannel* self)
 {
-    GtTwitchStreamPrivate* priv = gt_twitch_stream_get_instance_private(self);
+    GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     priv->favourited = !priv->favourited;
 
@@ -253,7 +253,7 @@ gt_twitch_stream_toggle_favourited(GtTwitchStream* self)
 }
 
 void
-gt_twitch_stream_free_list(GList* list)
+gt_twitch_channel_free_list(GList* list)
 {
     g_list_free_full(list, g_object_unref);
 }

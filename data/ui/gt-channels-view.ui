@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtStreamsView" parent="GtkBox">
+  <template class="GtChannelsView" parent="GtkBox">
     <property name="orientation">vertical</property>
     <child>
       <object class="GtkSearchBar" id="search_bar">
@@ -18,14 +18,14 @@
       </packing>
     </child>
     <child>
-      <object class="GtkScrolledWindow" id="streams_scroll">
+      <object class="GtkScrolledWindow" id="channels_scroll">
         <property name="visible">True</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkFlowBox" id="streams_flow">
+              <object class="GtkFlowBox" id="channels_flow">
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="selection-mode">none</property>

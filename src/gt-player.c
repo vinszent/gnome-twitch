@@ -21,7 +21,7 @@ typedef struct
 
     gulong motion_notify_hndl_id;
 
-    GtTwitchStream* twitch_stream;
+    GtTwitchChannel* twitch_channel;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_OVERLAY)
@@ -263,7 +263,7 @@ gt_player_init(GtPlayer* self)
 
 
 void
-gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream)
+gt_player_open_twitch_channel(GtPlayer* self, GtTwitchChannel* channel)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     gchar* status;
@@ -277,9 +277,9 @@ gt_player_open_twitch_stream(GtPlayer* self, GtTwitchStream* stream)
     GAction* quality_action;
     GtWin* win;
 
-    priv->twitch_stream = stream;
+    priv->twitch_channel = channel;
 
-    g_object_get(stream, 
+    g_object_get(channel, 
                  "display-name", &display_name,
                  "name", &name,
                  "status", &status,
@@ -345,7 +345,7 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
     gchar* sig;
     GtTwitchStreamData* stream_data;
 
-    g_object_get(priv->twitch_stream, 
+    g_object_get(priv->twitch_channel, 
                  "name", &name,
                  NULL);
 

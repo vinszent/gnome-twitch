@@ -34,18 +34,18 @@ typedef struct _GtTwitchStreamData
 } GtTwitchStreamData;
 
 GtTwitch* gt_twitch_new(void);
-void gt_twitch_stream_access_token(GtTwitch* self, gchar* stream, gchar** token, gchar** sig);
-GtTwitchStreamData* gt_twitch_stream_by_quality(GtTwitch* self, gchar* stream, GtTwitchStreamQuality qual, gchar* token, gchar* sig);
-GList* gt_twitch_all_streams(GtTwitch* self, gchar* stream, gchar* token, gchar* sig);
-GList* gt_twitch_top_streams(GtTwitch* self, gint n, gint offset, gchar* game);
-GList* gt_twitch_top_streams_async(GtTwitch* self, gint n, gint offset, gchar* game, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gchar** sig);
+GtTwitchStreamData* gt_twitch_stream_by_quality(GtTwitch* self, gchar* channel, GtTwitchStreamQuality qual, gchar* token, gchar* sig);
+GList* gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig);
+GList* gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game);
+GList* gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList* gt_twitch_top_games(GtTwitch* self, gint n, gint offset);
 GList* gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-GList* gt_twitch_search_streams(GtTwitch* self, gchar* query, gint n, gint offset);
-void gt_twitch_search_streams_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList* gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset);
+void gt_twitch_search_channels_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList* gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset);
 void gt_twitch_search_games_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void gt_twitch_stream_free(GtTwitchStreamData* stream);
+void gt_twitch_stream_free(GtTwitchStreamData* channel);
 
 G_END_DECLS
 

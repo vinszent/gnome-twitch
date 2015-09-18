@@ -12,7 +12,7 @@ typedef struct
     GdkPixbuf* logo;
 
     gint64 viewers;
-    gint64 streams;
+    gint64 channels;
 } GtTwitchGamePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchGame, gt_twitch_game, G_TYPE_OBJECT)
@@ -25,7 +25,7 @@ enum
     PROP_PREVIEW,
     PROP_LOGO,
     PROP_VIEWERS,
-    PROP_STREAMS,
+    PROP_CHANNELS,
     NUM_PROPS
 };
 
@@ -80,8 +80,8 @@ get_property (GObject*    obj,
         case PROP_VIEWERS:
             g_value_set_int64(val, priv->viewers);
             break;
-        case PROP_STREAMS:
-            g_value_set_int64(val, priv->streams);
+        case PROP_CHANNELS:
+            g_value_set_int64(val, priv->channels);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -125,8 +125,8 @@ set_property(GObject*      obj,
         case PROP_VIEWERS:
             priv->viewers = g_value_get_int64(val);
             break;
-        case PROP_STREAMS:
-            priv->streams = g_value_get_int64(val);
+        case PROP_CHANNELS:
+            priv->channels = g_value_get_int64(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -167,9 +167,9 @@ gt_twitch_game_class_init(GtTwitchGameClass* klass)
                                              "Total viewers of game",
                                              0, G_MAXINT64, 0,
                                              G_PARAM_READWRITE);
-    props[PROP_STREAMS] = g_param_spec_int64("streams",
-                                              "Streams",
-                                              "Total streams of game",
+    props[PROP_CHANNELS] = g_param_spec_int64("channels",
+                                              "Channels",
+                                              "Total channels of game",
                                               0, G_MAXINT64, 0,
                                               G_PARAM_READWRITE);
 

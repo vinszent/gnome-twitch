@@ -1,33 +1,34 @@
-.gt-streams-view-child .overlay-box,
+.gt-channels-view-child .overlay-box,
 .gt-games-view-child .overlay-box
 {
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-.gt-streams-view-child .overlay-box .label
+.gt-channels-view-child .overlay-box .label
 {
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-streams-view-child .overlay-box .info-image
+.gt-channels-view-child .overlay-box .info-image
 {
     color: rgba(109, 115, 128, 1);
     padding: 7px;
 }
 
-.gt-streams-view-child .overlay-box .favourite-button
+.gt-channels-view-child .overlay-box .favourite-button
 {
     background-color: rgba(0, 0, 0, 0);
+    background-image: none;
     border-style: none;
 }
 
-.gt-streams-view-child .overlay-box .favourite-button:not(.favourited):hover GtkImage
+.gt-channels-view-child .overlay-box .favourite-button:not(.favourited):hover GtkImage
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-streams-view-child .overlay-box .favourite-button.favourited GtkImage
+.gt-channels-view-child .overlay-box .favourite-button.favourited GtkImage
 {
     color: gold;
 }
