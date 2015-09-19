@@ -928,12 +928,10 @@ gt_twitch_channel_raw_data_free(GtChannelRawData* data)
         g_free(data->game);
     if (data->status)
         g_free(data->status);
-    if (data->name)
-        g_free(data->name);
     if (data->display_name)
         g_free(data->display_name);
-    if (data->stream_started_time)
-        g_date_time_unref(data->stream_started_time);
+    g_free(data->name);
+    g_date_time_unref(data->stream_started_time);
     g_object_unref(data->preview);
     g_object_unref(data->video_banner);
 
