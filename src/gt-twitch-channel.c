@@ -18,7 +18,7 @@ typedef struct
     GdkPixbuf* video_banner;
 
     gint64 viewers;
-    GDateTime* created_at; 
+    GDateTime* stream_started_time; 
 
     gboolean favourited;
     gboolean online;
@@ -47,7 +47,7 @@ enum
     PROP_PREVIEW,
     PROP_VIDEO_BANNER,
     PROP_VIEWERS,
-    PROP_CREATED_AT,
+    PROP_STREAM_STARTED_TIME,
     PROP_FAVOURITED,
     PROP_ONLINE,
     PROP_AUTO_UPDATE,
@@ -134,7 +134,7 @@ finalize(GObject* object)
     g_free(priv->game);
     g_free(priv->status);
 
-    g_date_time_unref(priv->created_at);
+    g_date_time_unref(priv->stream_started_time);
 
     g_clear_object(&priv->preview);
     g_clear_object(&priv->video_banner);
@@ -180,9 +180,9 @@ get_property (GObject*    obj,
         case PROP_VIEWERS:
             g_value_set_int64(val, priv->viewers);
             break;
-        case PROP_CREATED_AT:
-            g_date_time_ref(priv->created_at);
-            g_value_set_pointer(val, priv->created_at);
+        case PROP_STREAM_STARTED_TIME:
+            g_date_time_ref(priv->stream_started_time);
+            g_value_set_pointer(val, priv->stream_started_time);
             break;    
         case PROP_FAVOURITED:
             g_value_set_boolean(val, priv->favourited);
@@ -251,12 +251,12 @@ set_property(GObject*      obj,
         case PROP_VIEWERS:
             priv->viewers = g_value_get_int64(val);
             break;
-        case PROP_CREATED_AT:
-            if (priv->created_at)
-                g_date_time_unref(priv->created_at);
-            priv->created_at = g_value_get_pointer(val);
-            if (priv->created_at)
-                g_date_time_ref(priv->created_at);
+        case PROP_STREAM_STARTED_TIME:
+            if (priv->stream_started_time)
+                g_date_time_unref(priv->stream_started_time);
+            priv->stream_started_time = g_value_get_pointer(val);
+            if (priv->stream_started_time)
+                g_date_time_ref(priv->stream_started_time);
             break;
         case PROP_FAVOURITED:
             priv->favourited = g_value_get_boolean(val);
@@ -324,9 +324,9 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
                                              "Number of viewers",
                                              0, G_MAXINT64, 0,
                                              G_PARAM_READWRITE);
-    props[PROP_CREATED_AT] = g_param_spec_pointer("created-at",
-                                                  "Created At",
-                                                  "Created at",
+    props[PROP_STREAM_STARTED_TIME] = g_param_spec_pointer("stream-started-time",
+                                                  "Stream started time",
+                                                  "Stream started time",
                                                   G_PARAM_READWRITE);
     props[PROP_FAVOURITED] = g_param_spec_boolean("favourited",
                                                   "Favourited",
@@ -389,7 +389,7 @@ gt_twitch_channel_update_from_raw_data(GtTwitchChannel* self, GtTwitchChannelRaw
                  "game", data->game,
                  "preview", data->preview,
                  "video-banner", data->video_banner,
-                 "created-at", data->stream_started_time,
+                 "stream-started-time", data->stream_started_time,
                  "online", data->online,
                  NULL);
 }

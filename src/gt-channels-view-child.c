@@ -172,7 +172,7 @@ constructed(GObject* obj)
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) viewers_converter,
                                 NULL, NULL, NULL);
-    g_object_bind_property_full(priv->channel, "created-at",
+    g_object_bind_property_full(priv->channel, "stream-started-time",
                                 priv->time_label, "label",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) time_converter,
