@@ -145,7 +145,6 @@ download_picture(GtTwitch* self, const gchar* url)
     input = soup_session_send(priv->soup, msg, NULL, NULL);
 
     ret = gdk_pixbuf_new_from_stream(input, NULL, &err);
-    g_object_force_floating(G_OBJECT(ret));
 
     g_input_stream_close(input, NULL, NULL);
     g_object_unref(msg);
@@ -254,10 +253,7 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
     if (json_reader_get_null_value(reader))
         data->video_banner = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
     else
-    {
         data->video_banner = download_picture(self, json_reader_get_string_value(reader));
-        g_object_ref_sink(data->video_banner);
-    }
     json_reader_end_member(reader);
 }
 
@@ -287,7 +283,6 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 
     json_reader_read_member(reader, "large");
     data->preview = download_picture(self, json_reader_get_string_value(reader));
-    g_object_ref_sink(data->preview);
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
@@ -296,6 +291,20 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 static void
 parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 {
+    json_reader_read_member(reader, "_id");
+    data->id = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "name");
+    data->name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "box");
+
+    json_reader_read_member(reader, "large");
+    data->preview = download_picture(self, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
 }
 
 void
@@ -455,48 +464,16 @@ gt_twitch_top_games(GtTwitch* self,
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game;
+        GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
 
         json_reader_read_element(reader, i);
 
         json_reader_read_member(reader, "game");
 
-        json_reader_read_member(reader, "_id");
-        game = gt_game_new(json_reader_get_int_value(reader));
+        parse_game(self, reader, data);
+        game = gt_game_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(game));
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "name");
-        g_object_set(game, "name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "box");
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(game, "preview-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "medium"); */
-        /* g_object_set(game, "preview-medium", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        json_reader_read_member(reader, "large");
-        g_object_set(game, "preview", download_picture(self, json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-        json_reader_end_member(reader);
-
-        /* json_reader_read_member(reader, "logo"); */
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(game, "logo-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "medium"); */
-        /* g_object_set(game, "logo-medium", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "large"); */
-        /* g_object_set(game, "logo-large", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_end_member(reader); */
+        gt_game_update_from_raw_data(game, data);
 
         json_reader_end_member(reader);
 
@@ -511,6 +488,8 @@ gt_twitch_top_games(GtTwitch* self,
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, game);
+
+        gt_twitch_game_raw_data_free(data);
     }
 
     json_reader_end_member(reader);
@@ -691,49 +670,20 @@ gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset)
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game;
+        GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
 
         json_reader_read_element(reader, i);
-
-        json_reader_read_member(reader, "_id");
-        game = gt_game_new(json_reader_get_int_value(reader));
+    
+        parse_game(self, reader, data);
+        game = gt_game_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(game));
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "name");
-        g_object_set(game, "name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "box");
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(game, "preview-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "medium"); */
-        /* g_object_set(game, "preview-medium", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        json_reader_read_member(reader, "large");
-        g_object_set(game, "preview", download_picture(self, json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-        json_reader_end_member(reader);
-
-        /* json_reader_read_member(reader, "logo"); */
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(game, "logo-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "medium"); */
-        /* g_object_set(game, "logo-medium", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        /* json_reader_read_member(reader, "large"); */
-        /* g_object_set(game, "logo-large", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-        /* json_reader_end_member(reader); */
+        gt_game_update_from_raw_data(game, data);
 
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, game);
+
+        gt_twitch_game_raw_data_free(data);
     }
     json_reader_end_member(reader);
 
@@ -971,7 +921,8 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
     g_object_unref(task);
 }
 
-void gt_twitch_channel_raw_data_free(GtChannelRawData* data)
+void 
+gt_twitch_channel_raw_data_free(GtChannelRawData* data)
 {
     if (data->game)
         g_free(data->game);
@@ -993,4 +944,12 @@ GtGameRawData*
 gt_game_raw_data(GtTwitch* self, const gchar* name)
 {
     //TODO
+}
+
+void
+gt_twitch_game_raw_data_free(GtGameRawData* data)
+{
+    g_free(data->name);
+    g_object_unref(data->preview);
+    g_free(data);
 }

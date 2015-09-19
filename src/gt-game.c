@@ -32,9 +32,10 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 GtGame*
-gt_game_new(gint64 id)
+gt_game_new(const gchar* name, gint64 id)
 {
     return g_object_new(GT_TYPE_GAME, 
+                        "name", name,
                         "id", id,
                         NULL);
 }
@@ -151,7 +152,7 @@ gt_game_class_init(GtGameClass* klass)
                                            "Name",
                                            "Name of game",
                                            NULL,
-                                           G_PARAM_READWRITE);
+                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     props[PROP_PREVIEW] = g_param_spec_object("preview",
                                               "Preview",
                                               "Preview of game",
@@ -181,6 +182,14 @@ gt_game_class_init(GtGameClass* klass)
 static void
 gt_game_init(GtGame* self)
 {
+}
+
+void 
+gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data)
+{
+    g_object_set(self,
+                 "preview", data->preview,
+                 NULL);
 }
 
 void

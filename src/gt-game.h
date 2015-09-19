@@ -1,6 +1,7 @@
 #ifndef GT_GAME_H
 #define GT_GAME_H
 
+#include "gt-twitch.h"
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
@@ -14,7 +15,8 @@ struct _GtGame
     GObject parent_instance;
 };
 
-GtGame* gt_game_new(gint64 id);
+GtGame* gt_game_new(const gchar* name, gint64 id);
+void gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data);
 void gt_game_free_list(GList* self);
 
 G_END_DECLS
