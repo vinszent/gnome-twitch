@@ -15,7 +15,7 @@ struct _GtTwitchChannel
     GObject parent_instance;
 };
 
-GtTwitchChannel* gt_twitch_channel_new(gint64 id);
+GtTwitchChannel* gt_twitch_channel_new(const gchar* name, gint64 id);
 void gt_twitch_channel_update_from_raw_data(GtTwitchChannel* self, GtTwitchChannelRawData* data);
 void gt_twitch_channel_toggle_favourited(GtTwitchChannel* self);
 void gt_twitch_channel_free_list(GList* list);

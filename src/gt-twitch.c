@@ -234,7 +234,12 @@ parse_playlist(const gchar* playlist)
 static void
 parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
 {
+    json_reader_read_member(reader, "_id");
+    data->id = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
     json_reader_read_member(reader, "name");
+    g_print("%s\n", json_reader_get_string_value(reader));
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
@@ -247,8 +252,13 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "video_banner");
-    data->video_banner = download_picture(self, json_reader_get_string_value(reader));
-    g_object_ref_sink(data->video_banner);
+    if (json_reader_get_null_value(reader))
+        data->video_banner = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
+    else
+    {
+        data->video_banner = download_picture(self, json_reader_get_string_value(reader));
+        g_object_ref_sink(data->video_banner);
+    }
     json_reader_end_member(reader);
 }
 
@@ -388,61 +398,19 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchChannel* channel;
+        GtTwitchChannelRawData* data = g_malloc0(sizeof(GtTwitchChannelRawData));;
 
         json_reader_read_element(reader, i);
 
-        json_reader_read_member(reader, "_id");
-        channel = gt_twitch_channel_new(json_reader_get_int_value(reader));
-        g_object_force_floating(G_OBJECT(channel));
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "viewers");
-        g_object_set(channel, "viewers", json_reader_get_int_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "created_at");
-        g_object_set(channel, "created_at", parse_time(json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "channel");
-
-        json_reader_read_member(reader, "status");
-        if (!json_reader_get_null_value(reader)) //TODO: Does this need to be done for all values?
-            g_object_set(channel, "status", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "name");
-        g_object_set(channel, "name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "display_name");
-        g_object_set(channel, "display-name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "game");
-        if (!json_reader_get_null_value(reader)) //TODO: Does this need to be done for all values?
-            g_object_set(channel, "game", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "preview");
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(channel, "preview-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        json_reader_read_member(reader, "large");
-        g_object_set(channel, "preview", download_picture(self, json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-
-        /* json_reader_read_member(reader, "large"); */
-        /* g_object_set(channel, "preview-large", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-        json_reader_end_member(reader);
+        parse_stream(self, reader, data);        
+        channel = gt_twitch_channel_new(data->name, data->id);
+        gt_twitch_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, channel);
+
+        g_free(data);
     }
     json_reader_end_member(reader);
 
@@ -667,60 +635,19 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtTwitchChannel* channel;
+        GtTwitchChannelRawData* data = g_malloc0(sizeof(GtTwitchChannelRawData));;
 
         json_reader_read_element(reader, i);
 
-        json_reader_read_member(reader, "_id");
-        channel = gt_twitch_channel_new(json_reader_get_int_value(reader));
-        g_object_force_floating(G_OBJECT(channel));
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "viewers");
-        g_object_set(channel, "viewers", json_reader_get_int_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "created_at");
-        g_object_set(channel, "created-at", parse_time(json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "channel");
-
-        json_reader_read_member(reader, "status");
-        g_object_set(channel, "status", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "name");
-        g_object_set(channel, "name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "display_name");
-        g_object_set(channel, "display-name", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "game");
-        if (!json_reader_get_null_value(reader))
-            g_object_set(channel, "game", json_reader_get_string_value(reader), NULL);
-        json_reader_end_member(reader);
-
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "preview");
-        /* json_reader_read_member(reader, "small"); */
-        /* g_object_set(channel, "preview-small", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-
-        json_reader_read_member(reader, "large");
-        g_object_set(channel, "preview", download_picture(self, json_reader_get_string_value(reader)), NULL);
-        json_reader_end_member(reader);
-
-        /* json_reader_read_member(reader, "large"); */
-        /* g_object_set(channel, "preview-large", download_picture(self, json_reader_get_string_value(reader)), NULL); */
-        /* json_reader_end_member(reader); */
-        json_reader_end_member(reader);
+        parse_stream(self, reader, data);        
+        channel = gt_twitch_channel_new(data->name, data->id);
+        gt_twitch_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, channel);
+
+        g_free(data);
     }
     json_reader_end_member(reader);
 

@@ -38,6 +38,7 @@ typedef struct _GtTwitchStreamData
 
 typedef struct _GtTwitchChannelRawData
 {
+    gint64 id;
     gchar* game;
     gint64 viewers;
     GDateTime* stream_started_time;

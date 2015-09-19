@@ -57,9 +57,10 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 GtTwitchChannel*
-gt_twitch_channel_new(gint64 id)
+gt_twitch_channel_new(const gchar* name, gint64 id)
 {
     return g_object_new(GT_TYPE_TWITCH_CHANNEL, 
+                        "name", name,
                         "id", id,
                         NULL);
 }
@@ -379,7 +380,6 @@ void
 gt_twitch_channel_update_from_raw_data(GtTwitchChannel* self, GtTwitchChannelRawData* data)
 {
     g_object_set(self,
-                 "name", data->name,
                  "viewers", data->viewers,
                  "display-name", data->display_name,
                  "status", data->status,
