@@ -31,7 +31,7 @@
                         <child>
                           <object class="GtkImage">
                             <property name="visible">True</property>
-                            <property name="icon-name">mail-reply-sender</property> 
+                            <property name="icon-name">mail-replied-symbolic</property> 
                             <property name="icon-size">5</property>
                             <property name="halign">center</property>
                             <property name="valign">center</property>
