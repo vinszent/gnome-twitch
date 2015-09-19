@@ -239,7 +239,6 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "name");
-    g_print("%s\n", json_reader_get_string_value(reader));
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
@@ -404,13 +403,14 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
         parse_stream(self, reader, data);        
         channel = gt_twitch_channel_new(data->name, data->id);
+        g_object_force_floating(G_OBJECT(channel));
         gt_twitch_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, channel);
 
-        g_free(data);
+        gt_twitch_channel_raw_data_free(data);
     }
     json_reader_end_member(reader);
 
@@ -641,13 +641,14 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
 
         parse_stream(self, reader, data);        
         channel = gt_twitch_channel_new(data->name, data->id);
+        g_object_force_floating(G_OBJECT(channel));
         gt_twitch_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
         ret = g_list_append(ret, channel);
 
-        g_free(data);
+        gt_twitch_channel_raw_data_free(data);
     }
     json_reader_end_member(reader);
 
@@ -903,7 +904,6 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
 
     json_reader_read_member(reader, "stream");
 
-
     if (json_reader_get_null_value(reader))
     {
         ret = gt_twitch_channel_raw_data(self, name);
@@ -972,15 +972,14 @@ void gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data)
         g_free(data->game);
     if (data->status)
         g_free(data->status);
-    g_free(data->name);
+    if (data->name)
+        g_free(data->name);
     if (data->display_name)
         g_free(data->display_name);
     if (data->stream_started_time)
         g_date_time_unref(data->stream_started_time);
-    if (data->preview)
-        g_object_unref(data->preview);
-    if (data->video_banner)
-        g_object_unref(data->video_banner);
+    g_object_unref(data->preview);
+    g_object_unref(data->video_banner);
 
     g_free(data);
 }

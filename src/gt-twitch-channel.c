@@ -71,7 +71,7 @@ typedef struct
     GtTwitchChannelRawData* raw;
 } UpdateSetData;
 
-static void
+static gboolean
 update_set_cb(gpointer udata)
 {
     UpdateSetData* setd = (UpdateSetData*) udata;
@@ -79,6 +79,9 @@ update_set_cb(gpointer udata)
     gt_twitch_channel_update_from_raw_data(setd->self, setd->raw);
 
     gt_twitch_channel_raw_data_free(setd->raw);
+    g_free(setd);
+
+    return FALSE;
 }
 
 static void
@@ -115,7 +118,7 @@ auto_update_cb(GObject* src,
     GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
     if (priv->auto_update)
-        priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
+        priv->update_id = g_timeout_add(5e3, (GSourceFunc) update, self); //TODO: Add this as a setting
     else
         g_source_remove(priv->update_id);
 }
