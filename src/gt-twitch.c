@@ -1,6 +1,6 @@
 #include "gt-twitch.h"
-#include "gt-twitch-channel.h"
-#include "gt-twitch-game.h"
+#include "gt-channel.h"
+#include "gt-game.h"
 #include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
@@ -232,7 +232,7 @@ parse_playlist(const gchar* playlist)
 }
 
 static void
-parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
+parse_channel(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 {
     json_reader_read_member(reader, "_id");
     data->id = json_reader_get_int_value(reader);
@@ -262,7 +262,7 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
 }
 
 static void
-parse_stream(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
+parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 {
     json_reader_read_member(reader, "game");
     if (!json_reader_get_null_value(reader))
@@ -291,6 +291,11 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
+}
+
+static void
+parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
+{
 }
 
 void
@@ -396,15 +401,15 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtTwitchChannel* channel;
-        GtTwitchChannelRawData* data = g_malloc0(sizeof(GtTwitchChannelRawData));;
+        GtChannel* channel;
+        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));;
 
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
-        channel = gt_twitch_channel_new(data->name, data->id);
+        channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
-        gt_twitch_channel_update_from_raw_data(channel, data);
+        gt_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
@@ -449,14 +454,14 @@ gt_twitch_top_games(GtTwitch* self,
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtTwitchGame* game;
+        GtGame* game;
 
         json_reader_read_element(reader, i);
 
         json_reader_read_member(reader, "game");
 
         json_reader_read_member(reader, "_id");
-        game = gt_twitch_game_new(json_reader_get_int_value(reader));
+        game = gt_game_new(json_reader_get_int_value(reader));
         g_object_force_floating(G_OBJECT(game));
         json_reader_end_member(reader);
 
@@ -540,7 +545,7 @@ top_channels_async_cb(GTask* task,
 
     ret = gt_twitch_top_channels(data->twitch, data->n, data->offset, data->game);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
 
 GList*
@@ -582,7 +587,7 @@ top_games_async_cb(GTask* task,
 
     ret = gt_twitch_top_games(data->twitch, data->n, data->offset);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_game_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
 }
 
 GList*
@@ -634,15 +639,15 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
     json_reader_read_member(reader, "streams");
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtTwitchChannel* channel;
-        GtTwitchChannelRawData* data = g_malloc0(sizeof(GtTwitchChannelRawData));;
+        GtChannel* channel;
+        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));;
 
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
-        channel = gt_twitch_channel_new(data->name, data->id);
+        channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
-        gt_twitch_channel_update_from_raw_data(channel, data);
+        gt_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
 
@@ -685,12 +690,12 @@ gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset)
     json_reader_read_member(reader, "games");
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtTwitchGame* game;
+        GtGame* game;
 
         json_reader_read_element(reader, i);
 
         json_reader_read_member(reader, "_id");
-        game = gt_twitch_game_new(json_reader_get_int_value(reader));
+        game = gt_game_new(json_reader_get_int_value(reader));
         g_object_force_floating(G_OBJECT(game));
         json_reader_end_member(reader);
 
@@ -769,7 +774,7 @@ search_channels_async_cb(GTask* task,
 
     ret = gt_twitch_search_channels(data->twitch, data->query, data->n, data->offset);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
 
 void
@@ -812,7 +817,7 @@ search_games_async_cb(GTask* task,
 
     ret = gt_twitch_search_games(data->twitch, data->query, data->n, data->offset);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_game_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
 }
 
 void
@@ -849,7 +854,7 @@ gt_twitch_stream_free(GtTwitchStreamData* channel)
     g_free(channel);
 }
 
-GtTwitchChannelRawData*
+GtChannelRawData*
 gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
@@ -858,7 +863,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GtTwitchChannelRawData* ret = NULL;
+    GtChannelRawData* ret = NULL;
 
     uri = g_strdup_printf(CHANNELS_URI, name);
     msg = soup_message_new("GET", uri);
@@ -870,7 +875,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     node = json_parser_get_root(parser);
     reader = json_reader_new(node);
 
-    ret = g_malloc0_n(1, sizeof(GtTwitchChannelRawData));
+    ret = g_malloc0_n(1, sizeof(GtChannelRawData));
     parse_channel(self, reader, ret);
 
     g_object_unref(msg);
@@ -881,7 +886,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     return ret;
 }
 
-GtTwitchChannelRawData*
+GtChannelRawData*
 gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
@@ -890,7 +895,7 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GtTwitchChannelRawData* ret = NULL;
+    GtChannelRawData* ret = NULL;
 
     uri = g_strdup_printf(STREAMS_URI, name);
     msg = soup_message_new("GET", uri);
@@ -911,7 +916,7 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     }
     else
     {
-        ret = g_malloc0_n(1, sizeof(GtTwitchChannelRawData));
+        ret = g_malloc0_n(1, sizeof(GtChannelRawData));
         parse_stream(self, reader, ret);
         ret->online = TRUE;
     }
@@ -932,7 +937,7 @@ channel_raw_data_cb(GTask* task,
                     gpointer task_data,
                     GCancellable* cancel)
 {
-    GtTwitchChannelRawData* ret;
+    GtChannelRawData* ret;
     GenericTaskData* data = task_data;
 
     if (g_task_return_error_if_cancelled(task))
@@ -966,7 +971,7 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
     g_object_unref(task);
 }
 
-void gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data)
+void gt_twitch_channel_raw_data_free(GtChannelRawData* data)
 {
     if (data->game)
         g_free(data->game);
@@ -982,4 +987,10 @@ void gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data)
     g_object_unref(data->video_banner);
 
     g_free(data);
+}
+
+GtGameRawData*
+gt_game_raw_data(GtTwitch* self, const gchar* name)
+{
+    //TODO
 }

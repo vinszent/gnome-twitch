@@ -2,7 +2,7 @@
 #define GT_CHANNELS_VIEW_CHILD_H
 
 #include <gtk/gtk.h>
-#include "gt-twitch-channel.h"
+#include "gt-channel.h"
 
 G_BEGIN_DECLS
 
@@ -15,7 +15,7 @@ struct _GtChannelsViewChild
     GtkFlowBoxChild parent_instance;
 };
 
-GtChannelsViewChild* gt_channels_view_child_new(GtTwitchChannel* chan);
+GtChannelsViewChild* gt_channels_view_child_new(GtChannel* chan);
 void gt_channels_view_child_hide_overlay(GtChannelsViewChild* self);
 
 G_END_DECLS

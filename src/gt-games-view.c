@@ -1,7 +1,7 @@
 #include "gt-games-view.h"
 #include "gt-games-view-child.h"
 #include "gt-app.h"
-#include "gt-twitch-game.h"
+#include "gt-game.h"
 #include "gt-win.h"
 #include "utils.h"
 #include <string.h>
@@ -130,14 +130,14 @@ child_activated_cb(GtkFlowBox* flow,
                    gpointer udata)
 {
     GtGamesViewChild* chan = GT_GAMES_VIEW_CHILD(child);
-    GtTwitchGame* game;
+    GtGame* game;
     GtWin* win;
 
     gt_games_view_child_hide_overlay(chan); //FIXME: Doesn't work
 
     win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(flow)));
 
-    g_object_get(chan, "twitch-game", &game, NULL);
+    g_object_get(chan, "game", &game, NULL);
 
     gt_channels_view_show_game_channels(gt_win_get_channels_view(win),
                                       game);
@@ -280,7 +280,7 @@ gt_games_view_append_games(GtGamesView* self, GList* games)
 
     for (GList* l = games; l != NULL; l = l->next)
     {
-        GtGamesViewChild* child = gt_games_view_child_new(GT_TWITCH_GAME(l->data));
+        GtGamesViewChild* child = gt_games_view_child_new(GT_GAME(l->data));
         gtk_widget_show_all(GTK_WIDGET(child));
         gtk_container_add(GTK_CONTAINER(priv->games_flow), GTK_WIDGET(child));
     }

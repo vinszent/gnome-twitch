@@ -266,7 +266,7 @@ gt_win_init(GtWin* self)
 }
 
 void
-gt_win_open_twitch_channel(GtWin* self, GtTwitchChannel* chan)
+gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
@@ -283,7 +283,7 @@ gt_win_open_twitch_channel(GtWin* self, GtTwitchChannel* chan)
                  NULL);
 
 
-    gt_player_open_twitch_channel(GT_PLAYER(priv->player), chan);
+    gt_player_open_channel(GT_PLAYER(priv->player), chan);
 
     g_free(name);
     g_free(status);

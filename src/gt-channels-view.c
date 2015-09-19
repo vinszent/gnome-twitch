@@ -1,5 +1,5 @@
 #include "gt-channels-view.h"
-#include "gt-twitch-game.h"
+#include "gt-game.h"
 #include "gt-app.h"
 #include "gt-win.h"
 #include "utils.h"
@@ -102,7 +102,7 @@ load_favourite_channels(GtChannelsView* self)
 
     for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
     {
-        GtTwitchChannel* chan = GT_TWITCH_CHANNEL(json_gobject_deserialize(GT_TYPE_TWITCH_CHANNEL, l->data));
+        GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
         g_object_set(chan, "auto-update", TRUE, NULL);
         priv->favourite_channels = g_list_append(priv->favourite_channels, chan);
     }
@@ -195,13 +195,13 @@ child_activated_cb(GtkFlowBox* flow,
                    gpointer udata)
 {
     GtChannelsViewChild* chan = GT_CHANNELS_VIEW_CHILD(child);
-    GtTwitchChannel* twitch;
+    GtChannel* twitch;
 
     gt_channels_view_child_hide_overlay(chan);
 
-    g_object_get(chan, "twitch-channel", &twitch, NULL);
+    g_object_get(chan, "channel", &twitch, NULL);
 
-    gt_win_open_twitch_channel(GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(flow))),
+    gt_win_open_channel(GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(flow))),
                                twitch);
 
     g_object_unref(twitch);
@@ -260,7 +260,7 @@ channel_favourited_cb(GObject* source,
 {
     GtChannelsView* self = GT_CHANNELS_VIEW(udata);
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
-    GtTwitchChannel* chan = GT_TWITCH_CHANNEL(source);
+    GtChannel* chan = GT_CHANNEL(source);
 
     gboolean favourited;
 
@@ -273,7 +273,7 @@ channel_favourited_cb(GObject* source,
     }
     else
     {
-        GList* found = g_list_find_custom(priv->favourite_channels, chan, (GCompareFunc) gt_twitch_channel_compare);
+        GList* found = g_list_find_custom(priv->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
         g_object_unref(G_OBJECT(found->data));
@@ -409,7 +409,7 @@ gt_channels_view_append_channels(GtChannelsView* self, GList* channels)
 
     for (GList* l = channels; l != NULL; l = l->next)
     {
-        GtTwitchChannel* chan = GT_TWITCH_CHANNEL(l->data);
+        GtChannel* chan = GT_CHANNEL(l->data);
 
         g_object_set(chan, "favourited", gt_channels_view_is_channel_favourited(self, chan), NULL);
         g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
@@ -421,7 +421,7 @@ gt_channels_view_append_channels(GtChannelsView* self, GList* channels)
 }
 
 void
-gt_channels_view_show_game_channels(GtChannelsView* self, GtTwitchGame* game)
+gt_channels_view_show_game_channels(GtChannelsView* self, GtGame* game)
 {
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
@@ -528,9 +528,9 @@ gt_channels_view_refresh(GtChannelsView* self)
 }
 
 gboolean
-gt_channels_view_is_channel_favourited(GtChannelsView* self, GtTwitchChannel* chan)
+gt_channels_view_is_channel_favourited(GtChannelsView* self, GtChannel* chan)
 {
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
-    return g_list_find_custom(priv->favourite_channels, chan, (GCompareFunc) gt_twitch_channel_compare) != NULL;
+    return g_list_find_custom(priv->favourite_channels, chan, (GCompareFunc) gt_channel_compare) != NULL;
 }

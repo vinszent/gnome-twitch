@@ -2,7 +2,7 @@
 #define GT_GAMES_VIEW_CHILD_H
 
 #include <gtk/gtk.h>
-#include "gt-twitch-game.h"
+#include "gt-game.h"
 
 G_BEGIN_DECLS
 
@@ -15,7 +15,7 @@ struct _GtGamesViewChild
     GtkFlowBoxChild parent_instance;
 };
 
-GtGamesViewChild* gt_games_view_child_new(GtTwitchGame* game);
+GtGamesViewChild* gt_games_view_child_new(GtGame* game);
 void gt_games_view_child_hide_overlay(GtGamesViewChild* self);
 
 G_END_DECLS

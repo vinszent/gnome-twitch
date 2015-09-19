@@ -3,7 +3,7 @@
 
 #include <gtk/gtk.h>
 #include "gt-twitch.h"
-#include "gt-twitch-channel.h"
+#include "gt-channel.h"
 
 G_BEGIN_DECLS
 
@@ -17,7 +17,7 @@ struct _GtPlayer
 };
 
 GtPlayer* gt_player_new(void);
-void gt_player_open_twitch_channel(GtPlayer* self, GtTwitchChannel* channel);
+void gt_player_open_channel(GtPlayer* self, GtChannel* channel);
 void gt_player_play(GtPlayer* self);
 void gt_player_pause(GtPlayer* self);
 void gt_player_stop(GtPlayer* self);

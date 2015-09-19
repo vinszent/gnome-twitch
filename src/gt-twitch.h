@@ -3,7 +3,7 @@
 
 #include <gtk/gtk.h>
 
-#define MAX_QUERY 20
+#define MAX_QUERY 30
 #define NO_GAME ""
 
 G_BEGIN_DECLS
@@ -36,7 +36,7 @@ typedef struct _GtTwitchStreamData
     gchar* url;
 } GtTwitchStreamData;
 
-typedef struct _GtTwitchChannelRawData
+typedef struct _GtChannelRawData
 {
     gint64 id;
     gchar* game;
@@ -48,7 +48,17 @@ typedef struct _GtTwitchChannelRawData
     GdkPixbuf* preview;
     GdkPixbuf* video_banner;
     gboolean online;
-} GtTwitchChannelRawData;
+} GtChannelRawData;
+
+typedef struct _GtGameRawData
+{
+    gint64 id;
+    gchar* name;
+    GdkPixbuf* preview;
+    GdkPixbuf* logo;
+    gint64 viewers;
+    gint64 channels;
+} GtGameRawData;
 
 GtTwitch*               gt_twitch_new(void);
 void                    gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gchar** sig);
@@ -63,10 +73,12 @@ void                    gt_twitch_search_channels_async(GtTwitch* self, gchar* q
 GList*                  gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset);
 void                    gt_twitch_search_games_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_stream_free(GtTwitchStreamData* channel);
-GtTwitchChannelRawData* gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name);
-GtTwitchChannelRawData* gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name);
+GtChannelRawData* gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name);
+GtChannelRawData* gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void                    gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data);
+void                    gt_twitch_channel_raw_data_free(GtChannelRawData* data);
+GtGameRawData*          gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
+void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
 
 G_END_DECLS
 

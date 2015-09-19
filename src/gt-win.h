@@ -3,7 +3,7 @@
 
 #include <gtk/gtk.h>
 #include "gt-app.h"
-#include "gt-twitch-channel.h"
+#include "gt-channel.h"
 #include "gt-games-view.h"
 #include "gt-channels-view.h"
 
@@ -19,7 +19,7 @@ struct _GtWin
 };
 
 GtWin* gt_win_new(GtApp* app);
-void gt_win_open_twitch_channel(GtWin* self, GtTwitchChannel* chan);
+void gt_win_open_channel(GtWin* self, GtChannel* chan);
 void gt_win_browse_view(GtWin* self);
 void gt_win_browse_channels_view(GtWin* self);
 void gt_win_browse_games_view(GtWin* self);

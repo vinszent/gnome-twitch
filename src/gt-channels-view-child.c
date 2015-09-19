@@ -3,7 +3,7 @@
 
 typedef struct
 {
-    GtTwitchChannel* channel;
+    GtChannel* channel;
 
     GtkWidget* preview_image;
     GtkWidget* name_label;
@@ -20,17 +20,17 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsViewChild, gt_channels_view_child, GTK_TYPE
 enum 
 {
     PROP_0,
-    PROP_TWITCH_CHANNEL,
+    PROP_CHANNEL,
     NUM_PROPS
 };
 
 static GParamSpec* props[NUM_PROPS];
 
 GtChannelsViewChild*
-gt_channels_view_child_new(GtTwitchChannel* chan)
+gt_channels_view_child_new(GtChannel* chan)
 {
     return g_object_new(GT_TYPE_CHANNELS_VIEW_CHILD, 
-                        "twitch-channel", chan,
+                        "channel", chan,
                         NULL);
 }
 
@@ -63,7 +63,7 @@ favourite_button_cb(GtkButton* button,
     GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
     GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
 
-    gt_twitch_channel_toggle_favourited(priv->channel);
+    gt_channel_toggle_favourited(priv->channel);
 }
 
 static void
@@ -88,7 +88,7 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_TWITCH_CHANNEL:
+        case PROP_CHANNEL:
             g_value_set_object(val, priv->channel);
             break;
         default:
@@ -107,7 +107,7 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_TWITCH_CHANNEL:
+        case PROP_CHANNEL:
             priv->channel = g_value_ref_sink_object(val);
             break;
         default:
@@ -206,11 +206,11 @@ gt_channels_view_child_class_init(GtChannelsViewChildClass* klass)
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
                                                 "/com/gnome-twitch/ui/gt-channels-view-child.ui");
 
-    props[PROP_TWITCH_CHANNEL] = g_param_spec_object("twitch-channel",
-                                                     "Twitch channel",
-                                                     "Associated channel",
-                                                     GT_TYPE_TWITCH_CHANNEL,
-                                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    props[PROP_CHANNEL] = g_param_spec_object("channel",
+                                              "Channel",
+                                              "Associated channel",
+                                              GT_TYPE_CHANNEL,
+                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,

@@ -3,7 +3,7 @@
 
 typedef struct
 {
-    GtTwitchGame* game;
+    GtGame* game;
 
     GtkWidget* preview_image;
     GtkWidget* middle_revealer;
@@ -16,17 +16,17 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtGamesViewChild, gt_games_view_child, GTK_TYPE_FLOW_
 enum 
 {
     PROP_0,
-    PROP_TWITCH_GAME,
+    PROP_GAME,
     NUM_PROPS
 };
 
 static GParamSpec* props[NUM_PROPS];
 
 GtGamesViewChild*
-gt_games_view_child_new(GtTwitchGame* game)
+gt_games_view_child_new(GtGame* game)
 {
     return g_object_new(GT_TYPE_GAMES_VIEW_CHILD, 
-                        "twitch-game", game,
+                        "game", game,
                         NULL);
 }
 
@@ -74,7 +74,7 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_TWITCH_GAME:
+        case PROP_GAME:
             g_value_set_object(val, priv->game);
             break;
         default:
@@ -93,7 +93,7 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_TWITCH_GAME:
+        case PROP_GAME:
             if (priv->game)
                 g_object_unref(priv->game);
             priv->game = g_value_ref_sink_object(val);
@@ -135,10 +135,10 @@ gt_games_view_child_class_init(GtGamesViewChildClass* klass)
     object_class->set_property = set_property;
     object_class->constructed = constructed;
 
-    props[PROP_TWITCH_GAME] = g_param_spec_object("twitch-game",
-                                                  "Twitch Game",
+    props[PROP_GAME] = g_param_spec_object("game",
+                                                  "Game",
                                                   "Associated game",
-                                                  GT_TYPE_TWITCH_GAME,
+                                                  GT_TYPE_GAME,
                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
     g_object_class_install_properties(object_class,
