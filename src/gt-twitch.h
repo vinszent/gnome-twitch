@@ -3,7 +3,7 @@
 
 #include <gtk/gtk.h>
 
-#define MAX_QUERY 50
+#define MAX_QUERY 20
 #define NO_GAME ""
 
 G_BEGIN_DECLS
