@@ -116,52 +116,79 @@ set_property(GObject*      obj,
 }
 
 static void
+viewers_converter(GBinding* bind,
+                  const GValue* from,
+                  GValue* to,
+                  gpointer udata)
+{
+    gint64 viewers;
+    gchar* label;
+
+    viewers = g_value_get_int64(from);
+
+    if (viewers > 1e4)
+        label = g_strdup_printf("%2.1fk", (gdouble) viewers / 1e3);
+    else
+        label = g_strdup_printf("%ld", viewers);
+
+    g_value_set_string(to, label);
+    g_free(label);
+}
+
+static void
+time_converter(GBinding* bind,
+               const GValue* from,
+               GValue* to,
+               gpointer udata)
+{
+    gchar* label;
+    GDateTime* now_time;
+    GDateTime* stream_started_time;
+    GTimeSpan dif;
+
+    now_time = g_date_time_new_now_utc();
+    stream_started_time = (GDateTime*) g_value_get_pointer(from);
+
+    dif = g_date_time_difference(now_time, stream_started_time);
+
+    if (dif > G_TIME_SPAN_HOUR)
+        label =g_strdup_printf("%2.1fh", (gdouble) dif / G_TIME_SPAN_HOUR);
+    else
+        label = g_strdup_printf("%ldm", dif / G_TIME_SPAN_MINUTE);
+
+    g_value_set_string(to, label);
+    g_free(label);
+    g_date_time_unref(now_time);
+}
+
+static void
 constructed(GObject* obj)
 {
     GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(obj);
     GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
-    GdkPixbuf* preview;
-    gchar* name;
-    gchar* game;
-    gint64 viewers;
-    GDateTime* created_at;
-    GDateTime* now;
-    GTimeSpan dif;
 
-    g_object_get(priv->channel, 
-                 "preview", &preview, 
-                 "display-name", &name,
-                 "game", &game,
-                 "viewers", &viewers,
-                 "created-at", &created_at,
-                 NULL);
-
-    now = g_date_time_new_now_utc();
-    dif = g_date_time_difference(now, created_at);
-
-    gtk_label_set_label(GTK_LABEL(priv->name_label), name);
-    gtk_label_set_label(GTK_LABEL(priv->game_label), game);
-    gtk_label_set_label(GTK_LABEL(priv->viewers_label), viewers > 1e4 ? 
-                        g_strdup_printf("%2.1fk", (double) viewers / 1e3) : 
-                        g_strdup_printf("%ld", viewers)); //TODO: Too lazy now, but the printf needs to be freed
-    gtk_label_set_label(GTK_LABEL(priv->time_label), dif > 3.6*1e9 ?
-                        g_strdup_printf("%2.1fh", (double) dif / 3.6e9) :
-                        g_strdup_printf("%ldm", dif / (gint64) 6e7));
-    /* gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview); */
-
+    g_object_bind_property_full(priv->channel, "viewers",
+                                priv->viewers_label, "label",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) viewers_converter,
+                                NULL, NULL, NULL);
+    g_object_bind_property_full(priv->channel, "created-at",
+                                priv->time_label, "label",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) time_converter,
+                                NULL, NULL, NULL);
+    g_object_bind_property(priv->channel, "display-name",
+                           priv->name_label, "label",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "game",
+                           priv->game_label, "label",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->channel, "favourited",
                            priv->favourite_button, "active",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-
-    /* g_signal_connect(priv->channel, "notify::favourited", G_CALLBACK(channel_favourited_cb), self); */
-
-    g_object_unref(preview);
-    g_free(name);
-    g_free(game);
-    g_date_time_unref(now);
 
     G_OBJECT_CLASS(gt_channels_view_child_parent_class)->constructed(obj);
 }
