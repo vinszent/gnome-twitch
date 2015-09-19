@@ -108,19 +108,13 @@ constructed(GObject* obj)
 {
     GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(obj);
     GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
-    GdkPixbuf* preview;
-    gchar* name;
 
-    g_object_get(priv->game, 
-                 "preview", &preview, 
-                 "name", &name,
-                 NULL);
-
-    gtk_label_set_label(GTK_LABEL(priv->name_label), name);
-    gtk_image_set_from_pixbuf(GTK_IMAGE(priv->preview_image), preview);
-
-    g_free(name);
-    g_object_unref(preview);
+    g_object_bind_property(priv->game, "name",
+                           priv->name_label, "label",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->game, "preview",
+                           priv->preview_image, "pixbuf",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     G_OBJECT_CLASS(gt_games_view_child_parent_class)->constructed(obj);
 }
@@ -136,10 +130,10 @@ gt_games_view_child_class_init(GtGamesViewChildClass* klass)
     object_class->constructed = constructed;
 
     props[PROP_GAME] = g_param_spec_object("game",
-                                                  "Game",
-                                                  "Associated game",
-                                                  GT_TYPE_GAME,
-                                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                                           "Game",
+                                           "Associated game",
+                                           GT_TYPE_GAME,
+                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
