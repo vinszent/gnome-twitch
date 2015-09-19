@@ -1,5 +1,4 @@
 #include "gt-twitch-channel.h"
-#include "gt-twitch.h"
 #include "gt-app.h"
 #include "utils.h"
 #include <json-glib/json-glib.h>
@@ -16,6 +15,7 @@ typedef struct
     gchar* display_name;
 
     GdkPixbuf* preview;
+    GdkPixbuf* video_banner;
 
     gint64 viewers;
     GDateTime* created_at; 
@@ -45,6 +45,7 @@ enum
     PROP_NAME,
     PROP_DISPLAY_NAME,
     PROP_PREVIEW,
+    PROP_VIDEO_BANNER,
     PROP_VIEWERS,
     PROP_CREATED_AT,
     PROP_FAVOURITED,
@@ -74,16 +75,7 @@ update_set_cb(gpointer udata)
 {
     UpdateSetData* setd = (UpdateSetData*) udata;
 
-    g_object_set(setd->self,
-                 "name", setd->raw->name,
-                 "viewers", setd->raw->viewers,
-                 "display-name", setd->raw->display_name,
-                 "status", setd->raw->status,
-                 "game", setd->raw->game,
-                 "preview", setd->raw->preview,
-                 "created-at", setd->raw->stream_started_time,
-                 "online", setd->raw->online,
-                 NULL);
+    gt_twitch_channel_update_from_raw_data(setd->self, setd->raw);
 
     gt_twitch_channel_raw_data_free(setd->raw);
 }
@@ -141,8 +133,10 @@ finalize(GObject* object)
     g_date_time_unref(priv->created_at);
 
     g_clear_object(&priv->preview);
+    g_clear_object(&priv->video_banner);
 
-    g_source_remove(priv->update_id);
+    if (priv->update_id > 0)
+        g_source_remove(priv->update_id);
 
     G_OBJECT_CLASS(gt_twitch_channel_parent_class)->finalize(object);
 }
@@ -176,10 +170,14 @@ get_property (GObject*    obj,
         case PROP_PREVIEW:
             g_value_set_object(val, priv->preview);
             break;
+        case PROP_VIDEO_BANNER:
+            g_value_set_object(val, priv->video_banner);
+            break;
         case PROP_VIEWERS:
             g_value_set_int64(val, priv->viewers);
             break;
         case PROP_CREATED_AT:
+            g_date_time_ref(priv->created_at);
             g_value_set_pointer(val, priv->created_at);
             break;    
         case PROP_FAVOURITED:
@@ -228,7 +226,7 @@ set_property(GObject*      obj,
         case PROP_GAME:
             if (priv->game)
                 g_free(priv->game);
-                priv->game = g_value_dup_string_allow_null(val);
+            priv->game = g_value_dup_string_allow_null(val);
             break;
         case PROP_PREVIEW:
             if (priv->preview)
@@ -238,12 +236,23 @@ set_property(GObject*      obj,
                                       320, 180,
                                       GDK_INTERP_BILINEAR);
             break;
+        case PROP_VIDEO_BANNER:
+            if (priv->video_banner)
+                g_object_unref(priv->video_banner);
+            priv->video_banner = g_value_ref_sink_object(val);
+            utils_pixbuf_scale_simple(&priv->video_banner,
+                                      320, 180,
+                                      GDK_INTERP_BILINEAR);
+            break;
         case PROP_VIEWERS:
             priv->viewers = g_value_get_int64(val);
             break;
         case PROP_CREATED_AT:
+            if (priv->created_at)
+                g_date_time_unref(priv->created_at);
             priv->created_at = g_value_get_pointer(val);
-            g_date_time_ref(priv->created_at);
+            if (priv->created_at)
+                g_date_time_ref(priv->created_at);
             break;
         case PROP_FAVOURITED:
             priv->favourited = g_value_get_boolean(val);
@@ -301,6 +310,11 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
                                               "Preview of channel",
                                               GDK_TYPE_PIXBUF,
                                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_VIDEO_BANNER] = g_param_spec_object("video-banner",
+                                                   "Video Banner",
+                                                   "Video banner of channel",
+                                                   GDK_TYPE_PIXBUF,
+                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_VIEWERS] = g_param_spec_int64("viewers",
                                              "Viewers",
                                              "Number of viewers",
@@ -321,10 +335,10 @@ gt_twitch_channel_class_init(GtTwitchChannelClass* klass)
                                               FALSE,
                                               G_PARAM_READWRITE);
     props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update",
-                        "Auto Update",
-                        "Whether it should update itself automatically",
-                        FALSE,
-                        G_PARAM_READWRITE);
+                                                   "Auto Update",
+                                                   "Whether it should update itself automatically",
+                                                   FALSE,
+                                                   G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -338,7 +352,7 @@ gt_twitch_channel_init(GtTwitchChannel* self)
 {
     GtTwitchChannelPrivate* priv = gt_twitch_channel_get_instance_private(self);
 
-    g_signal_connect(self, "auto-update", G_CALLBACK(auto_update_cb), NULL);
+    g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
 }
 
 static GParamSpec**
@@ -359,6 +373,22 @@ static void
 json_serializable_iface_init(JsonSerializableIface* iface)
 {
     iface->list_properties = json_list_props;
+}
+
+void
+gt_twitch_channel_update_from_raw_data(GtTwitchChannel* self, GtTwitchChannelRawData* data)
+{
+    g_object_set(self,
+                 "name", data->name,
+                 "viewers", data->viewers,
+                 "display-name", data->display_name,
+                 "status", data->status,
+                 "game", data->game,
+                 "preview", data->preview,
+                 "video-banner", data->video_banner,
+                 "created-at", data->stream_started_time,
+                 "online", data->online,
+                 NULL);
 }
 
 void

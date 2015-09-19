@@ -45,6 +45,7 @@ typedef struct _GtTwitchChannelRawData
     gchar* name;
     gchar* display_name;
     GdkPixbuf* preview;
+    GdkPixbuf* video_banner;
     gboolean online;
 } GtTwitchChannelRawData;
 

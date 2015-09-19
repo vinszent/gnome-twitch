@@ -1,6 +1,7 @@
 #include "gt-twitch.h"
 #include "gt-twitch-channel.h"
 #include "gt-twitch-game.h"
+#include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
 #include <json-glib/json-glib.h>
@@ -138,11 +139,12 @@ download_picture(GtTwitch* self, const gchar* url)
     GdkPixbufLoader* loader;
     GdkPixbuf* ret;
     GInputStream* input;
+    GError* err = NULL;
 
     msg = soup_message_new("GET", url);
     input = soup_session_send(priv->soup, msg, NULL, NULL);
 
-    ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
+    ret = gdk_pixbuf_new_from_stream(input, NULL, &err);
     g_object_force_floating(G_OBJECT(ret));
 
     g_input_stream_close(input, NULL, NULL);
@@ -242,6 +244,11 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtTwitchChannelRawData* data)
 
     json_reader_read_member(reader, "status");
     data->status = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "video_banner");
+    data->video_banner = download_picture(self, json_reader_get_string_value(reader));
+    g_object_ref_sink(data->video_banner);
     json_reader_end_member(reader);
 }
 
@@ -925,7 +932,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     JsonReader* reader;
     GtTwitchChannelRawData* ret = NULL;
 
-    uri = g_strdup_printf(STREAMS_URI, name);
+    uri = g_strdup_printf(CHANNELS_URI, name);
     msg = soup_message_new("GET", uri);
 
     send_message(self, msg);
@@ -935,7 +942,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     node = json_parser_get_root(parser);
     reader = json_reader_new(node);
 
-    ret = g_new0(GtTwitchChannelRawData, 1);
+    ret = g_malloc0_n(1, sizeof(GtTwitchChannelRawData));
     parse_channel(self, reader, ret);
 
     g_object_unref(msg);
@@ -957,7 +964,7 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     JsonReader* reader;
     GtTwitchChannelRawData* ret = NULL;
 
-    uri = g_strdup_printf(CHANNELS_URI, name);
+    uri = g_strdup_printf(STREAMS_URI, name);
     msg = soup_message_new("GET", uri);
 
     send_message(self, msg);
@@ -969,6 +976,7 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
 
     json_reader_read_member(reader, "stream");
 
+
     if (json_reader_get_null_value(reader))
     {
         ret = gt_twitch_channel_raw_data(self, name);
@@ -976,7 +984,7 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     }
     else
     {
-        ret = g_new0(GtTwitchChannelRawData, 1);
+        ret = g_malloc0_n(1, sizeof(GtTwitchChannelRawData));
         parse_stream(self, reader, ret);
         ret->online = TRUE;
     }
@@ -1033,11 +1041,19 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
 
 void gt_twitch_channel_raw_data_free(GtTwitchChannelRawData* data)
 {
-    g_free(data->game);
-    g_free(data->status);
+    if (data->game)
+        g_free(data->game);
+    if (data->status)
+        g_free(data->status);
     g_free(data->name);
-    g_free(data->display_name);
-    g_date_time_unref(data->stream_started_time);
-    g_object_unref(data->preview);
+    if (data->display_name)
+        g_free(data->display_name);
+    if (data->stream_started_time)
+        g_date_time_unref(data->stream_started_time);
+    if (data->preview)
+        g_object_unref(data->preview);
+    if (data->video_banner)
+        g_object_unref(data->video_banner);
+
     g_free(data);
 }
