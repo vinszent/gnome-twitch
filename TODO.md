@@ -14,6 +14,9 @@
   * Follow count (maybe put this in a popup somewhere?)
 * CURRENTLY WORKING ON Favourite streams 
   * Notifications when one comes online
+* Channels/games view should cache top channels so that they are not always refreshed
+* Favourites should display online ones first
+* Searching favourites specifically
 * Followed streams (requires logging in)
 * Chat (requires logging in)
 * ONGOING Localisation
