@@ -152,6 +152,11 @@ realize(GtkWidget* widget,
                            priv->refresh_button,
                            "sensitive",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channels_view,
+                           "showing-top-channels",
+                           priv->search_button,
+                           "sensitive",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
 }
 
