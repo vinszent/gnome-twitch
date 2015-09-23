@@ -416,6 +416,7 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
+        data->online = TRUE;
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -624,6 +625,7 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
+        data->online = TRUE;
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -931,9 +933,12 @@ gt_twitch_channel_raw_data_free(GtChannelRawData* data)
     if (data->display_name)
         g_free(data->display_name);
     g_free(data->name);
-    g_date_time_unref(data->stream_started_time);
-    g_object_unref(data->preview);
-    g_object_unref(data->video_banner);
+    if (data->stream_started_time)
+        g_date_time_unref(data->stream_started_time);
+    if (data->preview)
+        g_object_unref(data->preview);
+    if (data->video_banner)
+        g_object_unref(data->video_banner);
 
     g_free(data);
 }
