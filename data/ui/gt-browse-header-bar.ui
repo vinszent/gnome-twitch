@@ -52,7 +52,7 @@
         <property name="visible">True</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkButton">
+          <object class="GtkButton" id="refresh_button">
             <property name="visible">True</property>
             <signal name="clicked" handler="refresh_button_cb"/>
             <style>

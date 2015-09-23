@@ -9,6 +9,7 @@ typedef struct
 
     GtkWidget* nav_buttons_stack;
     GtkWidget* search_button;
+    GtkWidget* refresh_button;
 } GtBrowseHeaderBarPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtBrowseHeaderBar, gt_browse_header_bar, GTK_TYPE_HEADER_BAR)
@@ -146,6 +147,11 @@ realize(GtkWidget* widget,
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) showing_top_channels_converter,
                                 NULL, NULL, NULL);
+    g_object_bind_property(priv->channels_view,
+                           "showing-top-channels",
+                           priv->refresh_button,
+                           "sensitive",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
 }
 
@@ -172,6 +178,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                                 "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, refresh_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), refresh_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), home_button_cb);
