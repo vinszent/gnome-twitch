@@ -7,6 +7,8 @@
 #include "gt-games-view.h"
 #include "gt-channels-view.h"
 
+#define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(w)))
+
 G_BEGIN_DECLS
 
 #define GT_TYPE_WIN (gt_win_get_type())
@@ -26,6 +28,7 @@ void gt_win_browse_games_view(GtWin* self);
 void gt_win_start_search(GtWin* self);
 void gt_win_stop_search(GtWin* self);
 void gt_win_refresh_view(GtWin* self);
+void gt_win_show_favourites(GtWin* self);
 GtGamesView* gt_win_get_games_view(GtWin* self);
 GtChannelsView* gt_win_get_channels_view(GtWin* self);
 

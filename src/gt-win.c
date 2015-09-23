@@ -363,6 +363,16 @@ gt_win_refresh_view(GtWin* self)
         gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
 }
 
+void
+gt_win_show_favourites(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_show_favourites(GT_CHANNELS_VIEW(priv->channels_view));
+    //TODO: Favouriting games?
+}
+
 GtChannelsView*
 gt_win_get_channels_view(GtWin* self)
 {

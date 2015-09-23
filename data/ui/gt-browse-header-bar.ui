@@ -3,9 +3,27 @@
   <template class="GtBrowseHeaderBar" parent="GtkHeaderBar">
     <property name="show-close-button">True</property>
     <child>
-      <object class="GtkRevealer" id="home_button_revealer">
+      <object class="GtkStack" id="nav_buttons_stack">
         <property name="visible">True</property>
         <property name="transition-type">crossfade</property>
+        <child>
+          <object class="GtkButton" id="favourites_button">
+            <property name="visible">True</property>
+            <signal name="clicked" handler="favourites_button_cb"/>
+            <style>
+                <class name="image-button"/>
+            </style>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="icon-name">starred-symbolic</property> 
+              </object>
+            </child> 
+          </object>
+          <packing>
+            <property name="name">favourites</property>
+          </packing>
+        </child>
         <child>
           <object class="GtkButton" id="home_button">
             <property name="visible">True</property>
@@ -20,6 +38,9 @@
               </object>
             </child>
           </object>
+          <packing>
+            <property name="name">home</property>
+          </packing>
         </child> 
       </object>
       <packing>

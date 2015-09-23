@@ -7,7 +7,7 @@ typedef struct
 {
     GtChannelsView* channels_view;
 
-    GtkWidget* home_button_revealer;
+    GtkWidget* nav_buttons_stack;
     GtkWidget* search_button;
 } GtBrowseHeaderBarPrivate;
 
@@ -58,6 +58,16 @@ refresh_button_cb(GtBrowseHeaderBar* self,
     GtWin* win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
 
     gt_win_refresh_view(win);
+}
+
+static void
+favourites_button_cb(GtkButton* button,
+                     gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self); 
+
+    gt_win_show_favourites(GT_WIN_TOPLEVEL(button));
 }
 
 
@@ -111,17 +121,31 @@ set_property(GObject*      obj,
 }
 
 static void
+showing_top_channels_converter(GBinding* bind,
+                               const GValue* from,
+                               GValue* to,
+                               gpointer udata)
+{
+    if (g_value_get_boolean(from))
+        g_value_set_string(to, "favourites");
+    else
+        g_value_set_string(to, "home");
+}
+
+static void
 realize(GtkWidget* widget,
          gpointer udata)
 {
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
 
-    g_object_bind_property(priv->channels_view,
-                           "showing-game-channels",
-                           priv->home_button_revealer,
-                           "reveal-child",
-                            G_BINDING_DEFAULT);
+    g_object_bind_property_full(priv->channels_view,
+                                "showing-top-channels",
+                                priv->nav_buttons_stack,
+                                "visible-child-name",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) showing_top_channels_converter,
+                                NULL, NULL, NULL);
 
 }
 
@@ -135,10 +159,10 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
     object_class->set_property = set_property;
 
     props[PROP_CHANNELS_VIEW] = g_param_spec_object("channels-view",
-                           "Channels View",
-                           "Channels View",
-                           GT_TYPE_CHANNELS_VIEW,
-                           G_PARAM_READWRITE);
+                                                    "Channels View",
+                                                    "Channels View",
+                                                    GT_TYPE_CHANNELS_VIEW,
+                                                    G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -146,11 +170,12 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
                                                 "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, home_button_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), refresh_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), home_button_cb);
+    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), favourites_button_cb);
 }
 
 static void
