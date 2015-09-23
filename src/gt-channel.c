@@ -260,6 +260,8 @@ set_property(GObject*      obj,
             break;
         case PROP_FAVOURITED:
             priv->favourited = g_value_get_boolean(val);
+    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
+    
             break;
         case PROP_ONLINE:
             priv->online = g_value_get_boolean(val);
@@ -273,21 +275,33 @@ set_property(GObject*      obj,
 }
 
 static void
+constructed(GObject* obj)
+{
+    GtChannel* self = GT_CHANNEL(obj);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
+    
+    G_OBJECT_CLASS(gt_channel_parent_class)->constructed(obj);
+}
+
+static void
 gt_channel_class_init(GtChannelClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
+    object_class->constructed = constructed;
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
     props[PROP_ID] = g_param_spec_int64("id",
-                                       "ID",
-                                       "ID of channel",
-                                       0,
-                                       G_MAXINT64,
-                                       0,
-                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                                        "ID",
+                                        "ID of channel",
+                                        0,
+                                        G_MAXINT64,
+                                        0,
+                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
     props[PROP_NAME] = g_param_spec_string("name",
                                            "Name",
@@ -295,15 +309,15 @@ gt_channel_class_init(GtChannelClass* klass)
                                            NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_STATUS] = g_param_spec_string("status",
-                                           "Status",
-                                           "Status of channel",
-                                           NULL,
-                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                             "Status",
+                                             "Status of channel",
+                                             NULL,
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_DISPLAY_NAME] = g_param_spec_string("display-name",
                                                    "Display Name",
                                                    "Display Name of channel",
                                                    NULL,
-                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_GAME] = g_param_spec_string("game",
                                            "Game",
                                            "Game being played by channel",
@@ -325,9 +339,9 @@ gt_channel_class_init(GtChannelClass* klass)
                                              0, G_MAXINT64, 0,
                                              G_PARAM_READWRITE);
     props[PROP_STREAM_STARTED_TIME] = g_param_spec_pointer("stream-started-time",
-                                                  "Stream started time",
-                                                  "Stream started time",
-                                                  G_PARAM_READWRITE);
+                                                           "Stream started time",
+                                                           "Stream started time",
+                                                           G_PARAM_READWRITE);
     props[PROP_FAVOURITED] = g_param_spec_boolean("favourited",
                                                   "Favourited",
                                                   "Whether the channel is favourited",
@@ -351,6 +365,7 @@ gt_channel_class_init(GtChannelClass* klass)
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
 }
 
+
 static void
 gt_channel_init(GtChannel* self)
 {
@@ -358,8 +373,6 @@ gt_channel_init(GtChannel* self)
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
 
-    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
-    
     gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
 }
 
@@ -416,7 +429,7 @@ gt_channel_free_list(GList* list)
 
 gboolean
 gt_channel_compare(GtChannel* self,
-                          gpointer other)
+                   gpointer other)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     gboolean ret = TRUE;
@@ -430,7 +443,6 @@ gt_channel_compare(GtChannel* self,
                      "name", &name,
                      "id", &id,
                      NULL);
-
 
         ret = !(g_strcmp0(priv->name, name) == 0 && priv->id == id);
 
