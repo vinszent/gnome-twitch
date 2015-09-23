@@ -3,7 +3,7 @@
 #include "utils.h"
 #include <json-glib/json-glib.h>
 
-#define N_JSON_PROPS 3
+#define N_JSON_PROPS 2
 
 typedef struct
 {
