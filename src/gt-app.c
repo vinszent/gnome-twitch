@@ -97,6 +97,9 @@ startup(GApplication* app)
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
+    self->fav_mgr = gt_favourites_manager_new();
+    gt_favourites_manager_load(self->fav_mgr);
+
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
 }
@@ -163,4 +166,5 @@ gt_app_init(GtApp* self)
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
+
 }

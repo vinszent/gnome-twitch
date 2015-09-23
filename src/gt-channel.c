@@ -3,7 +3,7 @@
 #include "utils.h"
 #include <json-glib/json-glib.h>
 
-#define N_JSON_PROPS 2
+#define N_JSON_PROPS 3
 
 typedef struct
 {
@@ -357,6 +357,10 @@ gt_channel_init(GtChannel* self)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
+
+    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
+    
+    gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
 }
 
 static GParamSpec**

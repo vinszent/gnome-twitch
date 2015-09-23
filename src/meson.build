@@ -15,7 +15,7 @@ src = ['main.c', 'gt-app.c', 'gt-win.c', 'gt-twitch.c', 'gt-channel.c',
        'gt-player.c', 'gt-channels-view.c', 'gt-channels-view-child.c', 
        'gt-player-header-bar.c', 'gt-browse-header-bar.c', 'gt-game.c',
        'gt-games-view.c', 'gt-games-view-child.c', 'gt-settings-dlg.c', 
-       'gt-enums.c', 'utils.c', res]
+       'gt-favourites-manager.c', 'gt-enums.c', 'utils.c', res]
 
 
 executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, gst_dep, gst_video_dep], install : true, c_args : '-Wno-unused-variable')
