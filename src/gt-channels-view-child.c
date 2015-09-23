@@ -130,8 +130,6 @@ online_cb(GObject* src,
 
     g_object_get(priv->channel, "online", &online, NULL);
 
-    g_print("Online\n");
-
     if (priv->preview_binding)
         g_object_unref(priv->preview_binding);
     if (priv->viewers_binding)
