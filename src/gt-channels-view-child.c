@@ -139,20 +139,7 @@ online_cb(GObject* src,
 
     if (online)
     {
-        priv->preview_binding = g_object_bind_property(priv->channel, "preview",
-                                                       priv->preview_image, "pixbuf",
-                                                       G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-        priv->viewers_binding = g_object_bind_property_full(priv->channel, "viewers",
-                                                            priv->viewers_label, "label",
-                                                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                                            (GBindingTransformFunc) viewers_converter,
-                                                            NULL, NULL, NULL);
-        priv->time_online_binding = g_object_bind_property_full(priv->channel, "stream-started-time",
-                                                                priv->time_label, "label",
-                                                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                                                (GBindingTransformFunc) time_converter,
-                                                                NULL, NULL, NULL);
     }
     else
     {
@@ -168,7 +155,7 @@ finalize(GObject* object)
     GtChannelsViewChild* self = (GtChannelsViewChild*) object;
     GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
 
-    g_signal_handler_disconnect(priv->channel, priv->online_cb_id);
+    /* g_signal_handler_disconnect(priv->channel, priv->online_cb_id); */
     g_object_unref(priv->channel);
 
     G_OBJECT_CLASS(gt_channels_view_child_parent_class)->finalize(object);
@@ -227,9 +214,22 @@ constructed(GObject* obj)
     g_object_bind_property(priv->channel, "favourited",
                            priv->favourite_button, "active",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "preview",
+                           priv->preview_image, "pixbuf",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property_full(priv->channel, "viewers",
+                                priv->viewers_label, "label",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) viewers_converter,
+                                NULL, NULL, NULL);
+    g_object_bind_property_full(priv->channel, "stream-started-time",
+                                priv->time_label, "label",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) time_converter,
+                                NULL, NULL, NULL);
 
-    priv->online_cb_id = g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self);
-    online_cb(NULL, NULL, self);
+    /* priv->online_cb_id = g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self); */
+    /* online_cb(NULL, NULL, self); */
 
     G_OBJECT_CLASS(gt_channels_view_child_parent_class)->constructed(obj);
 }

@@ -13,6 +13,8 @@ typedef struct
     gchar* game;
     gchar* name;
     gchar* display_name;
+    gchar* preview_url;
+    gchar* video_banner_url;
 
     GdkPixbuf* preview;
     GdkPixbuf* video_banner;
@@ -44,8 +46,9 @@ enum
     PROP_GAME,
     PROP_NAME,
     PROP_DISPLAY_NAME,
+    PROP_PREVIEW_URL,
+    PROP_VIDEO_BANNER_URL,
     PROP_PREVIEW,
-    PROP_VIDEO_BANNER,
     PROP_VIEWERS,
     PROP_STREAM_STARTED_TIME,
     PROP_FAVOURITED,
@@ -124,6 +127,32 @@ auto_update_cb(GObject* src,
 }
 
 static void
+online_cb(GObject* src,
+          GParamSpec* pspec,
+          gpointer udata)
+{
+    GtChannel* self = GT_CHANNEL(src);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    if(priv->preview)
+        g_object_unref(priv->preview);
+
+    if (priv->online)
+        priv->preview = gt_twitch_download_picture(main_app->twitch, priv->preview_url);
+    else
+        if (priv->video_banner_url)
+            priv->preview = gt_twitch_download_picture(main_app->twitch, priv->video_banner_url);
+        else
+            priv->preview = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
+
+    utils_pixbuf_scale_simple(&priv->preview,
+                              320, 180,
+                              GDK_INTERP_BILINEAR);
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+}
+
+static void
 finalize(GObject* object)
 {
     GtChannel* self = (GtChannel*) object;
@@ -134,7 +163,8 @@ finalize(GObject* object)
     g_free(priv->game);
     g_free(priv->status);
 
-    g_date_time_unref(priv->stream_started_time);
+    if (priv->stream_started_time)
+        g_date_time_unref(priv->stream_started_time);
 
     g_clear_object(&priv->preview);
     g_clear_object(&priv->video_banner);
@@ -171,11 +201,14 @@ get_property (GObject*    obj,
         case PROP_GAME:
             g_value_set_string(val, priv->game);
             break;
+        case PROP_PREVIEW_URL:
+            g_value_set_string(val, priv->preview_url);
+            break;
+        case PROP_VIDEO_BANNER_URL:
+            g_value_set_string(val, priv->video_banner_url);
+            break;
         case PROP_PREVIEW:
             g_value_set_object(val, priv->preview);
-            break;
-        case PROP_VIDEO_BANNER:
-            g_value_set_object(val, priv->video_banner);
             break;
         case PROP_VIEWERS:
             g_value_set_int64(val, priv->viewers);
@@ -232,21 +265,15 @@ set_property(GObject*      obj,
                 g_free(priv->game);
             priv->game = g_value_dup_string_allow_null(val);
             break;
-        case PROP_PREVIEW:
-            if (priv->preview)
-                g_object_unref(priv->preview);
-            priv->preview = g_value_ref_sink_object(val);
-            utils_pixbuf_scale_simple(&priv->preview,
-                                      320, 180,
-                                      GDK_INTERP_BILINEAR);
+        case PROP_PREVIEW_URL:
+            if (priv->preview_url)
+                g_free(priv->preview_url);
+            priv->preview_url = g_value_dup_string(val);
             break;
-        case PROP_VIDEO_BANNER:
-            if (priv->video_banner)
-                g_object_unref(priv->video_banner);
-            priv->video_banner = g_value_ref_sink_object(val);
-            utils_pixbuf_scale_simple(&priv->video_banner,
-                                      320, 180,
-                                      GDK_INTERP_BILINEAR);
+        case PROP_VIDEO_BANNER_URL:
+            if (priv->video_banner_url)
+                g_free(priv->video_banner_url);
+            priv->video_banner_url = g_value_dup_string(val);
             break;
         case PROP_VIEWERS:
             priv->viewers = g_value_get_int64(val);
@@ -260,8 +287,6 @@ set_property(GObject*      obj,
             break;
         case PROP_FAVOURITED:
             priv->favourited = g_value_get_boolean(val);
-    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
-    
             break;
         case PROP_ONLINE:
             priv->online = g_value_get_boolean(val);
@@ -323,16 +348,21 @@ gt_channel_class_init(GtChannelClass* klass)
                                            "Game being played by channel",
                                            NULL,
                                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_PREVIEW_URL] = g_param_spec_string("preview-url",
+                                                  "Preview Url",
+                                                  "Url for preview image",
+                                                  NULL,
+                                                  G_PARAM_READWRITE);
+    props[PROP_VIDEO_BANNER_URL] = g_param_spec_string("video-banner-url",
+                                                       "Video Banner Url",
+                                                       "Url for video banner image",
+                                                       NULL,
+                                                       G_PARAM_READWRITE);
     props[PROP_PREVIEW] = g_param_spec_object("preview",
                                               "Preview",
                                               "Preview of channel",
                                               GDK_TYPE_PIXBUF,
-                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-    props[PROP_VIDEO_BANNER] = g_param_spec_object("video-banner",
-                                                   "Video Banner",
-                                                   "Video banner of channel",
-                                                   GDK_TYPE_PIXBUF,
-                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                              G_PARAM_READABLE);
     props[PROP_VIEWERS] = g_param_spec_int64("viewers",
                                              "Viewers",
                                              "Number of viewers",
@@ -372,6 +402,7 @@ gt_channel_init(GtChannel* self)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
+    g_signal_connect(self, "notify::online", G_CALLBACK(online_cb), NULL);
 
     gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
 }
@@ -404,8 +435,8 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
                  "display-name", data->display_name,
                  "status", data->status,
                  "game", data->game,
-                 "preview", data->preview,
-                 "video-banner", data->video_banner,
+                 "preview-url", data->preview_url,
+                 "video-banner-url", data->video_banner_url,
                  "stream-started-time", data->stream_started_time,
                  "online", data->online,
                  NULL);

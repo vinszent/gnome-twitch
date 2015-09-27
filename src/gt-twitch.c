@@ -131,27 +131,6 @@ send_message(GtTwitch* self, SoupMessage* msg)
     /* g_print("\n\n%s\n\n", msg->response_body->data); */
 }
 
-static GdkPixbuf*
-download_picture(GtTwitch* self, const gchar* url)
-{
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    GdkPixbufLoader* loader;
-    GdkPixbuf* ret;
-    GInputStream* input;
-    GError* err = NULL;
-
-    msg = soup_message_new("GET", url);
-    input = soup_session_send(priv->soup, msg, NULL, NULL);
-
-    ret = gdk_pixbuf_new_from_stream(input, NULL, &err);
-
-    g_input_stream_close(input, NULL, NULL);
-    g_object_unref(msg);
-
-    return ret;
-}
-
 static GDateTime*
 parse_time(const gchar* time)
 {
@@ -251,9 +230,9 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 
     json_reader_read_member(reader, "video_banner");
     if (json_reader_get_null_value(reader))
-        data->video_banner = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
+        data->video_banner_url = NULL;
     else
-        data->video_banner = download_picture(self, json_reader_get_string_value(reader));
+        data->video_banner_url = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 }
 
@@ -282,7 +261,7 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
     json_reader_read_member(reader, "preview");
 
     json_reader_read_member(reader, "large");
-    data->preview = download_picture(self, json_reader_get_string_value(reader));
+    data->preview_url = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
@@ -302,7 +281,7 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
     json_reader_read_member(reader, "box");
 
     json_reader_read_member(reader, "large");
-    data->preview = download_picture(self, json_reader_get_string_value(reader));
+    data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
     json_reader_end_member(reader);
     json_reader_end_member(reader);
 }
@@ -935,10 +914,10 @@ gt_twitch_channel_raw_data_free(GtChannelRawData* data)
     g_free(data->name);
     if (data->stream_started_time)
         g_date_time_unref(data->stream_started_time);
-    if (data->preview)
-        g_object_unref(data->preview);
-    if (data->video_banner)
-        g_object_unref(data->video_banner);
+    if (data->preview_url)
+        g_free(data->preview_url);
+    if (data->video_banner_url)
+        g_free(data->video_banner_url);
 
     g_free(data);
 }
@@ -955,4 +934,12 @@ gt_twitch_game_raw_data_free(GtGameRawData* data)
     g_free(data->name);
     g_object_unref(data->preview);
     g_free(data);
+}
+
+GdkPixbuf*
+gt_twitch_download_picture(GtTwitch* self, const gchar* url)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+
+    return utils_download_picture(priv->soup, url);
 }

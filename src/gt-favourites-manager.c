@@ -145,13 +145,13 @@ gt_favourites_manager_load(GtFavouritesManager* self)
     for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
     {
         GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
+        self->favourite_channels = g_list_append(self->favourite_channels, chan);
         g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
         g_object_set(chan, 
                      "auto-update", TRUE, 
                      "favourited", TRUE,
                      NULL);
         g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
-        self->favourite_channels = g_list_append(self->favourite_channels, chan);
     }
 
 finish:

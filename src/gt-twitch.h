@@ -45,8 +45,8 @@ typedef struct _GtChannelRawData
     gchar* status;
     gchar* name;
     gchar* display_name;
-    GdkPixbuf* preview;
-    GdkPixbuf* video_banner;
+    gchar* preview_url;
+    gchar* video_banner_url;
     gboolean online;
 } GtChannelRawData;
 
@@ -79,6 +79,7 @@ void                    gt_twitch_channel_raw_data_async(GtTwitch* self, const g
 void                    gt_twitch_channel_raw_data_free(GtChannelRawData* data);
 GtGameRawData*          gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
+GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
 
 G_END_DECLS
 

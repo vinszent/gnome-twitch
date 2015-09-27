@@ -55,3 +55,21 @@ utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterp
     g_clear_object(pixbuf);
     *pixbuf = tmp;
 }
+
+GdkPixbuf*
+utils_download_picture(SoupSession* soup, const gchar* url)
+{
+    SoupMessage* msg;
+    GdkPixbuf* ret;
+    GInputStream* input;
+
+    msg = soup_message_new("GET", url);
+    input = soup_session_send(soup, msg, NULL, NULL);
+
+    ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
+
+    g_input_stream_close(input, NULL, NULL);
+    g_object_unref(msg);
+
+    return ret;
+}
