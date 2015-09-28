@@ -7,6 +7,7 @@ typedef struct
 {
     GtChannelsView* channels_view;
 
+    GtkWidget* nav_buttons_revealer;
     GtkWidget* nav_buttons_stack;
     GtkWidget* search_button;
     GtkWidget* refresh_button;
@@ -148,16 +149,18 @@ realize(GtkWidget* widget,
                                 (GBindingTransformFunc) showing_top_channels_converter,
                                 NULL, NULL, NULL);
     g_object_bind_property(priv->channels_view,
-                           "showing-top-channels",
+                           "showing-favourites",
                            priv->refresh_button,
                            "sensitive",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
     g_object_bind_property(priv->channels_view,
-                           "showing-top-channels",
+                           "showing-favourites",
                            priv->search_button,
                            "sensitive",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
+    g_object_bind_property(GT_WIN_TOPLEVEL(widget), "showing-channels",
+                           priv->nav_buttons_revealer, "reveal-child",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-
 }
 
 static void
@@ -182,6 +185,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
                                                 "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, refresh_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_button_cb);

@@ -12,7 +12,7 @@
             <property name="visible">True</property>
             <property name="channels-view">channels_view</property>
             <child type="title">
-              <object class="GtkStackSwitcher">
+              <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>
                 <property name="stack">browse_stack</property>
               </object>

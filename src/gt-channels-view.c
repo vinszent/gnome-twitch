@@ -20,6 +20,7 @@ typedef struct
     gchar* game_name;
 
     gboolean showing_top_channels;
+    gboolean showing_favourites;
 
     GCancellable* cancel;
 } GtChannelsViewPrivate;
@@ -38,6 +39,7 @@ enum
 {
     PROP_0,
     PROP_SHOWING_TOP_CHANNELS,
+    PROP_SHOWING_FAVOURITES,
     NUM_PROPS
 };
 
@@ -214,6 +216,9 @@ get_property (GObject*    obj,
         case PROP_SHOWING_TOP_CHANNELS:
             g_value_set_boolean(val, priv->showing_top_channels);
             break;
+        case PROP_SHOWING_FAVOURITES:
+            g_value_set_boolean(val, priv->showing_favourites);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -259,6 +264,11 @@ gt_channels_view_class_init(GtChannelsViewClass* klass)
                                                             "Whether top channels are being shown",
                                                             TRUE,
                                                             G_PARAM_READABLE);
+    props[PROP_SHOWING_FAVOURITES] = g_param_spec_boolean("showing-favourites",
+                                                          "Showing Favourites",
+                                                          "Whether showing favourites",
+                                                          FALSE,
+                                                          G_PARAM_READABLE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -354,6 +364,8 @@ gt_channels_view_clear_game_channels(GtChannelsView* self)
 
     priv->showing_top_channels = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_CHANNELS]);
+    priv->showing_favourites = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_FAVOURITES]);
 
     gtk_container_clear(GTK_CONTAINER(priv->channels_flow));
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
@@ -441,5 +453,7 @@ gt_channels_view_show_favourites(GtChannelsView* self)
 
     priv->showing_top_channels = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_CHANNELS]);
+    priv->showing_favourites = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_FAVOURITES]);
 }
 
