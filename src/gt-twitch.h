@@ -80,6 +80,7 @@ void                    gt_twitch_channel_raw_data_free(GtChannelRawData* data);
 GtGameRawData*          gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
 GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
+void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 
 G_END_DECLS
 

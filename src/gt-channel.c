@@ -127,6 +127,30 @@ auto_update_cb(GObject* src,
 }
 
 static void
+download_picture_cb(GObject* source,
+                    GAsyncResult* res,
+                    gpointer udata)
+{
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    GError* error = NULL;
+
+    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
+
+    if (error)
+    {
+        g_error_free(error);
+        return;
+    }
+
+    priv->preview = pic;
+    utils_pixbuf_scale_simple(&priv->preview,
+                              320, 180,
+                              GDK_INTERP_BILINEAR);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+}
+
+static void
 online_cb(GObject* src,
           GParamSpec* pspec,
           gpointer udata)
@@ -138,18 +162,20 @@ online_cb(GObject* src,
         g_object_unref(priv->preview);
 
     if (priv->online)
-        priv->preview = gt_twitch_download_picture(main_app->twitch, priv->preview_url);
+        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, NULL, 
+                                         (GAsyncReadyCallback) download_picture_cb, self); 
     else
         if (priv->video_banner_url)
-            priv->preview = gt_twitch_download_picture(main_app->twitch, priv->video_banner_url);
+        gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, NULL, 
+                                         (GAsyncReadyCallback) download_picture_cb, self); 
         else
+        {
             priv->preview = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
-
-    utils_pixbuf_scale_simple(&priv->preview,
-                              320, 180,
-                              GDK_INTERP_BILINEAR);
-
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+            utils_pixbuf_scale_simple(&priv->preview,
+                                      320, 180,
+                                      GDK_INTERP_BILINEAR);
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+        }
 }
 
 static void
@@ -214,7 +240,6 @@ get_property (GObject*    obj,
             g_value_set_int64(val, priv->viewers);
             break;
         case PROP_STREAM_STARTED_TIME:
-            g_date_time_ref(priv->stream_started_time);
             g_value_set_pointer(val, priv->stream_started_time);
             break;    
         case PROP_FAVOURITED:

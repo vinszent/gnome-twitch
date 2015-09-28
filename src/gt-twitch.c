@@ -47,6 +47,12 @@ typedef struct
     gchar* str_3;
 } GenericTaskData;
 
+static GenericTaskData*
+generic_task_data_new()
+{
+    return g_malloc0(sizeof(GenericTaskData));
+}
+
 static void
 generic_task_data_free(GenericTaskData* data)
 {
@@ -392,10 +398,12 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
         GtChannel* channel;
         GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));;
 
+        data->viewers = -1;
+        data->online = TRUE;
+
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
-        data->online = TRUE;
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -599,12 +607,14 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtChannel* channel;
-        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));;
+        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));
+
+        data->online = TRUE;
+        data->viewers = -1;
 
         json_reader_read_element(reader, i);
 
         parse_stream(self, reader, data);        
-        data->online = TRUE;
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -736,9 +746,9 @@ gt_twitch_search_channels_async(GtTwitch* self, gchar* query,
 
 static void
 search_games_async_cb(GTask* task,
-                         gpointer source,
-                         gpointer task_data,
-                         GCancellable* cancel)
+                      gpointer source,
+                      gpointer task_data,
+                      GCancellable* cancel)
 {
     SearchDataClosure* data = task_data;
     GList* ret;
@@ -753,10 +763,10 @@ search_games_async_cb(GTask* task,
 
 void
 gt_twitch_search_games_async(GtTwitch* self, gchar* query, 
-                                gint n, gint offset,
-                                GCancellable* cancel,
-                                GAsyncReadyCallback cb,
-                                gpointer udata)
+                             gint n, gint offset,
+                             GCancellable* cancel,
+                             GAsyncReadyCallback cb,
+                             gpointer udata)
 {
     GTask* task = NULL;
     SearchDataClosure* data = NULL;
@@ -936,10 +946,52 @@ gt_twitch_game_raw_data_free(GtGameRawData* data)
     g_free(data);
 }
 
+//TODO: Add async version
 GdkPixbuf*
 gt_twitch_download_picture(GtTwitch* self, const gchar* url)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     return utils_download_picture(priv->soup, url);
+}
+
+static void
+download_picture_async_cb(GTask* task,
+                          gpointer source,
+                          gpointer task_data,
+                          GCancellable* cancel)
+{
+    GenericTaskData* data = (GenericTaskData*) task_data;
+    GdkPixbuf* ret = NULL;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_download_picture(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
+}
+
+void
+gt_twitch_download_picture_async(GtTwitch* self,
+                                 const gchar* url,
+                                 GCancellable* cancel,
+                                 GAsyncReadyCallback cb,
+                                 gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL; 
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(url);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, download_picture_async_cb);
+
+    g_object_unref(task);
 }
