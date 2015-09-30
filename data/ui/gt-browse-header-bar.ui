@@ -59,16 +59,23 @@
         <property name="visible">True</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkButton" id="refresh_button">
+          <object class="GtkRevealer" id="refresh_revealer">
             <property name="visible">True</property>
-            <signal name="clicked" handler="refresh_button_cb"/>
-            <style>
-              <class name="image-button"/>
-            </style>
+            <property name="reveal-child">True</property>
+            <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkImage">
+              <object class="GtkButton" id="refresh_button">
                 <property name="visible">True</property>
-                <property name="icon-name">view-refresh-symbolic</property>
+                <signal name="clicked" handler="refresh_button_cb"/>
+                <style>
+                  <class name="image-button"/>
+                </style>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="icon-name">view-refresh-symbolic</property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
