@@ -12,6 +12,7 @@
 #include "gt-enums.h"
 #include "utils.h"
 #include "config.h"
+#include "version.h"
 
 typedef struct
 {

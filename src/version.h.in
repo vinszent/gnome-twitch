@@ -1,0 +1,6 @@
+#ifndef _GT_VERSION_H
+#define _GT_VERSION_H
+
+#define GT_VERSION "@VCS_TAG@"
+
+#endif
