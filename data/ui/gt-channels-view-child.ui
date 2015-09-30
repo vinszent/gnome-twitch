@@ -10,103 +10,109 @@
         <property name="visible">True</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkEventBox" id="event_box">
+          <object class="GtkStack" id="middle_stack">
             <property name="visible">True</property>
-            <property name="width-request">320</property>
-            <property name="halign">center</property>
-            <signal name="enter-notify-event" handler="motion_enter_cb"/>
-            <signal name="leave-notify-event" handler="motion_leave_cb"/>
+            <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkOverlay">
-                <property name="height-request">180</property>
+              <object class="GtkEventBox" id="event_box">
                 <property name="visible">True</property>
+                <property name="width-request">320</property>
+                <property name="halign">center</property>
+                <signal name="enter-notify-event" handler="motion_enter_cb"/>
+                <signal name="leave-notify-event" handler="motion_leave_cb"/>
                 <child>
-                  <object class="GtkImage" id="preview_image">
+                  <object class="GtkOverlay">
+                    <property name="height-request">180</property>
                     <property name="visible">True</property>
-                  </object>
-                </child>
-                <child type="overlay">
-                  <object class="GtkRevealer" id="middle_revealer">
-                    <property name="visible">True</property>
-                    <property name="transition-type">crossfade</property>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkImage" id="preview_image">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
-                        <style>
-                          <class name="overlay-box"/>
-                        </style>
+                      </object>
+                    </child>
+                    <child type="overlay">
+                      <object class="GtkRevealer" id="middle_revealer">
+                        <property name="visible">True</property>
+                        <property name="transition-type">crossfade</property>
                         <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="orientation">horizontal</property>
+                            <property name="orientation">vertical</property>
+                            <style>
+                              <class name="overlay-box"/>
+                            </style>
                             <child>
-                              <object class="GtkToggleButton" id="favourite_button">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
-                                <property name="halign">start</property>
-                                <style>
-                                    <class name="favourite-button"/>
-                                </style>
+                                <property name="orientation">horizontal</property>
                                 <child>
-                                  <object class="GtkImage">
+                                  <object class="GtkToggleButton" id="favourite_button">
                                     <property name="visible">True</property>
-                                    <property name="icon-name">starred-symbolic</property>      
+                                    <property name="halign">start</property>
+                                    <style>
+                                      <class name="favourite-button"/>
+                                    </style>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="icon-name">starred-symbolic</property>      
+                                      </object>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
                             </child>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="icon-name">media-playback-start</property> 
-                            <property name="icon-size">5</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="expand">True</property>
-                            <style>
-                              <class name="play-image"/>
-                            </style>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="spacing">7</property>
                             <child>
                               <object class="GtkImage">
                                 <property name="visible">True</property>
-                                <property name="icon-name">system-users-symbolic</property> 
+                                <property name="icon-name">media-playback-start</property> 
+                                <property name="icon-size">5</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="expand">True</property>
                                 <style>
-                                  <class name="info-image"/>
+                                  <class name="play-image"/>
                                 </style>
                               </object>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="viewers_label">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
+                                <property name="spacing">7</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="icon-name">system-users-symbolic</property> 
+                                    <style>
+                                      <class name="info-image"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="viewers_label">
+                                    <property name="visible">True</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="icon-name">camera-web-symbolic</property> 
+                                    <style>
+                                      <class name="info-image"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="pack-type">end</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="time_label">
+                                    <property name="visible">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="pack-type">end</property>
+                                  </packing>
+                                </child>
                               </object>
-                            </child>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="icon-name">camera-web-symbolic</property> 
-                                <style>
-                                  <class name="info-image"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="pack-type">end</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="time_label">
-                                <property name="visible">True</property>
-                              </object>
-                              <packing>
-                                <property name="pack-type">end</property>
-                              </packing>
                             </child>
                           </object>
                         </child>
@@ -115,6 +121,18 @@
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="name">content</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinner">
+                <property name="visible">True</property>
+                <property name="active">True</property> 
+              </object>
+              <packing>
+                <property name="name">spinner</property>
+              </packing>
             </child>
           </object>
         </child>

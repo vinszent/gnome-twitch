@@ -13,12 +13,7 @@ typedef struct
     GtkWidget* viewers_label;
     GtkWidget* time_label;
     GtkWidget* favourite_button;
-
-    GBinding* preview_binding;
-    GBinding* viewers_binding;
-    GBinding* time_online_binding;
-
-    guint online_cb_id;
+    GtkWidget* middle_stack;
 } GtChannelsViewChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsViewChild, gt_channels_view_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -38,6 +33,20 @@ gt_channels_view_child_new(GtChannel* chan)
     return g_object_new(GT_TYPE_CHANNELS_VIEW_CHILD, 
                         "channel", chan,
                         NULL);
+}
+
+static gboolean
+updating_converter(GBinding* bind,
+                   const GValue* from,
+                   GValue* to,
+                   gpointer udata)
+{
+    if (g_value_get_boolean(from))
+        g_value_set_string(to, "spinner");
+    else
+        g_value_set_string(to, "content");
+
+    return TRUE;
 }
 
 static void
@@ -134,42 +143,11 @@ time_converter(GBinding* bind,
 
 
 static void
-online_cb(GObject* src,
-          GParamSpec* pspec,
-          gpointer udata)
-{
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
-    gboolean online;
-
-    g_object_get(priv->channel, "online", &online, NULL);
-
-    if (priv->preview_binding)
-        g_object_unref(priv->preview_binding);
-    if (priv->viewers_binding)
-        g_object_unref(priv->viewers_binding);
-    if (priv->time_online_binding)
-        g_object_unref(priv->time_online_binding);
-
-    if (online)
-    {
-
-    }
-    else
-    {
-        priv->preview_binding = g_object_bind_property(priv->channel, "video-banner",
-                                                       priv->preview_image, "pixbuf",
-                                                       G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    }
-}
-
-static void
 finalize(GObject* object)
 {
     GtChannelsViewChild* self = (GtChannelsViewChild*) object;
     GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
 
-    /* g_signal_handler_disconnect(priv->channel, priv->online_cb_id); */
     g_object_unref(priv->channel);
 
     G_OBJECT_CLASS(gt_channels_view_child_parent_class)->finalize(object);
@@ -241,9 +219,11 @@ constructed(GObject* obj)
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) time_converter,
                                 NULL, NULL, NULL);
-
-    /* priv->online_cb_id = g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self); */
-    /* online_cb(NULL, NULL, self); */
+    g_object_bind_property_full(priv->channel, "updating",
+                                priv->middle_stack, "visible-child-name",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) updating_converter,
+                                NULL, NULL, NULL);
 
     G_OBJECT_CLASS(gt_channels_view_child_parent_class)->constructed(obj);
 }
@@ -282,6 +262,7 @@ gt_channels_view_child_class_init(GtChannelsViewChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, viewers_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, time_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, favourite_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, middle_stack);
 }
 
 static void
