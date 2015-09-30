@@ -110,7 +110,7 @@ edge_reached_cb(GtkScrolledWindow* scroll,
     //TODO: Don't do this when showing favourites
     if (pos == GTK_POS_BOTTOM)
     {
-        if (strlen(priv->search_query) == 0)
+        if (!priv->search_query || strlen(priv->search_query) == 0)
         {
             gt_twitch_top_channels_async(main_app->twitch, //TODO: Calculate amount needed?
                                          MAX_QUERY,

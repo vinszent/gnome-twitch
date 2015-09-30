@@ -283,9 +283,6 @@ gt_win_init(GtWin* self)
     gtk_widget_realize(GTK_WIDGET(priv->player));
 
     g_signal_connect(priv->browse_stack, "notify::visible-child", G_CALLBACK(browse_view_changed_cb), self);
-    g_object_bind_property(priv->channels_view, "showing-favourites",
-                           priv->browse_stack_switcher, "sensitive",
-                           G_BINDING_DEFAULT | G_BINDING_INVERT_BOOLEAN);
 
     g_object_bind_property_full(priv->browse_stack, "visible-child",
                                 self, "showing-channels",
