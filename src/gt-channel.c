@@ -27,6 +27,8 @@ typedef struct
     gboolean auto_update;
 
     guint update_id;
+
+    GCancellable* cancel;
 } GtChannelPrivate;
 
 static GThreadPool* update_pool;
@@ -121,9 +123,11 @@ auto_update_cb(GObject* src,
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     if (priv->auto_update)
-        priv->update_id = g_timeout_add(5e3, (GSourceFunc) update, self); //TODO: Add this as a setting
+        priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
     else
         g_source_remove(priv->update_id);
+
+    update(self);
 }
 
 static void
@@ -131,8 +135,6 @@ download_picture_cb(GObject* source,
                     GAsyncResult* res,
                     gpointer udata)
 {
-    GtChannel* self = GT_CHANNEL(udata);
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     GError* error = NULL;
 
     GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
@@ -142,6 +144,8 @@ download_picture_cb(GObject* source,
         g_error_free(error);
         return;
     }
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     priv->preview = pic;
     utils_pixbuf_scale_simple(&priv->preview,
@@ -161,13 +165,18 @@ online_cb(GObject* src,
     if(priv->preview)
         g_object_unref(priv->preview);
 
+    g_cancellable_reset(priv->cancel);
+
     if (priv->online)
-        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, NULL, 
+    {
+        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, priv->cancel, 
                                          (GAsyncReadyCallback) download_picture_cb, self); 
+    }
     else
+    {
         if (priv->video_banner_url)
-        gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, NULL, 
-                                         (GAsyncReadyCallback) download_picture_cb, self); 
+            gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, priv->cancel, 
+                                             (GAsyncReadyCallback) download_picture_cb, self); 
         else
         {
             priv->preview = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
@@ -176,6 +185,7 @@ online_cb(GObject* src,
                                       GDK_INTERP_BILINEAR);
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
         }
+    }
 }
 
 static void
@@ -183,6 +193,8 @@ finalize(GObject* object)
 {
     GtChannel* self = (GtChannel*) object;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_cancellable_cancel(priv->cancel);
 
     g_free(priv->name);
     g_free(priv->display_name);
@@ -331,7 +343,7 @@ constructed(GObject* obj)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
-    
+
     G_OBJECT_CLASS(gt_channel_parent_class)->constructed(obj);
 }
 
@@ -425,6 +437,8 @@ static void
 gt_channel_init(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    priv->cancel = g_cancellable_new();
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
     g_signal_connect(self, "notify::online", G_CALLBACK(online_cb), NULL);
