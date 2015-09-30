@@ -1,4 +1,5 @@
 #include "gt-channels-view.h"
+#include "gt-channels-view-child.h"
 #include "gt-game.h"
 #include "gt-app.h"
 #include "gt-win.h"
@@ -52,6 +53,52 @@ gt_channels_view_new(void)
                         NULL);
 }
 
+static gboolean
+filter_favourites_by_name(GtkFlowBoxChild* _child,
+                          gpointer udata)
+{
+    GtChannelsViewChild* child = GT_CHANNELS_VIEW_CHILD(_child); 
+    GtChannelsView* self = GT_CHANNELS_VIEW(udata);
+    GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
+    GtChannel* chan;
+    gchar* name;
+    gboolean ret = FALSE;
+
+    g_object_get(child, "channel", &chan, NULL);
+    g_object_get(chan, "name", &name, NULL); 
+
+    if (!priv->search_query)
+        ret = TRUE;
+    else
+        ret = g_strrstr(name, priv->search_query) != NULL;
+
+    g_free(name);
+    g_object_unref(chan);
+
+    return ret;
+}
+
+static void
+showing_favourites_cb(GObject* source,
+                      GParamSpec* pspec,
+                      gpointer udata)
+{
+    GtChannelsView* self = GT_CHANNELS_VIEW(source);
+    GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
+
+    if (priv->showing_favourites)
+    {
+        gtk_flow_box_set_filter_func(GTK_FLOW_BOX(priv->channels_flow),
+                                     (GtkFlowBoxFilterFunc) filter_favourites_by_name,
+                                     self, NULL);
+    }
+    else
+    {
+        gtk_flow_box_set_filter_func(GTK_FLOW_BOX(priv->channels_flow),
+                                     (GtkFlowBoxFilterFunc) NULL, NULL, NULL);
+    }
+}
+
 static void
 edge_reached_cb(GtkScrolledWindow* scroll,
                 GtkPositionType pos,
@@ -60,6 +107,7 @@ edge_reached_cb(GtkScrolledWindow* scroll,
     GtChannelsView* self = GT_CHANNELS_VIEW(udata);
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
+    //TODO: Don't do this when showing favourites
     if (pos == GTK_POS_BOTTOM)
     {
         if (strlen(priv->search_query) == 0)
@@ -160,37 +208,47 @@ search_entry_cb(GtkSearchEntry* entry,
         g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
 
+    g_free(priv->search_query);
     priv->search_query = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
     priv->search_page = 0;
 
-    if (strlen(priv->search_query) == 0)
+    if (priv->showing_favourites)
     {
-        priv->channels_page = 0;
-        priv->search_page = 0;
-        gt_twitch_top_channels_async(main_app->twitch,
-                                     MAX_QUERY,
-                                     priv->channels_page*MAX_QUERY,
-                                     priv->game_name ? priv->game_name : NO_GAME,
-                                     priv->cancel,
-                                     (GAsyncReadyCallback) top_channels_cb,
-                                     self);
-
-
+        gtk_flow_box_invalidate_filter(GTK_FLOW_BOX(priv->channels_flow));
     }
     else
     {
-        gt_twitch_search_channels_async(main_app->twitch,
-                                        priv->search_query,
-                                        MAX_QUERY,
-                                        priv->search_page*MAX_QUERY,
-                                        priv->cancel,
-                                        (GAsyncReadyCallback) search_channels_cb,
-                                        self);
+        if (!priv->search_query || strlen(priv->search_query) == 0)
+        {
+            priv->channels_page = 0;
+            priv->search_page = 0;
+            gt_twitch_top_channels_async(main_app->twitch,
+                                         MAX_QUERY,
+                                         priv->channels_page*MAX_QUERY,
+                                         priv->game_name ? priv->game_name : NO_GAME,
+                                         priv->cancel,
+                                         (GAsyncReadyCallback) top_channels_cb,
+                                         self);
+
+
+        }
+        else
+        {
+            gt_twitch_search_channels_async(main_app->twitch,
+                                            priv->search_query,
+                                            MAX_QUERY,
+                                            priv->search_page*MAX_QUERY,
+                                            priv->cancel,
+                                            (GAsyncReadyCallback) search_channels_cb,
+                                            self);
+        }
+
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
+
+        gtk_container_clear(GTK_CONTAINER(priv->channels_flow));
     }
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
 
-    gtk_container_clear(GTK_CONTAINER(priv->channels_flow));
 }
 
 static void
@@ -288,7 +346,7 @@ gt_channels_view_init(GtChannelsView* self)
 {
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
-    priv->search_query = "";
+    priv->search_query = NULL;
 
     priv->channels_page = 0;
     priv->search_page = 0;
@@ -299,6 +357,7 @@ gt_channels_view_init(GtChannelsView* self)
 
     g_signal_connect(priv->channels_flow, "child-activated", G_CALLBACK(child_activated_cb), self);
     g_signal_connect(priv->channels_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+    g_signal_connect(self, "notify::showing-favourites", G_CALLBACK(showing_favourites_cb), NULL);
 
     gt_twitch_top_channels_async(main_app->twitch,
                                  MAX_QUERY,
@@ -405,7 +464,7 @@ gt_channels_view_refresh(GtChannelsView* self)
         g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
 
-    if (strlen(priv->search_query) == 0)
+    if (!priv->search_query || strlen(priv->search_query) == 0)
     {
         priv->channels_page = 0;
         priv->search_page = 0;
