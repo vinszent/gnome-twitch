@@ -25,6 +25,7 @@ typedef struct
     gboolean favourited;
     gboolean online;
     gboolean auto_update;
+    gboolean updating;
 
     guint update_id;
 
@@ -56,6 +57,7 @@ enum
     PROP_FAVOURITED,
     PROP_ONLINE,
     PROP_AUTO_UPDATE,
+    PROP_UPDATING,
     NUM_PROPS
 };
 
@@ -109,6 +111,9 @@ update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
+    priv->updating = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
     g_thread_pool_push(update_pool, self, NULL);
 
     return TRUE;
@@ -152,6 +157,9 @@ download_picture_cb(GObject* source,
                               320, 180,
                               GDK_INTERP_BILINEAR);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+    priv->updating = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 }
 
 static void
@@ -184,6 +192,9 @@ online_cb(GObject* src,
                                       320, 180,
                                       GDK_INTERP_BILINEAR);
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+            priv->updating = FALSE;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
         }
     }
 }
@@ -262,6 +273,9 @@ get_property (GObject*    obj,
             break;
         case PROP_AUTO_UPDATE:
             g_value_set_boolean(val, priv->auto_update);
+            break;
+        case PROP_UPDATING:
+            g_value_set_boolean(val, priv->updating);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -424,6 +438,11 @@ gt_channel_class_init(GtChannelClass* klass)
                                                    "Whether it should update itself automatically",
                                                    FALSE,
                                                    G_PARAM_READWRITE);
+    props[PROP_UPDATING] = g_param_spec_boolean("updating",
+                                                "Updating",
+                                                "Whether updating",
+                                                FALSE,
+                                                G_PARAM_READABLE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -438,6 +457,7 @@ gt_channel_init(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
+    priv->updating = FALSE;
     priv->cancel = g_cancellable_new();
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
@@ -469,6 +489,11 @@ json_serializable_iface_init(JsonSerializableIface* iface)
 void
 gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 {
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    priv->updating = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
     g_object_set(self,
                  "viewers", data->viewers,
                  "display-name", data->display_name,
