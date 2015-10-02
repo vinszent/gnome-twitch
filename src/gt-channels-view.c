@@ -107,7 +107,9 @@ edge_reached_cb(GtkScrolledWindow* scroll,
     GtChannelsView* self = GT_CHANNELS_VIEW(udata);
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
-    //TODO: Don't do this when showing favourites
+    if (priv->showing_favourites)
+        return;
+
     if (pos == GTK_POS_BOTTOM)
     {
         if (!priv->search_query || strlen(priv->search_query) == 0)
