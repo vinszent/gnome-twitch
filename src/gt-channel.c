@@ -163,11 +163,8 @@ download_picture_cb(GObject* source,
 }
 
 static void
-online_cb(GObject* src,
-          GParamSpec* pspec,
-          gpointer udata)
+update_preview(GtChannel* self)
 {
-    GtChannel* self = GT_CHANNEL(src);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     if(priv->preview)
@@ -461,7 +458,6 @@ gt_channel_init(GtChannel* self)
     priv->cancel = g_cancellable_new();
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
-    g_signal_connect(self, "notify::online", G_CALLBACK(online_cb), NULL);
 
     gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
 }
@@ -502,8 +498,12 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
                  "preview-url", data->preview_url,
                  "video-banner-url", data->video_banner_url,
                  "stream-started-time", data->stream_started_time,
-                 "online", data->online,
                  NULL);
+
+    if (priv->online != data->online)
+        g_object_set(self, "online", data->online, NULL);
+
+    update_preview(self);
 }
 
 void
