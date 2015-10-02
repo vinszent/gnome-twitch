@@ -78,6 +78,50 @@ filter_favourites_by_name(GtkFlowBoxChild* _child,
     return ret;
 }
 
+static gint
+sort_favourites_by_online_and_name(GtkFlowBoxChild* _child1,
+                                   GtkFlowBoxChild* _child2,
+                                   gpointer udata)
+{
+    GtChannelsViewChild* child1 = GT_CHANNELS_VIEW_CHILD(_child1); 
+    GtChannelsViewChild* child2 = GT_CHANNELS_VIEW_CHILD(_child2); 
+    GtChannelsView* self = GT_CHANNELS_VIEW(udata);
+    GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
+    GtChannel* chan1;
+    GtChannel* chan2;
+    gboolean online1;
+    gboolean online2;
+    gchar* name1;
+    gchar* name2;
+    gint ret = 0;
+
+    g_object_get(child1, "channel", &chan1, NULL);
+    g_object_get(child2, "channel", &chan2, NULL);
+    g_object_get(chan1, 
+                 "online", &online1, 
+                 "name", &name1,
+                 NULL); 
+    g_object_get(chan2, 
+                 "online", &online2, 
+                 "name", &name2,
+                 NULL); 
+
+    if(online1 && !online2)
+        ret = -1;
+    else if (!online1 && online2)
+        ret = 1;
+    else
+        ret = g_strcmp0(name1, name2);
+
+    g_free(name1);
+    g_free(name2);
+    g_object_unref(chan1);
+    g_object_unref(chan2);
+
+    return ret;
+
+}
+
 static void
 showing_favourites_cb(GObject* source,
                       GParamSpec* pspec,
@@ -91,11 +135,16 @@ showing_favourites_cb(GObject* source,
         gtk_flow_box_set_filter_func(GTK_FLOW_BOX(priv->channels_flow),
                                      (GtkFlowBoxFilterFunc) filter_favourites_by_name,
                                      self, NULL);
+        gtk_flow_box_set_sort_func(GTK_FLOW_BOX(priv->channels_flow),
+                                   (GtkFlowBoxSortFunc) sort_favourites_by_online_and_name,
+                                   self, NULL);
     }
     else
     {
         gtk_flow_box_set_filter_func(GTK_FLOW_BOX(priv->channels_flow),
                                      (GtkFlowBoxFilterFunc) NULL, NULL, NULL);
+        gtk_flow_box_set_sort_func(GTK_FLOW_BOX(priv->channels_flow),
+                                   (GtkFlowBoxSortFunc) NULL, NULL, NULL);
     }
 }
 
