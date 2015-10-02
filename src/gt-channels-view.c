@@ -197,13 +197,13 @@ top_channels_cb(GObject* source,
 
     GList* new = g_task_propagate_pointer(G_TASK(res), &error);
 
+    //TODO: Show error to user
+    //TODO: Check whether error is from cancel or real error
     if (error)
-    {
         g_error_free(error);
-        return;
-    }
+    else
+        gt_channels_view_append_channels(self, new);
 
-    gt_channels_view_append_channels(self, new);
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), FALSE);
 }
 
@@ -218,13 +218,13 @@ search_channels_cb(GObject* source,
 
     GList* new = g_task_propagate_pointer(G_TASK(res), &error);
 
+    //TODO: Show error to user
+    //TODO: Check whether error is from cancel or real error
     if (error)
-    {
         g_error_free(error);
-        return;
-    }
+    else
+        gt_channels_view_append_channels(self, new);
 
-    gt_channels_view_append_channels(self, new);
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), FALSE);
 } 
 

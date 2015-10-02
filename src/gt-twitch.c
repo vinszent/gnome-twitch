@@ -19,6 +19,9 @@
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
+#define GT_TWITCH_ERROR_TOP_CHANNELS gt_spawn_twitch_top_channels_error_quark()
+#define GT_TWITCH_ERROR_SEARCH_CHANNELS gt_spawn_twitch_search_channels_error_quark()
+
 typedef struct
 {
     SoupSession* soup;
@@ -62,13 +65,24 @@ generic_task_data_free(GenericTaskData* data)
     g_free(data);
 }
 
+static GQuark
+gt_spawn_twitch_top_channels_error_quark()
+{
+    return g_quark_from_static_string("gt-twitch-top-channels-error");
+}
+
+static GQuark
+gt_spawn_twitch_search_channels_error_quark()
+{
+    return g_quark_from_static_string("gt-twitch-search-channels-error");
+}
+
 GtTwitch*
 gt_twitch_new(void)
 {
     return g_object_new(GT_TYPE_TWITCH, 
                         NULL);
 }
-
 
 static void
 finalize(GObject* object)
@@ -127,7 +141,7 @@ gt_twitch_init(GtTwitch* self)
     priv->soup = soup_session_new();
 }
 
-static void
+static gboolean
 send_message(GtTwitch* self, SoupMessage* msg)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
@@ -135,6 +149,8 @@ send_message(GtTwitch* self, SoupMessage* msg)
     soup_session_send_message(priv->soup, msg);
 
     /* g_print("\n\n%s\n\n", msg->response_body->data); */
+
+    return msg->status_code == SOUP_STATUS_OK;
 }
 
 static GDateTime*
@@ -338,6 +354,7 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
 
+    //TODO: Handle offline stream
     send_message(self, msg);
 
     ret = parse_playlist(msg->response_body->data);
@@ -384,7 +401,8 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game); //TODO: Add game argument
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if(!send_message(self, msg))
+        goto finish;
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -416,9 +434,10 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     }
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
@@ -512,7 +531,13 @@ top_channels_async_cb(GTask* task,
 
     ret = gt_twitch_top_channels(data->twitch, data->n, data->offset, data->game);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+    if (!ret)
+    {
+        g_task_return_new_error(task, GT_TWITCH_ERROR_TOP_CHANNELS, GT_TWITCH_TOP_CHANNELS_ERROR_CODE, 
+                                "Error getting top channels");
+    }
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
 
 GList*
@@ -596,7 +621,8 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
     uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, n, offset);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if(!send_message(self, msg))
+        goto finish;
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -627,9 +653,10 @@ gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
     }
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
@@ -715,7 +742,13 @@ search_channels_async_cb(GTask* task,
 
     ret = gt_twitch_search_channels(data->twitch, data->query, data->n, data->offset);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+    if (!ret)
+    {
+        g_task_return_new_error(task, GT_TWITCH_ERROR_SEARCH_CHANNELS, GT_TWITCH_SEARCH_CHANNELS_ERROR_CODE, 
+                                "Error searching channels");
+    }
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
 
 void

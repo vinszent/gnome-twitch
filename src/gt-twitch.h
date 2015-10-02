@@ -12,6 +12,12 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE(GtTwitch, gt_twitch, GT, TWITCH, GObject)
 
+typedef enum _GtTwitchErrorCode
+{
+    GT_TWITCH_TOP_CHANNELS_ERROR_CODE,
+    GT_TWITCH_SEARCH_CHANNELS_ERROR_CODE
+} GtTwitchErrorCode;
+
 typedef enum _GtTwitchStreamQuality
 {
     GT_TWITCH_STREAM_QUALITY_SOURCE,
