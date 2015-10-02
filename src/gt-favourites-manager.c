@@ -27,6 +27,44 @@ gt_favourites_manager_new(void)
 }
 
 static void
+channel_online_cb(GObject* source,
+                  GParamSpec* pspe,
+                  gpointer udata)
+{
+    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    gboolean online;
+    gchar* name;
+    gchar* game;
+    gchar* title;
+    gchar* body;
+
+    g_object_get(source, 
+                 "online", &online, 
+                 "name", &name,
+                 "game", &game,
+                 NULL);
+
+    if (online)
+    {   
+        GNotification* notification;
+
+        title = g_strdup_printf("Channel %s is now online", name);
+        body = g_strdup_printf("Streaming %s", game);
+
+        notification = g_notification_new(title);
+        g_notification_set_body(notification, body);
+        g_application_send_notification(G_APPLICATION(main_app), NULL, notification);
+
+        g_object_unref(notification);
+    }
+
+    g_free(name);
+    g_free(game);
+
+}
+
+static void
 channel_favourited_cb(GObject* source,
                       GParamSpec* pspec,
                       gpointer udata)
@@ -42,6 +80,7 @@ channel_favourited_cb(GObject* source,
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
+        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self); //TODO: Remove this when unfavouriting
         g_object_ref(chan);
     }
     else
@@ -53,6 +92,20 @@ channel_favourited_cb(GObject* source,
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
     }
 
+}
+
+static void
+oneshot_updating_cb(GObject* source,
+                  GParamSpec* pspec,
+                  gpointer udata)
+{
+    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    gboolean updating;
+
+    g_object_get(source, "updating", &updating, NULL);
+
+    if (!updating)
+        g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
 }
 
 static void
@@ -152,6 +205,8 @@ gt_favourites_manager_load(GtFavouritesManager* self)
                      "favourited", TRUE,
                      NULL);
         g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+
+        g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
 
 finish:

@@ -1,4 +1,4 @@
-install_data('gnome-twitch.desktop', install_dir : 'share/applications')
+install_data('com.gnome-twitch.app.desktop', install_dir : 'share/applications')
 install_data('icons/hicolor/16x16/apps/gnome-twitch.png', install_dir : 'share')
 install_data('icons/hicolor/22x22/apps/gnome-twitch.png', install_dir : 'share')
 install_data('icons/hicolor/24x24/apps/gnome-twitch.png', install_dir : 'share')

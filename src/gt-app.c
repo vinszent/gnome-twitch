@@ -101,7 +101,6 @@ startup(GApplication* app)
     gt_favourites_manager_load(self->fav_mgr);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
-
 }
 
 static void
