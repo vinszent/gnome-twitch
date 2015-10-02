@@ -209,6 +209,9 @@ constructed(GObject* obj)
     g_object_bind_property(priv->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "online",
+                           self, "sensitive",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property_full(priv->channel, "viewers",
                                 priv->viewers_label, "label",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
