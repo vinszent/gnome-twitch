@@ -10,7 +10,7 @@ ver = vcs_tag(input : 'version.h.in', output : 'version.h',
               command : ['sh', '../print_git_version.sh'], 
               fallback : meson.project_version())
 conf_data.set('LOCALE_DIR', LOCALEDIR)
-configure_file(input : 'config.h.in', output : 'config.h', install_dir : '.', configuration : conf_data)
+configure_file(input : 'config.h.in', output : 'config.h', configuration : conf_data)
 
 res = gnome.compile_resources('gt-resources', '../data/gnome-twitch.gresource.xml', source_dir : '../data')
 src = ['main.c', 'gt-app.c', 'gt-win.c', 'gt-twitch.c', 'gt-channel.c',
