@@ -2,11 +2,12 @@
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 
+**This branch is ONLY for backwards compatability and distros that ABSOLUTELY can not get Meson to work. The latest features will always come to the Meson branch first and then this one when I have time.**
+
 ## Install
 ### Dependencies
-* meson (install only)
-* ninja (install only)
 * gtk+-3.0 >= 3.16
+* intltool
 * libsoup
 * json-glib
 * gstreamer-1.0
@@ -18,11 +19,10 @@ the hassle of flash or the web.
 
 ### From source
 ```
-mkdir build
-meson . build
-cd build
-mesonconf -Dprefix=/usr
-ninja install
+autoreconf -i
+./configure --prefix=/usr
+make
+make install
 ```
 ### Distro packages
 * [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch-git/)
