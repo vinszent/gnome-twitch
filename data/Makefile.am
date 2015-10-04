@@ -18,3 +18,6 @@ dist_icon48_DATA = icons/hicolor/48x48/apps/gnome-twitch.png
 dist_icon256_DATA = icons/hicolor/256x256/apps/gnome-twitch.png
 dist_icon512_DATA = icons/hicolor/512x512/apps/gnome-twitch.png
 dist_iconscalable_DATA = icons/hicolor/scalable/apps/gnome-twitch.svg
+
+applicationsdir = $(datadir)/applications
+dist_applications_DATA = com.gnome-twitch.app.desktop
