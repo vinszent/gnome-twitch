@@ -26,6 +26,7 @@ ninja install
 ```
 ### Distro packages
 * [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch-git/)
+* [Ubuntu](http://www.getdeb.net/app/GNOME%20Twitch)
 
 ## Screenshots
 ![](/data/screenshots/scrot_streams.png?raw=true)
