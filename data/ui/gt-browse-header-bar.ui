@@ -14,7 +14,8 @@
             <child>
               <object class="GtkButton" id="favourites_button">
                 <property name="visible">True</property>
-                <signal name="clicked" handler="favourites_button_cb"/>
+                <property name="action-name">win.show_view_favourites</property>
+                <!-- <signal name="clicked" handler="favourites_button_cb"/> -->
                 <style>
                   <class name="image-button"/>
                 </style>
@@ -32,7 +33,8 @@
             <child>
               <object class="GtkButton" id="home_button">
                 <property name="visible">True</property>
-                <signal name="clicked" handler="home_button_cb"/>
+                <property name="action-name">win.show_view_default</property>
+                <!-- <signal name="clicked" handler="home_button_cb"/> -->
                 <style>
                   <class name="image-button"/>
                 </style>
@@ -66,7 +68,7 @@
             <child>
               <object class="GtkButton" id="refresh_button">
                 <property name="visible">True</property>
-                <signal name="clicked" handler="refresh_button_cb"/>
+                <property name="action-name">win.refresh_view</property>
                 <style>
                   <class name="image-button"/>
                 </style>
@@ -81,16 +83,22 @@
           </object>
         </child>
         <child>
-          <object class="GtkToggleButton" id="search_button">
+          <object class="GtkRevealer" id="search_revealer">
             <property name="visible">True</property>
-            <signal name="toggled" handler="search_button_cb"/>
-            <style>
-              <class name="image-button"/>
-            </style>
+            <property name="reveal-child">True</property>
+            <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkImage">
+              <object class="GtkToggleButton" id="search_button">
                 <property name="visible">True</property>
-                <property name="icon-name">edit-find-symbolic</property>
+                <style>
+                  <class name="image-button"/>
+                </style>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="icon-name">edit-find-symbolic</property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>

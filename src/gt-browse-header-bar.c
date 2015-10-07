@@ -12,6 +12,7 @@ typedef struct
     GtkWidget* search_button;
     GtkWidget* refresh_button;
     GtkWidget* refresh_revealer;
+    GtkWidget* search_revealer;
 } GtBrowseHeaderBarPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtBrowseHeaderBar, gt_browse_header_bar, GTK_TYPE_HEADER_BAR)
@@ -31,48 +32,6 @@ gt_browse_header_bar_new(void)
     return g_object_new(GT_TYPE_BROWSE_HEADER_BAR, 
                         NULL);
 }
-
-static void
-search_button_cb(GtkToggleButton* button,
-                 gpointer udata)
-{
-
-    if (gtk_toggle_button_get_active(button))
-        gt_win_start_search(GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(button))));
-    else
-        gt_win_stop_search(GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(button))));
-}
-
-static void
-home_button_cb(GtkButton* button,
-               gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-
-    gt_channels_view_clear_game_channels(priv->channels_view);
-}
-
-static void
-refresh_button_cb(GtBrowseHeaderBar* self,
-                  GtkButton* button)
-{
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-    GtWin* win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
-
-    gt_win_refresh_view(win);
-}
-
-static void
-favourites_button_cb(GtkButton* button,
-                     gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self); 
-
-    gt_win_show_favourites(GT_WIN_TOPLEVEL(button));
-}
-
 
 static void
 finalize(GObject* object)
@@ -146,9 +105,25 @@ show_refresh_button_cb(GObject* source,
     gboolean showing_favourites = FALSE;
      
     g_object_get(GT_WIN_TOPLEVEL(self), "showing-channels", &showing_channels, NULL);
-    g_object_get(priv->channels_view, "showing-favourites", &showing_favourites, NULL);
+    g_object_get(priv->channels_view, "showing-favourite-channels", &showing_favourites, NULL);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), !(showing_channels && showing_favourites));
+}
+
+static void
+disable_search_button_cb(GObject* source,
+                         GParamSpec* pspec,
+                         gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+    gboolean showing_channels = FALSE;
+    gboolean showing_games = FALSE;
+     
+    g_object_get(GT_WIN_TOPLEVEL(self), "showing-channels", &showing_channels, NULL);
+    g_object_get(priv->channels_view, "showing-game-channels", &showing_games, NULL);
+
+    gtk_widget_set_sensitive(priv->search_revealer, !(showing_channels && showing_games));
 }
 
 static void
@@ -169,8 +144,14 @@ realize(GtkWidget* widget,
                            priv->nav_buttons_revealer, "reveal-child",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
+    g_object_bind_property(priv->search_button, "active",
+                           priv->channels_view, "search-active",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(show_refresh_button_cb), self);
-    g_signal_connect(priv->channels_view, "notify::showing-favourites", G_CALLBACK(show_refresh_button_cb), self);
+    g_signal_connect(priv->channels_view, "notify::showing-favourite-channels", G_CALLBACK(show_refresh_button_cb), self);
+    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(disable_search_button_cb), self);
+    g_signal_connect(priv->channels_view, "notify::showing-game-channels", G_CALLBACK(disable_search_button_cb), self);
 }
 
 static void
@@ -199,10 +180,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, refresh_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, refresh_revealer);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_button_cb);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), refresh_button_cb);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), home_button_cb);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), favourites_button_cb);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_revealer);
 }
 
 static void
@@ -213,12 +191,4 @@ gt_browse_header_bar_init(GtBrowseHeaderBar* self)
     g_signal_connect(self, "realize", G_CALLBACK(realize), self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
-}
-
-void
-gt_browse_header_bar_stop_search(GtBrowseHeaderBar* self)
-{
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->search_button), FALSE);
 }

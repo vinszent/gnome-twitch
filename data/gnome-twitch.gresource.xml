@@ -4,7 +4,8 @@
       <file preprocess="xml-stripblanks">ui/gt-win.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channels-view.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-channels-view-child.ui</file>
+      <file preprocess="xml-stripblanks">ui/gt-channels-container.ui</file>
+      <file preprocess="xml-stripblanks">ui/gt-channels-container-child.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-browse-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-games-view.ui</file>

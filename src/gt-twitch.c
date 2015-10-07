@@ -607,7 +607,7 @@ gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset,
 }
 
 GList*
-gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset)
+gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -752,7 +752,7 @@ search_channels_async_cb(GTask* task,
 }
 
 void
-gt_twitch_search_channels_async(GtTwitch* self, gchar* query, 
+gt_twitch_search_channels_async(GtTwitch* self, const gchar* query, 
                                 gint n, gint offset,
                                 GCancellable* cancel,
                                 GAsyncReadyCallback cb,

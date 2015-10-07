@@ -6,6 +6,8 @@
 #include "utils.h"
 #include <string.h>
 
+//TODO: Rewrite this in the same style as channels view
+
 typedef struct
 {
     GtkWidget* games_scroll;
@@ -139,9 +141,8 @@ child_activated_cb(GtkFlowBox* flow,
 
     g_object_get(chan, "game", &game, NULL);
 
-    gt_channels_view_show_game_channels(gt_win_get_channels_view(win),
-                                      game);
-
+    gt_channels_view_set_game(gt_win_get_channels_view(win),
+                              game);
 
     gt_win_browse_channels_view(win);
 
@@ -189,7 +190,7 @@ search_entry_cb(GtkSearchEntry* entry,
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
 
-    gtk_container_clear(GTK_CONTAINER(priv->games_flow));
+    utils_container_clear(GTK_CONTAINER(priv->games_flow));
 }
 
 static void
@@ -339,5 +340,5 @@ gt_games_view_refresh(GtGamesView* self)
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
 
-    gtk_container_clear(GTK_CONTAINER(priv->games_flow));
+    utils_container_clear(GTK_CONTAINER(priv->games_flow));
 }

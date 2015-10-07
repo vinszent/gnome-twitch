@@ -74,8 +74,8 @@ GList*                  gt_twitch_top_channels(GtTwitch* self, gint n, gint offs
 GList*                  gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_top_games(GtTwitch* self, gint n, gint offset);
 GList*                  gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-GList*                  gt_twitch_search_channels(GtTwitch* self, gchar* query, gint n, gint offset);
-void                    gt_twitch_search_channels_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList*                  gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset);
+void                    gt_twitch_search_channels_async(GtTwitch* self, const gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_search_games(GtTwitch* self, gchar* query, gint n, gint offset);
 void                    gt_twitch_search_games_async(GtTwitch* self, gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_stream_free(GtTwitchStreamData* channel);

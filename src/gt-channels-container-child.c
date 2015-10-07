@@ -1,4 +1,4 @@
-#include "gt-channels-view-child.h"
+#include "gt-channels-container-child.h"
 #include "utils.h"
 
 typedef struct
@@ -14,9 +14,9 @@ typedef struct
     GtkWidget* time_label;
     GtkWidget* favourite_button;
     GtkWidget* middle_stack;
-} GtChannelsViewChildPrivate;
+} GtChannelsContainerChildPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsViewChild, gt_channels_view_child, GTK_TYPE_FLOW_BOX_CHILD)
+G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerChild, gt_channels_container_child, GTK_TYPE_FLOW_BOX_CHILD)
 
 enum 
 {
@@ -27,10 +27,10 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtChannelsViewChild*
-gt_channels_view_child_new(GtChannel* chan)
+GtChannelsContainerChild*
+gt_channels_container_child_new(GtChannel* chan)
 {
-    return g_object_new(GT_TYPE_CHANNELS_VIEW_CHILD, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_CHILD, 
                         "channel", chan,
                         NULL);
 }
@@ -54,8 +54,8 @@ motion_enter_cb(GtkWidget* widget,
                 GdkEvent* evt,
                 gpointer udata)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), TRUE);
 }
@@ -65,8 +65,8 @@ motion_leave_cb(GtkWidget* widget,
                 GdkEvent* evt,
                 gpointer udata)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
 }
@@ -75,8 +75,8 @@ static void
 favourite_button_cb(GtkButton* button,
                     gpointer udata)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(udata);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     gt_channel_toggle_favourited(priv->channel);
 }
@@ -145,12 +145,12 @@ time_converter(GBinding* bind,
 static void
 finalize(GObject* object)
 {
-    GtChannelsViewChild* self = (GtChannelsViewChild*) object;
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = (GtChannelsContainerChild*) object;
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     g_object_unref(priv->channel);
 
-    G_OBJECT_CLASS(gt_channels_view_child_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_channels_container_child_parent_class)->finalize(object);
 }
 
 static void
@@ -159,8 +159,8 @@ get_property (GObject*    obj,
               GValue*     val,
               GParamSpec* pspec)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(obj);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(obj);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     switch (prop)
     {
@@ -178,8 +178,8 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(obj);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(obj);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     switch (prop)
     {
@@ -194,8 +194,8 @@ set_property(GObject*      obj,
 static void
 constructed(GObject* obj)
 {
-    GtChannelsViewChild* self = GT_CHANNELS_VIEW_CHILD(obj);
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(obj);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     g_object_bind_property(priv->channel, "display-name",
                            priv->name_label, "label",
@@ -228,11 +228,11 @@ constructed(GObject* obj)
                                 (GBindingTransformFunc) updating_converter,
                                 NULL, NULL, NULL);
 
-    G_OBJECT_CLASS(gt_channels_view_child_parent_class)->constructed(obj);
+    G_OBJECT_CLASS(gt_channels_container_child_parent_class)->constructed(obj);
 }
 
 static void
-gt_channels_view_child_class_init(GtChannelsViewChildClass* klass)
+gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
@@ -242,7 +242,7 @@ gt_channels_view_child_class_init(GtChannelsViewChildClass* klass)
     object_class->constructed = constructed;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-channels-view-child.ui");
+                                                "/com/gnome-twitch/ui/gt-channels-container-child.ui");
 
     props[PROP_CHANNEL] = g_param_spec_object("channel",
                                               "Channel",
@@ -257,29 +257,29 @@ gt_channels_view_child_class_init(GtChannelsViewChildClass* klass)
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), favourite_button_cb);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, preview_image);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, name_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, game_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, event_box);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, middle_revealer);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, viewers_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, time_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, favourite_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsViewChild, middle_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, name_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, game_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, event_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, middle_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, viewers_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, time_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, favourite_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, middle_stack);
 }
 
 static void
-gt_channels_view_child_init(GtChannelsViewChild* self)
+gt_channels_container_child_init(GtChannelsContainerChild* self)
 {
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 }
 
 void
-gt_channels_view_child_hide_overlay(GtChannelsViewChild* self)
+gt_channels_container_child_hide_overlay(GtChannelsContainerChild* self)
 {
-    GtChannelsViewChildPrivate* priv = gt_channels_view_child_get_instance_private(self);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
 }

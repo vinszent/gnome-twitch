@@ -2,7 +2,6 @@
 #define GT_CHANNELS_VIEW_H
 
 #include <gtk/gtk.h>
-#include "gt-channels-view-child.h"
 #include "gt-game.h"
 
 G_BEGIN_DECLS
@@ -11,20 +10,23 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE(GtChannelsView, gt_channels_view, GT, CHANNELS_VIEW, GtkBox)
 
+typedef enum
+{
+    GT_CHANNELS_CONTAINER_TYPE_TOP,
+    GT_CHANNELS_CONTAINER_TYPE_FAVOURITE,
+    GT_CHANNELS_CONTAINER_TYPE_SEARCH,
+    GT_CHANNELS_CONTAINER_TYPE_GAME
+} GtChannelsContainerType;
+
 struct _GtChannelsView
 {
     GtkBox parent_instance;
 };
 
 GtChannelsView* gt_channels_view_new(void);
-void gt_channels_view_append_channels(GtChannelsView* self, GList* channels);
-void gt_channels_view_start_search(GtChannelsView* self);
-void gt_channels_view_stop_search(GtChannelsView* self);
-void gt_channels_view_show_game_channels(GtChannelsView* self, GtGame* game);
-void gt_channels_view_clear_game_channels(GtChannelsView* self);
 void gt_channels_view_refresh(GtChannelsView* self);
-void gt_channels_view_show_favourites(GtChannelsView* self);
-gboolean gt_channels_view_is_channel_favourited(GtChannelsView* self, GtChannel* chan);
+void gt_channels_view_show_type(GtChannelsView* self, GtChannelsContainerType type);
+void gt_channels_view_set_game(GtChannelsView* self, GtGame* game);
 
 G_END_DECLS
 
