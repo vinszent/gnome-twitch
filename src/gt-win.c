@@ -97,6 +97,7 @@ show_about_cb(GSimpleAction* action,
                           "logo-icon-name", "gnome-twitch",
                           "website", "https://github.com/Ippytraxx/gnome-twitch",
                           "website-label", "Github",
+                          "translator-credits", _("translator-credits"),
                           NULL);
 }
 
