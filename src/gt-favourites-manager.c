@@ -184,6 +184,9 @@ gt_favourites_manager_load(GtFavouritesManager* self)
     gchar* fp = FAV_CHANNELS_FILE;
     GError* err = NULL;
 
+    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
+        goto finish;
+
     json_parser_load_from_file(parse, fp, &err);
 
     if (err)
