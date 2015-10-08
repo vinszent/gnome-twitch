@@ -150,7 +150,7 @@ static GActionEntry win_actions[] =
     {"show_settings", show_settings_cb, NULL, NULL, NULL}
 };
 
-static void
+static gboolean
 window_state_cb(GtkWidget* widget,
                 GdkEventWindowState* evt,
                 gpointer udata)
@@ -167,6 +167,7 @@ window_state_cb(GtkWidget* widget,
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FULLSCREEN]);
     }
 
+    return FALSE;
 }
 
 static void
