@@ -109,8 +109,8 @@ search_changed_cb(GtkEditable* edit,
 
 static void
 search_active_cb(GObject* source,
-                  GParamSpec* pspec,
-                  gpointer udata)
+                 GParamSpec* pspec,
+                 gpointer udata)
 {
     GtChannelsView* self = GT_CHANNELS_VIEW(udata);
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);

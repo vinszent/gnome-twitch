@@ -18,6 +18,9 @@
 * Add info to player
   * Viewer count
   * Time online
+* Add nice little info images to empy views
+  * Search view should have "Type something in the search bar to search Twitch" for example
+  * Favourites view should have "Press the star in a stream to favourite it" for example
 * DONE ~~Favourites should display online ones first~~
 * DONE ~~Searching favourites specifically~~
 * Followed streams (requires logging in)

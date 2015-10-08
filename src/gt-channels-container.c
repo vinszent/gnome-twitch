@@ -6,7 +6,6 @@
 
 typedef struct
 {
-    GtkWidget* channels_scroll;
     GtkWidget* channels_flow;
     GtkWidget* load_revealer;
 } GtChannelsContainerPrivate;
@@ -148,7 +147,6 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-channels-container.ui");
 
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, load_revealer);
 

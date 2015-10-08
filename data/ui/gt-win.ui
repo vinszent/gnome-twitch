@@ -11,6 +11,7 @@
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
             <property name="channels-view">channels_view</property>
+            <property name="games-view">games_view</property>
             <child type="title">
               <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>

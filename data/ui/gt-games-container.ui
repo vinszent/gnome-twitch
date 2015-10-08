@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtChannelsContainer" parent="GtkBox">
+  <template class="GtGamesContainer" parent="GtkBox">
     <child>
-      <object class="GtkScrolledWindow" id="channels_scroll">
+      <object class="GtkScrolledWindow" id="games_scroll">
         <property name="visible">True</property>
         <signal name="edge-reached" handler="edge_reached_cb"/>
         <child>
@@ -11,7 +11,7 @@
             <property name="orientation">vertical</property>
             <property name="spacing">20</property>
             <child>
-              <object class="GtkFlowBox" id="channels_flow">
+              <object class="GtkFlowBox" id="games_flow">
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="selection-mode">none</property>

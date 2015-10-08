@@ -10,7 +10,7 @@
           <object class="GtkSearchEntry">
             <property name="visible">True</property>
             <property name="width-request">300</property>
-            <signal name="changed" handler="search_entry_cb"/>
+            <signal name="changed" handler="search_changed_cb"/>
           </object>
         </child>
       </object>
@@ -19,39 +19,17 @@
       </packing>
     </child>
     <child>
-      <object class="GtkScrolledWindow" id="games_scroll">
+      <object class="GtkStack" id="games_stack">
         <property name="visible">True</property>
+        <property name="transition-type">crossfade</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtGamesContainerTop" id="top_container">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkFlowBox" id="games_flow">
-                <property name="visible">True</property>
-                <property name="selection-mode">none</property>
-                <property name="hexpand">True</property>
-                <property name="row-spacing">10</property>
-                <property name="column-spacing">10</property>
-                <property name="homogeneous">True</property>
-              </object>
-            </child> 
-            <child>
-              <object class="GtkRevealer" id="spinner_revealer">
-                <property name="visible">True</property>
-                <property name="transition-type">crossfade</property>
-                <property name="reveal-child">True</property>
-                <child>
-                  <object class="GtkSpinner">
-                    <property name="visible">True</property>
-                    <property name="active">True</property>
-                    <property name="expand">True</property>
-                    <property name="valign">center</property>
-                    <property name="height-request">100</property>
-                    <property name="width-request">100</property>
-                  </object>
-                </child>
-              </object>
-            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtGamesContainerSearch" id="search_container">
+            <property name="visible">True</property>
           </object>
         </child>
       </object>

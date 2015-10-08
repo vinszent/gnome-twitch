@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtGamesViewChild" parent="GtkFlowBoxChild">
+  <template class="GtGamesContainerChild" parent="GtkFlowBoxChild">
     <style>
-      <class name="gt-games-view-child"/>
+      <class name="gt-games-container-child"/>
     </style>
     <child>
       <object class="GtkBox" id="main_box">

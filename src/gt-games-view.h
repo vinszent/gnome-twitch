@@ -9,16 +9,20 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE(GtGamesView, gt_games_view, GT, GAMES_VIEW, GtkBox)
 
+typedef enum
+{
+    GT_GAMES_CONTAINER_TYPE_TOP,
+    GT_GAMES_CONTAINER_TYPE_SEARCH
+} GtGamesContainerType;
+
 struct _GtGamesView
 {
     GtkBox parent_instance;
 };
 
 GtGamesView* gt_games_view_new(void);
-void gt_games_view_append_games(GtGamesView* self, GList* games);
-void gt_games_view_start_search(GtGamesView* self);
-void gt_games_view_stop_search(GtGamesView* self);
 void gt_games_view_refresh(GtGamesView* self);
+void gt_games_view_show_type(GtGamesView* self, GtGamesContainerType type);
 
 G_END_DECLS
 

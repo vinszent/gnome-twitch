@@ -6,6 +6,7 @@
 typedef struct
 {
     GtChannelsView* channels_view;
+    GtGamesView* games_view;
 
     GtkWidget* nav_buttons_revealer;
     GtkWidget* nav_buttons_stack;
@@ -21,6 +22,7 @@ enum
 {
     PROP_0,
     PROP_CHANNELS_VIEW,
+    PROP_GAMES_VIEW,
     NUM_PROPS
 };
 
@@ -56,6 +58,9 @@ get_property (GObject*    obj,
         case PROP_CHANNELS_VIEW:
             g_value_set_object(val, priv->channels_view);
             break;
+        case PROP_GAMES_VIEW:
+            g_value_set_object(val, priv->games_view);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -76,6 +81,10 @@ set_property(GObject*      obj,
             if (priv->channels_view)
                 g_object_unref(priv->channels_view);
             priv->channels_view = g_value_ref_sink_object(val);
+            break;
+        case PROP_GAMES_VIEW:
+            g_clear_object(&priv->games_view);
+            priv->games_view = g_value_ref_sink_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -127,6 +136,18 @@ disable_search_button_cb(GObject* source,
 }
 
 static void
+showing_channels_cb(GObject* source,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+
+    g_object_set(priv->search_button, "active", FALSE, NULL);
+}
+
+
+static void
 realize(GtkWidget* widget,
          gpointer udata)
 {
@@ -147,7 +168,11 @@ realize(GtkWidget* widget,
     g_object_bind_property(priv->search_button, "active",
                            priv->channels_view, "search-active",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->search_button, "active",
+                           priv->games_view, "search-active",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
+    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(showing_channels_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->channels_view, "notify::showing-favourite-channels", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(disable_search_button_cb), self);
@@ -168,6 +193,11 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                                     "Channels View",
                                                     GT_TYPE_CHANNELS_VIEW,
                                                     G_PARAM_READWRITE);
+    props[PROP_GAMES_VIEW] = g_param_spec_object("games-view",
+                                                 "Games View",
+                                                 "Games View",
+                                                 GT_TYPE_GAMES_VIEW,
+                                                 G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
