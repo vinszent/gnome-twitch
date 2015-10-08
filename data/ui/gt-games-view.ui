@@ -32,6 +32,11 @@
             <property name="visible">True</property>
           </object>
         </child>
+        <child>
+          <object class="GtChannelsContainerGame" id="game_container">
+            <property name="visible">True</property>
+          </object>
+        </child>
       </object>
     </child>
   </template>

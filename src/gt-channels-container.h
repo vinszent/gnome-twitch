@@ -10,6 +10,14 @@ G_BEGIN_DECLS
 
 G_DECLARE_DERIVABLE_TYPE(GtChannelsContainer, gt_channels_container, GT, CHANNELS_CONTAINER, GtkBox)
 
+typedef enum
+{
+    GT_CHANNELS_CONTAINER_TYPE_TOP,
+    GT_CHANNELS_CONTAINER_TYPE_FAVOURITE,
+    GT_CHANNELS_CONTAINER_TYPE_SEARCH,
+    GT_CHANNELS_CONTAINER_TYPE_GAME
+} GtChannelsContainerType;
+
 struct _GtChannelsContainerClass
 {
     GtkBoxClass parent_class;

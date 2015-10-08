@@ -17,7 +17,16 @@ enum
     NUM_PROPS
 };
 
+enum
+{
+    SIG_GAME_ACTIVATED,
+    
+    NUM_SIGS
+};
+
 static GParamSpec* props[NUM_PROPS];
+
+static guint sigs[NUM_SIGS];
 
 GtGamesContainer*
 gt_games_container_new(void)
@@ -85,10 +94,12 @@ child_activated_cb(GtkFlowBox* flow,
 
     g_object_get(con, "game", &game, NULL);
 
-    gt_channels_view_set_game(gt_win_get_channels_view(win),
-                              game);
+    g_signal_emit(self, sigs[SIG_GAME_ACTIVATED], 0, game);
 
-    gt_win_browse_channels_view(win);
+    /* gt_channels_view_set_game(gt_win_get_channels_view(win), */
+                              /* game); */
+
+    /* gt_win_browse_channels_view(win); */
 
     g_object_unref(game);
 }
@@ -146,6 +157,14 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
     klass->show_load_spinner = show_load_spinner;
     klass->append_games = append_games;
     klass->get_games_flow = get_games_flow;
+
+    sigs[SIG_GAME_ACTIVATED] = g_signal_new("game-activated",
+                                            GT_TYPE_GAMES_CONTAINER,
+                                            G_SIGNAL_RUN_LAST,
+                                            0, NULL, NULL,
+                                            g_cclosure_marshal_VOID__OBJECT,
+                                            G_TYPE_NONE,
+                                            1, GT_TYPE_GAME);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-games-container.ui");
 

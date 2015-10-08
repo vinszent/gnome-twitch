@@ -90,6 +90,11 @@ refresh(GtGamesContainer* container)
 }
 
 static void
+filter(GtGamesContainer* container, const gchar* query)
+{
+}
+
+static void
 finalize(GObject* object)
 {
     GtGamesContainerTop* self = (GtGamesContainerTop*) object;
@@ -141,6 +146,7 @@ gt_games_container_top_class_init(GtGamesContainerTopClass* klass)
 
     GT_GAMES_CONTAINER_CLASS(klass)->bottom_edge_reached = bottom_edge_reached;
     GT_GAMES_CONTAINER_CLASS(klass)->refresh = refresh;
+    GT_GAMES_CONTAINER_CLASS(klass)->filter = filter;
 }
 
 static void

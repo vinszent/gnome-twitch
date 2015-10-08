@@ -508,7 +508,10 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
     if (tmp != data->online || data->online)
         download_picture(self);
     else
+    {
         priv->updating = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+    }
 }
 
 void

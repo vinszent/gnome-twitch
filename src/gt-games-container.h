@@ -9,6 +9,12 @@ G_BEGIN_DECLS
 
 G_DECLARE_DERIVABLE_TYPE(GtGamesContainer, gt_games_container, GT, GAMES_CONTAINER, GtkBox)
 
+typedef enum
+{
+    GT_GAMES_CONTAINER_TYPE_TOP,
+    GT_GAMES_CONTAINER_TYPE_SEARCH
+} GtGamesContainerType;
+
 struct _GtGamesContainerClass
 {
     GtkBoxClass parent_class;

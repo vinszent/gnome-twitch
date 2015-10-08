@@ -2,11 +2,13 @@
 #include "gt-win.h"
 #include "utils.h"
 #include "gt-channels-view.h"
+#include "gt-favourites-view.h"
 
 typedef struct
 {
     GtChannelsView* channels_view;
     GtGamesView* games_view;
+    GtFavouritesView* favourites_view;
 
     GtkWidget* nav_buttons_revealer;
     GtkWidget* nav_buttons_stack;
@@ -23,6 +25,7 @@ enum
     PROP_0,
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
+    PROP_FAVOURITES_VIEW,
     NUM_PROPS
 };
 
@@ -33,6 +36,23 @@ gt_browse_header_bar_new(void)
 {
     return g_object_new(GT_TYPE_BROWSE_HEADER_BAR, 
                         NULL);
+}
+
+static void
+show_nav_buttons_cb(GObject* source,
+                    GParamSpec* pspec,
+                    gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
+    gboolean showing_game_channels = FALSE;
+    gboolean showing_games_view = FALSE;
+
+    g_object_get(priv->games_view, "showing-game-channels", &showing_game_channels, NULL);
+    g_object_get(win, "showing-games-view", &showing_games_view, NULL);
+
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->nav_buttons_revealer), showing_game_channels && showing_games_view);
 }
 
 static void
@@ -61,6 +81,9 @@ get_property (GObject*    obj,
         case PROP_GAMES_VIEW:
             g_value_set_object(val, priv->games_view);
             break;
+        case PROP_FAVOURITES_VIEW:
+            g_value_set_object(val, priv->favourites_view);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -86,21 +109,13 @@ set_property(GObject*      obj,
             g_clear_object(&priv->games_view);
             priv->games_view = g_value_ref_sink_object(val);
             break;
+        case PROP_FAVOURITES_VIEW:
+            g_clear_object(&priv->favourites_view);
+            priv->favourites_view = g_value_ref_sink_object(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
-}
-
-static void
-showing_top_channels_converter(GBinding* bind,
-                               const GValue* from,
-                               GValue* to,
-                               gpointer udata)
-{
-    if (g_value_get_boolean(from))
-        g_value_set_string(to, "favourites");
-    else
-        g_value_set_string(to, "home");
 }
 
 static void
@@ -154,29 +169,22 @@ realize(GtkWidget* widget,
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
 
-    g_object_bind_property_full(priv->channels_view,
-                                "showing-top-channels",
-                                priv->nav_buttons_stack,
-                                "visible-child-name",
-                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                (GBindingTransformFunc) showing_top_channels_converter,
-                                NULL, NULL, NULL);
-    g_object_bind_property(GT_WIN_TOPLEVEL(widget), "showing-channels",
-                           priv->nav_buttons_revealer, "reveal-child",
+    g_object_bind_property(priv->search_button, "active",
+                           priv->favourites_view, "search-active",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-
     g_object_bind_property(priv->search_button, "active",
                            priv->channels_view, "search-active",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->search_button, "active",
                            priv->games_view, "search-active",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(showing_channels_cb), self);
-    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(show_refresh_button_cb), self);
-    g_signal_connect(priv->channels_view, "notify::showing-favourite-channels", G_CALLBACK(show_refresh_button_cb), self);
-    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(disable_search_button_cb), self);
-    g_signal_connect(priv->channels_view, "notify::showing-game-channels", G_CALLBACK(disable_search_button_cb), self);
+    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
+    g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
+
+    /* g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(show_refresh_button_cb), self); */
+    /* g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(disable_search_button_cb), self); */
 }
 
 static void
@@ -198,6 +206,11 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                                  "Games View",
                                                  GT_TYPE_GAMES_VIEW,
                                                  G_PARAM_READWRITE);
+    props[PROP_FAVOURITES_VIEW] = g_param_spec_object("favourites-view",
+                                                      "Favourites View",
+                                                      "Favourites View",
+                                                      GT_TYPE_FAVOURITES_VIEW,
+                                                      G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,

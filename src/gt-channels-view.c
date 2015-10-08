@@ -12,9 +12,7 @@ typedef struct
 
     GtkWidget* channels_stack;
     GtkWidget* top_container;
-    GtkWidget* favourite_container;
     GtkWidget* search_container;
-    GtkWidget* game_container;
     GtkWidget* search_bar;
 } GtChannelsViewPrivate;
 
@@ -25,8 +23,6 @@ enum
     PROP_0,
     PROP_SEARCH_ACTIVE,
     PROP_SHOWING_TOP_CHANNELS,
-    PROP_SHOWING_FAVOURITE_CHANNELS,
-    PROP_SHOWING_GAME_CHANNELS,
     NUM_PROPS
 };
 
@@ -64,12 +60,6 @@ get_property (GObject*    obj,
             break;
         case PROP_SHOWING_TOP_CHANNELS:
             g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->channels_stack)) == priv->top_container);
-            break;
-        case PROP_SHOWING_FAVOURITE_CHANNELS:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->channels_stack)) == priv->favourite_container);
-            break;
-        case PROP_SHOWING_GAME_CHANNELS:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->channels_stack)) == priv->game_container);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -115,15 +105,10 @@ search_active_cb(GObject* source,
     GtChannelsView* self = GT_CHANNELS_VIEW(udata);
     GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
 
-    if (priv->search_active && 
-        gtk_stack_get_visible_child(GTK_STACK(priv->channels_stack)) != priv->favourite_container)
-    {
+    if (priv->search_active)
         gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->search_container);
-    }
-    else if (gtk_stack_get_visible_child(GTK_STACK(priv->channels_stack)) == priv->search_container)
-    {
+    else
         gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->top_container);
-    }
 }
 
 static void
@@ -132,9 +117,7 @@ gt_channels_view_class_init(GtChannelsViewClass* klass)
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
     GT_TYPE_CHANNELS_CONTAINER_TOP;
-    GT_TYPE_CHANNELS_CONTAINER_FAVOURITE;
     GT_TYPE_CHANNELS_CONTAINER_SEARCH;
-    GT_TYPE_CHANNELS_CONTAINER_GAME;
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
@@ -150,16 +133,6 @@ gt_channels_view_class_init(GtChannelsViewClass* klass)
                                                             "Whether showing top channels",
                                                             FALSE,
                                                             G_PARAM_READABLE);
-    props[PROP_SHOWING_FAVOURITE_CHANNELS] = g_param_spec_boolean("showing-favourite-channels",
-                                                                  "Showing Favourite Channels",
-                                                                  "Whether showing favourite channels",
-                                                                  FALSE,
-                                                                  G_PARAM_READABLE);
-    props[PROP_SHOWING_GAME_CHANNELS] = g_param_spec_boolean("showing-game-channels",
-                                                             "Showing Game Channels",
-                                                             "Whether showing game channels",
-                                                             FALSE,
-                                                             G_PARAM_READABLE);
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
                                       props);
@@ -168,9 +141,7 @@ gt_channels_view_class_init(GtChannelsViewClass* klass)
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, channels_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, top_container);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, favourite_container);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, search_container);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, game_container);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, search_bar);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_changed_cb);
@@ -186,6 +157,7 @@ gt_channels_view_init(GtChannelsView* self)
     g_object_bind_property(self, "search-active",
                            priv->search_bar, "search-mode-enabled",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
     g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
 }
 
@@ -207,36 +179,12 @@ gt_channels_view_show_type(GtChannelsView* self, GtChannelsContainerType type)
         case GT_CHANNELS_CONTAINER_TYPE_TOP:
             gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->top_container);
             break;
-        case GT_CHANNELS_CONTAINER_TYPE_FAVOURITE:
-            gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->favourite_container);
-            break;
         case GT_CHANNELS_CONTAINER_TYPE_SEARCH:
             gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->search_container);
-            break;
-        case GT_CHANNELS_CONTAINER_TYPE_GAME:
-            gtk_stack_set_visible_child(GTK_STACK(priv->channels_stack), priv->game_container);
             break;
         default:
             break;
     }
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_CHANNELS]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_FAVOURITE_CHANNELS]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
-}
-
-void
-gt_channels_view_set_game(GtChannelsView* self, GtGame* game)
-{
-    GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
-    gchar* name;
-
-    g_object_get(game, "name", &name, NULL);
-
-    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->game_container), name);
-
-    //FIXME: Temporary, let gt-win do this.
-    gt_channels_view_show_type(self, GT_CHANNELS_CONTAINER_TYPE_GAME);
-
-    g_free(name);
 }

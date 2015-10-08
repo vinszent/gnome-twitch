@@ -2,8 +2,11 @@
 #include "gt-games-container.h"
 #include "gt-games-container-top.h"
 #include "gt-games-container-search.h"
+#include "gt-channels-container-game.h"
+#include "gt-game.h"
 
-#define VISIBLE_CONTAINER GT_GAMES_CONTAINER(gtk_stack_get_visible_child(GTK_STACK(priv->games_stack)))
+#define VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->games_stack))
+#define VISIBLE_CONTAINER GT_GAMES_CONTAINER(VISIBLE_CHILD)
 
 typedef struct
 {
@@ -13,6 +16,7 @@ typedef struct
     GtkWidget* search_bar;
     GtkWidget* top_container;
     GtkWidget* search_container;
+    GtkWidget* game_container;
 } GtGamesViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesView, gt_games_view, GTK_TYPE_BOX)
@@ -22,6 +26,7 @@ enum
     PROP_0,
     PROP_SEARCH_ACTIVE,
     PROP_SHOWING_TOP_GAMES,
+    PROP_SHOWING_GAME_CHANNELS,
     NUM_PROPS
 };
 
@@ -43,7 +48,8 @@ search_changed_cb(GtkEditable* edit,
 
     const gchar* query = gtk_entry_get_text(GTK_ENTRY(edit));
 
-    gt_games_container_set_filter_query(VISIBLE_CONTAINER, query);
+    if (VISIBLE_CHILD == priv->search_container)
+        gt_games_container_set_filter_query(VISIBLE_CONTAINER, query);
 }
 
 static void
@@ -58,6 +64,31 @@ search_active_cb(GObject* source,
         gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
     else
         gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+}
+
+static void
+game_activated_cb(GtGamesContainer* container,
+                  GtGame* game,
+                  gpointer udata)
+{
+    GtGamesView* self = GT_GAMES_VIEW(udata);
+    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
+    gchar* name;
+
+    g_object_get(game, "name", &name, NULL);
+
+    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->game_container), name);
+
+    gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+    
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
+
+    g_signal_handlers_block_by_func(self, search_active_cb, self);
+    g_object_set(self, "search-active", FALSE, NULL);
+    g_signal_handlers_unblock_by_func(self, search_active_cb, self);
+
+    g_free(name);
 }
 
 static void
@@ -85,6 +116,9 @@ get_property (GObject*    obj,
             break;
         case PROP_SHOWING_TOP_GAMES:
             g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->games_stack)) == priv->top_container);
+            break;
+        case PROP_SHOWING_GAME_CHANNELS:
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->games_stack)) == priv->game_container);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -117,6 +151,7 @@ gt_games_view_class_init(GtGamesViewClass* klass)
 
     GT_TYPE_GAMES_CONTAINER_TOP;
     GT_TYPE_GAMES_CONTAINER_SEARCH;
+    GT_TYPE_CHANNELS_CONTAINER_GAME;
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
@@ -132,6 +167,11 @@ gt_games_view_class_init(GtGamesViewClass* klass)
                                                          "Whether showing top games",
                                                          FALSE,
                                                          G_PARAM_READABLE);
+    props[PROP_SHOWING_GAME_CHANNELS] = g_param_spec_boolean("showing-game-channels",
+                                                             "Showing Game Channels",
+                                                             "Whether showing game channels",
+                                                             FALSE,
+                                                             G_PARAM_READABLE);
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
                                       props);
@@ -142,6 +182,7 @@ gt_games_view_class_init(GtGamesViewClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, top_container);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_container);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, game_container);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_changed_cb);
 }
@@ -157,6 +198,8 @@ gt_games_view_init(GtGamesView* self)
                            priv->search_bar, "search-mode-enabled",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
+    g_signal_connect(priv->top_container, "game-activated", G_CALLBACK(game_activated_cb), self);
+    g_signal_connect(priv->search_container, "game-activated", G_CALLBACK(game_activated_cb), self);
 }
 
 void
@@ -165,4 +208,28 @@ gt_games_view_refresh(GtGamesView* self)
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
     gt_games_container_refresh(VISIBLE_CONTAINER);
+}
+
+void
+gt_games_view_show_type(GtGamesView* self, gint type)
+{
+    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
+
+    switch (type)
+    {
+        case GT_GAMES_CONTAINER_TYPE_TOP:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+            break;
+        case GT_GAMES_CONTAINER_TYPE_SEARCH:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
+            break;
+        case GT_CHANNELS_CONTAINER_TYPE_GAME:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+            break;
+        default:
+            break;
+    }
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
 }

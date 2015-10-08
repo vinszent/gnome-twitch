@@ -4,7 +4,7 @@
     <property name="show-close-button">True</property>
     <child>
       <object class="GtkRevealer" id="nav_buttons_revealer">
-        <property name="reveal-child">True</property>
+        <property name="reveal-child">False</property>
         <property name="visible">True</property>
         <property name="transition-type">crossfade</property>
         <child>
@@ -12,29 +12,9 @@
             <property name="visible">True</property>
             <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkButton" id="favourites_button">
-                <property name="visible">True</property>
-                <property name="action-name">win.show_view_favourites</property>
-                <!-- <signal name="clicked" handler="favourites_button_cb"/> -->
-                <style>
-                  <class name="image-button"/>
-                </style>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="icon-name">starred-symbolic</property> 
-                  </object>
-                </child> 
-              </object>
-              <packing>
-                <property name="name">favourites</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="home_button">
                 <property name="visible">True</property>
                 <property name="action-name">win.show_view_default</property>
-                <!-- <signal name="clicked" handler="home_button_cb"/> -->
                 <style>
                   <class name="image-button"/>
                 </style>
