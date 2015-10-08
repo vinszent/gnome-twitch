@@ -1,0 +1,66 @@
+# translation of gnome-twitch to Polish
+# This file is distributed under the same license as the gnome-twitch package.
+# Piotr Drąg <piotrdrag@gmail.com>, 2015.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gnome-twitch\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-10-08 20:43+0200\n"
+"PO-Revision-Date: 2015-10-08 20:47+0200\n"
+"Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
+"Language-Team: Polish <gnomepl@aviary.pl>\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%"
+"100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: data/ui/gt-win.ui:55
+msgid "Channels"
+msgstr "Kanały"
+
+#: data/ui/gt-win.ui:64
+msgid "Favourites"
+msgstr "Ulubione"
+
+#: data/ui/gt-win.ui:73
+msgid "Games"
+msgstr "Gry"
+
+#: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
+msgid "Settings"
+msgstr "Ustawienia"
+
+#: data/ui/app-menu.ui:12
+msgid "About"
+msgstr "O programie"
+
+#: data/ui/app-menu.ui:16
+msgid "Quit"
+msgstr "Zakończ"
+
+#: data/ui/gt-settings-dlg.ui:17
+msgid "Default video quality: "
+msgstr "Domyślna jakość obrazu: "
+
+#: data/ui/gt-settings-dlg.ui:28
+msgid "Source"
+msgstr "Źródłowa"
+
+#: data/ui/gt-settings-dlg.ui:29
+msgid "High"
+msgstr "Wysoka"
+
+#: data/ui/gt-settings-dlg.ui:30
+msgid "Medium"
+msgstr "Średnia"
+
+#: data/ui/gt-settings-dlg.ui:31
+msgid "Low"
+msgstr "Niska"
+
+#: src/gt-win.c:96
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Oglądanie serwisu Twitch w systemie GNU/Linux"
