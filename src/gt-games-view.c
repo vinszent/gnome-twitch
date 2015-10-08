@@ -48,8 +48,8 @@ search_changed_cb(GtkEditable* edit,
 
     const gchar* query = gtk_entry_get_text(GTK_ENTRY(edit));
 
-    if (VISIBLE_CHILD == priv->search_container)
-        gt_games_container_set_filter_query(VISIBLE_CONTAINER, query);
+    /* if (VISIBLE_CHILD == priv->search_container) */
+    gt_games_container_set_filter_query(GT_GAMES_CONTAINER(priv->search_container), query);
 }
 
 static void
@@ -207,7 +207,10 @@ gt_games_view_refresh(GtGamesView* self)
 {
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    gt_games_container_refresh(VISIBLE_CONTAINER);
+    if (GT_IS_CHANNELS_CONTAINER(VISIBLE_CHILD))
+        gt_channels_container_refresh(GT_CHANNELS_CONTAINER(VISIBLE_CHILD));
+    else
+        gt_games_container_refresh(VISIBLE_CONTAINER);
 }
 
 void
