@@ -428,8 +428,8 @@ gt_channel_class_init(GtChannelClass* klass)
     props[PROP_ONLINE] = g_param_spec_boolean("online",
                                               "Online",
                                               "Whether the channel is online",
-                                              FALSE,
-                                              G_PARAM_READWRITE);
+                                              TRUE,
+                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update",
                                                    "Auto Update",
                                                    "Whether it should update itself automatically",
@@ -486,6 +486,7 @@ void
 gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    gboolean tmp = priv->online;
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -502,8 +503,14 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 
     if (priv->online != data->online)
         g_object_set(self, "online", data->online, NULL);
-
-    update_preview(self);
+        
+    if (tmp != data->online || data->online)
+        update_preview(self);
+    else
+    {
+        priv->updating = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+    }
 }
 
 void

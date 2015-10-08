@@ -19,7 +19,7 @@ g_value_dup_string_allow_null(const GValue* val)
 }
 
 void
-gtk_container_clear(GtkContainer* cont)
+utils_container_clear(GtkContainer* cont)
 {
     for(GList* l = gtk_container_get_children(cont);
         l != NULL; l = l->next)

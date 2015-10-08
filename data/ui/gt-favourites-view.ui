@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtChannelsView" parent="GtkBox">
+  <template class="GtFavouritesView" parent="GtkBox">
     <property name="orientation">vertical</property>
     <child>
       <object class="GtkSearchBar" id="search_bar">
@@ -18,19 +18,8 @@
       </packing>
     </child>
     <child>
-      <object class="GtkStack" id="channels_stack">
+      <object class="GtChannelsContainerFavourite" id="favourite_container">
         <property name="visible">True</property>
-        <property name="transition-type">crossfade</property>
-        <child>
-          <object class="GtChannelsContainerTop" id="top_container">
-            <property name="visible">True</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtChannelsContainerSearch" id="search_container">
-            <property name="visible">True</property>
-          </object>
-        </child>
       </object>
     </child>
   </template>

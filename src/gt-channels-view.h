@@ -2,8 +2,8 @@
 #define GT_CHANNELS_VIEW_H
 
 #include <gtk/gtk.h>
-#include "gt-channels-view-child.h"
 #include "gt-game.h"
+#include "gt-channels-container.h"
 
 G_BEGIN_DECLS
 
@@ -17,14 +17,8 @@ struct _GtChannelsView
 };
 
 GtChannelsView* gt_channels_view_new(void);
-void gt_channels_view_append_channels(GtChannelsView* self, GList* channels);
-void gt_channels_view_start_search(GtChannelsView* self);
-void gt_channels_view_stop_search(GtChannelsView* self);
-void gt_channels_view_show_game_channels(GtChannelsView* self, GtGame* game);
-void gt_channels_view_clear_game_channels(GtChannelsView* self);
 void gt_channels_view_refresh(GtChannelsView* self);
-void gt_channels_view_show_favourites(GtChannelsView* self);
-gboolean gt_channels_view_is_channel_favourited(GtChannelsView* self, GtChannel* chan);
+void gt_channels_view_show_type(GtChannelsView* self, GtChannelsContainerType type);
 
 G_END_DECLS
 

@@ -11,6 +11,8 @@
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
             <property name="channels-view">channels_view</property>
+            <property name="games-view">games_view</property>
+            <property name="favourites-view">favourites_view</property>
             <child type="title">
               <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>
@@ -51,6 +53,15 @@
               <packing>
                 <property name="name">channels</property>
                 <property name="title" translatable="yes">Channels</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtFavouritesView" id="favourites_view">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="name">favourites</property>
+                <property name="title" translatable="yes">Favourites</property>
               </packing>
             </child>
             <child>

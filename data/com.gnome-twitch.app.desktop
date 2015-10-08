@@ -4,4 +4,3 @@ Type=Application
 Name=GNOME Twitch
 Exec=/usr/bin/gnome-twitch
 Icon=gnome-twitch
-Name[en_AU]=com.gnome-twitch.app

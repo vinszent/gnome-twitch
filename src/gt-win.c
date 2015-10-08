@@ -8,6 +8,7 @@
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
 #include "gt-games-view.h"
+#include "gt-favourites-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-enums.h"
 #include "utils.h"
@@ -19,6 +20,7 @@ typedef struct
     GtkWidget* main_stack;
     GtkWidget* channels_view;
     GtkWidget* games_view;
+    GtkWidget* favourites_view;
     GtkWidget* player;
     GtkWidget* header_stack;
     GtkWidget* browse_stack;
@@ -27,7 +29,6 @@ typedef struct
     GtkWidget* browse_stack_switcher;
 
     gboolean fullscreen;
-    gboolean showing_channels;
 } GtWinPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
@@ -38,7 +39,10 @@ enum
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
     PROP_FULLSCREEN,
-    PROP_SHOWING_CHANNELS,
+    PROP_SHOWING_CHANNELS, //TODO: Get rid of these "showing" properties
+    PROP_SHOWING_FAVOURITES,
+    PROP_SHOWING_GAMES_VIEW,
+    PROP_VISIBLE_VIEW,
     NUM_PROPS
 };
 
@@ -89,7 +93,7 @@ show_about_cb(GSimpleAction* action,
                           "authors", &authors,
                           "license-type", GTK_LICENSE_GPL_3_0,
                           "copyright", "Copyright © 2015 Vincent Szolnoky",
-                          "comments", _("Enjoy Twitch on your GNOME desktop"),
+                          "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
                           "logo-icon-name", "gnome-twitch",
                           "website", "https://github.com/Ippytraxx/gnome-twitch",
                           "website-label", "Github",
@@ -109,9 +113,39 @@ show_settings_cb(GSimpleAction* action,
     gtk_window_present(GTK_WINDOW(settings_dlg));
 }
 
+static void
+refresh_view_cb(GSimpleAction* action,
+                GVariant* arg,
+                gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view)); 
+    else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
+        gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view)); 
+}
+
+static void
+show_view_default_cb(GSimpleAction* action,
+                     GVariant* arg,
+                     gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+        gt_channels_view_show_type(GT_CHANNELS_VIEW(priv->channels_view), GT_CHANNELS_CONTAINER_TYPE_TOP); 
+    else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
+        gt_games_view_show_type(GT_GAMES_VIEW(priv->games_view), GT_GAMES_CONTAINER_TYPE_TOP); 
+}
+
 static GActionEntry win_actions[] = 
 {
     {"player_set_quality", player_set_quality_cb, "s", "'source'", NULL},
+    {"refresh_view", refresh_view_cb, NULL, NULL, NULL},
+    {"show_view_default", show_view_default_cb, NULL, NULL, NULL},
     {"show_about", show_about_cb, NULL, NULL, NULL},
     {"show_settings", show_settings_cb, NULL, NULL, NULL}
 };
@@ -133,33 +167,6 @@ window_state_cb(GtkWidget* widget,
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FULLSCREEN]);
     }
 
-}
-
-static void
-browse_view_changed_cb(GtkWidget* child,
-                       GParamSpec* pspec,
-                       gpointer udata)
-{
-    GtWin* self = GT_WIN(udata);
-
-    gt_win_stop_search(self);
-}
-
-static gboolean
-visible_child_converter(GBinding* bind,
-                        const GValue* from,
-                        GValue* to,
-                        gpointer udata)
-{
-    GtWin* self = GT_WIN(udata);
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (g_value_get_object(from) == priv->channels_view)
-        g_value_set_boolean(to, TRUE);
-    else    
-        g_value_set_boolean(to, FALSE);
-
-    return TRUE;
 }
 
 static void
@@ -192,7 +199,16 @@ get_property (GObject*    obj,
             g_value_set_boolean(val, priv->fullscreen);
             break;
         case PROP_SHOWING_CHANNELS:
-            g_value_set_boolean(val, priv->showing_channels);
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view);
+            break;
+        case PROP_SHOWING_FAVOURITES:
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->favourites_view);
+            break;
+        case PROP_SHOWING_GAMES_VIEW:
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view);
+            break;
+        case PROP_VISIBLE_VIEW:
+            g_value_set_object(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)));
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -210,8 +226,8 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_SHOWING_CHANNELS:
-            priv->showing_channels = g_value_get_boolean(val);
+        case PROP_VISIBLE_VIEW:
+            // Do nothing
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -228,16 +244,15 @@ gt_win_class_init(GtWinClass* klass)
     object_class->set_property = set_property;
 
     props[PROP_CHANNELS_VIEW] = g_param_spec_object("channels-view",
-                           "Channels View",
-                           "Channels View",
-                           GT_TYPE_CHANNELS_VIEW,
-                           G_PARAM_READABLE);
-
+                                                    "Channels View",
+                                                    "Channels View",
+                                                    GT_TYPE_CHANNELS_VIEW,
+                                                    G_PARAM_READABLE);
     props[PROP_GAMES_VIEW] = g_param_spec_object("games-view",
-                           "Games View",
-                           "Games View",
-                           GT_TYPE_GAMES_VIEW,
-                           G_PARAM_READABLE);
+                                                 "Games View",
+                                                 "Games View",
+                                                 GT_TYPE_GAMES_VIEW,
+                                                 G_PARAM_READABLE);
     props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
                                                   "Fullscreen",
                                                   "Whether window is fullscreen",
@@ -246,8 +261,23 @@ gt_win_class_init(GtWinClass* klass)
     props[PROP_SHOWING_CHANNELS] = g_param_spec_boolean("showing-channels",
                                                         "Showing Channels",
                                                         "Whether showing channels",
-                                                        TRUE,
-                                                        G_PARAM_READWRITE);
+                                                        FALSE,
+                                                        G_PARAM_READABLE);
+    props[PROP_SHOWING_FAVOURITES] = g_param_spec_boolean("showing-favourites",
+                                                          "Showing Favourites",
+                                                          "Whether showing favourites",
+                                                          FALSE,
+                                                          G_PARAM_READABLE);
+    props[PROP_SHOWING_GAMES_VIEW] = g_param_spec_boolean("showing-games-view",
+                                                          "Showing Games View",
+                                                          "Whether showing games view",
+                                                          FALSE,
+                                                          G_PARAM_READABLE);
+    props[PROP_VISIBLE_VIEW] = g_param_spec_object("visible-view",
+                                                   "Visible View",
+                                                   "Visible View",
+                                                   GTK_TYPE_WIDGET,
+                                                   G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -264,6 +294,7 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_header_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack_switcher);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, favourites_view);
 }
 
 static void
@@ -276,20 +307,17 @@ gt_win_init(GtWin* self)
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
+    GT_TYPE_FAVOURITES_VIEW;
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
     g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
 
+    g_object_bind_property(priv->browse_stack, "visible-child",
+                           self, "visible-view",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
     gtk_widget_realize(GTK_WIDGET(priv->player));
-
-    g_signal_connect(priv->browse_stack, "notify::visible-child", G_CALLBACK(browse_view_changed_cb), self);
-
-    g_object_bind_property_full(priv->browse_stack, "visible-child",
-                                self, "showing-channels",
-                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                (GBindingTransformFunc) visible_child_converter,
-                                NULL, self, NULL);
 
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
@@ -304,6 +332,7 @@ gt_win_init(GtWin* self)
                                     self);
 }
 
+//TODO: Make this action
 void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
@@ -334,6 +363,7 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                                      "player");
 }
 
+//TODO: Make these actions
 void
 gt_win_browse_view(GtWin* self)
 {
@@ -365,51 +395,6 @@ gt_win_browse_games_view(GtWin* self)
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->browse_stack),
                                      "games");
-}
-
-void
-gt_win_start_search(GtWin* self)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_start_search(GT_CHANNELS_VIEW(priv->channels_view));
-    else
-        gt_games_view_start_search(GT_GAMES_VIEW(priv->games_view));
-}
-
-void
-gt_win_stop_search(GtWin* self)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_stop_search(GT_CHANNELS_VIEW(priv->channels_view));
-    else
-        gt_games_view_stop_search(GT_GAMES_VIEW(priv->games_view));
-
-    gt_browse_header_bar_stop_search(GT_BROWSE_HEADER_BAR(priv->browse_header_bar));
-}
-
-void
-gt_win_refresh_view(GtWin* self)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
-    else
-        gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
-}
-
-void
-gt_win_show_favourites(GtWin* self)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_show_favourites(GT_CHANNELS_VIEW(priv->channels_view));
-    //TODO: Favouriting games?
 }
 
 GtChannelsView*
