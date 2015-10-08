@@ -125,29 +125,13 @@ show_refresh_button_cb(GObject* source,
 {
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-    gboolean showing_channels = FALSE;
-    gboolean showing_favourites = FALSE;
+    GtkWidget* view = NULL;
      
-    g_object_get(GT_WIN_TOPLEVEL(self), "showing-channels", &showing_channels, NULL);
-    g_object_get(priv->channels_view, "showing-favourite-channels", &showing_favourites, NULL);
+    g_object_get(GT_WIN_TOPLEVEL(self), "visible-view", &view, NULL);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), !(showing_channels && showing_favourites));
-}
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != priv->favourites_view);
 
-static void
-disable_search_button_cb(GObject* source,
-                         GParamSpec* pspec,
-                         gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-    gboolean showing_channels = FALSE;
-    gboolean showing_games = FALSE;
-     
-    g_object_get(GT_WIN_TOPLEVEL(self), "showing-channels", &showing_channels, NULL);
-    g_object_get(priv->channels_view, "showing-game-channels", &showing_games, NULL);
-
-    gtk_widget_set_sensitive(priv->search_revealer, !(showing_channels && showing_games));
+    g_object_unref(view);
 }
 
 static void
@@ -160,7 +144,6 @@ showing_channels_cb(GObject* source,
 
     g_object_set(priv->search_button, "active", FALSE, NULL);
 }
-
 
 static void
 realize(GtkWidget* widget,
@@ -181,10 +164,8 @@ realize(GtkWidget* widget,
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(showing_channels_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
+    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
-
-    /* g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(show_refresh_button_cb), self); */
-    /* g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(disable_search_button_cb), self); */
 }
 
 static void

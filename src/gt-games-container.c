@@ -96,11 +96,6 @@ child_activated_cb(GtkFlowBox* flow,
 
     g_signal_emit(self, sigs[SIG_GAME_ACTIVATED], 0, game);
 
-    /* gt_channels_view_set_game(gt_win_get_channels_view(win), */
-                              /* game); */
-
-    /* gt_win_browse_channels_view(win); */
-
     g_object_unref(game);
 }
 
