@@ -1,0 +1,5 @@
+gnome-twitch (0.0.1+git091015-1) unstable; urgency=medium
+
+  * Initial release (close #1546554)
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Fri, 09 Oct 2015 12:24:45 +0900

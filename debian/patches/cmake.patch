@@ -1,0 +1,74 @@
+Index: gnome-twitch-0.0.0+git151003/CMakeLists.txt
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-twitch-0.0.0+git151003/CMakeLists.txt	2015-10-04 00:51:57.784312014 +0200
+@@ -0,0 +1,7 @@
++cmake_minimum_required (VERSION 2.6)
++project (gnome-twitch)
++set (VCS_TAG 0.0.1)
++
++add_subdirectory (src)
++add_subdirectory (data)
++add_subdirectory (po)
+Index: gnome-twitch-0.0.0+git151003/src/CMakeLists.txt
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-twitch-0.0.0+git151003/src/CMakeLists.txt	2015-10-04 02:29:28.814430941 +0200
+@@ -0,0 +1,45 @@
++set (LOCALE_DIR "/usr/share/locale/")
++
++configure_file (
++  "${PROJECT_SOURCE_DIR}/src/config.h.in"
++  "${PROJECT_BINARY_DIR}/config.h"
++  )
++configure_file (
++  "${PROJECT_SOURCE_DIR}/src/version.h.in"
++  "${PROJECT_BINARY_DIR}/version.h"
++  )
++include_directories("${PROJECT_BINARY_DIR}")
++
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
++include_directories(${GTK3_INCLUDE_DIRS})
++link_directories(${GTK3_LIBRARY_DIRS})
++add_definitions(${GTK3_CFLAGS_OTHER})
++
++pkg_check_modules(GST REQUIRED gstreamer-video-1.0)
++include_directories(${GST_INCLUDE_DIRS})
++link_directories(${GST_LIBRARY_DIRS})
++add_definitions(${GST_CFLAGS_OTHER})
++
++pkg_check_modules(SOUP REQUIRED libsoup-2.4)
++include_directories(${SOUP_INCLUDE_DIRS})
++link_directories(${SOUP_LIBRARY_DIRS})
++add_definitions(${SOUP_CFLAGS_OTHER})
++
++pkg_check_modules(JSON REQUIRED json-glib-1.0)
++include_directories(${JSON_INCLUDE_DIRS})
++link_directories(${JSON_LIBRARY_DIRS})
++add_definitions(${JSON_CFLAGS_OTHER})
++
++add_definitions("-std=c11")
++
++SET( SRCS main.c gt-app.c gt-win.c gt-twitch.c gt-channel.c gt-player.c gt-channels-view.c gt-channels-view-child.c 
++ gt-player-header-bar.c gt-browse-header-bar.c gt-game.c gt-games-view.c gt-games-view-child.c gt-settings-dlg.c 
++ gt-favourites-manager.c gt-enums.c utils.c ../data/gnome-twitch.c)
++add_executable(gnome-twitch ${SRCS})
++target_link_libraries(gnome-twitch ${GST_LIBRARIES})
++target_link_libraries(gnome-twitch ${SOUP_LIBRARIES})
++target_link_libraries(gnome-twitch ${JSON_LIBRARIES})
++target_link_libraries(gnome-twitch ${GTK3_LIBRARIES})
++
++install (TARGETS gnome-twitch DESTINATION bin)
+Index: gnome-twitch-0.0.0+git151003/data/CMakeLists.txt
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-twitch-0.0.0+git151003/data/CMakeLists.txt	2015-10-04 02:28:18.708960740 +0200
+@@ -0,0 +1 @@
++execute_process(COMMAND glib-compile-resources --generate-source gnome-twitch.gresource.xml WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data)
+Index: gnome-twitch-0.0.0+git151003/po/CMakeLists.txt
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-twitch-0.0.0+git151003/po/CMakeLists.txt	2015-10-04 02:41:12.839493103 +0200
+@@ -0,0 +1 @@
++# TODO
