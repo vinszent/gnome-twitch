@@ -146,26 +146,40 @@ showing_channels_cb(GObject* source,
 }
 
 static void
+search_active_cb(GObject* source,
+                 GParamSpec* pspec,
+                 gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+
+    gboolean active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(priv->search_button));
+
+    GtkWidget* visible_view = NULL;
+
+    g_object_get(GT_WIN_TOPLEVEL(self), "visible_view", &visible_view, NULL);
+
+    g_object_set(visible_view, "search-active", active, NULL);
+
+    g_object_unref(visible_view);
+}
+
+static void
 realize(GtkWidget* widget,
          gpointer udata)
 {
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
 
-    g_object_bind_property(priv->search_button, "active",
-                           priv->favourites_view, "search-active",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->search_button, "active",
-                           priv->channels_view, "search-active",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->search_button, "active",
-                           priv->games_view, "search-active",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
+    g_object_bind_property(priv->games_view, "search-active",
+                           priv->search_button, "active",
+                           G_BINDING_DEFAULT);
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(showing_channels_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
+    g_signal_connect(priv->search_button, "notify::active", G_CALLBACK(search_active_cb), self);
 }
 
 static void
