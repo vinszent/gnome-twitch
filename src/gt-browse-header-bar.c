@@ -135,17 +135,6 @@ show_refresh_button_cb(GObject* source,
 }
 
 static void
-showing_channels_cb(GObject* source,
-                   GParamSpec* pspec,
-                   gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-
-    g_object_set(priv->search_button, "active", FALSE, NULL);
-}
-
-static void
 search_active_cb(GObject* source,
                  GParamSpec* pspec,
                  gpointer udata)
@@ -165,6 +154,26 @@ search_active_cb(GObject* source,
 }
 
 static void
+visible_view_cb(GObject* source,
+                 GParamSpec* pspec,
+                 gpointer udata)
+{
+    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+    GtkWidget* visible_view = NULL;
+    gboolean search_active = FALSE;
+
+    g_object_get(GT_WIN_TOPLEVEL(self), "visible_view", &visible_view, NULL);
+    g_object_get(visible_view, "search-active", &search_active, NULL);
+
+    g_signal_handlers_block_by_func(self, search_active_cb, self);
+    g_object_set(priv->search_button, "active", search_active, NULL);
+    g_signal_handlers_unblock_by_func(self, search_active_cb, self);
+
+    g_object_unref(visible_view);
+}
+
+static void
 realize(GtkWidget* widget,
          gpointer udata)
 {
@@ -175,7 +184,7 @@ realize(GtkWidget* widget,
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
 
-    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::showing-channels", G_CALLBACK(showing_channels_cb), self);
+    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(visible_view_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
