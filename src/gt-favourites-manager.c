@@ -70,7 +70,6 @@ channel_online_cb(GObject* source,
 
     g_free(name);
     g_free(game);
-
 }
 
 static void
@@ -85,7 +84,7 @@ channel_favourited_cb(GObject* source,
     gboolean favourited;
 
     g_object_get(chan, "favourited", &favourited, NULL);
-
+    
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
@@ -99,17 +98,19 @@ channel_favourited_cb(GObject* source,
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
+        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+
         g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
 
-        g_object_unref(G_OBJECT(found->data));
+        g_clear_object(&found->data);
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
     }
 }
 
 static void
 oneshot_updating_cb(GObject* source,
-                  GParamSpec* pspec,
-                  gpointer udata)
+                    GParamSpec* pspec,
+                    gpointer udata)
 {
     GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
     gboolean updating;
@@ -117,7 +118,10 @@ oneshot_updating_cb(GObject* source,
     g_object_get(source, "updating", &updating, NULL);
 
     if (!updating)
+    {
         g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
+        g_signal_handlers_disconnect_by_func(source, oneshot_updating_cb, self); // Just run once after first update
+    }
 }
 
 static void
