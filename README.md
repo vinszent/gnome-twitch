@@ -4,7 +4,7 @@ the hassle of flash or the web.
 
 ## Install
 ### Dependencies
-* meson (install only)
+* meson >= 0.26.0 (install only)
 * ninja (install only)
 * gtk+-3.0 >= 3.16
 * libsoup
@@ -23,6 +23,12 @@ meson . build
 cd build
 mesonconf -Dprefix=/usr
 ninja install
+```
+#### Post install
+```
+glib-compile-schemas /usr/share/glib-2.0/schemas
+update-desktop-database -q
+gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor
 ```
 ### Distro packages
 * [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch-git/)

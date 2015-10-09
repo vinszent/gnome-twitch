@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtGamesContainer" parent="GtkBox">
+    <child>
+      <object class="GtkScrolledWindow" id="games_scroll">
+        <property name="visible">True</property>
+        <signal name="edge-reached" handler="edge_reached_cb"/>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">20</property>
+            <child>
+              <object class="GtkFlowBox" id="games_flow">
+                <property name="visible">True</property>
+                <property name="hexpand">True</property>
+                <property name="selection-mode">none</property>
+                <property name="row-spacing">10</property>
+                <property name="column-spacing">10</property>
+                <property name="homogeneous">True</property>
+                <signal name="child-activated" handler="child_activated_cb"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRevealer" id="load_revealer">
+                <property name="visible">True</property>
+                <property name="reveal-child">False</property>
+                <property name="transition-type">crossfade</property>
+                <child>
+                  <object class="GtkSpinner">
+                    <property name="visible">True</property>
+                    <property name="active">True</property>
+                    <property name="expand">True</property>
+                    <property name="valign">center</property>
+                    <property name="height-request">100</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child> 
+      </object>
+    </child>
+  </template>
+</interface>

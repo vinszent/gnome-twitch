@@ -1,40 +1,32 @@
 #include "gt-games-view.h"
-#include "gt-games-view-child.h"
-#include "gt-app.h"
+#include "gt-games-container.h"
+#include "gt-games-container-top.h"
+#include "gt-games-container-search.h"
+#include "gt-channels-container-game.h"
 #include "gt-game.h"
-#include "gt-win.h"
-#include "utils.h"
-#include <string.h>
+
+#define VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->games_stack))
+#define VISIBLE_CONTAINER GT_GAMES_CONTAINER(VISIBLE_CHILD)
 
 typedef struct
 {
-    GtkWidget* games_scroll;
-    GtkWidget* games_flow;
+    gboolean search_active;
+    
+    GtkWidget* games_stack;
     GtkWidget* search_bar;
-    GtkWidget* spinner_revealer;
-
-    gint games_page;
-
-    gchar* search_query;
-    gint search_page;
-
-    GCancellable* cancel;
+    GtkWidget* top_container;
+    GtkWidget* search_container;
+    GtkWidget* game_container;
 } GtGamesViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesView, gt_games_view, GTK_TYPE_BOX)
 
-static void
-top_games_cb(GObject* source,
-             GAsyncResult* res,
-             gpointer udata);
-static void
-search_games_cb(GObject* source,
-                GAsyncResult* res,
-                gpointer udata);
-
 enum 
 {
     PROP_0,
+    PROP_SEARCH_ACTIVE,
+    PROP_SHOWING_TOP_GAMES,
+    PROP_SHOWING_GAME_CHANNELS,
     NUM_PROPS
 };
 
@@ -48,148 +40,55 @@ gt_games_view_new(void)
 }
 
 static void
-edge_reached_cb(GtkScrolledWindow* scroll,
-                GtkPositionType pos,
-                gpointer udata)
+search_changed_cb(GtkEditable* edit,
+                  gpointer udata)
 {
     GtGamesView* self = GT_GAMES_VIEW(udata);
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    if (pos == GTK_POS_BOTTOM)
-    {
-        if (strlen(priv->search_query) == 0)
-        {
-            gt_twitch_top_games_async(main_app->twitch,
-                                      MAX_QUERY,
-                                      ++priv->games_page*MAX_QUERY,
-                                      priv->cancel,
-                                      (GAsyncReadyCallback) top_games_cb,
-                                      self);
-        }
-        else
-        {
-            gt_twitch_search_games_async(main_app->twitch,
-                                         priv->search_query,
-                                         MAX_QUERY,
-                                         ++priv->search_page*MAX_QUERY,
-                                         priv->cancel,
-                                         (GAsyncReadyCallback) search_games_cb,
-                                         self);
-        }
-    }
+    const gchar* query = gtk_entry_get_text(GTK_ENTRY(edit));
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
+    /* if (VISIBLE_CHILD == priv->search_container) */
+    gt_games_container_set_filter_query(GT_GAMES_CONTAINER(priv->search_container), query);
 }
 
 static void
-top_games_cb(GObject* source,
-             GAsyncResult* res,
-             gpointer udata)
-{
-    GtGamesView* self = GT_GAMES_VIEW(udata);
-    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
-    GError* error = NULL;
-
-    GList* new = g_task_propagate_pointer(G_TASK(res), &error);
-
-    if (error)
-    {
-        g_error_free(error);
-        return;
-    }
-
-    gt_games_view_append_games(self, new);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), FALSE);
-}
-
-static void
-search_games_cb(GObject* source,
-                GAsyncResult* res,
-                gpointer udata)
-{
-    GtGamesView* self = GT_GAMES_VIEW(udata);
-    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
-    GError* error = NULL;
-
-    GList* new = g_task_propagate_pointer(G_TASK(res), &error);
-
-    if (error)
-    {
-        g_error_free(error);
-        return;
-    }
-
-    gt_games_view_append_games(self, new);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), FALSE);
-}
-
-
-static void
-child_activated_cb(GtkFlowBox* flow,
-                   GtkFlowBoxChild* child,
-                   gpointer udata)
-{
-    GtGamesViewChild* chan = GT_GAMES_VIEW_CHILD(child);
-    GtGame* game;
-    GtWin* win;
-
-    gt_games_view_child_hide_overlay(chan); //FIXME: Doesn't work
-
-    win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(flow)));
-
-    g_object_get(chan, "game", &game, NULL);
-
-    gt_channels_view_show_game_channels(gt_win_get_channels_view(win),
-                                      game);
-
-
-    gt_win_browse_channels_view(win);
-
-    g_object_unref(game);
-}
-
-static void
-search_entry_cb(GtkSearchEntry* entry,
-                gpointer udata)
+search_active_cb(GObject* source,
+                 GParamSpec* pspec,
+                 gpointer udata)
 {
     GtGamesView* self = GT_GAMES_VIEW(udata);
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    g_cancellable_cancel(priv->cancel);
-    if (priv->cancel)
-        g_object_unref(priv->cancel);
-    priv->cancel = g_cancellable_new();
-
-    priv->search_query = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-    priv->search_page = 0;
-
-    if (strlen(priv->search_query) == 0)
-    {
-        priv->games_page = 0;
-        priv->search_page = 0;
-        gt_twitch_top_games_async(main_app->twitch,
-                                  MAX_QUERY,
-                                  priv->games_page*MAX_QUERY,
-                                  priv->cancel,
-                                  (GAsyncReadyCallback) top_games_cb,
-                                  self);
-
-
-    }
+    if (priv->search_active)
+        gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
     else
-    {
-        gt_twitch_search_games_async(main_app->twitch,
-                                     priv->search_query,
-                                     MAX_QUERY,
-                                     priv->search_page*MAX_QUERY,
-                                     priv->cancel,
-                                     (GAsyncReadyCallback) search_games_cb,
-                                     self);
-    }
+        gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+}
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
+static void
+game_activated_cb(GtGamesContainer* container,
+                  GtGame* game,
+                  gpointer udata)
+{
+    GtGamesView* self = GT_GAMES_VIEW(udata);
+    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
+    gchar* name;
 
-    gtk_container_clear(GTK_CONTAINER(priv->games_flow));
+    g_object_get(game, "name", &name, NULL);
+
+    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->game_container), name);
+
+    gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+    
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
+
+    g_signal_handlers_block_by_func(self, search_active_cb, self);
+    g_object_set(self, "search-active", FALSE, NULL);
+    g_signal_handlers_unblock_by_func(self, search_active_cb, self);
+
+    g_free(name);
 }
 
 static void
@@ -212,6 +111,15 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
+        case PROP_SEARCH_ACTIVE:
+            g_value_set_boolean(val, priv->search_active);
+            break;
+        case PROP_SHOWING_TOP_GAMES:
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->games_stack)) == priv->top_container);
+            break;
+        case PROP_SHOWING_GAME_CHANNELS:
+            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->games_stack)) == priv->game_container);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -228,6 +136,9 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
+        case PROP_SEARCH_ACTIVE:
+            priv->search_active = g_value_get_boolean(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -238,17 +149,42 @@ gt_games_view_class_init(GtGamesViewClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
+    GT_TYPE_GAMES_CONTAINER_TOP;
+    GT_TYPE_GAMES_CONTAINER_SEARCH;
+    GT_TYPE_CHANNELS_CONTAINER_GAME;
+
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-games-view.ui");
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_scroll);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_flow);
+    props[PROP_SEARCH_ACTIVE] = g_param_spec_boolean("search-active",
+                                                     "Search Active",
+                                                     "Whether search is active",
+                                                     FALSE,
+                                                     G_PARAM_READWRITE);
+    props[PROP_SHOWING_TOP_GAMES] = g_param_spec_boolean("showing-top-games",
+                                                         "Showing Top Games",
+                                                         "Whether showing top games",
+                                                         FALSE,
+                                                         G_PARAM_READABLE);
+    props[PROP_SHOWING_GAME_CHANNELS] = g_param_spec_boolean("showing-game-channels",
+                                                             "Showing Game Channels",
+                                                             "Whether showing game channels",
+                                                             FALSE,
+                                                             G_PARAM_READABLE);
+    g_object_class_install_properties(object_class,
+                                      NUM_PROPS,
+                                      props);
+
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-games-view.ui");
+
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_bar);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, spinner_revealer);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_entry_cb);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, top_container);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_container);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, game_container);
+
+    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_changed_cb);
 }
 
 static void
@@ -258,48 +194,12 @@ gt_games_view_init(GtGamesView* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    priv->games_page = 0;
-    priv->search_page = 0;
-    priv->search_query = "";
-
-    g_signal_connect(priv->games_flow, "child-activated", G_CALLBACK(child_activated_cb), self);
-    g_signal_connect(priv->games_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
-
-    gt_twitch_top_games_async(main_app->twitch,
-                              MAX_QUERY,
-                              priv->games_page,
-                              priv->cancel,
-                              (GAsyncReadyCallback) top_games_cb,
-                              self);
-}
-
-void
-gt_games_view_append_games(GtGamesView* self, GList* games)
-{
-    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
-
-    for (GList* l = games; l != NULL; l = l->next)
-    {
-        GtGamesViewChild* child = gt_games_view_child_new(GT_GAME(l->data));
-        gtk_widget_show_all(GTK_WIDGET(child));
-        gtk_container_add(GTK_CONTAINER(priv->games_flow), GTK_WIDGET(child));
-    }
-}
-
-void
-gt_games_view_start_search(GtGamesView* self)
-{
-    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
-
-    gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(priv->search_bar), TRUE);
-}
-
-void
-gt_games_view_stop_search(GtGamesView* self)
-{
-    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
-
-    gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(priv->search_bar), FALSE);
+    g_object_bind_property(self, "search-active",
+                           priv->search_bar, "search-mode-enabled",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
+    g_signal_connect(priv->top_container, "game-activated", G_CALLBACK(game_activated_cb), self);
+    g_signal_connect(priv->search_container, "game-activated", G_CALLBACK(game_activated_cb), self);
 }
 
 void
@@ -307,37 +207,32 @@ gt_games_view_refresh(GtGamesView* self)
 {
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    g_cancellable_cancel(priv->cancel);
-    if (priv->cancel)
-        g_object_unref(priv->cancel);
-    priv->cancel = g_cancellable_new();
-
-    if (strlen(priv->search_query) == 0)
-    {
-        priv->games_page = 0;
-        priv->search_page = 0;
-        gt_twitch_top_games_async(main_app->twitch,
-                                  MAX_QUERY,
-                                  priv->games_page*MAX_QUERY,
-                                  priv->cancel,
-                                  (GAsyncReadyCallback) top_games_cb,
-                                  self);
-
-
-    }
+    if (GT_IS_CHANNELS_CONTAINER(VISIBLE_CHILD))
+        gt_channels_container_refresh(GT_CHANNELS_CONTAINER(VISIBLE_CHILD));
     else
+        gt_games_container_refresh(VISIBLE_CONTAINER);
+}
+
+void
+gt_games_view_show_type(GtGamesView* self, gint type)
+{
+    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
+
+    switch (type)
     {
-        priv->search_page = 0;
-        gt_twitch_search_games_async(main_app->twitch,
-                                     priv->search_query,
-                                     MAX_QUERY,
-                                     priv->search_page*MAX_QUERY,
-                                     priv->cancel,
-                                     (GAsyncReadyCallback) search_games_cb,
-                                     self);
+        case GT_GAMES_CONTAINER_TYPE_TOP:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+            break;
+        case GT_GAMES_CONTAINER_TYPE_SEARCH:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
+            break;
+        case GT_CHANNELS_CONTAINER_TYPE_GAME:
+            gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+            break;
+        default:
+            break;
     }
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->spinner_revealer), TRUE);
-
-    gtk_container_clear(GTK_CONTAINER(priv->games_flow));
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
 }

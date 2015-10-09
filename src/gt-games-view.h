@@ -2,6 +2,7 @@
 #define GT_GAMES_VIEW_H
 
 #include <gtk/gtk.h>
+#include "gt-games-container.h"
 
 G_BEGIN_DECLS
 
@@ -15,10 +16,8 @@ struct _GtGamesView
 };
 
 GtGamesView* gt_games_view_new(void);
-void gt_games_view_append_games(GtGamesView* self, GList* games);
-void gt_games_view_start_search(GtGamesView* self);
-void gt_games_view_stop_search(GtGamesView* self);
 void gt_games_view_refresh(GtGamesView* self);
+void gt_games_view_show_type(GtGamesView* self, gint type);
 
 G_END_DECLS
 
