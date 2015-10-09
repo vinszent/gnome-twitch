@@ -16,7 +16,7 @@ msgstr ""
 "X-Generator: Poedit 1.8.5\n"
 "Last-Translator: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: de\n"
+"Language: de\nPhilipp Fent <philipp@fent.de>"
 
 #: data/ui/gt-win.ui:55
 msgid "Channels"
@@ -65,3 +65,7 @@ msgstr "Niedrig"
 #: src/gt-win.c:96
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Genieße Twitch auf deinem GNU/Linux Computer"
+
+#: src/gt-win.c:100
+msgid "translator-credits"
+msgstr "Philipp Fent <philipp@fent.de>"
