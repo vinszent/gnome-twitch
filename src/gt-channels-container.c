@@ -36,6 +36,16 @@ show_load_spinner(GtChannelsContainer* self, gboolean show)
 }
 
 static void
+append_channel(GtChannelsContainer* self, GtChannel* chan)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    GtChannelsContainerChild* child = gt_channels_container_child_new(chan);
+    gtk_widget_show_all(GTK_WIDGET(child));
+    gtk_container_add(GTK_CONTAINER(priv->channels_flow), GTK_WIDGET(child));
+}
+
+static void
 append_channels(GtChannelsContainer* self, GList* channels)
 {
     GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
@@ -44,9 +54,30 @@ append_channels(GtChannelsContainer* self, GList* channels)
     {
         GtChannel* chan = GT_CHANNEL(l->data);
 
-        GtChannelsContainerChild* child = gt_channels_container_child_new(chan);
-        gtk_widget_show_all(GTK_WIDGET(child));
-        gtk_container_add(GTK_CONTAINER(priv->channels_flow), GTK_WIDGET(child));
+        append_channel(self, chan);
+    }
+}
+
+static void
+remove_channel(GtChannelsContainer* self, GtChannel* chan)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    for (GList* l = gtk_container_get_children(GTK_CONTAINER(priv->channels_flow)); l != NULL; l = l->next)
+    {
+        GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(l->data);
+        GtChannel* _chan = NULL;
+
+        g_object_get(child, "channel", &_chan, NULL);
+
+        if (!gt_channel_compare(chan, _chan))
+        {
+            g_object_unref(_chan);
+            gtk_container_remove(GTK_CONTAINER(priv->channels_flow), GTK_WIDGET(child));
+            break;
+        }
+
+        g_object_unref(_chan);
     }
 }
 
@@ -142,7 +173,9 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
     object_class->set_property = set_property;
 
     klass->show_load_spinner = show_load_spinner;
+    klass->append_channel = append_channel;
     klass->append_channels = append_channels;
+    klass->remove_channel = remove_channel;
     klass->get_channels_flow = get_channels_flow;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-channels-container.ui");

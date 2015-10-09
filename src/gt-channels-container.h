@@ -23,7 +23,9 @@ struct _GtChannelsContainerClass
     GtkBoxClass parent_class;
 
     void (*show_load_spinner) (GtChannelsContainer* self, gboolean show);
+    void (*append_channel) (GtChannelsContainer* self, GtChannel* chan);
     void (*append_channels) (GtChannelsContainer* self, GList* channels);
+    void (*remove_channel) (GtChannelsContainer* self, GtChannel* chan);
     GtkFlowBox* (*get_channels_flow) (GtChannelsContainer* self);
 
     void (*bottom_edge_reached) (GtChannelsContainer* self);

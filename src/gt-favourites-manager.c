@@ -17,7 +17,16 @@ enum
     NUM_PROPS
 };
 
+enum
+{
+    SIG_CHANNEL_FAVOURITED,
+    SIG_CHANNEL_UNFAVOURITED,
+    NUM_SIGS
+};
+
 static GParamSpec* props[NUM_PROPS];
+
+static guint sigs[NUM_SIGS];
 
 GtFavouritesManager*
 gt_favourites_manager_new(void)
@@ -82,16 +91,19 @@ channel_favourited_cb(GObject* source,
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
         g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self); //TODO: Remove this when unfavouriting
         g_object_ref(chan);
+
+        g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
     }
     else
     {
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
+        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
+
         g_object_unref(G_OBJECT(found->data));
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
     }
-
 }
 
 static void
@@ -166,6 +178,21 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
+
+    sigs[SIG_CHANNEL_FAVOURITED] = g_signal_new("channel-favourited",
+                                                GT_TYPE_FAVOURITES_MANAGER,
+                                                G_SIGNAL_RUN_LAST,
+                                                0, NULL, NULL,
+                                                g_cclosure_marshal_VOID__OBJECT,
+                                                G_TYPE_NONE,
+                                                1, GT_TYPE_CHANNEL);
+    sigs[SIG_CHANNEL_UNFAVOURITED] = g_signal_new("channel-unfavourited",
+                                                GT_TYPE_FAVOURITES_MANAGER,
+                                                G_SIGNAL_RUN_LAST,
+                                                0, NULL, NULL,
+                                                g_cclosure_marshal_VOID__OBJECT,
+                                                G_TYPE_NONE,
+                                                1, GT_TYPE_CHANNEL);
 }
 
 static void
