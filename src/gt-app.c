@@ -162,6 +162,7 @@ gt_app_init(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     self->twitch = gt_twitch_new();
+    self->settings = g_settings_new("com.gnome-twitch.app");
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */

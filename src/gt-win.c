@@ -4,6 +4,7 @@
 #include <glib/gi18n.h>
 #include "gt-twitch.h"
 #include "gt-player.h"
+#include "gt-player-clutter.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
@@ -305,6 +306,7 @@ gt_win_init(GtWin* self)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
+    GT_TYPE_PLAYER_CLUTTER;
     GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
@@ -319,7 +321,7 @@ gt_win_init(GtWin* self)
                            self, "visible-view",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    gtk_widget_realize(GTK_WIDGET(priv->player));
+    /* gtk_widget_realize(GTK_WIDGET(priv->player)); */
 
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
@@ -347,11 +349,16 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                  "status", &status,
                  NULL);
 
+    gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
+    GtTwitchStreamData* stream_data = gt_twitch_stream_by_quality(main_app->twitch,
+                                                                  name,
+                                                                  GT_TWITCH_STREAM_QUALITY_SOURCE,
+                                                                  token, sig);
+
     g_object_set(priv->player_header_bar,
                  "name", display_name,
                  "status", status,
                  NULL);
-
 
     gt_player_open_channel(GT_PLAYER(priv->player), chan);
 

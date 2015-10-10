@@ -80,7 +80,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtPlayer" id="player">
+          <object class="GtPlayerClutter" id="player">
             <property name="visible">True</property>
             <property name="expand">True</property>
           </object>

@@ -17,6 +17,7 @@ struct _GtApp
 
     GtTwitch* twitch;
     GtFavouritesManager* fav_mgr;
+    GSettings* settings;
 };
 
 GtApp* gt_app_new(void);
