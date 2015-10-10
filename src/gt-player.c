@@ -36,6 +36,12 @@ gt_player_default_init(GtPlayerInterface* iface)
                                                             "Currently open channel",
                                                             GT_TYPE_CHANNEL,
                                                             G_PARAM_READWRITE));
+    g_object_interface_install_property(iface,
+                                        g_param_spec_boolean("playing",
+                                                            "Playing",
+                                                            "Whether playing",
+                                                            FALSE,
+                                                            G_PARAM_READABLE));
 }
 
 void

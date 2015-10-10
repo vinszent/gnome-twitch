@@ -355,10 +355,10 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                                                                   GT_TWITCH_STREAM_QUALITY_SOURCE,
                                                                   token, sig);
 
-    g_object_set(priv->player_header_bar,
-                 "name", display_name,
-                 "status", status,
-                 NULL);
+    /* g_object_set(priv->player_header_bar, */
+                 /* "name", display_name, */
+                 /* "status", status, */
+                 /* NULL); */
 
     gt_player_open_channel(GT_PLAYER(priv->player), chan);
 
@@ -420,4 +420,12 @@ gt_win_get_games_view(GtWin* self)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     return GT_GAMES_VIEW(priv->games_view);
+}
+
+gboolean
+gt_win_get_fullscreen(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    return priv->fullscreen;
 }

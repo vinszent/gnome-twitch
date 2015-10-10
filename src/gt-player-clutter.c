@@ -1,6 +1,8 @@
 #include "gt-player-clutter.h"
 #include "gt-player.h"
 #include "gt-app.h"
+#include "gt-player-header-bar.h"
+#include "gt-win.h"
 
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
@@ -8,10 +10,17 @@ typedef struct
 {
     ClutterGstPlayback* player;
     ClutterActor* actor;
+    ClutterActor* stage;
     ClutterContent* content;
+
+    GtkWidget* fullscreen_bar;
+    ClutterActor* fullscreen_bar_actor;
 
     gdouble volume;
     GtChannel* open_channel;
+    gboolean playing;
+
+    GtWin* win; // Save a reference
 } GtPlayerClutterPrivate;
 
 static void gt_player_init(GtPlayerInterface* player);
@@ -25,6 +34,7 @@ enum
     PROP_0,
     PROP_VOLUME,
     PROP_OPEN_CHANNEL,
+    PROP_PLAYING,
     NUM_PROPS
 };
 
@@ -38,17 +48,71 @@ gt_player_clutter_new(void)
 }
 
 static void
-size_allocate_cb(GtkWidget* widget,
-                 GdkRectangle* rect,
-                 gpointer udata)
+hide_fullscreen_bar(GtPlayerClutter* self)
+{
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    clutter_actor_hide(priv->fullscreen_bar_actor);
+}
+
+static void
+show_fullscreen_bar(GtPlayerClutter* self)
+{
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    clutter_actor_show(priv->fullscreen_bar_actor);
+}
+
+static void
+fullscreen_cb(GObject* source,
+              GParamSpec* pspec,
+              gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    if (!gt_win_get_fullscreen(priv->win))
+        hide_fullscreen_bar(self);
+}
+
+static gboolean
+clutter_stage_event_cb(ClutterStage* stage,
+                       ClutterEvent* event,
+                       gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gboolean handled = FALSE;
+
+    switch (event->type)
+    {
+        case CLUTTER_MOTION:
+        {
+            if (gt_win_get_fullscreen(priv->win) && ((ClutterMotionEvent*) event)->y < 50)
+                show_fullscreen_bar(self);
+            else
+                hide_fullscreen_bar(self);
+
+            handled = TRUE;
+            break;
+        }
+        default:
+        break;
+    }
+
+    return handled;
+}
+
+static void
+realise_cb(GtkWidget* widget,
+           gpointer udata)
 {
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(widget);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    g_object_set(priv->actor,
-                 "height", (gfloat) rect->height,
-                 "width", (gfloat) rect->width,
-                 NULL);
+    priv->win = GT_WIN_TOPLEVEL(self);
+
+    g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 
 static void
@@ -76,6 +140,9 @@ get_property (GObject*    obj,
             break;
         case PROP_OPEN_CHANNEL:
             g_value_set_object(val, priv->open_channel);
+            break;
+        case PROP_PLAYING:
+            g_value_set_boolean(val, priv->playing);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -121,6 +188,9 @@ play(GtPlayer* player)
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
     clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), TRUE);
+
+    priv->playing = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
 }
 
 static void
@@ -130,6 +200,9 @@ stop(GtPlayer* player)
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
     clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
+
+    priv->playing = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
 }
 
 static void
@@ -159,9 +232,15 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                                    "Currently open channel",
                                                    GT_TYPE_CHANNEL,
                                                    G_PARAM_READWRITE);
+    props[PROP_PLAYING] = g_param_spec_boolean("playing",
+                                               "Playing",
+                                               "Whether playing",
+                                               FALSE,
+                                               G_PARAM_READABLE);
 
     g_object_class_override_property(object_class, PROP_VOLUME, "volume");
     g_object_class_override_property(object_class, PROP_OPEN_CHANNEL, "open-channel");
+    g_object_class_override_property(object_class, PROP_PLAYING, "playing");
 }
 
 static void
@@ -169,27 +248,48 @@ gt_player_clutter_init(GtPlayerClutter* self)
 {
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
+    priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self));
     priv->player = clutter_gst_playback_new();
     priv->actor = clutter_actor_new();
     priv->content = clutter_gst_aspectratio_new();
+    priv->fullscreen_bar = GTK_WIDGET(gt_player_header_bar_new());
+    priv->fullscreen_bar_actor = gtk_clutter_actor_new_with_contents(priv->fullscreen_bar);
+    priv->playing = FALSE;
+
+    gtk_clutter_embed_set_use_layout_size(GTK_CLUTTER_EMBED(self), TRUE);
+
+    g_object_set(priv->fullscreen_bar, "player", self, NULL);
+    clutter_actor_hide(priv->fullscreen_bar_actor);
 
     g_object_set(priv->content, "player", priv->player, NULL);
     g_object_set(priv->actor, "content", priv->content, NULL);
 
-    clutter_actor_add_child(gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self)), priv->actor);
-    clutter_actor_set_background_color(gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self)), 
-                                       &bg_colour);
+    clutter_actor_add_child(priv->stage, priv->actor);
+    clutter_actor_add_child(priv->stage, priv->fullscreen_bar_actor);
+
+    clutter_actor_set_background_color(priv->stage, &bg_colour);
+    clutter_actor_set_opacity(priv->fullscreen_bar_actor, 200);
+
     /* clutter_gst_playback_set_buffering_mode(priv->player, CLUTTER_GST_BUFFERING_MODE_STREAM); // In-memory buffering (let user choose?) */
     clutter_gst_playback_set_buffering_mode(priv->player, CLUTTER_GST_BUFFERING_MODE_DOWNLOAD); // On-disk buffering
 
-    g_signal_connect(self, "size-allocate", G_CALLBACK(size_allocate_cb), NULL);
+    g_signal_connect(priv->stage, "event", G_CALLBACK(clutter_stage_event_cb), self);
+    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->stage, "width",
+                           priv->fullscreen_bar_actor, "width",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->stage, "width",
+                           priv->actor, "width",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->stage, "height",
+                           priv->actor, "height",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     g_settings_bind(main_app->settings, "volume",
                     self, "volume",
                     G_SETTINGS_BIND_DEFAULT);
 }
-
