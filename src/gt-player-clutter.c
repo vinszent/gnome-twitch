@@ -16,9 +16,14 @@ typedef struct
     GtkWidget* fullscreen_bar;
     ClutterActor* fullscreen_bar_actor;
 
+    GtkWidget* buffer_bar;
+    ClutterActor* buffer_actor;
+
     gdouble volume;
     GtChannel* open_channel;
     gboolean playing;
+
+    gchar* current_uri;
 
     GtWin* win; // Save a reference
 } GtPlayerClutterPrivate;
@@ -104,6 +109,50 @@ clutter_stage_event_cb(ClutterStage* stage,
 }
 
 static void
+buffer_fill_cb(GObject* source,
+               GParamSpec* pspec,
+               gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gdouble percent;
+
+    g_object_get(priv->player, "buffer-fill", &percent, NULL);
+
+    if (percent < 1.0)
+    {
+        gchar* text = g_strdup_printf("Buffered %d%%\n", (gint) (percent * 100));
+        
+        clutter_actor_show(priv->buffer_actor);
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(priv->buffer_bar), percent);
+        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(priv->buffer_bar), text);
+
+        g_free(text);
+    }
+    else
+    {
+        clutter_actor_hide(priv->buffer_actor);
+    }
+
+    g_print("Buffer %d%%\n", (int) (percent * 100));
+}
+
+static void
+size_changed_cb(GObject* source,
+                GParamSpec* pspec,
+                gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gfloat w, h;
+
+    clutter_actor_get_size(priv->stage, &w, &h);
+    g_print("%f\n", w);
+
+    g_object_set(priv->buffer_actor, "x", (gfloat) (w / 2 - 100), "y", (gfloat) (h / 2 - 25), NULL);
+}
+
+static void
 realise_cb(GtkWidget* widget,
            gpointer udata)
 {
@@ -178,7 +227,8 @@ set_uri(GtPlayer* player, const gchar* uri)
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    clutter_gst_playback_set_uri(priv->player, uri);
+    g_free(priv->current_uri);
+    priv->current_uri = g_strdup(uri);
 }
 
 static void
@@ -187,6 +237,7 @@ play(GtPlayer* player)
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
+    clutter_gst_playback_set_uri(priv->player, priv->current_uri);
     clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), TRUE);
 
     priv->playing = TRUE;
@@ -200,6 +251,7 @@ stop(GtPlayer* player)
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
     clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
+    clutter_gst_playback_set_uri(priv->player, NULL);
 
     priv->playing = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
@@ -254,9 +306,19 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->content = clutter_gst_aspectratio_new();
     priv->fullscreen_bar = GTK_WIDGET(gt_player_header_bar_new());
     priv->fullscreen_bar_actor = gtk_clutter_actor_new_with_contents(priv->fullscreen_bar);
+    priv->buffer_bar = gtk_progress_bar_new();
+    priv->buffer_actor = gtk_clutter_actor_new_with_contents(priv->buffer_bar);
     priv->playing = FALSE;
 
+    g_object_set(priv->buffer_bar, "show-text", TRUE, NULL);
+
     gtk_clutter_embed_set_use_layout_size(GTK_CLUTTER_EMBED(self), TRUE);
+
+    g_object_set(priv->buffer_actor,
+                 "height", 30.0,
+                 "width", 200.0,
+                 NULL);
+    clutter_actor_hide(priv->buffer_actor);
 
     g_object_set(priv->fullscreen_bar, "player", self, NULL);
     clutter_actor_hide(priv->fullscreen_bar_actor);
@@ -266,6 +328,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
 
     clutter_actor_add_child(priv->stage, priv->actor);
     clutter_actor_add_child(priv->stage, priv->fullscreen_bar_actor);
+    clutter_actor_add_child(priv->stage, priv->buffer_actor);
 
     clutter_actor_set_background_color(priv->stage, &bg_colour);
     clutter_actor_set_opacity(priv->fullscreen_bar_actor, 200);
@@ -275,6 +338,8 @@ gt_player_clutter_init(GtPlayerClutter* self)
 
     g_signal_connect(priv->stage, "event", G_CALLBACK(clutter_stage_event_cb), self);
     g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
+    g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
+    g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",

@@ -114,7 +114,7 @@
     <property name="icon-size">2</property>
   </object>
   <object class="GtkImage" id="stop_image">
-    <property name="icon-name">media-playback-pause-symbolic</property>
+    <property name="icon-name">media-playback-stop-symbolic</property>
     <property name="icon-size">2</property>
   </object>
   <object class="GtkImage" id="hamburger_image">
