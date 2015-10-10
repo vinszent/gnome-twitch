@@ -1,0 +1,19 @@
+Index: gnome-twitch-0.0.0+git151003/src/gt-win.c
+===================================================================
+--- gnome-twitch-0.0.0+git151003.orig/src/gt-win.c	2015-10-04 02:24:28.184110500 +0200
++++ gnome-twitch-0.0.0+git151003/src/gt-win.c	2015-10-04 02:24:28.180110415 +0200
+@@ -291,10 +291,10 @@
+                                 (GBindingTransformFunc) visible_child_converter,
+                                 NULL, self, NULL);
+ 
+-    GdkScreen* screen = gdk_screen_get_default();
+-    GtkCssProvider* css = gtk_css_provider_new();
+-    gtk_css_provider_load_from_resource(css, "/com/gnome-twitch/gnome-twitch-style.css");
+-    gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
++    //GdkScreen* screen = gdk_screen_get_default();
++    //GtkCssProvider* css = gtk_css_provider_new();
++    //gtk_css_provider_load_from_resource(css, "/com/gnome-twitch/gnome-twitch-style.css");
++    //gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+ 
+     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
+ 
