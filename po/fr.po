@@ -52,7 +52,7 @@ msgstr "Source"
 
 #: data/ui/gt-settings-dlg.ui:29
 msgid "High"
-msgstr "Elevé"
+msgstr "Élevé"
 
 #: data/ui/gt-settings-dlg.ui:30
 msgid "Medium"
