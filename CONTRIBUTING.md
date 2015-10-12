@@ -8,6 +8,7 @@
 6. Rename your translated template to `language_code.po`, ex: Swedish = sv.po, German = de.po, Chinese = zh.po 
 7. Add your language to the langs array in `po/meson.build`
 8. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
+
 ## Development
 Soon
 
