@@ -19,12 +19,21 @@ gnome_twitch_SOURCES = \
 		       gt-channel.c \
 		       gt-player.c \
 		       gt-channels-view.c \
-		       gt-channels-view-child.c \
+		       gt-channels-container-child.c \
+		       gt-channels-container.c \
+		       gt-channels-container-top.c \
+		       gt-channels-container-search.c \
+		       gt-channels-container-game.c \
+		       gt-channels-container-favourite.c \
+		       gt-games-container.c \
+		       gt-games-container-child.c \
+		       gt-games-container-top.c \
+		       gt-games-container-search.c \
+		       gt-favourites-view.c \
 		       gt-player-header-bar.c \
 		       gt-browse-header-bar.c \
 		       gt-game.c \
 		       gt-games-view.c \
-		       gt-games-view-child.c \
 		       gt-settings-dlg.c \
 		       gt-favourites-manager.c \
 		       gt-enums.c \
