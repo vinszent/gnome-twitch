@@ -3,6 +3,7 @@
 #include "gt-app.h"
 #include "gt-player-header-bar.h"
 #include "gt-win.h"
+#include "utils.h"
 
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
@@ -17,6 +18,7 @@ typedef struct
     ClutterActor* fullscreen_bar_actor;
 
     GtkWidget* buffer_bar;
+    GtkWidget* buffer_box;
     ClutterActor* buffer_actor;
 
     gdouble volume;
@@ -130,11 +132,7 @@ buffer_fill_cb(GObject* source,
         g_free(text);
     }
     else
-    {
         clutter_actor_hide(priv->buffer_actor);
-    }
-
-    g_print("Buffer %d%%\n", (int) (percent * 100));
 }
 
 static void
@@ -147,7 +145,6 @@ size_changed_cb(GObject* source,
     gfloat w, h;
 
     clutter_actor_get_size(priv->stage, &w, &h);
-    g_print("%f\n", w);
 
     g_object_set(priv->buffer_actor, "x", (gfloat) (w / 2 - 100), "y", (gfloat) (h / 2 - 25), NULL);
 }
@@ -307,16 +304,19 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->fullscreen_bar = GTK_WIDGET(gt_player_header_bar_new());
     priv->fullscreen_bar_actor = gtk_clutter_actor_new_with_contents(priv->fullscreen_bar);
     priv->buffer_bar = gtk_progress_bar_new();
-    priv->buffer_actor = gtk_clutter_actor_new_with_contents(priv->buffer_bar);
+    priv->buffer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    priv->buffer_actor = gtk_clutter_actor_new_with_contents(priv->buffer_box);
     priv->playing = FALSE;
 
-    g_object_set(priv->buffer_bar, "show-text", TRUE, NULL);
+    gtk_container_add(GTK_CONTAINER(priv->buffer_box), priv->buffer_bar);
+    gtk_widget_show_all(priv->buffer_box);
+    g_object_set(priv->buffer_bar, "show-text", TRUE, "margin", 7, NULL);
 
     gtk_clutter_embed_set_use_layout_size(GTK_CLUTTER_EMBED(self), TRUE);
 
     g_object_set(priv->buffer_actor,
-                 "height", 30.0,
-                 "width", 200.0,
+                 "height", 50.0,
+                 "width", 150.0,
                  NULL);
     clutter_actor_hide(priv->buffer_actor);
 
@@ -357,4 +357,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_settings_bind(main_app->settings, "volume",
                     self, "volume",
                     G_SETTINGS_BIND_DEFAULT);
+
+    ADD_STYLE_CLASS(self, "player-clutter");
+    ADD_STYLE_CLASS(priv->buffer_box, "buffer-box");
 }
