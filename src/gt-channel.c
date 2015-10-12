@@ -136,6 +136,10 @@ update_cb(gpointer data,
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     GtChannelRawData* raw = gt_twitch_channel_with_stream_raw_data(main_app->twitch, priv->name);
+    
+    if (!raw)
+        return; //Most likely error getting data
+
     UpdateSetData* setd = g_malloc(sizeof(UpdateSetData));
     setd->self = self;
     setd->raw = raw;

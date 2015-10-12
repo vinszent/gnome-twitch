@@ -874,7 +874,8 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     uri = g_strdup_printf(STREAMS_URI, name);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+        goto finish;
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -897,9 +898,10 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
 
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
