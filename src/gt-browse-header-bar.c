@@ -101,17 +101,16 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_CHANNELS_VIEW:
-            if (priv->channels_view)
-                g_object_unref(priv->channels_view);
-            priv->channels_view = g_value_ref_sink_object(val);
+            g_clear_object(&priv->channels_view);
+            priv->channels_view = g_value_dup_object(val);
             break;
         case PROP_GAMES_VIEW:
             g_clear_object(&priv->games_view);
-            priv->games_view = g_value_ref_sink_object(val);
+            priv->games_view = g_value_dup_object(val);
             break;
         case PROP_FAVOURITES_VIEW:
             g_clear_object(&priv->favourites_view);
-            priv->favourites_view = g_value_ref_sink_object(val);
+            priv->favourites_view = g_value_dup_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);

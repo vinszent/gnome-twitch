@@ -112,7 +112,7 @@ set_property(GObject*      obj,
         case PROP_PREVIEW:
             if (priv->preview)
                 g_object_unref(priv->preview);
-            priv->preview = g_value_ref_sink_object(val);
+            priv->preview = g_value_dup_object(val);
             utils_pixbuf_scale_simple(&priv->preview,
                                       200, 270,
                                       GDK_INTERP_BILINEAR);

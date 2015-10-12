@@ -338,33 +338,27 @@ set_property(GObject*      obj,
             priv->id = g_value_get_int64(val);
             break;
         case PROP_STATUS:
-            if (priv->status)
-                g_free(priv->status);
+            g_free(priv->status);
             priv->status = g_value_dup_string(val);
             break;
         case PROP_NAME:
-            if (priv->name)
-                g_free(priv->name);
+            g_free(priv->name);
             priv->name = g_value_dup_string(val);
             break;
         case PROP_DISPLAY_NAME:
-            if (priv->display_name)
-                g_free(priv->display_name);
+            g_free(priv->display_name);
             priv->display_name = g_value_dup_string(val);
             break;
         case PROP_GAME:
-            if (priv->game)
-                g_free(priv->game);
-            priv->game = g_value_dup_string_allow_null(val);
+            g_free(priv->game);
+            priv->game = utils_value_dup_string_allow_null(val);
             break;
         case PROP_PREVIEW_URL:
-            if (priv->preview_url)
-                g_free(priv->preview_url);
+            g_free(priv->preview_url);
             priv->preview_url = g_value_dup_string(val);
             break;
         case PROP_VIDEO_BANNER_URL:
-            if (priv->video_banner_url)
-                g_free(priv->video_banner_url);
+            g_free(priv->video_banner_url);
             priv->video_banner_url = g_value_dup_string(val);
             break;
         case PROP_VIEWERS:

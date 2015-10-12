@@ -184,7 +184,8 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_CHANNEL:
-            priv->channel = g_value_ref_sink_object(val);
+            g_clear_object(&priv->channel);
+            priv->channel = g_value_dup_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
