@@ -3,8 +3,6 @@
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_favourite_parent_class)
 
-//TODO: Create property in favourites manager when channel is added or removed and listen to it
-
 typedef struct
 {
     gchar* search_query;

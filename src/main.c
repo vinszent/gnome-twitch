@@ -5,7 +5,59 @@
 #include "gt-app.h"
 #include "config.h"
 
+#define LOG_LEVEL G_LOG_LEVEL_DEBUG
+
 GtApp* main_app;
+
+static void
+gt_log(const gchar* domain,
+       GLogLevelFlags _level,
+       const gchar* msg,
+       gpointer udata)
+{
+    gchar* level;
+    GDateTime* date = NULL;
+    gchar* time_fmt = NULL;
+
+    if (_level & LOG_LEVEL)
+        return;
+
+    switch (_level)
+    {
+        case G_LOG_LEVEL_ERROR:
+            level = "Error";
+            break;
+        case G_LOG_LEVEL_CRITICAL:
+            level = "Critical";
+            break;
+        case G_LOG_LEVEL_WARNING:
+            level = "Warning";
+            break;
+        case G_LOG_LEVEL_MESSAGE:
+            level = "Message";
+            break;
+        case G_LOG_LEVEL_INFO:
+            level = "Info";
+            break;
+        case G_LOG_LEVEL_DEBUG:
+            level = "Debug";
+            break;
+        case G_LOG_LEVEL_MASK:
+            level = "All";
+            break;
+        default:
+            level = "Unkown";
+            break;
+    }
+
+    date = g_date_time_new_now_utc();
+    time_fmt = g_date_time_format(date, "%H:%M:%S");
+
+    g_print("[%s] %s - %s : '%s'\n", time_fmt, domain, level, msg);
+
+    g_free(time_fmt);
+    g_date_time_unref(date);
+}
 
 int main(int argc, char** argv)
 {
@@ -13,8 +65,8 @@ int main(int argc, char** argv)
     bind_textdomain_codeset("gnome-twitch", "UTF-8");
     textdomain("gnome-twitch");
 
-    /* gst_init(0, NULL); */
-    /* gtk_clutter_init(0, NULL); */
+    g_log_set_default_handler((GLogFunc) gt_log, NULL);
+
     clutter_gst_init(0, NULL);
 
     main_app = gt_app_new();

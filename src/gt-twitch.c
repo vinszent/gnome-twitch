@@ -148,6 +148,8 @@ send_message(GtTwitch* self, SoupMessage* msg)
 
     soup_session_send_message(priv->soup, msg);
 
+    g_debug("{GtTwitch} Received code '%d' and response '%s'", msg->status_code, msg->response_body->data);
+
     /* g_print("\n\n%s\n\n", msg->response_body->data); */
 
     return msg->status_code == SOUP_STATUS_OK;
@@ -354,7 +356,6 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
 
-    //TODO: Handle offline stream
     send_message(self, msg);
 
     ret = parse_playlist(msg->response_body->data);
@@ -398,7 +399,7 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     JsonArray* channels;
     GList* ret = NULL;
 
-    uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game); //TODO: Add game argument
+    uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game);
     msg = soup_message_new("GET", uri);
 
     if(!send_message(self, msg))
@@ -954,7 +955,6 @@ gt_twitch_game_raw_data_free(GtGameRawData* data)
     g_free(data);
 }
 
-//TODO: Add async version
 GdkPixbuf*
 gt_twitch_download_picture(GtTwitch* self, const gchar* url)
 {

@@ -88,7 +88,7 @@ channel_favourited_cb(GObject* source,
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
-        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self); //TODO: Remove this when unfavouriting
+        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
         g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
@@ -222,7 +222,7 @@ gt_favourites_manager_load(GtFavouritesManager* self)
 
     if (err)
     {
-        g_print("Error loading favourite channels\n%s\n", err->message); //TODO: Change this to a proper logging func
+        g_warning("{GtFavouritesManager} Error loading favourite channels '%s'", err->message);
         goto finish;
     }
 

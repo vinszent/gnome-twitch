@@ -44,7 +44,7 @@ init_dirs()
     
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
     {
-        g_print("Error creating data dir\n"); //TODO: Convert to log func
+        g_warning("{GtApp} Error creating data dir");
     }
 
     g_free(fp);
@@ -56,6 +56,8 @@ quit_cb(GSimpleAction* action,
         GVariant* par,
         gpointer udata)
 {
+    g_message("{%s} Quitting", "GtApp");
+
     GtApp* self = GT_APP(udata);
 
     g_application_quit(G_APPLICATION(self));
@@ -69,6 +71,8 @@ static GActionEntry app_actions[] =
 static void
 activate(GApplication* app)
 {
+    g_message("{%s} Activate", "GtApp");
+
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
     GtkBuilder* menu_bld;
@@ -106,6 +110,8 @@ startup(GApplication* app)
 static void
 finalize(GObject* object)
 {
+    g_message("Startup");
+
     GtApp* self = (GtApp*) object;
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
@@ -166,5 +172,4 @@ gt_app_init(GtApp* self)
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
-
 }

@@ -86,6 +86,8 @@ channel_favourited_cb(GtFavouritesManager* mgr,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
+    g_info("{GtChannel} Favourited '%s'", priv->name);
+
     if (!gt_channel_compare(self, chan) && !priv->favourited)
     {
         GQuark detail = g_quark_from_static_string("favourited");
@@ -103,6 +105,8 @@ channel_unfavourited_cb(GtFavouritesManager* mgr,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
+    g_info("{GtChannel} Unfavourited '%s'", priv->name);
+
     if (!gt_channel_compare(self, chan) && priv->favourited)
     {
         GQuark detail = g_quark_from_static_string("favourited");
@@ -116,6 +120,8 @@ static gboolean
 update_set_cb(gpointer udata)
 {
     UpdateSetData* setd = (UpdateSetData*) udata;
+
+    g_debug("{GtChannel} Finished update '%s'", setd->raw->name);
 
     gt_channel_update_from_raw_data(setd->self, setd->raw);
 
@@ -151,6 +157,8 @@ static gboolean
 update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_debug("{GtChannel} Initiating update '%s'", priv->name);
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
