@@ -1,4 +1,4 @@
-#include "gt-games-view-child.h"
+#include "gt-games-container-child.h"
 #include "utils.h"
 
 typedef struct
@@ -9,9 +9,9 @@ typedef struct
     GtkWidget* middle_revealer;
     GtkWidget* name_label;
     GtkWidget* event_box;
-} GtGamesViewChildPrivate;
+} GtGamesContainerChildPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtGamesViewChild, gt_games_view_child, GTK_TYPE_FLOW_BOX_CHILD)
+G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainerChild, gt_games_container_child, GTK_TYPE_FLOW_BOX_CHILD)
 
 enum 
 {
@@ -22,8 +22,8 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtGamesViewChild*
-gt_games_view_child_new(GtGame* game)
+GtGamesContainerChild*
+gt_games_container_child_new(GtGame* game)
 {
     return g_object_new(GT_TYPE_GAMES_VIEW_CHILD, 
                         "game", game,
@@ -35,8 +35,8 @@ motion_enter_cb(GtkWidget* widget,
                 GdkEvent* evt,
                 gpointer udata)
 {
-    GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(udata);
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), TRUE);
 }
@@ -46,8 +46,8 @@ motion_leave_cb(GtkWidget* widget,
                 GdkEvent* evt,
                 gpointer udata)
 {
-    GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(udata);
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
 }
@@ -55,12 +55,12 @@ motion_leave_cb(GtkWidget* widget,
 static void
 finalize(GObject* object)
 {
-    GtGamesViewChild* self = (GtGamesViewChild*) object;
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = (GtGamesContainerChild*) object;
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     g_object_unref(priv->game);
 
-    G_OBJECT_CLASS(gt_games_view_child_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_games_container_child_parent_class)->finalize(object);
 }
 
 static void
@@ -69,8 +69,8 @@ get_property (GObject*    obj,
               GValue*     val,
               GParamSpec* pspec)
 {
-    GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(obj);
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(obj);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     switch (prop)
     {
@@ -88,8 +88,8 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(obj);
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(obj);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     switch (prop)
     {
@@ -106,8 +106,8 @@ set_property(GObject*      obj,
 static void
 constructed(GObject* obj)
 {
-    GtGamesViewChild* self = GT_GAMES_VIEW_CHILD(obj);
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(obj);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     g_object_bind_property(priv->game, "name",
                            priv->name_label, "label",
@@ -116,11 +116,11 @@ constructed(GObject* obj)
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    G_OBJECT_CLASS(gt_games_view_child_parent_class)->constructed(obj);
+    G_OBJECT_CLASS(gt_games_container_child_parent_class)->constructed(obj);
 }
 
 static void
-gt_games_view_child_class_init(GtGamesViewChildClass* klass)
+gt_games_container_child_class_init(GtGamesContainerChildClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
@@ -140,27 +140,27 @@ gt_games_view_child_class_init(GtGamesViewChildClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-games-view-child.ui");
+                                                "/com/gnome-twitch/ui/gt-games-container-child.ui");
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesViewChild, preview_image);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesViewChild, middle_revealer);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesViewChild, name_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesViewChild, event_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, preview_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, middle_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, name_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, event_box);
 }
 
 static void
-gt_games_view_child_init(GtGamesViewChild* self)
+gt_games_container_child_init(GtGamesContainerChild* self)
 {
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 }
 
 void
-gt_games_view_child_hide_overlay(GtGamesViewChild* self)
+gt_games_container_child_hide_overlay(GtGamesContainerChild* self)
 {
-    GtGamesViewChildPrivate* priv = gt_games_view_child_get_instance_private(self);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
 }

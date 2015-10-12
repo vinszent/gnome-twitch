@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -d .git ]; then
+if [ "$(git rev-parse --is-inside-work-tree 2> /dev/null)" == "true" ]; then
     printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 else
     exit 1

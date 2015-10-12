@@ -16,7 +16,7 @@
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>
-                <property name="icon-name">go-down-symbolic</property>
+                <property name="icon-name">go-previous-symbolic</property>
               </object>
             </child>
           </object>

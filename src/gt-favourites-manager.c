@@ -17,7 +17,16 @@ enum
     NUM_PROPS
 };
 
+enum
+{
+    SIG_CHANNEL_FAVOURITED,
+    SIG_CHANNEL_UNFAVOURITED,
+    NUM_SIGS
+};
+
 static GParamSpec* props[NUM_PROPS];
+
+static guint sigs[NUM_SIGS];
 
 GtFavouritesManager*
 gt_favourites_manager_new(void)
@@ -61,7 +70,6 @@ channel_online_cb(GObject* source,
 
     g_free(name);
     g_free(game);
-
 }
 
 static void
@@ -76,28 +84,33 @@ channel_favourited_cb(GObject* source,
     gboolean favourited;
 
     g_object_get(chan, "favourited", &favourited, NULL);
-
+    
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
         g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self); //TODO: Remove this when unfavouriting
         g_object_ref(chan);
+
+        g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
     }
     else
     {
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
-        g_object_unref(G_OBJECT(found->data));
+        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+
+        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
+
+        g_clear_object(&found->data);
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
     }
-
 }
 
 static void
 oneshot_updating_cb(GObject* source,
-                  GParamSpec* pspec,
-                  gpointer udata)
+                    GParamSpec* pspec,
+                    gpointer udata)
 {
     GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
     gboolean updating;
@@ -105,7 +118,10 @@ oneshot_updating_cb(GObject* source,
     g_object_get(source, "updating", &updating, NULL);
 
     if (!updating)
+    {
         g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
+        g_signal_handlers_disconnect_by_func(source, oneshot_updating_cb, self); // Just run once after first update
+    }
 }
 
 static void
@@ -166,6 +182,21 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
+
+    sigs[SIG_CHANNEL_FAVOURITED] = g_signal_new("channel-favourited",
+                                                GT_TYPE_FAVOURITES_MANAGER,
+                                                G_SIGNAL_RUN_LAST,
+                                                0, NULL, NULL,
+                                                g_cclosure_marshal_VOID__OBJECT,
+                                                G_TYPE_NONE,
+                                                1, GT_TYPE_CHANNEL);
+    sigs[SIG_CHANNEL_UNFAVOURITED] = g_signal_new("channel-unfavourited",
+                                                GT_TYPE_FAVOURITES_MANAGER,
+                                                G_SIGNAL_RUN_LAST,
+                                                0, NULL, NULL,
+                                                g_cclosure_marshal_VOID__OBJECT,
+                                                G_TYPE_NONE,
+                                                1, GT_TYPE_CHANNEL);
 }
 
 static void
@@ -183,6 +214,9 @@ gt_favourites_manager_load(GtFavouritesManager* self)
     JsonArray* jarr;
     gchar* fp = FAV_CHANNELS_FILE;
     GError* err = NULL;
+
+    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
+        goto finish;
 
     json_parser_load_from_file(parse, fp, &err);
 

@@ -78,6 +78,40 @@ typedef struct
     GtChannelRawData* raw;
 } UpdateSetData;
 
+static void
+channel_favourited_cb(GtFavouritesManager* mgr,
+                      GtChannel* chan,
+                      gpointer udata)
+{
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    if (!gt_channel_compare(self, chan) && !priv->favourited)
+    {
+        GQuark detail = g_quark_from_static_string("favourited");
+        g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
+        g_object_set(self, "favourited", TRUE, NULL);
+        g_signal_handlers_unblock_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
+    }
+}
+
+static void
+channel_unfavourited_cb(GtFavouritesManager* mgr,
+                        GtChannel* chan,
+                        gpointer udata)
+{
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    if (!gt_channel_compare(self, chan) && priv->favourited)
+    {
+        GQuark detail = g_quark_from_static_string("favourited");
+        g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
+        g_object_set(self, "favourited", FALSE, NULL);
+        g_signal_handlers_unblock_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
+    }
+}
+
 static gboolean
 update_set_cb(gpointer udata)
 {
@@ -95,6 +129,9 @@ static void
 update_cb(gpointer data,
           gpointer udata)
 {
+    if(!GT_IS_CHANNEL(data)) // We were probably unrefed during wait time.
+        return;
+
     GtChannel* self = GT_CHANNEL(data);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
@@ -217,6 +254,9 @@ finalize(GObject* object)
 
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
+
+    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_favourited_cb, self);
+    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfavourited_cb, self);
 
     G_OBJECT_CLASS(gt_channel_parent_class)->finalize(object);
 }
@@ -428,8 +468,8 @@ gt_channel_class_init(GtChannelClass* klass)
     props[PROP_ONLINE] = g_param_spec_boolean("online",
                                               "Online",
                                               "Whether the channel is online",
-                                              FALSE,
-                                              G_PARAM_READWRITE);
+                                              TRUE,
+                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update",
                                                    "Auto Update",
                                                    "Whether it should update itself automatically",
@@ -458,6 +498,8 @@ gt_channel_init(GtChannel* self)
     priv->cancel = g_cancellable_new();
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
+    g_signal_connect(main_app->fav_mgr, "channel-favourited", G_CALLBACK(channel_favourited_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-unfavourited", G_CALLBACK(channel_unfavourited_cb), self);
 
     gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
 }
@@ -486,6 +528,7 @@ void
 gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    gboolean tmp = priv->online;
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -502,8 +545,14 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 
     if (priv->online != data->online)
         g_object_set(self, "online", data->online, NULL);
-
-    update_preview(self);
+        
+    if (tmp != data->online || data->online)
+        update_preview(self);
+    else
+    {
+        priv->updating = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+    }
 }
 
 void
