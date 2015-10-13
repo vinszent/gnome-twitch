@@ -267,6 +267,8 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
+    clutter_gst_init(NULL, NULL);
+
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
@@ -296,8 +298,6 @@ static void
 gt_player_clutter_init(GtPlayerClutter* self)
 {
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    clutter_gst_init(NULL, NULL);
 
     priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self));
     priv->player = clutter_gst_playback_new();

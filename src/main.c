@@ -5,6 +5,10 @@
 #include "gt-app.h"
 #include "config.h"
 
+#ifdef GDK_WINDOWING_X11
+#include <X11/Xlib.h>
+#endif
+
 #define LOG_LEVEL G_LOG_LEVEL_DEBUG
 
 GtApp* main_app;
@@ -61,6 +65,9 @@ gt_log(const gchar* domain,
 
 int main(int argc, char** argv)
 {
+#ifdef GDK_WINDOWING_X11
+    XInitThreads();
+#endif
     gtk_clutter_init(NULL, NULL);
 
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
