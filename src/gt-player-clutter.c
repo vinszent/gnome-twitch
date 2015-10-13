@@ -297,6 +297,8 @@ gt_player_clutter_init(GtPlayerClutter* self)
 {
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
+    clutter_gst_init(NULL, NULL);
+
     priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self));
     priv->player = clutter_gst_playback_new();
     priv->actor = clutter_actor_new();

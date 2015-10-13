@@ -61,13 +61,13 @@ gt_log(const gchar* domain,
 
 int main(int argc, char** argv)
 {
+    gtk_clutter_init(NULL, NULL);
+
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
     bind_textdomain_codeset("gnome-twitch", "UTF-8");
     textdomain("gnome-twitch");
 
     g_log_set_default_handler((GLogFunc) gt_log, NULL);
-
-    clutter_gst_init(0, NULL);
 
     main_app = gt_app_new();
 
