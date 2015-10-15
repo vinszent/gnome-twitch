@@ -71,6 +71,42 @@ show_fullscreen_bar(GtPlayerClutter* self)
 }
 
 static void
+set_uri(GtPlayer* player, const gchar* uri)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    g_free(priv->current_uri);
+    priv->current_uri = g_strdup(uri);
+}
+
+static void
+play(GtPlayer* player)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    clutter_gst_playback_set_uri(priv->player, priv->current_uri);
+    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), TRUE);
+
+    priv->playing = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
+}
+
+static void
+stop(GtPlayer* player)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
+    clutter_gst_playback_set_uri(priv->player, NULL);
+
+    priv->playing = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
+}
+
+static void
 fullscreen_cb(GObject* source,
               GParamSpec* pspec,
               gpointer udata)
@@ -149,6 +185,24 @@ size_changed_cb(GObject* source,
     g_object_set(priv->buffer_actor, "x", (gfloat) (w / 2 - 100), "y", (gfloat) (h / 2 - 25), NULL);
 }
 
+static gboolean
+button_press_cb(GtkWidget* widget,
+                GdkEventButton* evt,
+                gpointer udata)
+{
+    GtWin* win = GT_WIN_TOPLEVEL(widget);
+
+    if (evt->type == GDK_2BUTTON_PRESS)
+    {
+        if (gt_win_get_fullscreen(win))
+            gtk_window_unfullscreen(GTK_WINDOW(win));
+        else
+            gtk_window_fullscreen(GTK_WINDOW(win));
+    }
+
+    return TRUE;
+}
+
 static void
 realise_cb(GtkWidget* widget,
            gpointer udata)
@@ -159,20 +213,6 @@ realise_cb(GtkWidget* widget,
     priv->win = GT_WIN_TOPLEVEL(self);
 
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
-}
-
-static void
-button_press_cb(GtkWidget* widget,
-                GdkEventButton* evt,
-                gpointer udata)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    GtWin* win = GT_WIN_TOPLEVEL(widget);
-
-    if (evt->type == GDK_2BUTTON_PRESS && !gt_win_get_fullscreen(win))
-        gtk_window_fullscreen(GTK_WINDOW(win));
 }
 
 static void
@@ -230,42 +270,6 @@ set_property(GObject*      obj,
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
-}
-
-static void
-set_uri(GtPlayer* player, const gchar* uri)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    g_free(priv->current_uri);
-    priv->current_uri = g_strdup(uri);
-}
-
-static void
-play(GtPlayer* player)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    clutter_gst_playback_set_uri(priv->player, priv->current_uri);
-    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), TRUE);
-
-    priv->playing = TRUE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
-}
-
-static void
-stop(GtPlayer* player)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
-    clutter_gst_playback_set_uri(priv->player, NULL);
-
-    priv->playing = FALSE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
 }
 
 static void

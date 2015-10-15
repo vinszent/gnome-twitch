@@ -31,7 +31,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkButton" id="play_stop_button">
             <property name="visible">True</property>
             <property name="image">stop_image</property>
             <signal name="clicked" handler="player_play_stop_button_cb" object="GtPlayerHeaderBar"/>

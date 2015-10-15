@@ -16,6 +16,8 @@
 #include "config.h"
 #include "version.h"
 
+#define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
+
 typedef struct
 {
     GtkWidget* main_stack;
@@ -141,6 +143,31 @@ show_view_default_cb(GSimpleAction* action,
         gt_channels_view_show_type(GT_CHANNELS_VIEW(priv->channels_view), GT_CHANNELS_CONTAINER_TYPE_TOP); 
     else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
         gt_games_view_show_type(GT_GAMES_VIEW(priv->games_view), GT_GAMES_CONTAINER_TYPE_TOP); 
+}
+
+static gboolean
+key_press_cb(GtkWidget* widget,
+             GdkEventKey* evt,
+             gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    gboolean playing;
+
+    g_object_get(priv->player, "playing", &playing, NULL);
+
+    if (evt->keyval & GDK_KEY_space)
+    {
+        if (MAIN_VISIBLE_CHILD == priv->player)
+        {
+            if (playing)
+                gt_player_stop(GT_PLAYER(priv->player));
+            else
+                gt_player_play(GT_PLAYER(priv->player));
+        }
+    }
+
+    return FALSE;
 }
 
 static GActionEntry win_actions[] = 
@@ -329,6 +356,7 @@ gt_win_init(GtWin* self)
     gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
+    g_signal_connect(self, "key-press-event", G_CALLBACK(key_press_cb), self);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     win_actions,
