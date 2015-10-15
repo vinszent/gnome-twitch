@@ -1,0 +1,71 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gnome-twitch\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-10-15 19:21+0200\n"
+"PO-Revision-Date: 2015-10-15 19:27+0200\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.5\n"
+"Last-Translator: Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Language: sr\n"
+
+#: data/ui/gt-win.ui:55
+msgid "Channels"
+msgstr "Канали"
+
+#: data/ui/gt-win.ui:64
+msgid "Favourites"
+msgstr "Омиљено"
+
+#: data/ui/gt-win.ui:73
+msgid "Games"
+msgstr "Игре"
+
+#: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
+msgid "Settings"
+msgstr "Подешавања"
+
+#: data/ui/app-menu.ui:12
+msgid "About"
+msgstr "О програму"
+
+#: data/ui/app-menu.ui:16
+msgid "Quit"
+msgstr "Изађи"
+
+#: data/ui/gt-settings-dlg.ui:17
+msgid "Default video quality: "
+msgstr "Подразумевани квалитет снимка: "
+
+#: data/ui/gt-settings-dlg.ui:28
+msgid "Source"
+msgstr "Изворни"
+
+#: data/ui/gt-settings-dlg.ui:29
+msgid "High"
+msgstr "Висок"
+
+#: data/ui/gt-settings-dlg.ui:30
+msgid "Medium"
+msgstr "Средње"
+
+#: data/ui/gt-settings-dlg.ui:31
+msgid "Low"
+msgstr "Низак"
+
+#: src/gt-win.c:96
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Уживајте у услузи Twitch на вашем ГНУ/Линукс рачунару"
+
+#: src/gt-win.c:100
+msgid "translator-credits"
+msgstr "Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>"
