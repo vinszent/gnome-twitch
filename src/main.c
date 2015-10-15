@@ -57,7 +57,7 @@ gt_log(const gchar* domain,
     date = g_date_time_new_now_utc();
     time_fmt = g_date_time_format(date, "%H:%M:%S");
 
-    g_print("[%s] %s - %s : '%s'\n", time_fmt, domain, level, msg);
+    g_print("[%s] %s - %s : \"%s\"\n", time_fmt, domain, level, msg);
 
     g_free(time_fmt);
     g_date_time_unref(date);
