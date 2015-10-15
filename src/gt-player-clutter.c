@@ -162,6 +162,20 @@ realise_cb(GtkWidget* widget,
 }
 
 static void
+button_press_cb(GtkWidget* widget,
+                GdkEventButton* evt,
+                gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    GtWin* win = GT_WIN_TOPLEVEL(widget);
+
+    if (evt->type == GDK_2BUTTON_PRESS && !gt_win_get_fullscreen(win))
+        gtk_window_fullscreen(GTK_WINDOW(win));
+}
+
+static void
 finalize(GObject* object)
 {
     GtPlayerClutter* self = (GtPlayerClutter*) object;
@@ -342,6 +356,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
+    g_signal_connect(self, "button-press-event", G_CALLBACK(button_press_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",
