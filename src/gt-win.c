@@ -166,6 +166,12 @@ key_press_cb(GtkWidget* widget,
                 gt_player_play(GT_PLAYER(priv->player));
         }
     }
+    else if (evt->keyval & GDK_KEY_Escape)
+    {
+        if (MAIN_VISIBLE_CHILD == priv->player)
+            if (priv->fullscreen)
+                gtk_window_unfullscreen(GTK_WINDOW(self));
+    }
 
     return FALSE;
 }
