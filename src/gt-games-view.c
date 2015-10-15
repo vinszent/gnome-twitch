@@ -62,8 +62,6 @@ search_active_cb(GObject* source,
     GtGamesView* self = GT_GAMES_VIEW(udata);
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
-    g_print("Showing game %d\n", priv->was_showing_game);
-
     if (priv->search_active)
         gt_games_view_show_type(self, GT_GAMES_CONTAINER_TYPE_SEARCH);
     else if (priv->was_showing_game)
@@ -201,7 +199,7 @@ gt_games_view_init(GtGamesView* self)
 
     g_object_bind_property(self, "search-active",
                            priv->search_bar, "search-mode-enabled",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
     g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
     g_signal_connect(priv->top_container, "game-activated", G_CALLBACK(game_activated_cb), self);
     g_signal_connect(priv->search_container, "game-activated", G_CALLBACK(game_activated_cb), self);

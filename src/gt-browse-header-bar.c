@@ -182,6 +182,12 @@ realize(GtkWidget* widget,
     g_object_bind_property(priv->games_view, "search-active",
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
+    g_object_bind_property(priv->channels_view, "search-active",
+                           priv->search_button, "active",
+                           G_BINDING_DEFAULT);
+    g_object_bind_property(priv->favourites_view, "search-active",
+                           priv->search_button, "active",
+                           G_BINDING_DEFAULT);
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(visible_view_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
