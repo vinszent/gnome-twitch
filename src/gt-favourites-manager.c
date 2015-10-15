@@ -91,6 +91,8 @@ channel_favourited_cb(GObject* source,
         g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
+        g_info("{GtChannel} Favourited '%s' (%p)", gt_channel_get_name(chan), chan);
+
         g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
     }
     else
@@ -99,6 +101,8 @@ channel_favourited_cb(GObject* source,
         // Should never return null;
 
         g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+
+        g_info("{GtChannel} Unfavourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
         g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
 

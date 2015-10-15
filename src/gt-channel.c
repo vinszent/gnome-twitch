@@ -86,8 +86,6 @@ channel_favourited_cb(GtFavouritesManager* mgr,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_info("{GtChannel} Favourited '%s'", priv->name);
-
     if (!gt_channel_compare(self, chan) && !priv->favourited)
     {
         GQuark detail = g_quark_from_static_string("favourited");
@@ -105,10 +103,10 @@ channel_unfavourited_cb(GtFavouritesManager* mgr,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_info("{GtChannel} Unfavourited '%s'", priv->name);
-
     if (!gt_channel_compare(self, chan) && priv->favourited)
     {
+        g_info("{GtChannel} Unfavourited '%s'", priv->name);
+
         GQuark detail = g_quark_from_static_string("favourited");
         g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
         g_object_set(self, "favourited", FALSE, NULL);
@@ -600,4 +598,12 @@ gt_channel_compare(GtChannel* self,
     }
 
     return ret;
+}
+
+const gchar* 
+gt_channel_get_name(GtChannel* self)
+{
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->name;
 }
