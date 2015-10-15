@@ -94,9 +94,8 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_GAME:
-            if (priv->game)
-                g_object_unref(priv->game);
-            priv->game = g_value_dup_object(val);
+            g_clear_object(&priv->game);
+            priv->game = utils_value_ref_sink_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);

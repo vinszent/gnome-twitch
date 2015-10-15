@@ -214,8 +214,7 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    if(priv->preview)
-        g_object_unref(priv->preview);
+    g_clear_object(&priv->preview);
 
     g_cancellable_reset(priv->cancel);
 
