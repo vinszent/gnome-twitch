@@ -7,22 +7,26 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-10-04 12:47+0200\n"
-"PO-Revision-Date: 2015-10-04 12:48+0200\n"
+"POT-Creation-Date: 2015-10-15 19:41+0200\n"
+"PO-Revision-Date: 2015-10-15 19:50+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.5\n"
-"Last-Translator: \n"
+"Last-Translator: Vincent Szolnoky <ippytraxx@installgentoo.com>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: sv\n"
 
-#: data/ui/gt-win.ui:53
+#: data/ui/gt-win.ui:55
 msgid "Channels"
 msgstr "Kanaler"
 
-#: data/ui/gt-win.ui:62
+#: data/ui/gt-win.ui:64
+msgid "Favourites"
+msgstr "Favoriter"
+
+#: data/ui/gt-win.ui:73
 msgid "Games"
 msgstr "Spel"
 
@@ -58,6 +62,10 @@ msgstr "Mellan"
 msgid "Low"
 msgstr "Låg"
 
-#: src/gt-win.c:92
-msgid "Enjoy Twitch on your GNOME desktop"
-msgstr "Njut av Twitch på dit GNOME skrivbord"
+#: src/gt-win.c:96
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Njut av Twitch på din GNU/Linux dator"
+
+#: src/gt-win.c:100
+msgid "translator-credits"
+msgstr "Vincent Szolnoky"
