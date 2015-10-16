@@ -99,8 +99,8 @@ stop(GtPlayer* player)
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
     clutter_gst_playback_set_uri(priv->player, NULL);
+    clutter_gst_player_set_playing(CLUTTER_GST_PLAYER(priv->player), FALSE);
 
     priv->playing = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);

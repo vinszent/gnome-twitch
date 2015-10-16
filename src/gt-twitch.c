@@ -356,7 +356,8 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+        return NULL;
 
     ret = parse_playlist(msg->response_body->data);
 

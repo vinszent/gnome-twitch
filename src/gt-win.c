@@ -31,6 +31,10 @@ typedef struct
     GtkWidget* browse_header_bar;
     GtkWidget* browse_stack_switcher;
 
+    GtkWidget* info_revealer;
+    GtkWidget* info_label;
+    GtkWidget* info_bar;
+
     gboolean fullscreen;
 } GtWinPrivate;
 
@@ -206,6 +210,24 @@ window_state_cb(GtkWidget* widget,
 }
 
 static void
+show_error_message(GtWin* self, const gchar* msg)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
+    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_WARNING);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
+}
+
+static void
+hide_info_bar(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
+}
+
+static void
 finalize(GObject* object)
 {
     GtWin* self = (GtWin*) object;
@@ -331,6 +353,11 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack_switcher);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, favourites_view);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar);
+
+    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), hide_info_bar);
 }
 
 static void
@@ -389,21 +416,21 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                                                                   GT_TWITCH_STREAM_QUALITY_SOURCE,
                                                                   token, sig);
 
-    /* g_object_set(priv->player_header_bar, */
-                 /* "name", display_name, */
-                 /* "status", status, */
-                 /* NULL); */
+    if (!stream_data)
+        show_error_message(self, "Error opening stream");
+    else
+    {
+        gt_player_open_channel(GT_PLAYER(priv->player), chan);
 
-    gt_player_open_channel(GT_PLAYER(priv->player), chan);
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
+                                         "player");
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
+                                         "player");
+    }
 
     g_free(name);
     g_free(status);
     g_free(display_name);
-
-    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
-                                     "player");
-    gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
-                                     "player");
 }
 
 //TODO: Make these actions
