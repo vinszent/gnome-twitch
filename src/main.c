@@ -18,6 +18,7 @@ static gint LOG_LEVEL = 2;
 static GOptionEntry cli_options[] =
 {
     {"log-level", 'l', 0, G_OPTION_ARG_INT, &LOG_LEVEL, "Set logging level", "Level"},
+    {NULL},
 };
 
 static void
