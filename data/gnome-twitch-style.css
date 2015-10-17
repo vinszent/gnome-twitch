@@ -1,41 +1,51 @@
-.gt-channels-view-child .overlay-box,
+.gt-channels-container-child .overlay-box,
 .gt-games-container-child .overlay-box
 {
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-.gt-channels-view-child .overlay-box .label
+.gt-channels-container-child .overlay-box .label
 {
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-channels-view-child .overlay-box .info-image
+.gt-channels-container-child .overlay-box .info-image
 {
     color: rgba(109, 115, 128, 1);
     padding: 7px;
 }
 
-.gt-channels-view-child .overlay-box .favourite-button
+.gt-channels-container-child .overlay-box .favourite-button
 {
     background-color: rgba(0, 0, 0, 0);
     background-image: none;
     border-style: none;
 }
 
-.gt-channels-view-child .overlay-box .favourite-button:hover GtkImage
+.gt-channels-container-child .overlay-box .favourite-button:hover GtkImage
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-channels-view-child .overlay-box .favourite-button GtkImage
+.gt-channels-container-child .overlay-box .favourite-button GtkImage
 {
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-channels-view-child .overlay-box .favourite-button:checked GtkImage
+.gt-channels-container-child .overlay-box .favourite-button:checked GtkImage
 {
     color: gold;
+}
+
+.gt-channels-container-child-offline GtkImage
+{
+    -gtk-image-effect: dim;
+}
+
+.gt-channels-container-child-offline .label
+{
+    color: alpha(currentColor,0.55);
 }
 
 .player-clutter .buffer-box

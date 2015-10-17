@@ -112,18 +112,20 @@ child_activated_cb(GtkFlowBox* flow,
     GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
     GtChannel* chan;
     gboolean updating = FALSE;
-
-    if (!gtk_widget_get_sensitive(GTK_WIDGET(child)))
-	return;
-
-    gt_channels_container_child_hide_overlay(child);
+    gboolean online = FALSE;
 
     g_object_get(child, "channel", &chan, NULL);
     
-    g_object_get(chan, "updating", &updating, NULL);
+    g_object_get(chan, 
+                 "updating", &updating, 
+                 "online", &online,
+                 NULL);
     
-    if (!updating)
+    if (!updating && online)
+    {
 	gt_win_open_channel(GT_WIN_TOPLEVEL(GTK_WIDGET(child)), chan);
+        gt_channels_container_child_hide_overlay(child);
+    }
 
     g_object_unref(chan);
 }
