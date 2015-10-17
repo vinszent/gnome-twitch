@@ -1,8 +1,7 @@
 bin_PROGRAMS = gnome-twitch
 
 gnome_twitch_CFLAGS = -std=c11 $(APP_CFLAGS)
-gnome_twitch_LDADD = $(APP_LIBS)
-gnome_twitch_LDFLAGS = -std=c11
+gnome_twitch_LDADD = $(APP_LIBS) -lm
 gnome_twitch_CPPFLAGS = -DLOCALEDIR=\""$(localedir)"\"
 
 
@@ -18,6 +17,7 @@ gnome_twitch_SOURCES = \
 		       gt-twitch.c \
 		       gt-channel.c \
 		       gt-player.c \
+		       gt-player-clutter.c \
 		       gt-channels-view.c \
 		       gt-channels-container-child.c \
 		       gt-channels-container.c \

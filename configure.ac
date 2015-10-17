@@ -10,7 +10,7 @@ AC_SUBST(GETTEXT_PACKAGE, AC_PACKAGE_TARNAME)
 
 AC_PATH_PROG(GLIB_COMPILE_RESOURCES, glib-compile-resources)
 
-PKG_CHECK_MODULES(APP, gtk+-3.0 >= 3.16 libsoup-2.4 json-glib-1.0 gstreamer-1.0 gstreamer-video-1.0)
+PKG_CHECK_MODULES(APP, gtk+-3.0 >= 3.16 libsoup-2.4 json-glib-1.0 clutter-gst-3.0 clutter-gtk-1.0)
 
 git_ver=`./print_git_version.sh`
 if test x"$VCS_TAG" = x; then
