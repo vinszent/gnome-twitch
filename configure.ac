@@ -1,4 +1,4 @@
-AC_INIT(GNOME Twitch, 0.0.1, ippytraxx@installgentoo.org, gnome-twitch, https://github.com/Ippytraxx/gnome-twitch)
+AC_INIT(GNOME Twitch, 0.1.0, ippytraxx@installgentoo.org, gnome-twitch, https://github.com/Ippytraxx/gnome-twitch)
 
 AM_INIT_AUTOMAKE(-Wall -Wno-portability foreign)
 
