@@ -2,6 +2,7 @@
 #include "gt-twitch.h"
 #include "gt-app.h"
 #include "utils.h"
+#include <string.h>
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_search_parent_class)
 
@@ -53,6 +54,9 @@ static void
 get_channels(GtChannelsContainerSearch* self, const gchar* query)
 {
     GtChannelsContainerSearchPrivate* priv = gt_channels_container_search_get_instance_private(self);
+
+    if (!query || strlen(query) == 0)
+        return;
 
     PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), TRUE);
 
