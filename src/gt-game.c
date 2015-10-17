@@ -104,23 +104,20 @@ set_property(GObject*      obj,
             priv->id = g_value_get_int64(val);
             break;
         case PROP_NAME:
-            if (priv->name)
-                g_free(priv->name);
+            g_free(priv->name);
             priv->name = g_value_dup_string(val);
             if (!priv->name)
                 priv->name = "Untitled broadcast";
             break;
         case PROP_PREVIEW:
-            if (priv->preview)
-                g_object_unref(priv->preview);
-            priv->preview = g_value_ref_sink_object(val);
+            g_clear_object(&priv->preview);
+            priv->preview = g_value_dup_object(val);
             utils_pixbuf_scale_simple(&priv->preview,
                                       200, 270,
                                       GDK_INTERP_BILINEAR);
             break;
         case PROP_LOGO:
-            if (priv->logo)
-                g_object_unref(priv->logo);
+            g_clear_object(&priv->logo);
             priv->logo = g_value_dup_object(val);
             break;
         case PROP_VIEWERS:

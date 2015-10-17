@@ -3,7 +3,7 @@
   <template class="GtChannelsContainerChild" parent="GtkFlowBoxChild">
     <property name="valign">start</property>
     <style>
-      <class name="gt-channels-view-child"/>
+      <class name="gt-channels-container-child"/>
     </style>
     <child>
       <object class="GtkBox">
@@ -62,7 +62,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkImage">
+                              <object class="GtkImage" id="play_image">
                                 <property name="visible">True</property>
                                 <property name="icon-name">media-playback-start</property> 
                                 <property name="icon-size">5</property>
@@ -75,7 +75,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkBox" id="bottom_box">
                                 <property name="visible">True</property>
                                 <property name="spacing">7</property>
                                 <child>
@@ -113,6 +113,9 @@
                                   </packing>
                                 </child>
                               </object>
+                              <packing>
+                                <property name="pack-type">end</property>
+                              </packing>
                             </child>
                           </object>
                         </child>

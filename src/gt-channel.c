@@ -117,6 +117,8 @@ update_set_cb(gpointer udata)
 {
     UpdateSetData* setd = (UpdateSetData*) udata;
 
+    g_info("{GtChannel} Finished update '%s'", setd->raw->name);
+
     gt_channel_update_from_raw_data(setd->self, setd->raw);
 
     gt_twitch_channel_raw_data_free(setd->raw);
@@ -136,6 +138,10 @@ update_cb(gpointer data,
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     GtChannelRawData* raw = gt_twitch_channel_with_stream_raw_data(main_app->twitch, priv->name);
+    
+    if (!raw)
+        return; //Most likely error getting data
+
     UpdateSetData* setd = g_malloc(sizeof(UpdateSetData));
     setd->self = self;
     setd->raw = raw;
@@ -147,6 +153,8 @@ static gboolean
 update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_info("{GtChannel} Initiating update '%s'", priv->name);
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -204,8 +212,7 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    if(priv->preview)
-        g_object_unref(priv->preview);
+    g_clear_object(&priv->preview);
 
     g_cancellable_reset(priv->cancel);
 
@@ -334,33 +341,27 @@ set_property(GObject*      obj,
             priv->id = g_value_get_int64(val);
             break;
         case PROP_STATUS:
-            if (priv->status)
-                g_free(priv->status);
+            g_free(priv->status);
             priv->status = g_value_dup_string(val);
             break;
         case PROP_NAME:
-            if (priv->name)
-                g_free(priv->name);
+            g_free(priv->name);
             priv->name = g_value_dup_string(val);
             break;
         case PROP_DISPLAY_NAME:
-            if (priv->display_name)
-                g_free(priv->display_name);
+            g_free(priv->display_name);
             priv->display_name = g_value_dup_string(val);
             break;
         case PROP_GAME:
-            if (priv->game)
-                g_free(priv->game);
-            priv->game = g_value_dup_string_allow_null(val);
+            g_free(priv->game);
+            priv->game = utils_value_dup_string_allow_null(val);
             break;
         case PROP_PREVIEW_URL:
-            if (priv->preview_url)
-                g_free(priv->preview_url);
+            g_free(priv->preview_url);
             priv->preview_url = g_value_dup_string(val);
             break;
         case PROP_VIDEO_BANNER_URL:
-            if (priv->video_banner_url)
-                g_free(priv->video_banner_url);
+            g_free(priv->video_banner_url);
             priv->video_banner_url = g_value_dup_string(val);
             break;
         case PROP_VIEWERS:
@@ -594,4 +595,12 @@ gt_channel_compare(GtChannel* self,
     }
 
     return ret;
+}
+
+const gchar* 
+gt_channel_get_name(GtChannel* self)
+{
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->name;
 }

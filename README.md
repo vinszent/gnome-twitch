@@ -16,6 +16,8 @@ the hassle of flash or the web.
 * gst-plugins-good
 * gst-plugins-bad
 * gst-plugins-ugly
+* clutter-gst
+* clutter-gtk
 
 ### From source
 ```

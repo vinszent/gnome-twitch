@@ -2,6 +2,7 @@
 #include "gt-app.h"
 #include "gt-twitch.h"
 #include "utils.h"
+#include <string.h>
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
 
@@ -54,7 +55,10 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
 {
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), TRUE);
+    if (!query || strlen(query) == 0)
+        return;
+
+    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query != NULL);
 
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);

@@ -31,7 +31,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkButton" id="play_stop_button">
             <property name="visible">True</property>
             <property name="image">stop_image</property>
             <signal name="clicked" handler="player_play_stop_button_cb" object="GtPlayerHeaderBar"/>
@@ -41,22 +41,6 @@
           <object class="GtkVolumeButton" id="volume_button">
             <property name="visible">True</property>
             <property name="value">0.3</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkMenuButton">
-            <property name="visible">True</property>
-            <property name="use-popover">True</property>
-            <property name="menu-model">quality_menu</property>
-            <style>
-              <class name="image-button"/>
-            </style>
-            <child>
-              <object class="GtkImage">
-                <property name="visible">True</property>
-                <property name="icon-name">camera-video-symbolic</property>
-              </object>
-            </child>
           </object>
         </child>
       </object>
@@ -104,6 +88,13 @@
             <signal name="clicked" handler="player_fullscreen_button_cb" object="GtPlayerHeaderBar"/>
           </object>
         </child> 
+        <child>
+          <object class="GtkMenuButton">
+            <property name="visible">True</property>
+            <property name="image">hamburger_image</property> 
+            <property name="menu-model">player_hamburger_menu</property>
+          </object>
+        </child>
       </object>
       <packing>
         <property name="pack-type">end</property>
@@ -126,8 +117,14 @@
     <property name="icon-name">media-playback-stop-symbolic</property>
     <property name="icon-size">2</property>
   </object>
-  <menu id="quality_menu">
-    <section>
+  <object class="GtkImage" id="hamburger_image">
+    <property name="icon-name">open-menu-symbolic</property>
+    <property name="icon-size">2</property>
+  </object>
+  <menu id="player_hamburger_menu">
+    <submenu>
+      <attribute name="label" translatable="yes">Stream quality</attribute>
+      <section>
         <item>
           <attribute name="label">Source</attribute>
           <attribute name="action">win.player_set_quality</attribute>
@@ -148,6 +145,7 @@
           <attribute name="action">win.player_set_quality</attribute>
           <attribute name="target">low</attribute>
         </item> 
-    </section>
+      </section>
+    </submenu>
   </menu>
 </interface>

@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
+#include <glib.h>
 #include <json-glib/json-glib.h>
 #include <string.h>
 #include <stdlib.h>
@@ -146,9 +147,17 @@ send_message(GtTwitch* self, SoupMessage* msg)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
+    char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
+
+    g_info("{GtTwitch} Sending message to uri '%s'", uri);
+
     soup_session_send_message(priv->soup, msg);
 
+    g_debug("{GtTwitch} Received code '%d' and response '%s'", msg->status_code, msg->response_body->data);
+
     /* g_print("\n\n%s\n\n", msg->response_body->data); */
+
+    g_free(uri);
 
     return msg->status_code == SOUP_STATUS_OK;
 }
@@ -353,9 +362,12 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
 
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
-
-    //TODO: Handle offline stream
-    send_message(self, msg);
+				   
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to get stream uris");
+        return NULL;
+    }
 
     ret = parse_playlist(msg->response_body->data);
 
@@ -372,18 +384,20 @@ gt_twitch_stream_by_quality(GtTwitch* self,
                             gchar* token, gchar* sig)
 {
     GList* channels = gt_twitch_all_streams(self, channel, token, sig);
+    GtTwitchStreamData* ret = NULL;
 
     for (GList* l = channels; l != NULL; l = l->next)
     {
-        GtTwitchStreamData* s = (GtTwitchStreamData*) l->data;
-
-        if (s->quality == qual)
-            return s;
+	ret = (GtTwitchStreamData*) l->data;
+	
+        if (ret->quality == qual)
+	    break;
     }
 
-    //TODO: Free rest of channels
+    channels = g_list_remove(channels, ret);
+    g_list_free_full(channels, (GDestroyNotify) gt_twitch_stream_data_free);
 
-    return NULL;
+    return ret;
 }
 
 GList*
@@ -398,11 +412,14 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     JsonArray* channels;
     GList* ret = NULL;
 
-    uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game); //TODO: Add game argument
+    uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game);
     msg = soup_message_new("GET", uri);
 
-    if(!send_message(self, msg))
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to get top channels");
         goto finish;
+    }
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -459,7 +476,11 @@ gt_twitch_top_games(GtTwitch* self,
     uri = g_strdup_printf(TOP_GAMES_URI, n, offset);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to get top channels");
+	goto finish;
+    }
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -501,21 +522,14 @@ gt_twitch_top_games(GtTwitch* self,
 
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
 }
-
-typedef struct
-{
-    GtTwitch* twitch;
-    gint n;
-    gint offset;
-    gchar* game;
-} TopDataClosure;
 
 static void
 top_channels_async_cb(GTask* task,
@@ -523,13 +537,13 @@ top_channels_async_cb(GTask* task,
                       gpointer task_data,
                       GCancellable* cancel)
 {
-    TopDataClosure* data = task_data;
+    GenericTaskData* data = task_data;
     GList* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_top_channels(data->twitch, data->n, data->offset, data->game);
+    ret = gt_twitch_top_channels(data->twitch, data->int_1, data->int_2, data->str_1);
 
     if (!ret)
     {
@@ -540,25 +554,25 @@ top_channels_async_cb(GTask* task,
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
 
-GList*
+void
 gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game,
                              GCancellable* cancel,
                              GAsyncReadyCallback cb,
                              gpointer udata)
 {
     GTask* task = NULL;
-    TopDataClosure* data = NULL;
+    GenericTaskData* data = NULL;
 
     task = g_task_new(NULL, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
-    data = g_new0(TopDataClosure, 1);
+    data = generic_task_data_new();
     data->twitch = self;
-    data->n = n;
-    data->offset = offset;
-    data->game = g_strdup(game);
+    data->int_1 = n;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(game);
 
-    g_task_set_task_data(task, data, g_free);
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, top_channels_async_cb);
 
@@ -571,35 +585,35 @@ top_games_async_cb(GTask* task,
                    gpointer task_data,
                    GCancellable* cancel)
 {
-    TopDataClosure* data = task_data;
+    GenericTaskData* data = task_data;
     GList* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_top_games(data->twitch, data->n, data->offset);
+    ret = gt_twitch_top_games(data->twitch, data->int_1, data->int_2);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
 }
 
-GList*
+void
 gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset,
                              GCancellable* cancel,
                              GAsyncReadyCallback cb,
                              gpointer udata)
 {
     GTask* task = NULL;
-    TopDataClosure* data = NULL;
+    GenericTaskData* data = NULL;
 
     task = g_task_new(NULL, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
-    data = g_new0(TopDataClosure, 1);
+    data = generic_task_data_new();
     data->twitch = self;
-    data->n = n;
-    data->offset = offset;
+    data->int_1 = n;
+    data->int_2 = offset;
 
-    g_task_set_task_data(task, data, g_free);
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, top_games_async_cb);
 
@@ -621,8 +635,11 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, n, offset);
     msg = soup_message_new("GET", uri);
 
-    if(!send_message(self, msg))
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to search channels");
         goto finish;
+    }
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -677,7 +694,11 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
     uri = g_strdup_printf(SEARCH_GAMES_URI, query);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to search games");
+	goto finish;
+    }
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -705,27 +726,13 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
     }
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
-}
-
-typedef struct
-{
-    GtTwitch* twitch;
-    gint n;
-    gint offset;
-    gchar* query;
-} SearchDataClosure;
-
-static void
-free_search_data_closure(SearchDataClosure* data)
-{
-    g_free(data->query);
-    g_free(data);
 }
 
 static void
@@ -734,13 +741,13 @@ search_channels_async_cb(GTask* task,
                          gpointer task_data,
                          GCancellable* cancel)
 {
-    SearchDataClosure* data = task_data;
+    GenericTaskData* data = task_data;
     GList* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_search_channels(data->twitch, data->query, data->n, data->offset);
+    ret = gt_twitch_search_channels(data->twitch, data->str_1, data->int_1, data->int_2);
 
     if (!ret)
     {
@@ -759,18 +766,18 @@ gt_twitch_search_channels_async(GtTwitch* self, const gchar* query,
                                 gpointer udata)
 {
     GTask* task = NULL;
-    SearchDataClosure* data = NULL;
+    GenericTaskData* data = NULL;
 
     task = g_task_new(NULL, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
-    data = g_new0(SearchDataClosure, 1);
+    data = generic_task_data_new();
     data->twitch = self;
-    data->n = n;
-    data->offset = offset;
-    data->query = g_strdup(query);
+    data->int_1 = n;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(query);
 
-    g_task_set_task_data(task, data, (GDestroyNotify) free_search_data_closure);
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, search_channels_async_cb);
 
@@ -783,13 +790,13 @@ search_games_async_cb(GTask* task,
                       gpointer task_data,
                       GCancellable* cancel)
 {
-    SearchDataClosure* data = task_data;
+    GenericTaskData* data = task_data;
     GList* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_search_games(data->twitch, data->query, data->n, data->offset);
+    ret = gt_twitch_search_games(data->twitch, data->str_1, data->int_1, data->int_2);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
 }
@@ -802,18 +809,18 @@ gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
                              gpointer udata)
 {
     GTask* task = NULL;
-    SearchDataClosure* data = NULL;
+    GenericTaskData* data = NULL;
 
     task = g_task_new(NULL, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
-    data = g_new0(SearchDataClosure, 1);
+    data = generic_task_data_new();
     data->twitch = self;
-    data->n = n;
-    data->offset = offset;
-    data->query = g_strdup(query);
+    data->int_1 = n;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(query);
 
-    g_task_set_task_data(task, data, (GDestroyNotify) free_search_data_closure);
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, search_games_async_cb);
 
@@ -821,7 +828,7 @@ gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
 }
 
 void
-gt_twitch_stream_free(GtTwitchStreamData* channel)
+gt_twitch_stream_data_free(GtTwitchStreamData* channel)
 {
     g_free(channel->url);
 
@@ -842,7 +849,11 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     uri = g_strdup_printf(CHANNELS_URI, name);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+    {
+	g_warning("{GtTwitch} Error sending message to get raw channel data");
+	goto finish;
+    }
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -852,9 +863,10 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
     ret = g_malloc0_n(1, sizeof(GtChannelRawData));
     parse_channel(self, reader, ret);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
@@ -874,7 +886,8 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     uri = g_strdup_printf(STREAMS_URI, name);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+        goto finish;
 
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
@@ -897,9 +910,10 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
 
     json_reader_end_member(reader);
 
-    g_object_unref(msg);
     g_object_unref(parser);
     g_object_unref(reader);
+finish:
+    g_object_unref(msg);
     g_free(uri);
 
     return ret;
@@ -948,19 +962,13 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
 void 
 gt_twitch_channel_raw_data_free(GtChannelRawData* data)
 {
-    if (data->game)
-        g_free(data->game);
-    if (data->status)
-        g_free(data->status);
-    if (data->display_name)
-        g_free(data->display_name);
-    g_free(data->name);
+    g_free(data->game);
+    g_free(data->status);
+    g_free(data->display_name);
+    g_free(data->preview_url);
+    g_free(data->video_banner_url);
     if (data->stream_started_time)
         g_date_time_unref(data->stream_started_time);
-    if (data->preview_url)
-        g_free(data->preview_url);
-    if (data->video_banner_url)
-        g_free(data->video_banner_url);
 
     g_free(data);
 }
@@ -968,7 +976,9 @@ gt_twitch_channel_raw_data_free(GtChannelRawData* data)
 GtGameRawData*
 gt_game_raw_data(GtTwitch* self, const gchar* name)
 {
-    //TODO
+    //TODO not possible with current API
+    
+    return NULL;
 }
 
 void
@@ -979,11 +989,12 @@ gt_twitch_game_raw_data_free(GtGameRawData* data)
     g_free(data);
 }
 
-//TODO: Add async version
 GdkPixbuf*
 gt_twitch_download_picture(GtTwitch* self, const gchar* url)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+
+    g_info("{GtTwitch} Downloading picture from url '%s'", url);
 
     return utils_download_picture(priv->soup, url);
 }
