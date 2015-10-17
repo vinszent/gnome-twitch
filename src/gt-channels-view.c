@@ -156,7 +156,7 @@ gt_channels_view_init(GtChannelsView* self)
 
     g_object_bind_property(self, "search-active",
                            priv->search_bar, "search-mode-enabled",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
     g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
 }

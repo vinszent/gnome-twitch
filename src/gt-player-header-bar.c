@@ -19,6 +19,8 @@ typedef struct
     GtkWidget* fullscreen_image;
     GtkWidget* unfullscreen_image;
 
+    GtkWidget* play_stop_button;
+
     GtkWidget* volume_button;
 
     gboolean fullscreen;
@@ -82,12 +84,28 @@ player_play_stop_button_cb(GtPlayerHeaderBar* self,
 
     g_object_get(priv->player, "playing", &playing, NULL);
 
-    if (!playing)
-        gtk_button_set_image(button, priv->play_image);
+    if (playing)
+        gt_player_stop(GT_PLAYER(priv->player));
     else
-        gtk_button_set_image(button, priv->stop_image);
+        gt_player_play(GT_PLAYER(priv->player));
+}
 
-    g_object_set(priv->player, "playing", !playing, NULL);
+static void
+playing_cb(GObject* source,
+           GParamSpec* pspec,
+           gpointer udata)
+{
+    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
+    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+
+    gboolean playing;
+
+    g_object_get(priv->player, "playing", &playing, NULL);
+
+    if (playing)
+        gtk_button_set_image(GTK_BUTTON(priv->play_stop_button), priv->stop_image);
+    else
+        gtk_button_set_image(GTK_BUTTON(priv->play_stop_button), priv->play_image);
 }
 
 static void
@@ -100,6 +118,52 @@ player_fullscreen_button_cb(GtPlayerHeaderBar* self,
         gtk_window_unfullscreen(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))));
     else
         gtk_window_fullscreen(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))));
+}
+
+static void
+opened_channel_cb(GObject* source,
+                  GParamSpec* pspec,
+                  gpointer udata)
+{
+    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
+    GtChannel* chan = NULL;
+    gchar* name;
+    gchar* status;
+
+    g_object_get(source, "open-channel", &chan, NULL);
+    g_object_get(chan,
+                 "display-name", &name,
+                 "status", &status,
+                 NULL);
+
+    g_object_set(self,
+                 "name", name,
+                 "status", status,
+                 NULL);
+
+    g_free(name);
+    g_free(status);
+    g_object_unref(chan);
+}
+
+static void
+player_set_cb(GObject* source,
+              GParamSpec* pspec,
+              gpointer udata)
+{
+    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
+    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+
+
+    if (priv->player)
+    {
+        g_object_bind_property(priv->player, "volume",
+                               priv->volume_button, "value",
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+
+        g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
+        g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
+    }
 }
 
 static void
@@ -181,17 +245,11 @@ realize(GtkWidget* widget,
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(widget);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
-    GtkWidget* toplevel;
 
-    g_object_bind_property(priv->player, "volume",
-                           priv->volume_button, "value",
-                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-
-    toplevel = gtk_widget_get_toplevel(GTK_WIDGET(self));
-
-    g_object_bind_property(toplevel, "fullscreen",
+    g_object_bind_property(GT_WIN_TOPLEVEL(self), "fullscreen",
                            self, "fullscreen",
                            G_BINDING_SYNC_CREATE);
+
 }
 
 static void
@@ -207,7 +265,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
                                              "Player",
                                              "Associated player",
                                              GT_TYPE_PLAYER,
-                                             G_PARAM_WRITABLE | G_PARAM_CONSTRUCT);
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHANNEL_NAME] = g_param_spec_string("name",
                                            "Name",
                                            "Name of channel",
@@ -236,6 +294,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, fullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, unfullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, volume_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_stop_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_back_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
@@ -252,4 +311,5 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
 
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
     g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
+    g_signal_connect(self, "notify::player", G_CALLBACK(player_set_cb), self);
 }

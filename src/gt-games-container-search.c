@@ -54,7 +54,7 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
 {
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), TRUE);
+    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query != NULL);
 
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);

@@ -17,6 +17,8 @@ typedef struct
     GtkWidget* top_container;
     GtkWidget* search_container;
     GtkWidget* game_container;
+
+    gboolean was_showing_game;
 } GtGamesViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesView, gt_games_view, GTK_TYPE_BOX)
@@ -61,9 +63,11 @@ search_active_cb(GObject* source,
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
     if (priv->search_active)
-        gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
+        gt_games_view_show_type(self, GT_GAMES_CONTAINER_TYPE_SEARCH);
+    else if (priv->was_showing_game)
+        gt_games_view_show_type(self, GT_CHANNELS_CONTAINER_TYPE_GAME);
     else
-        gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+        gt_games_view_show_type(self, GT_GAMES_CONTAINER_TYPE_TOP);
 }
 
 static void
@@ -79,11 +83,8 @@ game_activated_cb(GtGamesContainer* container,
 
     gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->game_container), name);
 
-    gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+    gt_games_view_show_type(self, GT_CHANNELS_CONTAINER_TYPE_GAME);
     
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
-
     g_signal_handlers_block_by_func(self, search_active_cb, self);
     g_object_set(self, "search-active", FALSE, NULL);
     g_signal_handlers_unblock_by_func(self, search_active_cb, self);
@@ -192,11 +193,13 @@ gt_games_view_init(GtGamesView* self)
 {
     GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
 
+    priv->was_showing_game = FALSE;
+
     gtk_widget_init_template(GTK_WIDGET(self));
 
     g_object_bind_property(self, "search-active",
                            priv->search_bar, "search-mode-enabled",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
     g_signal_connect(self, "notify::search-active", G_CALLBACK(search_active_cb), self);
     g_signal_connect(priv->top_container, "game-activated", G_CALLBACK(game_activated_cb), self);
     g_signal_connect(priv->search_container, "game-activated", G_CALLBACK(game_activated_cb), self);
@@ -222,12 +225,14 @@ gt_games_view_show_type(GtGamesView* self, gint type)
     {
         case GT_GAMES_CONTAINER_TYPE_TOP:
             gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->top_container);
+            priv->was_showing_game = FALSE;
             break;
         case GT_GAMES_CONTAINER_TYPE_SEARCH:
             gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->search_container);
             break;
         case GT_CHANNELS_CONTAINER_TYPE_GAME:
             gtk_stack_set_visible_child(GTK_STACK(priv->games_stack), priv->game_container);
+            priv->was_showing_game = TRUE;
             break;
         default:
             break;

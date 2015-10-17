@@ -31,6 +31,7 @@ void gt_win_refresh_view(GtWin* self);
 void gt_win_show_favourites(GtWin* self);
 GtGamesView* gt_win_get_games_view(GtWin* self);
 GtChannelsView* gt_win_get_channels_view(GtWin* self);
+gboolean gt_win_get_fullscreen(GtWin* self);
 
 G_END_DECLS
 

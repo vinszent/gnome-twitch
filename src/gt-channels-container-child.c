@@ -14,6 +14,8 @@ typedef struct
     GtkWidget* time_label;
     GtkWidget* favourite_button;
     GtkWidget* middle_stack;
+    GtkWidget* play_image;
+    GtkWidget* bottom_box;
 } GtChannelsContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerChild, gt_channels_container_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -88,24 +90,19 @@ viewers_converter(GBinding* bind,
                   gpointer udata)
 {
     gint64 viewers;
-    gchar* label;
+    gchar* label = NULL;
 
     if (g_value_get_int64(from) > -1)
     {
         viewers = g_value_get_int64(from);
 
         if (viewers > 1e4)
-            label = g_strdup_printf("%2.1fk", (gdouble) viewers / 1e3);
+            label = g_strdup_printf("%3.1fk", (gdouble) viewers / 1e3);
         else
             label = g_strdup_printf("%ld", viewers);
+    }
 
-        g_value_set_string(to, label);
-        g_free(label);
-    }
-    else
-    {
-        g_value_set_string(to, NULL);
-    }
+    g_value_take_string(to, label);
 }
 
 static void
@@ -114,7 +111,7 @@ time_converter(GBinding* bind,
                GValue* to,
                gpointer udata)
 {
-    gchar* label;
+    gchar* label = NULL;
     GDateTime* now_time;
     GDateTime* stream_started_time;
     GTimeSpan dif;
@@ -127,20 +124,32 @@ time_converter(GBinding* bind,
         dif = g_date_time_difference(now_time, stream_started_time);
 
         if (dif > G_TIME_SPAN_HOUR)
-            label =g_strdup_printf("%2.1fh", (gdouble) dif / G_TIME_SPAN_HOUR);
+            label = g_strdup_printf("%2.1fh", (gdouble) dif / G_TIME_SPAN_HOUR);
         else
             label = g_strdup_printf("%ldm", dif / G_TIME_SPAN_MINUTE);
 
-        g_value_set_string(to, label);
-        g_free(label);
         g_date_time_unref(now_time);
     }
-    else
-    {
-        g_value_set_string(to, NULL);
-    }
+
+    g_value_take_string(to, label);
 }
 
+static void
+online_cb(GObject* source,
+          GParamSpec* pspec,
+          gpointer udata)
+{
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
+    gboolean online;
+
+    g_object_get(priv->channel, "online", &online, NULL);
+
+    if (online)
+        REMOVE_STYLE_CLASS(self, "gt-channels-container-child-offline");
+    else
+        ADD_STYLE_CLASS(self, "gt-channels-container-child-offline");
+}
 
 static void
 finalize(GObject* object)
@@ -184,7 +193,8 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_CHANNEL:
-            priv->channel = g_value_ref_sink_object(val);
+            g_clear_object(&priv->channel);
+            priv->channel = utils_value_ref_sink_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -210,7 +220,13 @@ constructed(GObject* obj)
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->channel, "online",
-                           self, "sensitive",
+                           priv->viewers_label, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "online",
+                           priv->play_image, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "online",
+                           priv->bottom_box, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property_full(priv->channel, "viewers",
                                 priv->viewers_label, "label",
@@ -227,6 +243,8 @@ constructed(GObject* obj)
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) updating_converter,
                                 NULL, NULL, NULL);
+
+    g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self);
 
     G_OBJECT_CLASS(gt_channels_container_child_parent_class)->constructed(obj);
 }
@@ -266,6 +284,8 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, time_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, favourite_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, middle_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, play_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, bottom_box);
 }
 
 static void

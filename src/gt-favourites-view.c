@@ -124,5 +124,5 @@ gt_favourites_view_init(GtFavouritesView* self)
 
     g_object_bind_property(self, "search-active",
                            priv->search_bar, "search-mode-enabled",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 }
