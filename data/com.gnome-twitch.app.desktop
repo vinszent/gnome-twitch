@@ -1,6 +1,6 @@
 [Desktop Entry]
-Version=0.0.1
 Type=Application
 Name=GNOME Twitch
-Exec=/usr/bin/gnome-twitch
+Exec=gnome-twitch
 Icon=gnome-twitch
+Categories=GTK;GNOME;AudioVideo;Player;Video
