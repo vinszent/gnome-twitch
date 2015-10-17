@@ -105,8 +105,6 @@ channel_unfavourited_cb(GtFavouritesManager* mgr,
 
     if (!gt_channel_compare(self, chan) && priv->favourited)
     {
-        g_info("{GtChannel} Unfavourited '%s'", priv->name);
-
         GQuark detail = g_quark_from_static_string("favourited");
         g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
         g_object_set(self, "favourited", FALSE, NULL);
@@ -119,7 +117,7 @@ update_set_cb(gpointer udata)
 {
     UpdateSetData* setd = (UpdateSetData*) udata;
 
-    g_debug("{GtChannel} Finished update '%s'", setd->raw->name);
+    g_info("{GtChannel} Finished update '%s'", setd->raw->name);
 
     gt_channel_update_from_raw_data(setd->self, setd->raw);
 
@@ -156,7 +154,7 @@ update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_debug("{GtChannel} Initiating update '%s'", priv->name);
+    g_info("{GtChannel} Initiating update '%s'", priv->name);
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);

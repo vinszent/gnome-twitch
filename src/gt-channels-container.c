@@ -105,21 +105,27 @@ edge_reached_cb(GtkScrolledWindow* scroll,
 
 static void
 child_activated_cb(GtkFlowBox* flow,
-                   GtkFlowBoxChild* child,
+                   GtkFlowBoxChild* _child,
                    gpointer udata)
 {
     GtChannelsContainer* self = GT_CHANNELS_CONTAINER(udata);
-    GtChannelsContainerChild* chan = GT_CHANNELS_CONTAINER_CHILD(child);
-    GtChannel* twitch;
+    GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
+    GtChannel* chan;
+    gboolean updating = FALSE;
 
-    gt_channels_container_child_hide_overlay(chan);
+    if (!gtk_widget_get_sensitive(GTK_WIDGET(child)))
+	return;
 
-    g_object_get(chan, "channel", &twitch, NULL);
+    gt_channels_container_child_hide_overlay(child);
 
-    gt_win_open_channel(GT_WIN_TOPLEVEL(GTK_WIDGET(child)),
-                        twitch);
+    g_object_get(child, "channel", &chan, NULL);
+    
+    g_object_get(chan, "updating", &updating, NULL);
+    
+    if (!updating)
+	gt_win_open_channel(GT_WIN_TOPLEVEL(GTK_WIDGET(child)), chan);
 
-    g_object_unref(twitch);
+    g_object_unref(chan);
 }
 
 static void

@@ -2,6 +2,8 @@
 #include <clutter-gst/clutter-gst.h>
 #include <clutter-gtk/clutter-gtk.h>
 #include <glib/gi18n.h>
+#include <stdlib.h>
+#include <math.h>
 #include "gt-app.h"
 #include "config.h"
 
@@ -9,9 +11,14 @@
 #include <X11/Xlib.h>
 #endif
 
-#define LOG_LEVEL G_LOG_LEVEL_DEBUG
-
 GtApp* main_app;
+
+static gint LOG_LEVEL = 2;
+
+static GOptionEntry cli_options[] =
+{
+    {"log-level", 'l', 0, G_OPTION_ARG_INT, &LOG_LEVEL, "Set logging level", "Level"},
+};
 
 static void
 gt_log(const gchar* domain,
@@ -23,7 +30,7 @@ gt_log(const gchar* domain,
     GDateTime* date = NULL;
     gchar* time_fmt = NULL;
 
-    if (_level & LOG_LEVEL)
+    if (_level > 8*pow(2, LOG_LEVEL))
         return;
 
     switch (_level)
@@ -65,6 +72,17 @@ gt_log(const gchar* domain,
 
 int main(int argc, char** argv)
 {
+    GError* err = NULL;
+    GOptionContext* opt_ctxt;
+
+    opt_ctxt = g_option_context_new(NULL);
+    g_option_context_add_main_entries(opt_ctxt, cli_options, "gnome-twitch");
+    if (!g_option_context_parse(opt_ctxt, &argc, &argv, &err))
+    {
+	g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
+	exit(1);
+    }
+
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif

@@ -45,16 +45,26 @@ GdkPixbuf*
 utils_download_picture(SoupSession* soup, const gchar* url)
 {
     SoupMessage* msg;
-    GdkPixbuf* ret;
+    GdkPixbuf* ret = NULL;
     GInputStream* input;
+    GError* err = NULL;
 
     msg = soup_message_new("GET", url);
-    input = soup_session_send(soup, msg, NULL, NULL);
+    input = soup_session_send(soup, msg, NULL, &err);
 
-    ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
+    if (err)
+    {
+	g_warning("{Utils} Error downloading picture code '%d' message '%s'", err->code, err->message);
+	g_error_free(err);
+    }
+    else
+    {
+	ret = gdk_pixbuf_new_from_stream(input, NULL, NULL);
 
-    g_input_stream_close(input, NULL, NULL);
+	g_input_stream_close(input, NULL, NULL);
+    }
+    
     g_object_unref(msg);
-
+    
     return ret;
 }

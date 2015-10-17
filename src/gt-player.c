@@ -81,6 +81,8 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     default_quality = g_settings_get_value(main_app->settings, "default-quality");
     _default_quality = g_settings_get_enum(main_app->settings, "default-quality");
 
+    g_message("{GtPlayer} Opening channel '%s' with quality '%d'", name, _default_quality);
+
     win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
     quality_action = g_action_map_lookup_action(G_ACTION_MAP(win), "player_set_quality");
     g_action_change_state(quality_action, default_quality);
@@ -94,7 +96,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     GT_PLAYER_GET_IFACE(self)->set_uri(self, stream_data->url);
     GT_PLAYER_GET_IFACE(self)->play(self);
 
-    gt_twitch_stream_free(stream_data);
+    gt_twitch_stream_data_free(stream_data);
     g_free(name);
     g_free(status);
     g_free(token);
@@ -126,5 +128,5 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
     g_free(token);
     g_free(sig);
     g_object_unref(chan);
-    gt_twitch_stream_free(stream_data);
+    gt_twitch_stream_data_free(stream_data);
 }

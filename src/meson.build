@@ -24,4 +24,4 @@ src = ['main.c', 'gt-app.c', 'gt-win.c', 'gt-twitch.c', 'gt-channel.c',
        'gt-favourites-manager.c', 'gt-enums.c', 'utils.c', res, ver]
 
 
-executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, clutter_gst_dep, clutter_gtk_dep], install : true, c_args : '-Wno-unused-variable')
+executable('gnome-twitch', src, dependencies : [gtk_dep, soup_dep, json_dep, clutter_gst_dep, clutter_gtk_dep], install : true, c_args : '-Wno-unused-variable', link_args : '-lm')
