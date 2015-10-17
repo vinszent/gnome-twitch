@@ -13,10 +13,10 @@ AC_PATH_PROG(GLIB_COMPILE_RESOURCES, glib-compile-resources)
 PKG_CHECK_MODULES(APP, gtk+-3.0 >= 3.16 libsoup-2.4 json-glib-1.0 clutter-gst-3.0 clutter-gtk-1.0)
 
 git_ver=`./print_git_version.sh`
-if test x"$VCS_TAG" = x; then
-    AC_SUBST(VCS_TAG, $git_ver)
+if test x"$git_ver" = x; then
+    AC_SUBST(VCS_TAG, $PACKAGE_VERSION)
 else
-    AC_SUBST(VCS_TAG, $version)
+    AC_SUBST(VCS_TAG, $git_ver)
 fi
 
 AC_CONFIG_FILES(Makefile
