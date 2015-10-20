@@ -53,12 +53,12 @@ rm -rf %{buildroot}
 %post
 %desktop_database_post
 %icon_theme_cache_post
-glib-compile-schemas %{_datadir}/glib-2.0/schemas
+glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null
 
-%postrun
-%desktop_database_postrun
-%icon_theme_cache_postrun
-glib-compile-schemas %{_datadir}/glib-2.0/schemas
+%postun
+%desktop_database_postun
+%icon_theme_cache_postun
+glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null
 
 %files
 %{_bindir}/%{name}
