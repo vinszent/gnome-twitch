@@ -33,7 +33,8 @@ update-desktop-database -q
 gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor
 ```
 ### Distro packages
-* [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch-git/)
+* [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch/)
+* [Arch linux (git)](https://aur4.archlinux.org/packages/gnome-twitch-git/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/)
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch)
 
