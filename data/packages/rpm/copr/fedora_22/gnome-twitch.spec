@@ -5,11 +5,12 @@ Summary:        Enjoy Twitch on your GNU/Linux desktop
 
 License:        GPLv3+
 URL:            https://github.com/Ippytraxx/gnome-twitch
-Source0:        https://github.com/Ippytraxx/gnome-twitch/archive/v0.1.0.tar.gz
+Source0:        https://github.com/Ippytraxx/gnome-twitch/archive/v%{version}-autotools.tar.gz
 
-BuildRequires:  meson >= 0.26.0
-BuildRequires: 	ninja-build
-BuildRequires:	gettext
+BuildRequires:  autoconf
+BuildRequires:  autoconf-archive
+BuildRequires:  automake
+BuildRequires:  intltool
 BuildRequires:	pkgconfig(clutter-1.0)
 BuildRequires: 	pkgconfig(clutter-gst-3.0)
 BuildRequires: 	pkgconfig(clutter-gtk-1.0)
@@ -23,10 +24,15 @@ BuildRequires: 	pkgconfig(gtk+-3.0) >= 3.16
 BuildRequires: 	pkgconfig(libsoup-2.4)
 BuildRequires: 	pkgconfig(json-glib-1.0)
 
+Requires:       gtk3
 Requires:       gstreamer1
 Requires:       gstreamer1-plugins-base
 Requires:       gstreamer1-plugins-good
 Requires:       gstreamer1-plugins-bad-free
+
+Suggests:       gstreamer1-vaapi
+Suggests:       libva
+Suggests:       libva-vdpau-driver
 
 %description
 Enjoy Twitch on your GNU/Linux desktop
@@ -35,17 +41,12 @@ Enjoy Twitch on your GNU/Linux desktop
 %setup -q
 
 %build
-mkdir build
-meson . build
-cd build
-mesonconf -Dbuildtype=release
-
-ninja-build
+autoreconf -i
+%configure
+make %{?_smp_mflags}
 
 %install
-cd build
-mesonconf -Dprefix=%{_prefix}
-DESTDIR=%{buildroot} ninja-build install
+%make_install
 
 %clean
 rm -rf %{buildroot}

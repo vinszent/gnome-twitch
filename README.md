@@ -34,7 +34,8 @@ gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor
 ```
 ### Distro packages
 * [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch-git/)
-* [Ubuntu](http://www.getdeb.net/app/GNOME%20Twitch)
+* [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/)
+* [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch)
 
 ## Screenshots
 ![](/data/screenshots/scrot_streams.png?raw=true)
