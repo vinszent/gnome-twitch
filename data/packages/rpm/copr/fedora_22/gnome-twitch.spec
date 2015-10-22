@@ -1,6 +1,6 @@
 Name:           gnome-twitch
 Version:        0.1.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Enjoy Twitch on your GNU/Linux desktop
 
 License:        GPLv3+
@@ -23,6 +23,7 @@ BuildRequires: 	pkgconfig(gstreamer-video-1.0)
 BuildRequires: 	pkgconfig(gtk+-3.0) >= 3.16
 BuildRequires: 	pkgconfig(libsoup-2.4)
 BuildRequires: 	pkgconfig(json-glib-1.0)
+BuildRequires:  /usr/bin/desktop-file-validate
 
 Requires:       gtk3
 Requires:       gstreamer1
@@ -38,7 +39,7 @@ Suggests:       libva-vdpau-driver
 Enjoy Twitch on your GNU/Linux desktop
 
 %prep
-%setup -q
+%setup -qn %{name}-%{version}-autotools
 
 %build
 autoreconf -i
@@ -47,28 +48,40 @@ make %{?_smp_mflags}
 
 %install
 %make_install
+%find_lang %{name} --with-gnome
+
+%check
+desktop-file-validate %{buildroot}%{_datadir}/applications/com.%{name}.app.desktop
 
 %clean
 rm -rf %{buildroot}
 
 %post
-%desktop_database_post
-%icon_theme_cache_post
-glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null
+/usr/bin/update-desktop-database &> /dev/null || :
+/bin/touch --no-create %{_datadir}/icons/hicolor &> /dev/null || :
 
 %postun
-%desktop_database_postun
-%icon_theme_cache_postun
-glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null
+/usr/bin/update-desktop-database &> /dev/null || :
+if [ $1 -eq 0 ] ; then
+    /bin/touch --no-create %{_datadir}/icons/hicolor &> /dev/null || :
+    /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
+    /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
+fi
 
-%files
+%posttrans
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
+/usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
+
+%files -f %{name}.lang
 %{_bindir}/%{name}
 %{_datadir}/applications/com.%{name}.app.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 %{_datadir}/icons/hicolor/scalable/apps/%{name}.svg
 %{_datadir}/glib-2.0/schemas/%{name}.gschema.xml
-%{_datadir}/locale/*/LC_MESSAGES/%{name}.mo
 
 %changelog
-* Tue Oct 20 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
+* Wed Oct 21 2015 Vincent Szolnoky <ippytraxx@installgentoo.com> - 0.1.0-2
+- Corrected spec to confer better to packaging standards
+
+* Tue Oct 20 2015 Vincent Szolnoky <ippytraxx@installgentoo.com> - 0.1.0-1
 - Initial package
