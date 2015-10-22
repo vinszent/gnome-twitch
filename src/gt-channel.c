@@ -531,6 +531,9 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     gboolean tmp = priv->online;
 
+    if (!data) // TODO: Need to log error?
+        return;
+
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
