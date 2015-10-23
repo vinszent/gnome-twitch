@@ -31,7 +31,8 @@ ninja install
 * [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch/)
 * [Arch linux (git)](https://aur4.archlinux.org/packages/gnome-twitch-git/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/)
-* [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch)
+* [Ubuntu (PPA)](https://launchpad.net/~ippytraxx/+archive/ubuntu/gnome-twitch/) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
+* [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (Outdated)
 
 ## Screenshots
 ![](/data/screenshots/scrot_streams.png?raw=true)
