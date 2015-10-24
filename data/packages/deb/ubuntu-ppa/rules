@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_configure:
+	autoreconf -i
+	dh_auto_configure
+
+override_dh_auto_test:
+	# Do nothing

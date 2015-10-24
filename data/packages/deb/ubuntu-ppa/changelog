@@ -1,0 +1,30 @@
+gnome-twitch (0.1.0-1~wily1) wily; urgency=low
+
+  * Rearrange dependencies
+
+ -- Vincent Szolnoky <ippytraxx@installgentoo.com>  Fri, 24 Oct 2015 02:29:37 +0200
+
+
+gnome-twitch (0.1.0-4) wily; urgency=low
+
+  * Update dependencies
+
+ -- Vincent Szolnoky <ippytraxx@installgentoo.com>  Fri, 23 Oct 2015 17:52:02 +0200
+
+gnome-twitch (0.1.0-3) wily; urgency=low
+
+  * Update dependencies
+
+ -- Vincent Szolnoky <ippytraxx@installgentoo.com>  Fri, 23 Oct 2015 17:46:45 +0200
+
+gnome-twitch (0.1.0-2) wily; urgency=low
+
+  * Update dependencies
+
+ -- Vincent Szolnoky <ippytraxx@installgentoo.com>  Fri, 23 Oct 2015 17:35:36 +0200
+
+gnome-twitch (0.1.0-1) wily; urgency=low
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Vincent Szolnoky <ippytraxx@installgentoo.com>  Fri, 23 Oct 2015 15:34:53 +0200
