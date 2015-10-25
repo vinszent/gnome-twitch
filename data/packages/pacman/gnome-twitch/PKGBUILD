@@ -20,8 +20,7 @@ build()
     rm -rf build
     mkdir build
     cd build
-    meson --prefix /usr --buildtype release
-    #mesonconf -Ddo-post-install=false # Not needed until next release as there is no post-install in 0.1.0
+    meson --prefix /usr --buildtype release ..
     ninja
 }
 
@@ -29,5 +28,6 @@ package()
 {
     cd "${pkgname}-${pkgver}"
     cd build
+    #mesonconf -Ddo-post-install=false # Not needed until next release as there is no post-install in 0.1.0
     DESTDIR="$pkgdir" ninja install
 }
