@@ -17,9 +17,10 @@ md5sums=('1047adaf29d2c948b68162d129a19fed')
 build()
 {
     cd "${pkgname}-${pkgver}"
+    rm -rf build
     mkdir build
-    meson . build
     cd build
+    meson ..
     ninja
 }
 

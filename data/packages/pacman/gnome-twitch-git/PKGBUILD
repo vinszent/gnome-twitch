@@ -23,9 +23,10 @@ pkgver()
 build()
 {
     cd "$pkgname"
+    rm -rf build
     mkdir build
-    meson . build
     cd build
+    meson ..
     ninja
 }
 
