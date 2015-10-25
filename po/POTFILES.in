@@ -1,4 +1,5 @@
 data/ui/gt-win.ui
 data/ui/app-menu.ui
 data/ui/gt-settings-dlg.ui
+data/ui/gt-player-header-bar.ui
 src/gt-win.c
