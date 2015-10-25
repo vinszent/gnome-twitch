@@ -23,16 +23,15 @@ pkgver()
 build()
 {
     cd "$pkgname"
+    rm -rf build
     mkdir build
-    meson . build
     cd build
+    meson --prefix /usr --buildtype release ..
     ninja
 }
 
 package()
 {
     cd "$pkgname"/build
-    mesonconf -Dprefix=/usr 
-    mesonconf -Dtype=release
     DESTDIR="$pkgdir" ninja install
 }
