@@ -128,7 +128,7 @@ show_refresh_button_cb(GObject* source,
      
     g_object_get(GT_WIN_TOPLEVEL(self), "visible-view", &view, NULL);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != priv->favourites_view);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != GTK_WIDGET(priv->favourites_view));
 
     g_object_unref(view);
 }

@@ -3,7 +3,9 @@ add_global_arguments('-std=c11', language : 'c')
 
 LOCALEDIR = get_option('prefix') + '/' + get_option('localedir')
 
-meson.add_install_script('meson_post_install.sh')
+if get_option('do-post-install')
+    meson.add_install_script('meson_post_install.sh')
+endif
 
 subdir('src')
 subdir('data')
