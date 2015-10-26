@@ -1,0 +1,72 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the gnome-twitch package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gnome-twitch\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-10-09 22:42+0200\n"
+"PO-Revision-Date: 2015-10-27 00:16+0100\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Emacs PO mode, version 2.23\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: hu\n"
+"Gergő Rubint <gergo@rubint.me>"
+
+#: data/ui/gt-win.ui:55
+msgid "Channels"
+msgstr "Csatornák"
+
+#: data/ui/gt-win.ui:64
+msgid "Favourites"
+msgstr "Kedvencek"
+
+#: data/ui/gt-win.ui:73
+msgid "Games"
+msgstr "Játékok"
+
+#: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
+msgid "Settings"
+msgstr "Beállítások"
+
+#: data/ui/app-menu.ui:12
+msgid "About"
+msgstr "Névjegy"
+
+#: data/ui/app-menu.ui:16
+msgid "Quit"
+msgstr "Kilépés"
+
+#: data/ui/gt-settings-dlg.ui:17
+msgid "Default video quality: "
+msgstr "Alapértelmezett Videó Minőség"
+
+#: data/ui/gt-settings-dlg.ui:28
+msgid "Source"
+msgstr "Forrás"
+
+#: data/ui/gt-settings-dlg.ui:29
+msgid "High"
+msgstr "Magas"
+
+#: data/ui/gt-settings-dlg.ui:30
+msgid "Medium"
+msgstr "Közepes"
+
+#: data/ui/gt-settings-dlg.ui:31
+msgid "Low"
+msgstr "Alacsony"
+
+#: src/gt-win.c:96
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Élvezd a Twitch-et a GNU/Linux gépeden"
+
+#: src/gt-win.c:100
+msgid "translator-credits"
+msgstr "Gergő Rubint <gergo@rubint.me>"
