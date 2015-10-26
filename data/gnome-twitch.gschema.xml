@@ -16,6 +16,11 @@
       <range min="0.0" max="1.0"/>
       <default>0.3</default>
     </key>
+    <key name="window-height" type="i">
+      <default>710</default>
+    </key>
+    <key name="window-width" type="i">
+      <default>1050</default>
+    </key>
   </schema>
 </schemalist>
-

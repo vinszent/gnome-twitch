@@ -180,6 +180,24 @@ key_press_cb(GtkWidget* widget,
     return FALSE;
 }
 
+static gboolean
+delete_cb(GtkWidget* widget,
+          GdkEvent* evt,
+          gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    int width;
+    int height;
+
+    gtk_window_get_size(GTK_WINDOW(self), &width, &height);
+
+    g_settings_set_int(main_app->settings, "window-width", width);
+    g_settings_set_int(main_app->settings, "window-height", height);
+
+    return FALSE;
+}
+
 static GActionEntry win_actions[] = 
 {
     {"player_set_quality", player_set_quality_cb, "s", "'source'", NULL},
@@ -373,6 +391,10 @@ gt_win_init(GtWin* self)
     GT_TYPE_GAMES_VIEW;
     GT_TYPE_FAVOURITES_VIEW;
 
+    gtk_window_set_default_size(GTK_WINDOW(self),
+                                g_settings_get_int(main_app->settings, "window-width"),
+                                g_settings_get_int(main_app->settings, "window-height"));
+
     gtk_widget_init_template(GTK_WIDGET(self));
 
     g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
@@ -390,6 +412,7 @@ gt_win_init(GtWin* self)
 
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
     g_signal_connect(self, "key-press-event", G_CALLBACK(key_press_cb), self);
+    g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     win_actions,
