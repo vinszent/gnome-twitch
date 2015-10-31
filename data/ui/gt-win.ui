@@ -22,17 +22,17 @@
             <property name="name">browse</property>
             <property name="title">Browse</property>
           </packing>
-        </child> 
+        </child>
         <child>
           <object class="GtPlayerHeaderBar" id="player_header_bar">
             <property name="visible">True</property>
-            <property name="player">player</property> 
+            <property name="player">player</property>
           </object>
           <packing>
             <property name="name">player</property>
             <property name="title">Player</property>
           </packing>
-        </child> 
+        </child>
       </object>
     </child>
     <child>
@@ -61,14 +61,14 @@
                     <child>
                       <object class="GtkButton">
                         <property name="visible">True</property>
-                        <property name="label">Close</property> 
+                        <property name="label">Close</property>
                         <signal name="clicked" handler="hide_info_bar" object="GtWin"/>
                       </object>
                     </child>
                   </object>
                 </child>
               </object>
-            </child> 
+            </child>
           </object>
         </child>
         <child>
@@ -76,7 +76,7 @@
             <property name="visible">True</property>
             <property name="transition-type">over-right-left</property>
             <property name="transition-duration">300</property>
-            <child>
+              <child>
               <object class="GtkStack" id="browse_stack">
                 <property name="visible">True</property>
                 <property name="transition-type">slide-left-right</property>

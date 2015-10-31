@@ -8,13 +8,18 @@
 typedef struct
 {
     GtWin* win;
+
+    gchar* oauth_token;
+    gchar* nick;
 } GtAppPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
-enum 
+enum
 {
     PROP_0,
+    PROP_OAUTH_TOKEN,
+    PROP_NICK,
     NUM_PROPS
 };
 
@@ -30,7 +35,7 @@ static guint sigs[NUM_SIGS];
 GtApp*
 gt_app_new(void)
 {
-    return g_object_new(GT_TYPE_APP, 
+    return g_object_new(GT_TYPE_APP,
                         "application-id", "com.gnome-twitch.app",
                         NULL);
 }
@@ -41,7 +46,7 @@ init_dirs()
     gchar* fp = DATA_DIR;
 
     int err = g_mkdir(fp, 0777);
-    
+
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
     {
         g_warning("{GtApp} Error creating data dir");
@@ -63,7 +68,7 @@ quit_cb(GSimpleAction* action,
     g_application_quit(G_APPLICATION(self));
 }
 
-static GActionEntry app_actions[] = 
+static GActionEntry app_actions[] =
 {
     {"quit", quit_cb, NULL, NULL, NULL}
 };
@@ -93,6 +98,8 @@ activate(GApplication* app)
     priv->win = gt_win_new(self);
 
     gtk_window_present(GTK_WINDOW(priv->win));
+
+    gt_twitch_chat_client_connect(self->chat);
 }
 
 static void
@@ -129,6 +136,12 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
+        case PROP_OAUTH_TOKEN:
+            g_value_set_string(val, priv->oauth_token);
+            break;
+        case PROP_NICK:
+            g_value_set_string(val, priv->nick);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -141,9 +154,18 @@ set_property(GObject*      obj,
              GParamSpec*   pspec)
 {
     GtApp* self = GT_APP(obj);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     switch (prop)
     {
+        case PROP_OAUTH_TOKEN:
+            g_free(priv->oauth_token);
+            priv->oauth_token = g_value_dup_string(val);
+            break;
+        case PROP_NICK:
+            g_free(priv->nick);
+            priv->nick = g_value_dup_string(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -153,13 +175,26 @@ static void
 gt_app_class_init(GtAppClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
-    
+
     G_APPLICATION_CLASS(klass)->activate = activate;
     G_APPLICATION_CLASS(klass)->startup = startup;
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
+
+    props[PROP_OAUTH_TOKEN] = g_param_spec_string("oauth-token",
+                                                  "Oauth token",
+                                                  "Twitch Oauth token",
+                                                  NULL,
+                                                  G_PARAM_READWRITE);
+    props[PROP_NICK] = g_param_spec_string("nick",
+                                           "Nickname",
+                                           "Nickname of user",
+                                           NULL,
+                                           G_PARAM_READWRITE);
+
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
 static void
@@ -169,6 +204,8 @@ gt_app_init(GtApp* self)
 
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.gnome-twitch.app");
+    self->chat = gt_twitch_chat_client_new();
+
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="gnome-twitch">
+  <template class="GtTwitchChatView" parent="GtkBox">
+    <style>
+      <class name="gt-twitch-chat-view"/>
+    </style>
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkScrolledWindow" id="chat_scroll">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkTextView" id="chat_view">
+            <property name="visible">True</property>
+            <property name="left-margin">3</property>
+            <property name="right-margin">3</property>
+            <property name="pixels-above-lines">2</property>
+            <property name="pixels-below-lines">2</property>
+            <!-- <property name="expand">True</property> -->
+            <property name="wrap-mode">word</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">True</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEntry" id="chat_entry">
+        <property name="visible">True</property>
+      </object>
+    </child>
+  </template>
+</interface>

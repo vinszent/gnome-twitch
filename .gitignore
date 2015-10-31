@@ -2,3 +2,5 @@ build
 .SRCINFO
 po/gnome-twitch.pot
 po/*.mo
+.compdb.json
+.clang_complete

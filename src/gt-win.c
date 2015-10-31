@@ -11,6 +11,8 @@
 #include "gt-games-view.h"
 #include "gt-favourites-view.h"
 #include "gt-settings-dlg.h"
+#include "gt-twitch-login-dlg.h"
+#include "gt-twitch-chat-view.h"
 #include "gt-enums.h"
 #include "utils.h"
 #include "config.h"
@@ -24,7 +26,6 @@ typedef struct
     GtkWidget* channels_view;
     GtkWidget* games_view;
     GtkWidget* favourites_view;
-    GtkWidget* player;
     GtkWidget* header_stack;
     GtkWidget* browse_stack;
     GtkWidget* player_header_bar;
@@ -40,7 +41,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
 
-enum 
+enum
 {
     PROP_0,
     PROP_CHANNELS_VIEW,
@@ -58,30 +59,9 @@ static GParamSpec* props[NUM_PROPS];
 GtWin*
 gt_win_new(GtApp* app)
 {
-    return g_object_new(GT_TYPE_WIN, 
+    return g_object_new(GT_TYPE_WIN,
                         "application", app,
                         NULL);
-}
-
-static void
-player_set_quality_cb(GSimpleAction* action,
-                      GVariant* par,
-                      gpointer udata)
-{
-    GtWin* self = GT_WIN(udata);
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-    GEnumClass* eclass;
-
-    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
-
-    GEnumValue* qual = g_enum_get_value_by_nick(eclass, 
-                                                g_variant_get_string(par, NULL));
-
-    gt_player_set_quality(GT_PLAYER(priv->player), qual->value);
-
-    g_simple_action_set_state(action, par);
-
-    g_type_class_unref(eclass);
 }
 
 static void
@@ -122,6 +102,19 @@ show_settings_cb(GSimpleAction* action,
 }
 
 static void
+show_twitch_login_cb(GSimpleAction* action,
+                     GVariant* par,
+                     gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(self);
+
+    gtk_window_present(GTK_WINDOW(dlg));
+}
+
+static void
 refresh_view_cb(GSimpleAction* action,
                 GVariant* arg,
                 gpointer udata)
@@ -130,9 +123,9 @@ refresh_view_cb(GSimpleAction* action,
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view)); 
+        gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
     else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
-        gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view)); 
+        gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
 }
 
 static void
@@ -144,9 +137,9 @@ show_view_default_cb(GSimpleAction* action,
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
-        gt_channels_view_show_type(GT_CHANNELS_VIEW(priv->channels_view), GT_CHANNELS_CONTAINER_TYPE_TOP); 
+        gt_channels_view_show_type(GT_CHANNELS_VIEW(priv->channels_view), GT_CHANNELS_CONTAINER_TYPE_TOP);
     else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
-        gt_games_view_show_type(GT_GAMES_VIEW(priv->games_view), GT_GAMES_CONTAINER_TYPE_TOP); 
+        gt_games_view_show_type(GT_GAMES_VIEW(priv->games_view), GT_GAMES_CONTAINER_TYPE_TOP);
 }
 
 static gboolean
@@ -158,21 +151,21 @@ key_press_cb(GtkWidget* widget,
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     gboolean playing;
 
-    g_object_get(priv->player, "playing", &playing, NULL);
+    g_object_get(self->player, "playing", &playing, NULL);
 
     if (evt->keyval & GDK_KEY_space)
     {
-        if (MAIN_VISIBLE_CHILD == priv->player)
+        if (MAIN_VISIBLE_CHILD == self->player)
         {
             if (playing)
-                gt_player_stop(GT_PLAYER(priv->player));
+                gt_player_stop(GT_PLAYER(self->player));
             else
-                gt_player_play(GT_PLAYER(priv->player));
+                gt_player_play(GT_PLAYER(self->player));
         }
     }
     else if (evt->keyval & GDK_KEY_Escape)
     {
-        if (MAIN_VISIBLE_CHILD == priv->player)
+        if (MAIN_VISIBLE_CHILD == self->player)
             if (priv->fullscreen)
                 gtk_window_unfullscreen(GTK_WINDOW(self));
     }
@@ -198,13 +191,13 @@ delete_cb(GtkWidget* widget,
     return FALSE;
 }
 
-static GActionEntry win_actions[] = 
+static GActionEntry win_actions[] =
 {
-    {"player_set_quality", player_set_quality_cb, "s", "'source'", NULL},
     {"refresh_view", refresh_view_cb, NULL, NULL, NULL},
     {"show_view_default", show_view_default_cb, NULL, NULL, NULL},
     {"show_about", show_about_cb, NULL, NULL, NULL},
-    {"show_settings", show_settings_cb, NULL, NULL, NULL}
+    {"show_settings", show_settings_cb, NULL, NULL, NULL},
+    {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
 };
 
 static gboolean
@@ -359,12 +352,12 @@ gt_win_class_init(GtWinClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-win.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, main_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channels_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, games_view);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, player);
+    gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(klass), GtWin, player);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, header_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, player_header_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_header_bar);
@@ -390,6 +383,7 @@ gt_win_init(GtWin* self)
     GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
     GT_TYPE_FAVOURITES_VIEW;
+    GT_TYPE_TWITCH_CHAT_VIEW;
 
     gtk_window_set_default_size(GTK_WINDOW(self),
                                 g_settings_get_int(main_app->settings, "window-width"),
@@ -427,7 +421,7 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     gchar* status; gchar* display_name; gchar* name; gchar* token; gchar* sig;
-    g_object_get(chan, 
+    g_object_get(chan,
                  "display-name", &display_name,
                  "name", &name,
                  "status", &status,
@@ -443,7 +437,8 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
         show_error_message(self, "Error opening stream");
     else
     {
-        gt_player_open_channel(GT_PLAYER(priv->player), chan);
+        gt_player_open_channel(GT_PLAYER(self->player), chan);
+        gt_twitch_chat_client_join(main_app->chat, name);
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
                                          "player");
@@ -512,4 +507,14 @@ gt_win_get_fullscreen(GtWin* self)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     return priv->fullscreen;
+}
+
+void
+gt_win_show_info_message(GtWin* self, const gchar* msg)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
+    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_INFO);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
 }

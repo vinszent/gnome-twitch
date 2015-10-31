@@ -4,6 +4,7 @@
 #include <gtk/gtk.h>
 #include "gt-twitch.h"
 #include "gt-favourites-manager.h"
+#include "gt-twitch-chat-client.h"
 
 G_BEGIN_DECLS
 
@@ -18,6 +19,7 @@ struct _GtApp
     GtTwitch* twitch;
     GtFavouritesManager* fav_mgr;
     GSettings* settings;
+    GtTwitchChatClient* chat;
 };
 
 GtApp* gt_app_new(void);

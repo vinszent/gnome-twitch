@@ -3,14 +3,18 @@
 #include "gt-app.h"
 #include "gt-player-header-bar.h"
 #include "gt-win.h"
+#include "gt-twitch-chat-view.h"
+#include "gt-enums.h"
 #include "utils.h"
 
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
 typedef struct
 {
+    ClutterActor* docked_layour_actor;
+
     ClutterGstPlayback* player;
-    ClutterActor* actor;
+    ClutterActor* video_actor;
     ClutterActor* stage;
     ClutterContent* content;
 
@@ -21,11 +25,21 @@ typedef struct
     GtkWidget* buffer_box;
     ClutterActor* buffer_actor;
 
+    GtkWidget* chat_view;
+    ClutterActor* chat_actor;
+
     gdouble volume;
     GtChannel* open_channel;
     gboolean playing;
 
     gchar* current_uri;
+
+    gdouble chat_opacity;
+    gdouble chat_width;
+    gdouble chat_height;
+    gdouble chat_x;
+    gdouble chat_y;
+    gboolean chat_docked;
 
     GtWin* win; // Save a reference
 } GtPlayerClutterPrivate;
@@ -36,12 +50,18 @@ G_DEFINE_TYPE_WITH_CODE(GtPlayerClutter, gt_player_clutter, GTK_CLUTTER_TYPE_EMB
                         G_ADD_PRIVATE(GtPlayerClutter)
                         G_IMPLEMENT_INTERFACE(GT_TYPE_PLAYER, gt_player_init));
 
-enum 
+enum
 {
     PROP_0,
     PROP_VOLUME,
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
+    PROP_CHAT_OPACITY,
+    PROP_CHAT_WIDTH,
+    PROP_CHAT_HEIGHT,
+    PROP_CHAT_DOCKED,
+    PROP_CHAT_X,
+    PROP_CHAT_Y,
     NUM_PROPS
 };
 
@@ -50,8 +70,39 @@ static GParamSpec* props[NUM_PROPS];
 GtPlayerClutter*
 gt_player_clutter_new(void)
 {
-    return g_object_new(GT_TYPE_PLAYER_CLUTTER, 
+    return g_object_new(GT_TYPE_PLAYER_CLUTTER,
                         NULL);
+}
+
+static gboolean
+opacity_transformer(GBinding* binding,
+                    const GValue* from,
+                    GValue* to,
+                    gpointer udata)
+{
+    g_value_set_uint(to, UROUND(g_value_get_double(from)*255.0));
+
+    return TRUE;
+}
+
+static void
+update_chat_view_size_cb(GObject* source,
+                         GParamSpec* pspec,
+                         gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gfloat stage_width, stage_height;
+
+    g_object_get(priv->stage,
+                 "width", &stage_width,
+                 "height", &stage_height,
+                 NULL);
+
+    g_object_set(priv->chat_actor,
+                 "width", (gfloat) stage_width * priv->chat_width,
+                 "height", (gfloat) stage_height * priv->chat_height,
+                 NULL);
 }
 
 static void
@@ -83,7 +134,7 @@ set_uri(GtPlayer* player, const gchar* uri)
 static void
 play(GtPlayer* player)
 {
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
     clutter_gst_playback_set_uri(priv->player, priv->current_uri);
@@ -96,7 +147,7 @@ play(GtPlayer* player)
 static void
 stop(GtPlayer* player)
 {
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player); 
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
     clutter_gst_playback_set_uri(priv->player, NULL);
@@ -160,7 +211,7 @@ buffer_fill_cb(GObject* source,
     if (percent < 1.0)
     {
         gchar* text = g_strdup_printf("Buffered %d%%\n", (gint) (percent * 100));
-        
+
         clutter_actor_show(priv->buffer_actor);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(priv->buffer_bar), percent);
         gtk_progress_bar_set_text(GTK_PROGRESS_BAR(priv->buffer_bar), text);
@@ -212,7 +263,69 @@ realise_cb(GtkWidget* widget,
 
     priv->win = GT_WIN_TOPLEVEL(self);
 
+    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
+                                   "player", G_ACTION_GROUP(self->action_group));
+
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
+}
+
+static void
+edit_chat_action_cb(GSimpleAction* action,
+                    GVariant* arg,
+                    gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+
+
+//    g_simple_action_set_state(action, arg);
+}
+
+static void
+set_quality_action_cb(GSimpleAction* action,
+                      GVariant* arg,
+                      gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    GEnumClass* eclass;
+
+    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
+
+    GEnumValue* eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(arg, NULL));
+
+    gt_player_set_quality(GT_PLAYER(self), eval->value);
+
+//    g_simple_action_set_state(action, arg);
+
+    g_type_class_unref(eclass);
+}
+
+static gboolean
+chat_motion_cb(GtkWidget* widget,
+               GdkEventMotion* evt,
+               gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    static gfloat prev_x = -1;
+    static gfloat prev_y = -1;
+
+    if (evt->state & GDK_BUTTON1_MASK)
+    {
+        if (prev_x > 0 && prev_y > 0)
+        {
+            clutter_actor_set_position(priv->chat_actor,
+                                       clutter_actor_get_x(priv->chat_actor) + (evt->x - prev_x),
+                                       clutter_actor_get_y(priv->chat_actor) + (evt->y - prev_y));
+        }
+
+        prev_x = evt->x;
+        prev_y = evt->y;
+
+    }
+    return CLUTTER_EVENT_STOP;
 }
 
 static void
@@ -244,6 +357,24 @@ get_property (GObject*    obj,
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
             break;
+        case PROP_CHAT_OPACITY:
+            g_value_set_double(val, priv->chat_opacity);
+            break;
+        case PROP_CHAT_WIDTH:
+            g_value_set_double(val, priv->chat_width);
+            break;
+        case PROP_CHAT_HEIGHT:
+            g_value_set_double(val, priv->chat_width);
+            break;
+        case PROP_CHAT_DOCKED:
+            g_value_set_boolean(val, priv->chat_docked);
+            break;
+        case PROP_CHAT_X:
+            g_value_set_double(val, priv->chat_x);
+            break;
+        case PROP_CHAT_Y:
+            g_value_set_double(val, priv->chat_y);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -267,6 +398,24 @@ set_property(GObject*      obj,
             g_clear_object(&priv->open_channel);
             priv->open_channel = g_value_dup_object(val);
             break;
+        case PROP_CHAT_OPACITY:
+            priv->chat_opacity = g_value_get_double(val);
+            break;
+        case PROP_CHAT_WIDTH:
+            priv->chat_width = g_value_get_double(val);
+            break;
+        case PROP_CHAT_HEIGHT:
+            priv->chat_height = g_value_get_double(val);
+            break;
+        case PROP_CHAT_DOCKED:
+            priv->chat_docked = g_value_get_boolean(val);
+            break;
+        case PROP_CHAT_X:
+            priv->chat_x = g_value_get_double(val);
+            break;
+        case PROP_CHAT_Y:
+            priv->chat_y = g_value_get_double(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -284,6 +433,7 @@ static void
 gt_player_clutter_class_init(GtPlayerClutterClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
+    GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
 
     clutter_gst_init(NULL, NULL);
 
@@ -295,7 +445,7 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                              "Volume",
                                              "Volume of player",
                                              0.0, 1.0, 0.3,
-                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);  
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel",
                                                    "Open Channel",
                                                    "Currently open channel",
@@ -306,11 +456,50 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                                "Whether playing",
                                                FALSE,
                                                G_PARAM_READABLE);
+    props[PROP_CHAT_OPACITY] = g_param_spec_double("chat-opacity",
+                                                   "Chat Opacity",
+                                                   "Current chat opacity",
+                                                   0, 1.0, 0,
+                                                   G_PARAM_READWRITE);
+    props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
+                                                 "Chat Width",
+                                                 "Current chat width",
+                                                 0, 1.0, 0.2,
+                                                 G_PARAM_READWRITE);
+    props[PROP_CHAT_HEIGHT] = g_param_spec_double("chat-height",
+                                                  "Chat Height",
+                                                  "Current chat height",
+                                                  0, 1.0, 1.0,
+                                                  G_PARAM_READWRITE);
+    props[PROP_CHAT_DOCKED] = g_param_spec_boolean("chat-docked",
+                                                   "Chat Docked",
+                                                   "Whether chat docked",
+                                                   FALSE,
+                                                  G_PARAM_READWRITE);
+    props[PROP_CHAT_X] = g_param_spec_double("chat-x",
+                                             "Chat X",
+                                             "Current chat x",
+                                             0, G_MAXDOUBLE, 0,
+                                             G_PARAM_READWRITE);
+    props[PROP_CHAT_Y] = g_param_spec_double("chat-y",
+                                             "Chat Y",
+                                             "Current chat y",
+                                             0, G_MAXDOUBLE, 0,
+                                             G_PARAM_READWRITE);
 
     g_object_class_override_property(object_class, PROP_VOLUME, "volume");
     g_object_class_override_property(object_class, PROP_OPEN_CHANNEL, "open-channel");
     g_object_class_override_property(object_class, PROP_PLAYING, "playing");
+    g_object_class_install_property(object_class, PROP_CHAT_OPACITY, props[PROP_CHAT_OPACITY]);
+    g_object_class_install_property(object_class, PROP_CHAT_WIDTH, props[PROP_CHAT_WIDTH]);
+    g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
 }
+
+static GActionEntry actions[] =
+{
+    {"edit_chat", NULL, NULL, "false", edit_chat_action_cb},
+    {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
+};
 
 static void
 gt_player_clutter_init(GtPlayerClutter* self)
@@ -319,14 +508,25 @@ gt_player_clutter_init(GtPlayerClutter* self)
 
     priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self));
     priv->player = clutter_gst_playback_new();
-    priv->actor = clutter_actor_new();
+    priv->video_actor = clutter_actor_new();
     priv->content = clutter_gst_aspectratio_new();
     priv->fullscreen_bar = GTK_WIDGET(gt_player_header_bar_new());
     priv->fullscreen_bar_actor = gtk_clutter_actor_new_with_contents(priv->fullscreen_bar);
     priv->buffer_bar = gtk_progress_bar_new();
     priv->buffer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     priv->buffer_actor = gtk_clutter_actor_new_with_contents(priv->buffer_box);
+    priv->chat_view = GTK_WIDGET(gt_twitch_chat_view_new());
+    priv->chat_actor = gtk_clutter_actor_new_with_contents(priv->chat_view);
+    priv->docked_layour_actor = clutter_actor_new();
     priv->playing = FALSE;
+    self->action_group = g_simple_action_group_new();
+
+    ClutterLayoutManager* layout = clutter_box_layout_new();
+//    g_object_set(layout, "homogeneous", TRUE, NULL);
+
+    clutter_actor_set_layout_manager(priv->docked_layour_actor, layout);
+
+    g_action_map_add_action_entries(G_ACTION_MAP(self->action_group), actions, G_N_ELEMENTS(actions), self);
 
     gtk_container_add(GTK_CONTAINER(priv->buffer_box), priv->buffer_bar);
     gtk_widget_show_all(priv->buffer_box);
@@ -338,15 +538,23 @@ gt_player_clutter_init(GtPlayerClutter* self)
                  "height", 50.0,
                  "width", 150.0,
                  NULL);
+
+    g_object_set(priv->video_actor,
+                 "x-expand", TRUE,
+                 "y-expand", TRUE,
+                 NULL);
+
     clutter_actor_hide(priv->buffer_actor);
 
     g_object_set(priv->fullscreen_bar, "player", self, NULL);
     clutter_actor_hide(priv->fullscreen_bar_actor);
 
     g_object_set(priv->content, "player", priv->player, NULL);
-    g_object_set(priv->actor, "content", priv->content, NULL);
+    g_object_set(priv->video_actor, "content", priv->content, NULL);
 
-    clutter_actor_add_child(priv->stage, priv->actor);
+    clutter_actor_add_child(priv->docked_layour_actor, priv->video_actor);
+    clutter_actor_add_child(priv->docked_layour_actor, priv->chat_actor);
+    clutter_actor_add_child(priv->stage, priv->docked_layour_actor);
     clutter_actor_add_child(priv->stage, priv->fullscreen_bar_actor);
     clutter_actor_add_child(priv->stage, priv->buffer_actor);
 
@@ -361,6 +569,10 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
     g_signal_connect(self, "button-press-event", G_CALLBACK(button_press_cb), self);
+    g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_motion_cb), self);
+    g_signal_connect(priv->stage, "notify::size", G_CALLBACK(update_chat_view_size_cb), self);
+    g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
+    g_signal_connect(self, "notify::chat-height", G_CALLBACK(update_chat_view_size_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",
@@ -369,11 +581,16 @@ gt_player_clutter_init(GtPlayerClutter* self)
                            priv->fullscreen_bar_actor, "width",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->stage, "width",
-                           priv->actor, "width",
+                           priv->docked_layour_actor, "width",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->stage, "height",
-                           priv->actor, "height",
+                           priv->docked_layour_actor, "height",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property_full(self, "chat-opacity",
+                                priv->chat_actor, "opacity",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) opacity_transformer,
+                                NULL, NULL, NULL);
 
     g_settings_bind(main_app->settings, "volume",
                     self, "volume",

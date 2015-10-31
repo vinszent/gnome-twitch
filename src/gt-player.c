@@ -5,7 +5,7 @@
 
 G_DEFINE_INTERFACE(GtPlayer, gt_player, G_TYPE_OBJECT)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -14,10 +14,11 @@ enum
 static GParamSpec* props[NUM_PROPS];
 static GtPlayerInterface* gt_player_parent_interface = NULL;
 
+//TODO: Make this a abstract object
 GtPlayer*
 gt_player_new(void)
 {
-    return g_object_new(GT_TYPE_PLAYER, 
+    return g_object_new(GT_TYPE_PLAYER,
                         NULL);
 }
 
@@ -72,7 +73,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     g_object_set(self, "open-channel", chan, NULL);
 
-    g_object_get(chan, 
+    g_object_get(chan,
                  "display-name", &display_name,
                  "name", &name,
                  "status", &status,
@@ -83,9 +84,9 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     g_message("{GtPlayer} Opening channel '%s' with quality '%d'", name, _default_quality);
 
-    win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
-    quality_action = g_action_map_lookup_action(G_ACTION_MAP(win), "player_set_quality");
-    g_action_change_state(quality_action, default_quality);
+    /* win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self))); */
+    /* quality_action = g_action_map_lookup_action(G_ACTION_MAP(GT_PLAYER_CLUTTER(win->player)->action_map), "set_quality"); */
+    /* g_action_change_state(quality_action, default_quality); */
 
     gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
     stream_data = gt_twitch_stream_by_quality(main_app->twitch,

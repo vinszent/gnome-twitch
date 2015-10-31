@@ -23,12 +23,18 @@ typedef struct
 
     GtkWidget* volume_button;
 
+    GMenu* hamburger_menu;
+
+    GtkAdjustment* chat_view_width_adjustment;
+    GtkAdjustment* chat_view_height_adjustment;
+    GtkAdjustment* chat_view_opacity_adjustment;
+
     gboolean fullscreen;
 } GtPlayerHeaderBarPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerHeaderBar, gt_player_header_bar, GTK_TYPE_HEADER_BAR)
 
-enum 
+enum
 {
     PROP_0,
     PROP_PLAYER,
@@ -43,7 +49,7 @@ static GParamSpec* props[NUM_PROPS];
 GtPlayerHeaderBar*
 gt_player_header_bar_new(void)
 {
-    return g_object_new(GT_TYPE_PLAYER_HEADER_BAR, 
+    return g_object_new(GT_TYPE_PLAYER_HEADER_BAR,
                         NULL);
 }
 
@@ -160,6 +166,15 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->player, "volume",
                                priv->volume_button, "value",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
+                               priv->player, "chat-opacity",
+                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->chat_view_width_adjustment, "value",
+                               priv->player, "chat-width",
+                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->chat_view_height_adjustment, "value",
+                               priv->player, "chat-height",
+                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
         g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
@@ -286,7 +301,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-player-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, fullscreen_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_image);
@@ -295,6 +310,9 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, unfullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, volume_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_stop_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_width_adjustment);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_opacity_adjustment);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_back_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
@@ -312,4 +330,5 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
     g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
     g_signal_connect(self, "notify::player", G_CALLBACK(player_set_cb), self);
+
 }
