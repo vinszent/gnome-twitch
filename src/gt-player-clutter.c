@@ -297,7 +297,7 @@ set_quality_action_cb(GSimpleAction* action,
 
     gt_player_set_quality(GT_PLAYER(self), eval->value);
 
-//    g_simple_action_set_state(action, arg);
+    g_simple_action_set_state(action, arg);
 
     g_type_class_unref(eclass);
 }

@@ -15,7 +15,6 @@
       <file preprocess="xml-stripblanks">ui/gt-settings-dlg.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-twitch-chat-view.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-twitch-login-dlg.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-player-clutter.ui</file>
       <file preprocess="xml-stripblanks">ui/app-menu.ui</file>
       <file>gnome-twitch-style.css</file>
       <file preprocess="to-pixdata">icons/offline.png</file>
