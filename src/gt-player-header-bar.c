@@ -168,13 +168,13 @@ player_set_cb(GObject* source,
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
         g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
                                priv->player, "chat-opacity",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
         g_object_bind_property(priv->chat_view_width_adjustment, "value",
                                priv->player, "chat-width",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
         g_object_bind_property(priv->chat_view_height_adjustment, "value",
                                priv->player, "chat-height",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
         g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
