@@ -109,7 +109,4 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     g_settings_bind(priv->settings, "default-quality",
                     priv->quality_combo, "active-id",
                     G_SETTINGS_BIND_DEFAULT);
-    g_settings_bind(priv->settings, "user-name",
-                    priv->user_name_entry, "text",
-                    G_SETTINGS_BIND_DEFAULT);
 }

@@ -97,12 +97,16 @@ uri_changed_cb(GObject* source,
 
     g_object_get(source, "uri", &url, NULL);
 
+    g_info("{GtTwitchLoginDlg} Redirect url is '%s'", url);
+
     g_regex_match(priv->token_redirect_regex, url, 0, &match_info);
     if (g_match_info_matches(match_info))
     {
         gchar* token = g_match_info_fetch(match_info, 1);
 
         g_object_set(main_app, "oauth-token", token, NULL);
+
+        g_message("{GtTwitchLoginDlg} Successfully got OAuth token '%s'", token);
 
         gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
                                  "Successfully logged in to Twitch!");
@@ -111,11 +115,29 @@ uri_changed_cb(GObject* source,
         g_free(token);
 
     }
+    else if (g_str_has_prefix(url, "http://localhost/?error=access_denied"))
+    {
+        g_message("{GtTwitchLoginDlg} Error logging or login cancelled");
 
-    g_print("Url %s\n", url);
+        gtk_widget_destroy(GTK_WIDGET(self));
+    }
 
     g_match_info_unref(match_info);
     g_free(url);
+}
+
+static void
+submit_form_cb(WebKitWebView* web_view,
+               WebKitFormSubmissionRequest* request,
+               gpointer udata)
+{
+    GHashTable* text_fields = webkit_form_submission_request_get_text_fields(request);
+
+    gchar* user_name = g_hash_table_lookup(text_fields, "login");
+
+    g_message("{GtTwitchLoginDlg} Got username '%s' from form", user_name);
+
+    g_object_set(main_app, "user-name", user_name, NULL);
 }
 
 static void
@@ -128,6 +150,7 @@ gt_twitch_login_dlg_init(GtTwitchLoginDlg* self)
     gtk_widget_init_template(GTK_WIDGET(self));
 
     g_signal_connect(priv->web_view, "notify::uri", G_CALLBACK(uri_changed_cb), self);
+    g_signal_connect(priv->web_view, "submit-form", G_CALLBACK(submit_form_cb), self);
 
     const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login");
 

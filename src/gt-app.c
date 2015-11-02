@@ -77,8 +77,6 @@ oauth_token_set_cb(GObject* source,
     GtApp* self = GT_APP(udata);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    g_message("{GtApp} OAuth token set to '%s'", priv->oauth_token);
-
     if (priv->oauth_token && strlen(priv->oauth_token) > 0 &&
         priv->user_name && strlen(priv->user_name) > 0)
         gt_twitch_chat_client_connect(self->chat);
