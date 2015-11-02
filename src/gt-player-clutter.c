@@ -364,7 +364,7 @@ get_property (GObject*    obj,
             g_value_set_double(val, priv->chat_width);
             break;
         case PROP_CHAT_HEIGHT:
-            g_value_set_double(val, priv->chat_width);
+            g_value_set_double(val, priv->chat_height);
             break;
         case PROP_CHAT_DOCKED:
             g_value_set_boolean(val, priv->chat_docked);
