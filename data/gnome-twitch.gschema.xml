@@ -22,5 +22,11 @@
     <key name="window-width" type="i">
       <default>1050</default>
     </key>
+    <key name="oauth-token" type="s">
+      <default>''</default>
+    </key>
+    <key name="user-name" type="s">
+      <default>''</default>
+    </key>
   </schema>
 </schemalist>

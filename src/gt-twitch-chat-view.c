@@ -31,17 +31,6 @@ gt_twitch_chat_view_new()
 }
 
 static void
-channel_joined_cb(GtTwitchChatClient* chat,
-                  const gchar* channel,
-                  gpointer udata)
-{
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
-
-    gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
-}
-
-static void
 add_chat_msg(GtTwitchChatView* self,
              gchar* sender,
              gchar* colour,
@@ -84,21 +73,39 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
 {
     GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    gboolean ret = G_SOURCE_REMOVE;
 
-    if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
+    if (!g_source_is_destroyed(g_main_current_source()))
     {
-        gchar* sender = utils_search_key_value_strv(msg->tags, "display-name");
-        if (!sender || strlen(sender) < 1)
-            sender = msg->nick;
-        gchar* colour = utils_search_key_value_strv(msg->tags, "color");
-        gchar* msg_str = msg->params;
-        strsep(&msg_str, " :");
-        add_chat_msg(self, sender, colour, msg_str+1);
+        if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
+        {
+            gchar* sender = utils_search_key_value_strv(msg->tags, "display-name");
+            if (!sender || strlen(sender) < 1)
+                sender = msg->nick;
+            gchar* colour = utils_search_key_value_strv(msg->tags, "color");
+            gchar* msg_str = msg->params;
+            strsep(&msg_str, " :");
+            add_chat_msg(self, sender, colour, msg_str+1);
+        }
+
+        ret = G_SOURCE_CONTINUE;
     }
 
     gt_twitch_chat_message_free(msg);
 
-    return G_SOURCE_CONTINUE;
+    return ret;
+}
+
+static void
+channel_joined_cb(GtTwitchChatClient* chat,
+                  const gchar* channel,
+                  gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
+    g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 }
 
 static void
@@ -178,8 +185,6 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
-
-    g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 
     g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);

@@ -43,6 +43,7 @@ struct _GtTwitchChatClient
 GtTwitchChatClient* gt_twitch_chat_client_new();
 void gt_twitch_chat_client_connect(GtTwitchChatClient* self);
 void gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel);
+void gt_twitch_chat_client_part(GtTwitchChatClient* self);
 GtTwitchChatMessage* gt_twitch_chat_message_new();
 void gt_twitch_chat_message_free(GtTwitchChatMessage* msg);
 

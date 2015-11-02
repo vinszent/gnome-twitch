@@ -104,12 +104,12 @@ uri_changed_cb(GObject* source,
 
         g_object_set(main_app, "oauth-token", token, NULL);
 
-        g_print("Token %s\n", token);
-        g_free(token);
+        gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
+                                 "Successfully logged in to Twitch!");
 
         gtk_widget_destroy(GTK_WIDGET(self));
+        g_free(token);
 
-        gt_win_show_info_message(GT_WIN_TOPLEVEL(self), "Successfully logged in to Twitch!");
     }
 
     g_print("Url %s\n", url);

@@ -3,14 +3,15 @@
 typedef struct
 {
     GtkWidget* quality_combo;
+    GtkWidget* user_name_entry;
     GtWin* win;
 
-    GSettings* settings; 
+    GSettings* settings;
 } GtSettingsDlgPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtSettingsDlg, gt_settings_dlg, GTK_TYPE_DIALOG)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -21,7 +22,7 @@ static GParamSpec* props[NUM_PROPS];
 GtSettingsDlg*
 gt_settings_dlg_new(GtWin* win)
 {
-    return g_object_new(GT_TYPE_SETTINGS_DLG, 
+    return g_object_new(GT_TYPE_SETTINGS_DLG,
                         "transient-for", win,
                         "use-header-bar", TRUE,
                         NULL);
@@ -93,6 +94,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-settings-dlg.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, user_name_entry);
 }
 
 static void
@@ -106,5 +108,8 @@ gt_settings_dlg_init(GtSettingsDlg* self)
 
     g_settings_bind(priv->settings, "default-quality",
                     priv->quality_combo, "active-id",
+                    G_SETTINGS_BIND_DEFAULT);
+    g_settings_bind(priv->settings, "user-name",
+                    priv->user_name_entry, "text",
                     G_SETTINGS_BIND_DEFAULT);
 }

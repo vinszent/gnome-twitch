@@ -2,6 +2,7 @@
 #include "gt-win.h"
 #include <glib/gstdio.h>
 #include <errno.h>
+#include <string.h>
 
 #define DATA_DIR g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL)
 
@@ -10,7 +11,7 @@ typedef struct
     GtWin* win;
 
     gchar* oauth_token;
-    gchar* nick;
+    gchar* user_name;
 } GtAppPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
@@ -19,7 +20,7 @@ enum
 {
     PROP_0,
     PROP_OAUTH_TOKEN,
-    PROP_NICK,
+    PROP_USER_NAME,
     NUM_PROPS
 };
 
@@ -68,6 +69,21 @@ quit_cb(GSimpleAction* action,
     g_application_quit(G_APPLICATION(self));
 }
 
+static void
+oauth_token_set_cb(GObject* source,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtApp* self = GT_APP(udata);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    g_message("{GtApp} OAuth token set to '%s'", priv->oauth_token);
+
+    if (priv->oauth_token && strlen(priv->oauth_token) > 0 &&
+        priv->user_name && strlen(priv->user_name) > 0)
+        gt_twitch_chat_client_connect(self->chat);
+}
+
 static GActionEntry app_actions[] =
 {
     {"quit", quit_cb, NULL, NULL, NULL}
@@ -99,7 +115,12 @@ activate(GApplication* app)
 
     gtk_window_present(GTK_WINDOW(priv->win));
 
-    gt_twitch_chat_client_connect(self->chat);
+    g_settings_bind(self->settings, "user-name",
+                    self, "user-name",
+                    G_SETTINGS_BIND_DEFAULT);
+    g_settings_bind(self->settings, "oauth-token",
+                    self, "oauth-token",
+                    G_SETTINGS_BIND_DEFAULT);
 }
 
 static void
@@ -139,8 +160,8 @@ get_property (GObject*    obj,
         case PROP_OAUTH_TOKEN:
             g_value_set_string(val, priv->oauth_token);
             break;
-        case PROP_NICK:
-            g_value_set_string(val, priv->nick);
+        case PROP_USER_NAME:
+            g_value_set_string(val, priv->user_name);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -162,9 +183,9 @@ set_property(GObject*      obj,
             g_free(priv->oauth_token);
             priv->oauth_token = g_value_dup_string(val);
             break;
-        case PROP_NICK:
-            g_free(priv->nick);
-            priv->nick = g_value_dup_string(val);
+        case PROP_USER_NAME:
+            g_free(priv->user_name);
+            priv->user_name = g_value_dup_string(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -188,11 +209,11 @@ gt_app_class_init(GtAppClass* klass)
                                                   "Twitch Oauth token",
                                                   NULL,
                                                   G_PARAM_READWRITE);
-    props[PROP_NICK] = g_param_spec_string("nick",
-                                           "Nickname",
-                                           "Nickname of user",
-                                           NULL,
-                                           G_PARAM_READWRITE);
+    props[PROP_USER_NAME] = g_param_spec_string("user-name",
+                                                "User name",
+                                                "User name",
+                                                NULL,
+                                                G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
@@ -206,6 +227,7 @@ gt_app_init(GtApp* self)
     self->settings = g_settings_new("com.gnome-twitch.app");
     self->chat = gt_twitch_chat_client_new();
 
+    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
