@@ -230,3 +230,11 @@ gt_app_init(GtApp* self)
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
 }
+
+const gchar*
+gt_app_get_user_name(GtApp* self)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return priv->user_name;
+}
