@@ -32,9 +32,9 @@ gt_twitch_chat_view_new()
 
 static void
 add_chat_msg(GtTwitchChatView* self,
-             gchar* sender,
-             gchar* colour,
-             gchar* msg)
+             const gchar* sender,
+             const gchar* colour,
+             const gchar* msg)
 {
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GtkTextTag* sender_colour_tag = NULL;
@@ -65,6 +65,21 @@ add_chat_msg(GtTwitchChatView* self,
     gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
     gtk_text_iter_forward_to_line_end(&insert_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, "\n", -1);
+}
+
+static void
+send_msg_from_entry(GtTwitchChatView* self)
+{
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    const gchar* msg;
+
+    msg = gtk_entry_get_text(GTK_ENTRY(priv->chat_entry));
+
+    gt_twitch_chat_client_privmsg(main_app->chat, msg);
+
+    add_chat_msg(self, gt_app_get_user_name(main_app), "#F5629B", msg);
+
+    gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
 }
 
 static gboolean
@@ -110,9 +125,14 @@ channel_joined_cb(GtTwitchChatClient* chat,
 
 static gboolean
 key_press_cb(GtkWidget* widget,
-             GdkEvent* evt,
+             GdkEventKey* evt,
              gpointer udata)
 {
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+
+    if (evt->keyval == GDK_KEY_Return)
+        send_msg_from_entry(self);
+
     return FALSE;
 }
 
@@ -197,5 +217,4 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
-    g_signal_connect(priv->chat_entry, "key-release-event", G_CALLBACK(key_press_cb), self);
 }

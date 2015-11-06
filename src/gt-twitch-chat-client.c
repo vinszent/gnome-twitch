@@ -1,11 +1,16 @@
 #include "gt-twitch-chat-client.h"
 #include "gt-app.h"
 #include <string.h>
+#include <glib/gprintf.h>
 
 #define TWITCH_IRC_HOSTNAME "irc.twitch.tv"
 #define TWITC_IRC_PORT 6667
 
 #define CR_LF "\r\n"
+
+#define CHECK_CONNECTION(priv)                  \
+    if (!priv->connected)                       \
+        return;                                 \
 
 //TODO: Need to check for 001 message before setting connected
 
@@ -131,7 +136,23 @@ send_cmd(GtTwitchChatClient* self, const gchar* cmd, const gchar* param)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
-    g_debug("{GtTwitchChatClient} Sending command %s with parameter %s", cmd, param);
+    g_debug("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+
+    g_output_stream_printf(priv->ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
+}
+
+static void
+send_cmd_printf(GtTwitchChatClient* self, const gchar* cmd, const gchar* format, ...)
+{
+    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    va_list args;
+    gchar param[512];
+
+    va_start(args, format);
+    g_vsprintf(param, format, args);
+    va_end(args);
+
+    g_message("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(priv->ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -359,8 +380,7 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
     gchar* chan = NULL;
 
-    if (!priv->connected)
-        return;
+    CHECK_CONNECTION(priv);
 
     gt_twitch_chat_client_part(self);
 
@@ -387,8 +407,7 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
-    if (!priv->connected)
-        return;
+    CHECK_CONNECTION(priv);
 
     if (priv->cur_chan)
     {
@@ -399,6 +418,18 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
     g_source_destroy((GSource*) self->source);
     g_clear_pointer(&self->source, (GDestroyNotify) g_source_unref);
+}
+
+void
+gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
+{
+    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+
+    CHECK_CONNECTION(priv);
+
+    send_cmd_printf(self, TWITCH_CHAT_CMD_PRIVMSG, "%s :%s", priv->cur_chan, msg);
+
+    g_print("Privmsg\n");
 }
 
 GtTwitchChatMessage*
