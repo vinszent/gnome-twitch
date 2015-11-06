@@ -153,7 +153,9 @@ key_press_cb(GtkWidget* widget,
 
     g_object_get(self->player, "playing", &playing, NULL);
 
-    if (evt->keyval & GDK_KEY_space)
+    g_print("Win\n");
+
+    if (evt->keyval == GDK_KEY_space)
     {
         if (MAIN_VISIBLE_CHILD == self->player)
         {
@@ -163,7 +165,7 @@ key_press_cb(GtkWidget* widget,
                 gt_player_play(GT_PLAYER(self->player));
         }
     }
-    else if (evt->keyval & GDK_KEY_Escape)
+    else if (evt->keyval == GDK_KEY_Escape)
     {
         if (MAIN_VISIBLE_CHILD == self->player)
             if (priv->fullscreen)
@@ -405,7 +407,7 @@ gt_win_init(GtWin* self)
     gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
-    g_signal_connect(self, "key-press-event", G_CALLBACK(key_press_cb), self);
+    g_signal_connect_after(self, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),

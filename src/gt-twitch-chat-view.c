@@ -108,6 +108,14 @@ channel_joined_cb(GtTwitchChatClient* chat,
     g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 }
 
+static gboolean
+key_press_cb(GtkWidget* widget,
+             GdkEvent* evt,
+             gpointer udata)
+{
+    return FALSE;
+}
+
 static void
 finalise(GObject* obj)
 {
@@ -188,4 +196,6 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
+    g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
+    g_signal_connect(priv->chat_entry, "key-release-event", G_CALLBACK(key_press_cb), self);
 }
