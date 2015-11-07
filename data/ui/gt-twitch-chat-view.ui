@@ -16,7 +16,7 @@
             <property name="pixels-above-lines">2</property>
             <property name="pixels-below-lines">2</property>
             <!-- <property name="expand">True</property> -->
-            <property name="wrap-mode">word</property>
+            <property name="wrap-mode">word-char</property>
           </object>
         </child>
       </object>
