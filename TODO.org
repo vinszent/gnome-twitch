@@ -4,14 +4,17 @@
 
 * Minor milestones
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
-** TODO Twitch emotes in chat
+** DONE Twitch emotes in chat
    *** Probably embed the most popular ones as resources
 ** TODO Chat make links clickable
 ** TODO Save chat properties
+** TODO Add UTF-8 support to chat
 ** TODO Un-dockable chat
 ** TODO Hide chat
 ** TODO Proper error handling for IRC client
    *** Make sure first message received after oauth token is sent is 001
+** TODO Clear chat and clear user messages when user is timed out by a mod/admin
+** TODO Chat user list
 ** TODO Add info to player
    *** Viewer count
    *** Time online

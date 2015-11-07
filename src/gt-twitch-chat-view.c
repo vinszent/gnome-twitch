@@ -3,6 +3,7 @@
 #include "gt-app.h"
 #include "utils.h"
 #include <string.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -11,6 +12,7 @@ typedef struct
     GtkWidget* chat_entry;
     GtkTextBuffer* chat_buffer;
     GtkTextTagTable* tag_table;
+    GHashTable* twitch_emotes;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -23,6 +25,13 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
+typedef struct
+{
+    int start;
+    int end;
+    GdkPixbuf* pixbuf;
+} TwitchEmote;
+
 GtTwitchChatView*
 gt_twitch_chat_view_new()
 {
@@ -30,15 +39,96 @@ gt_twitch_chat_view_new()
                         NULL);
 }
 
+gint
+twitch_emote_compare(TwitchEmote* a, TwitchEmote* b)
+{
+    if (a->start < b->start)
+        return -1;
+    else if (a->start > b->start)
+        return 1;
+    else
+        return 0;
+}
+
+static GList*
+parse_emote_string(GtTwitchChatView* self, const gchar* emotes)
+{
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GList* ret = NULL;
+    gchar* tmp;
+    gchar* emote;
+
+    tmp = g_strdup(emotes);
+
+    while ((emote = strsep(&tmp, "/")) != NULL)
+    {
+        gint id;
+        gchar* indexes;
+        gchar* index;
+        GdkPixbuf* pixbuf;
+        gchar url[128];
+
+        id = atoi(strsep(&emote, ":"));
+        indexes = strsep(&emote, ":");
+
+        if (!g_hash_table_contains(priv->twitch_emotes, GINT_TO_POINTER(id)))
+        {
+            pixbuf = gt_twitch_download_emote(main_app->twitch, id);
+            g_hash_table_insert(priv->twitch_emotes, GINT_TO_POINTER(id), pixbuf);
+        }
+        else
+            pixbuf = g_hash_table_lookup(priv->twitch_emotes, GINT_TO_POINTER(id));
+
+        while ((index = strsep(&indexes, ",")) != NULL)
+        {
+            TwitchEmote* em = g_new0(TwitchEmote, 1);
+
+            em->start = atoi(strsep(&index, "-"));
+            em->end = atoi(strsep(&index, "-"));
+            em->pixbuf = pixbuf;
+
+            ret = g_list_append(ret, em);
+        }
+    }
+
+    g_free(tmp);
+    ret = g_list_sort(ret, (GCompareFunc) twitch_emote_compare);
+
+    return ret;
+}
+
+static void
+insert_message_with_emotes(GtkTextBuffer* buf, GtkTextIter* iter, GList* emotes, const gchar* msg, gint offset)
+{
+    gint deleted = 0;
+
+    gtk_text_buffer_insert(buf, iter, msg, -1);
+
+    if (!emotes)
+        return;
+
+    for (GList* l = emotes; l != NULL; l = l->next)
+    {
+        TwitchEmote* em = (TwitchEmote*) l->data;
+        GtkTextIter iter2 = *iter;
+
+        gtk_text_iter_set_line_offset(iter, em->start + offset - deleted);
+        gtk_text_iter_set_line_offset(&iter2, em->end + offset - deleted + 1);
+        gtk_text_buffer_delete(buf, iter, &iter2);
+        gtk_text_buffer_insert_pixbuf(buf, iter, em->pixbuf);
+        deleted += em->end - em->start;
+    }
+}
+
 static void
 add_chat_msg(GtTwitchChatView* self,
              const gchar* sender,
              const gchar* colour,
-             const gchar* msg)
+             const gchar* msg,
+             GList* emotes)
 {
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GtkTextTag* sender_colour_tag = NULL;
-    gchar* line;
     GtkTextIter insert_iter;
 
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &insert_iter);
@@ -62,7 +152,8 @@ add_chat_msg(GtTwitchChatView* self,
     gtk_text_iter_forward_word_end(&insert_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, ": ", -1);
     gtk_text_iter_forward_chars(&insert_iter, 2);
-    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
+//    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
+    insert_message_with_emotes(priv->chat_buffer, &insert_iter, emotes, msg, strlen(sender) + 2);
     gtk_text_iter_forward_to_line_end(&insert_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, "\n", -1);
 }
@@ -77,7 +168,7 @@ send_msg_from_entry(GtTwitchChatView* self)
 
     gt_twitch_chat_client_privmsg(main_app->chat, msg);
 
-    add_chat_msg(self, gt_app_get_user_name(main_app), "#F5629B", msg);
+    add_chat_msg(self, gt_app_get_user_name(main_app), "#F5629B", msg, NULL); //TODO: User emotes
 
     gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
 }
@@ -99,8 +190,10 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
                 sender = msg->nick;
             gchar* colour = utils_search_key_value_strv(msg->tags, "color");
             gchar* msg_str = msg->params;
+            GList* emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
             strsep(&msg_str, " :");
-            add_chat_msg(self, sender, colour, msg_str+1);
+            add_chat_msg(self, sender, colour, msg_str+1, emotes);
+            g_list_free_full(emotes, g_free);
         }
 
         ret = G_SOURCE_CONTINUE;
@@ -213,6 +306,7 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
+    priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);

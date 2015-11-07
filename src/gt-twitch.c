@@ -17,6 +17,7 @@
 #define SEARCH_GAMES_URI    "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
 #define STREAMS_URI         "https://api.twitch.tv/kraken/streams/%s"
 #define CHANNELS_URI        "https://api.twitch.tv/kraken/channels/%s"
+#define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -30,7 +31,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -81,7 +82,7 @@ gt_spawn_twitch_search_channels_error_quark()
 GtTwitch*
 gt_twitch_new(void)
 {
-    return g_object_new(GT_TYPE_TWITCH, 
+    return g_object_new(GT_TYPE_TWITCH,
                         NULL);
 }
 
@@ -226,7 +227,7 @@ parse_playlist(const gchar* playlist)
 
                 g_strfreev(split);
             }
-            
+
             l++;
 
             stream->url = g_strdup(*l);
@@ -284,7 +285,7 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "channel");
-    
+
     parse_channel(self, reader, data);
 
     json_reader_end_member(reader);
@@ -362,7 +363,7 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
 
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
-				   
+
     if (!send_message(self, msg))
     {
 	g_warning("{GtTwitch} Error sending message to get stream uris");
@@ -377,10 +378,10 @@ gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
     return ret;
 }
 
-GtTwitchStreamData* 
-gt_twitch_stream_by_quality(GtTwitch* self, 
-                            gchar* channel, 
-                            GtTwitchStreamQuality qual, 
+GtTwitchStreamData*
+gt_twitch_stream_by_quality(GtTwitch* self,
+                            gchar* channel,
+                            GtTwitchStreamQuality qual,
                             gchar* token, gchar* sig)
 {
     GList* channels = gt_twitch_all_streams(self, channel, token, sig);
@@ -389,7 +390,7 @@ gt_twitch_stream_by_quality(GtTwitch* self,
     for (GList* l = channels; l != NULL; l = l->next)
     {
 	ret = (GtTwitchStreamData*) l->data;
-	
+
         if (ret->quality == qual)
 	    break;
     }
@@ -438,7 +439,7 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
         json_reader_read_element(reader, i);
 
-        parse_stream(self, reader, data);        
+        parse_stream(self, reader, data);
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -460,7 +461,7 @@ finish:
     return ret;
 }
 
-GList* 
+GList*
 gt_twitch_top_games(GtTwitch* self,
                     gint n, gint offset)
 {
@@ -547,7 +548,7 @@ top_channels_async_cb(GTask* task,
 
     if (!ret)
     {
-        g_task_return_new_error(task, GT_TWITCH_ERROR_TOP_CHANNELS, GT_TWITCH_TOP_CHANNELS_ERROR_CODE, 
+        g_task_return_new_error(task, GT_TWITCH_ERROR_TOP_CHANNELS, GT_TWITCH_TOP_CHANNELS_ERROR_CODE,
                                 "Error getting top channels");
     }
     else
@@ -657,7 +658,7 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
         json_reader_read_element(reader, i);
 
-        parse_stream(self, reader, data);        
+        parse_stream(self, reader, data);
         channel = gt_channel_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
@@ -712,7 +713,7 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
         GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
 
         json_reader_read_element(reader, i);
-    
+
         parse_game(self, reader, data);
         game = gt_game_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(game));
@@ -751,7 +752,7 @@ search_channels_async_cb(GTask* task,
 
     if (!ret)
     {
-        g_task_return_new_error(task, GT_TWITCH_ERROR_SEARCH_CHANNELS, GT_TWITCH_SEARCH_CHANNELS_ERROR_CODE, 
+        g_task_return_new_error(task, GT_TWITCH_ERROR_SEARCH_CHANNELS, GT_TWITCH_SEARCH_CHANNELS_ERROR_CODE,
                                 "Error searching channels");
     }
     else
@@ -759,7 +760,7 @@ search_channels_async_cb(GTask* task,
 }
 
 void
-gt_twitch_search_channels_async(GtTwitch* self, const gchar* query, 
+gt_twitch_search_channels_async(GtTwitch* self, const gchar* query,
                                 gint n, gint offset,
                                 GCancellable* cancel,
                                 GAsyncReadyCallback cb,
@@ -802,7 +803,7 @@ search_games_async_cb(GTask* task,
 }
 
 void
-gt_twitch_search_games_async(GtTwitch* self, const gchar* query, 
+gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
                              gint n, gint offset,
                              GCancellable* cancel,
                              GAsyncReadyCallback cb,
@@ -959,7 +960,7 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
     g_object_unref(task);
 }
 
-void 
+void
 gt_twitch_channel_raw_data_free(GtChannelRawData* data)
 {
     g_free(data->game);
@@ -977,7 +978,7 @@ GtGameRawData*
 gt_game_raw_data(GtTwitch* self, const gchar* name)
 {
     //TODO not possible with current API
-    
+
     return NULL;
 }
 
@@ -1024,7 +1025,7 @@ gt_twitch_download_picture_async(GtTwitch* self,
                                  gpointer udata)
 {
     GTask* task = NULL;
-    GenericTaskData* data = NULL; 
+    GenericTaskData* data = NULL;
 
     task = g_task_new(NULL, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
@@ -1038,4 +1039,18 @@ gt_twitch_download_picture_async(GtTwitch* self,
     g_task_run_in_thread(task, download_picture_async_cb);
 
     g_object_unref(task);
+}
+
+GdkPixbuf*
+gt_twitch_download_emote(GtTwitch* self, gint id)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    gchar url[128];
+
+    g_sprintf(url, TWITCH_EMOTE_URI, id, 1);
+
+    g_info("{GtTwitch} Downloading emote from url '%s'", url);
+
+    return utils_download_picture(priv->soup, url);
+
 }

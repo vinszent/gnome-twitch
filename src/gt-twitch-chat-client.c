@@ -222,7 +222,7 @@ read_lines(GtTwitchChatClient* self)
     for (gchar* line = g_data_input_stream_read_line(priv->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(priv->istream, &read, NULL, &err))
     {
-        g_print("%s\n", line);
+//        g_print("%s\n", line);
         if (line)
         {
             GtTwitchChatMessage* msg = gt_twitch_chat_message_new();

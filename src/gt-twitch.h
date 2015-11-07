@@ -87,6 +87,7 @@ GtGameRawData*          gt_twitch_game_raw_data(GtTwitch* self, const gchar* nam
 void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
 GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
 void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
 
 G_END_DECLS
 
