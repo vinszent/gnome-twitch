@@ -52,11 +52,11 @@ msgstr "Originale"
 
 #: data/ui/gt-settings-dlg.ui:29
 msgid "High"
-msgstr "Élevé"
+msgstr "Élevée"
 
 #: data/ui/gt-settings-dlg.ui:30
 msgid "Medium"
-msgstr "Moyen"
+msgstr "Moyenne"
 
 #: data/ui/gt-settings-dlg.ui:31
 msgid "Low"
