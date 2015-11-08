@@ -17,8 +17,6 @@ G_DECLARE_FINAL_TYPE(GtPlayerClutter, gt_player_clutter, GT, PLAYER_CLUTTER, GtP
 struct _GtPlayerClutter
 {
     GtPlayer parent_instance;
-
-    GSimpleActionGroup* action_group;
 };
 
 GtPlayerClutter* gt_player_clutter_new(void);

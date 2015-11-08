@@ -261,56 +261,7 @@ realise_cb(GtkWidget* widget,
 
     priv->win = GT_WIN_TOPLEVEL(self);
 
-    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(priv->root_widget)),
-                                   "player", G_ACTION_GROUP(self->action_group));
-
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
-}
-
-static void
-set_quality_action_cb(GSimpleAction* action,
-                      GVariant* arg,
-                      gpointer udata)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-    GEnumClass* eclass;
-
-    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
-
-    GEnumValue* eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(arg, NULL));
-
-    gt_player_set_quality(GT_PLAYER(self), eval->value);
-
-    g_simple_action_set_state(action, arg);
-
-    g_type_class_unref(eclass);
-}
-
-static gboolean
-chat_motion_cb(GtkWidget* widget,
-               GdkEventMotion* evt,
-               gpointer udata)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-    static gfloat prev_x = -1;
-    static gfloat prev_y = -1;
-
-    if (evt->state & GDK_BUTTON1_MASK)
-    {
-        if (prev_x > 0 && prev_y > 0)
-        {
-            clutter_actor_set_position(priv->chat_actor,
-                                       clutter_actor_get_x(priv->chat_actor) + (evt->x - prev_x),
-                                       clutter_actor_get_y(priv->chat_actor) + (evt->y - prev_y));
-        }
-
-        prev_x = evt->x;
-        prev_y = evt->y;
-
-    }
-    return CLUTTER_EVENT_STOP;
 }
 
 static void
@@ -477,11 +428,6 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
 }
 
-static GActionEntry actions[] =
-{
-    {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
-};
-
 static void
 gt_player_clutter_init(GtPlayerClutter* self)
 {
@@ -502,14 +448,11 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->chat_actor = gtk_clutter_actor_new_with_contents(priv->chat_view);
     priv->docked_layour_actor = clutter_actor_new();
     priv->playing = FALSE;
-    self->action_group = g_simple_action_group_new();
 
     ClutterLayoutManager* layout = clutter_box_layout_new();
 //    g_object_set(layout, "homogeneous", TRUE, NULL);
 
     clutter_actor_set_layout_manager(priv->docked_layour_actor, layout);
-
-    g_action_map_add_action_entries(G_ACTION_MAP(self->action_group), actions, G_N_ELEMENTS(actions), self);
 
     gtk_container_add(GTK_CONTAINER(priv->buffer_box), priv->buffer_bar);
     gtk_widget_show_all(priv->buffer_box);
@@ -552,7 +495,6 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
     g_signal_connect(priv->root_widget, "button-press-event", G_CALLBACK(button_press_cb), self);
-    g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_motion_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-height", G_CALLBACK(update_chat_view_size_cb), self);

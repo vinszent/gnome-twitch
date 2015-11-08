@@ -2,10 +2,11 @@
 #include "gt-twitch.h"
 #include "gt-win.h"
 #include "gt-app.h"
+#include "gt-enums.h"
 
 typedef struct
 {
-    gpointer tmp;
+    GSimpleActionGroup* action_group;
 } GtPlayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -20,6 +21,7 @@ enum
 };
 
 static GParamSpec* props[NUM_PROPS];
+
 
 static void
 finalise(GObject* obj)
@@ -81,6 +83,38 @@ get_property(GObject* obj,
 }
 
 static void
+realise_cb(GtkWidget* widget,
+           gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
+                                   "player", G_ACTION_GROUP(priv->action_group));
+
+}
+
+static void
+set_quality_action_cb(GSimpleAction* action,
+                      GVariant* arg,
+                      gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GEnumClass* eclass;
+    GEnumValue* eval;
+
+    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
+    eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(arg, NULL));
+
+    gt_player_set_quality(self, eval->value);
+
+    g_simple_action_set_state(action, arg);
+
+    g_type_class_unref(eclass);
+}
+
+static void
 gt_player_class_init(GtPlayerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
@@ -108,9 +142,20 @@ gt_player_class_init(GtPlayerClass* klass)
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
+static GActionEntry actions[] =
+{
+    {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
+};
+
 static void
 gt_player_init(GtPlayer* self)
 {
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    priv->action_group = g_simple_action_group_new();
+    g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
+                                    G_N_ELEMENTS(actions), self);
+    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
 }
 
 void
@@ -128,6 +173,7 @@ gt_player_stop(GtPlayer* self)
 void
 gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 {
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     gchar* status;
     gchar* name;
     gchar* display_name;
@@ -152,9 +198,9 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     g_message("{GtPlayer} Opening channel '%s' with quality '%d'", name, _default_quality);
 
-    /* win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self))); */
-    /* quality_action = g_action_map_lookup_action(G_ACTION_MAP(GT_PLAYER_CLUTTER(win->player)->action_map), "set_quality"); */
-    /* g_action_change_state(quality_action, default_quality); */
+    win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
+    quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
+    g_action_change_state(quality_action, default_quality);
 
     gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
     stream_data = gt_twitch_stream_by_quality(main_app->twitch,
