@@ -6,6 +6,7 @@
 #include "gt-twitch-chat-view.h"
 #include "gt-enums.h"
 #include "utils.h"
+#include <glib/gprintf.h>
 
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
@@ -208,13 +209,12 @@ buffer_fill_cb(GObject* source,
 
     if (percent < 1.0)
     {
-        gchar* text = g_strdup_printf("Buffered %d%%\n", (gint) (percent * 100));
+        gchar text[20];
+        g_sprintf(text, "Buffered %d%%\n", (gint) (percent * 100));
 
         clutter_actor_show(priv->buffer_actor);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(priv->buffer_bar), percent);
         gtk_progress_bar_set_text(GTK_PROGRESS_BAR(priv->buffer_bar), text);
-
-        g_free(text);
     }
     else
         clutter_actor_hide(priv->buffer_actor);
