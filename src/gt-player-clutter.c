@@ -11,6 +11,8 @@ static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
 typedef struct
 {
+    GtkWidget* root_widget;
+
     ClutterActor* docked_layour_actor;
 
     ClutterGstPlayback* player;
@@ -44,11 +46,7 @@ typedef struct
     GtWin* win; // Save a reference
 } GtPlayerClutterPrivate;
 
-static void gt_player_init(GtPlayerInterface* player);
-
-G_DEFINE_TYPE_WITH_CODE(GtPlayerClutter, gt_player_clutter, GTK_CLUTTER_TYPE_EMBED,
-                        G_ADD_PRIVATE(GtPlayerClutter)
-                        G_IMPLEMENT_INTERFACE(GT_TYPE_PLAYER, gt_player_init));
+G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerClutter, gt_player_clutter, GT_TYPE_PLAYER)
 
 enum
 {
@@ -263,23 +261,10 @@ realise_cb(GtkWidget* widget,
 
     priv->win = GT_WIN_TOPLEVEL(self);
 
-    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
+    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(priv->root_widget)),
                                    "player", G_ACTION_GROUP(self->action_group));
 
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
-}
-
-static void
-edit_chat_action_cb(GSimpleAction* action,
-                    GVariant* arg,
-                    gpointer udata)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-
-
-//    g_simple_action_set_state(action, arg);
 }
 
 static void
@@ -422,24 +407,21 @@ set_property(GObject*      obj,
 }
 
 static void
-gt_player_init(GtPlayerInterface* iface)
-{
-    iface->set_uri = set_uri;
-    iface->play = play;
-    iface->stop = stop;
-}
-
-static void
 gt_player_clutter_class_init(GtPlayerClutterClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
     GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
+    GtPlayerClass* player_class = GT_PLAYER_CLASS(klass);
 
     clutter_gst_init(NULL, NULL);
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
+
+    player_class->set_uri = set_uri;
+    player_class->play = play;
+    player_class->stop = stop;
 
     props[PROP_VOLUME] = g_param_spec_double("volume",
                                              "Volume",
@@ -497,7 +479,6 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
 
 static GActionEntry actions[] =
 {
-    {"edit_chat", NULL, NULL, "false", edit_chat_action_cb},
     {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
 };
 
@@ -506,7 +487,9 @@ gt_player_clutter_init(GtPlayerClutter* self)
 {
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(self));
+    priv->root_widget = gtk_clutter_embed_new();
+    gtk_container_add(GTK_CONTAINER(self), priv->root_widget);
+    priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(priv->root_widget));
     priv->player = clutter_gst_playback_new();
     priv->video_actor = clutter_actor_new();
     priv->content = clutter_gst_aspectratio_new();
@@ -532,7 +515,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     gtk_widget_show_all(priv->buffer_box);
     g_object_set(priv->buffer_bar, "show-text", TRUE, "margin", 7, NULL);
 
-    gtk_clutter_embed_set_use_layout_size(GTK_CLUTTER_EMBED(self), TRUE);
+//    gtk_clutter_embed_set_use_layout_size(GTK_CLUTTER_EMBED(priv->root_widget), TRUE);
 
     g_object_set(priv->buffer_actor,
                  "height", 50.0,
@@ -568,7 +551,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
-    g_signal_connect(self, "button-press-event", G_CALLBACK(button_press_cb), self);
+    g_signal_connect(priv->root_widget, "button-press-event", G_CALLBACK(button_press_cb), self);
     g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_motion_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
@@ -598,4 +581,6 @@ gt_player_clutter_init(GtPlayerClutter* self)
 
     ADD_STYLE_CLASS(self, "player-clutter");
     ADD_STYLE_CLASS(priv->buffer_box, "buffer-box");
+
+    gtk_widget_show_all(GTK_WIDGET(self));
 }

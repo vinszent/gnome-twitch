@@ -3,58 +3,126 @@
 #include "gt-win.h"
 #include "gt-app.h"
 
-G_DEFINE_INTERFACE(GtPlayer, gt_player, G_TYPE_OBJECT)
+typedef struct
+{
+    gpointer tmp;
+} GtPlayerPrivate;
+
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
 
 enum
 {
     PROP_0,
+    PROP_VOLUME,
+    PROP_OPEN_CHANNEL,
+    PROP_PLAYING,
     NUM_PROPS
 };
 
 static GParamSpec* props[NUM_PROPS];
-static GtPlayerInterface* gt_player_parent_interface = NULL;
 
-//TODO: Make this a abstract object
-GtPlayer*
-gt_player_new(void)
+static void
+finalise(GObject* obj)
 {
-    return g_object_new(GT_TYPE_PLAYER,
-                        NULL);
+    GtPlayer* self = GT_PLAYER(obj);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    G_OBJECT_CLASS(gt_player_parent_class)->finalize(obj);
 }
 
 static void
-gt_player_default_init(GtPlayerInterface* iface)
+set_property(GObject* obj,
+             guint prop,
+             const GValue* val,
+             GParamSpec* pspec)
 {
-    g_object_interface_install_property(iface,
-                                        g_param_spec_double("volume",
-                                                            "Volume",
-                                                            "Volume of player",
-                                                            0, 1.0, 0.3,
-                                                            G_PARAM_READWRITE));
-    g_object_interface_install_property(iface,
-                                        g_param_spec_object("open-channel",
-                                                            "Open channel",
-                                                            "Currently open channel",
-                                                            GT_TYPE_CHANNEL,
-                                                            G_PARAM_READWRITE));
-    g_object_interface_install_property(iface,
-                                        g_param_spec_boolean("playing",
-                                                             "Playing",
-                                                             "Whether playing",
-                                                             FALSE,
-                                                             G_PARAM_READABLE));
+    GtPlayer* self = GT_PLAYER(obj);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    switch (prop)
+    {
+        case PROP_VOLUME:
+            //TODO
+            break;
+        case PROP_OPEN_CHANNEL:
+            //TODO
+            break;
+        case PROP_PLAYING:
+            //TODO
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+    }
+}
+
+static void
+get_property(GObject* obj,
+             guint prop,
+             GValue* val,
+             GParamSpec* pspec)
+{
+    GtPlayer* self = GT_PLAYER(obj);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    switch (prop)
+    {
+        case PROP_VOLUME:
+            //TODO
+            break;
+        case PROP_OPEN_CHANNEL:
+            //TODO
+            break;
+        case PROP_PLAYING:
+            //TODO
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+    }
+}
+
+static void
+gt_player_class_init(GtPlayerClass* klass)
+{
+    GObjectClass* object_class = G_OBJECT_CLASS(klass);
+
+    object_class->finalize = finalise;
+    object_class->get_property = get_property;
+    object_class->set_property = set_property;
+
+    props[PROP_VOLUME] = g_param_spec_double("volume",
+                                             "Volume",
+                                             "Current volume",
+                                             0, 1.0, 0.3,
+                                             G_PARAM_READWRITE);
+    props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel",
+                                                   "Open Channel",
+                                                   "Current open channel",
+                                                   GT_TYPE_CHANNEL,
+                                                   G_PARAM_READWRITE);
+    props[PROP_PLAYING] = g_param_spec_boolean("playing",
+                                               "Playing",
+                                               "Whether playing",
+                                               FALSE,
+                                               G_PARAM_READWRITE);
+
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
+}
+
+static void
+gt_player_init(GtPlayer* self)
+{
 }
 
 void
 gt_player_play(GtPlayer* self)
 {
-    GT_PLAYER_GET_IFACE(self)->play(self);
+    GT_PLAYER_GET_CLASS(self)->play(self);
 }
 
 void
 gt_player_stop(GtPlayer* self)
 {
-    GT_PLAYER_GET_IFACE(self)->stop(self);
+    GT_PLAYER_GET_CLASS(self)->stop(self);
 }
 
 void
@@ -94,8 +162,8 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
                                               _default_quality,
                                               token, sig);
 
-    GT_PLAYER_GET_IFACE(self)->set_uri(self, stream_data->url);
-    GT_PLAYER_GET_IFACE(self)->play(self);
+    GT_PLAYER_GET_CLASS(self)->set_uri(self, stream_data->url);
+    GT_PLAYER_GET_CLASS(self)->play(self);
 
     gt_twitch_stream_data_free(stream_data);
     g_free(name);
@@ -121,9 +189,9 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
                                               name, qual,
                                               token, sig);
 
-    GT_PLAYER_GET_IFACE(self)->stop(self);
-    GT_PLAYER_GET_IFACE(self)->set_uri(self, stream_data->url);
-    GT_PLAYER_GET_IFACE(self)->play(self);
+    GT_PLAYER_GET_CLASS(self)->stop(self);
+    GT_PLAYER_GET_CLASS(self)->set_uri(self, stream_data->url);
+    GT_PLAYER_GET_CLASS(self)->play(self);
 
     g_free(name);
     g_free(token);

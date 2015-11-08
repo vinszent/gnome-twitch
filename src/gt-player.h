@@ -8,18 +8,16 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_PLAYER (gt_player_get_type())
 
-G_DECLARE_INTERFACE(GtPlayer, gt_player, GT, PLAYER, GObject)
+G_DECLARE_DERIVABLE_TYPE(GtPlayer, gt_player, GT, PLAYER, GtkBin)
 
-struct _GtPlayerInterface
+struct _GtPlayerClass
 {
-    GTypeInterface parent_iface;
+    GtkBinClass parent_class;
 
     void (*set_uri) (GtPlayer* self, const gchar* uri);
     void (*play) (GtPlayer* self);
     void (*stop) (GtPlayer* self);
 };
-
-GtPlayer* gt_player_new(void);
 
 void gt_player_open_channel(GtPlayer* self, GtChannel* chan);
 void gt_player_play(GtPlayer* self);
