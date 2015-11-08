@@ -43,6 +43,7 @@ typedef struct
     gdouble chat_x;
     gdouble chat_y;
     gboolean chat_docked;
+    gboolean chat_visible;
 
     GtWin* win; // Save a reference
 } GtPlayerClutterPrivate;
@@ -61,6 +62,7 @@ enum
     PROP_CHAT_DOCKED,
     PROP_CHAT_X,
     PROP_CHAT_Y,
+    PROP_CHAT_VISIBLE,
     NUM_PROPS
 };
 
@@ -311,6 +313,9 @@ get_property (GObject*    obj,
         case PROP_CHAT_Y:
             g_value_set_double(val, priv->chat_y);
             break;
+        case PROP_CHAT_VISIBLE:
+            g_value_set_boolean(val, priv->chat_visible);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -351,6 +356,9 @@ set_property(GObject*      obj,
             break;
         case PROP_CHAT_Y:
             priv->chat_y = g_value_get_double(val);
+            break;
+        case PROP_CHAT_VISIBLE:
+            priv->chat_visible = g_value_get_boolean(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -419,10 +427,17 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                              "Current chat y",
                                              0, G_MAXDOUBLE, 0,
                                              G_PARAM_READWRITE);
+    props[PROP_CHAT_VISIBLE] = g_param_spec_boolean("chat-visible",
+                                                    "Chat Visible",
+                                                    "Whether chat visible",
+                                                    TRUE,
+                                                    G_PARAM_READWRITE);
 
     g_object_class_override_property(object_class, PROP_VOLUME, "volume");
     g_object_class_override_property(object_class, PROP_OPEN_CHANNEL, "open-channel");
     g_object_class_override_property(object_class, PROP_PLAYING, "playing");
+    g_object_class_override_property(object_class, PROP_CHAT_VISIBLE, "chat-visible");
+    //TODO Move these into GtPlayer
     g_object_class_install_property(object_class, PROP_CHAT_OPACITY, props[PROP_CHAT_OPACITY]);
     g_object_class_install_property(object_class, PROP_CHAT_WIDTH, props[PROP_CHAT_WIDTH]);
     g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
@@ -516,6 +531,9 @@ gt_player_clutter_init(GtPlayerClutter* self)
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) opacity_transformer,
                                 NULL, NULL, NULL);
+    g_object_bind_property(self, "chat-visible",
+                           priv->chat_actor, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     g_settings_bind(main_app->settings, "volume",
                     self, "volume",

@@ -122,37 +122,6 @@
     <property name="icon-name">open-menu-symbolic</property>
     <property name="icon-size">2</property>
   </object>
-  <menu id="player_hamburger_menu">
-    <submenu>
-      <attribute name="label" translatable="yes">Stream quality</attribute>
-      <section>
-        <item>
-          <attribute name="label">Source</attribute>
-          <attribute name="action">win.player_set_quality</attribute>
-          <attribute name="target">source</attribute>
-        </item>
-        <item>
-          <attribute name="label">High</attribute>
-          <attribute name="action">win.player_set_quality</attribute>
-          <attribute name="target">high</attribute>
-        </item>
-        <item>
-          <attribute name="label">Medium</attribute>
-          <attribute name="action">win.player_set_quality</attribute>
-          <attribute name="target">medium</attribute>
-        </item>
-        <item>
-          <attribute name="label">Low</attribute>
-          <attribute name="action">win.player_set_quality</attribute>
-          <attribute name="target">low</attribute>
-        </item>
-      </section>
-    </submenu>
-    <item>
-      <attribute name="label">Edit chat</attribute>
-      <attribute name="action">player.edit_chat</attribute>
-    </item>
-  </menu>
   <object class="GtkPopoverMenu" id="player_menu_popover">
     <child>
       <object class="GtkBox">
@@ -160,6 +129,13 @@
         <property name="margin">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="action-name">player.show_chat</property>
+            <property name="text" translatable="true">Show chat</property>
+          </object>
+        </child>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>

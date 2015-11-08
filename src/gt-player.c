@@ -17,6 +17,7 @@ enum
     PROP_VOLUME,
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
+    PROP_CHAT_VISIBLE,
     NUM_PROPS
 };
 
@@ -41,20 +42,10 @@ set_property(GObject* obj,
     GtPlayer* self = GT_PLAYER(obj);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    switch (prop)
-    {
-        case PROP_VOLUME:
-            //TODO
-            break;
-        case PROP_OPEN_CHANNEL:
-            //TODO
-            break;
-        case PROP_PLAYING:
-            //TODO
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
+    if (prop <= PROP_CHAT_VISIBLE)
+        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+    else
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
 
 static void
@@ -66,20 +57,10 @@ get_property(GObject* obj,
     GtPlayer* self = GT_PLAYER(obj);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    switch (prop)
-    {
-        case PROP_VOLUME:
-            //TODO
-            break;
-        case PROP_OPEN_CHANNEL:
-            //TODO
-            break;
-        case PROP_PLAYING:
-            //TODO
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
+    if (prop <= PROP_CHAT_VISIBLE)
+        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+    else
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
 
 static void
@@ -115,6 +96,19 @@ set_quality_action_cb(GSimpleAction* action,
 }
 
 static void
+show_chat_action_cb(GSimpleAction* action,
+                    GVariant* arg,
+                    gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    g_object_set(self, "chat-visible", g_variant_get_boolean(arg), NULL);
+
+    g_simple_action_set_state(action, arg);
+}
+
+static void
 gt_player_class_init(GtPlayerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
@@ -138,6 +132,12 @@ gt_player_class_init(GtPlayerClass* klass)
                                                "Whether playing",
                                                FALSE,
                                                G_PARAM_READWRITE);
+    //TODO Disconnect from chat when not visible?
+    props[PROP_CHAT_VISIBLE] = g_param_spec_boolean("chat-visible",
+                                                    "Chat Visible",
+                                                    "Whether chat visible",
+                                                    TRUE,
+                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
@@ -145,6 +145,7 @@ gt_player_class_init(GtPlayerClass* klass)
 static GActionEntry actions[] =
 {
     {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
+    {"show_chat", NULL, NULL, "true", show_chat_action_cb},
 };
 
 static void
@@ -183,7 +184,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     GVariant* default_quality;
     GtTwitchStreamQuality _default_quality;
     GAction* quality_action;
-    GtWin* win;
 
     g_object_set(self, "open-channel", chan, NULL);
 
@@ -198,7 +198,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     g_message("{GtPlayer} Opening channel '%s' with quality '%d'", name, _default_quality);
 
-    win = GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(self)));
     quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
     g_action_change_state(quality_action, default_quality);
 
