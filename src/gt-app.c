@@ -238,3 +238,11 @@ gt_app_get_user_name(GtApp* self)
 
     return priv->user_name;
 }
+
+const gchar*
+gt_app_get_oauth_token(GtApp* self)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return priv->oauth_token;
+}

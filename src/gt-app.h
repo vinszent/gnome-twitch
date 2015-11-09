@@ -27,6 +27,7 @@ GtApp* gt_app_new(void);
 extern GtApp* main_app;
 
 const gchar* gt_app_get_user_name(GtApp* self);
+const gchar* gt_app_get_oauth_token(GtApp* self);
 
 G_END_DECLS
 
