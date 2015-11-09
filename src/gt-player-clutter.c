@@ -105,6 +105,24 @@ update_chat_view_size_cb(GObject* source,
 }
 
 static void
+update_chat_view_pos_cb(GObject* source,
+                        GParamSpec* pspec,
+                        gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gfloat stage_width, stage_height;
+
+    g_object_get(priv->stage,
+                 "width", &stage_width,
+                 "height", &stage_height,
+                 NULL);
+
+    clutter_actor_set_x(priv->chat_actor, (gfloat) priv->chat_x*stage_width);
+    clutter_actor_set_y(priv->chat_actor, (gfloat) priv->chat_y*stage_height);
+}
+
+static void
 chat_docked_cb(GObject* source,
                GParamSpec* pspec,
                gpointer udata)
@@ -447,6 +465,8 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_override_property(object_class, PROP_PLAYING, "playing");
     g_object_class_override_property(object_class, PROP_CHAT_DOCKED, "chat-docked");
     g_object_class_override_property(object_class, PROP_CHAT_VISIBLE, "chat-visible");
+    g_object_class_override_property(object_class, PROP_CHAT_X, "chat-x");
+    g_object_class_override_property(object_class, PROP_CHAT_Y, "chat-y");
     //TODO Move these into GtPlayer
     g_object_class_install_property(object_class, PROP_CHAT_WIDTH, props[PROP_CHAT_WIDTH]);
     g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
@@ -524,6 +544,8 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-height", G_CALLBACK(update_chat_view_size_cb), self);
+    g_signal_connect(self, "notify::chat-x", G_CALLBACK(update_chat_view_pos_cb), self);
+    g_signal_connect(self, "notify::chat-y", G_CALLBACK(update_chat_view_pos_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",

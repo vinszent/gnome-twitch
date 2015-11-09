@@ -31,6 +31,8 @@ typedef struct
 
     GtkAdjustment* chat_view_width_adjustment;
     GtkAdjustment* chat_view_height_adjustment;
+    GtkAdjustment* chat_view_x_adjustment;
+    GtkAdjustment* chat_view_y_adjustment;
 
     gboolean fullscreen;
 } GtPlayerHeaderBarPrivate;
@@ -178,6 +180,12 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->bg_colour_chooser, "rgba",
                                gt_player_get_chat_view(GT_PLAYER(priv->player)), "background-colour",
                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->chat_view_x_adjustment, "value",
+                               priv->player, "chat-x",
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->chat_view_y_adjustment, "value",
+                               priv->player, "chat-y",
+                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
 
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
@@ -329,6 +337,8 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_stop_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_width_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_x_adjustment);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_y_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_backward_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_forward_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_chooser);

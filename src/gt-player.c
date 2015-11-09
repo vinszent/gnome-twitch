@@ -19,6 +19,8 @@ enum
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
+    PROP_CHAT_X,
+    PROP_CHAT_Y,
     NUM_PROPS
 };
 
@@ -157,6 +159,16 @@ gt_player_class_init(GtPlayerClass* klass)
                                                    "Whether chat docked",
                                                    TRUE,
                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_X] = g_param_spec_double("chat-x",
+                                             "Chat X",
+                                             "Current chat x",
+                                             0, 1.0, 0.2,
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_Y] = g_param_spec_double("chat-y",
+                                             "Chat Y",
+                                             "Current chat y",
+                                             0, 1.0, 0.2,
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
