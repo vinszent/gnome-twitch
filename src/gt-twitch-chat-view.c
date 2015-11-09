@@ -4,6 +4,9 @@
 #include "utils.h"
 #include <string.h>
 #include <stdlib.h>
+#include <glib/gprintf.h>
+
+#define CHAT_VIEW_CSS "GtkTextView { background-color: %s; }"
 
 typedef struct
 {
@@ -13,6 +16,9 @@ typedef struct
     GtkTextBuffer* chat_buffer;
     GtkTextTagTable* tag_table;
     GHashTable* twitch_emotes;
+
+    GtkCssProvider* css_provider;
+    GdkRGBA* background_colour;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -20,6 +26,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
 enum
 {
     PROP_0,
+    PROP_BACKGROUND_COLOUR,
     NUM_PROPS
 };
 
@@ -230,6 +237,22 @@ key_press_cb(GtkWidget* widget,
 }
 
 static void
+background_colour_set_cb(GObject* source,
+                         GParamSpec* pspec,
+                         gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    gchar css[100];
+
+    g_sprintf(css, CHAT_VIEW_CSS, gdk_rgba_to_string(priv->background_colour));
+
+    gtk_css_provider_load_from_data(priv->css_provider, css, -1, NULL); //TODO Error handling
+    gtk_widget_reset_style(priv->chat_view);
+}
+
+static void
 finalise(GObject* obj)
 {
     GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(obj);
@@ -249,6 +272,9 @@ get_property(GObject* obj,
 
     switch (prop)
     {
+        case PROP_BACKGROUND_COLOUR:
+            g_value_set_boxed(val, priv->background_colour);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -265,6 +291,13 @@ set_property(GObject* obj,
 
     switch (prop)
     {
+        case PROP_BACKGROUND_COLOUR:
+        {
+            if (priv->background_colour)
+                gdk_rgba_free(priv->background_colour);
+            priv->background_colour = g_value_dup_boxed(val);
+            break;
+        }
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -286,6 +319,14 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_view);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_scroll);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_entry);
+
+    props[PROP_BACKGROUND_COLOUR] = g_param_spec_boxed("background-colour",
+                                                       "Background Colour",
+                                                       "Current background colour",
+                                                       GDK_TYPE_RGBA,
+                                                       G_PARAM_READWRITE);
+
+    g_object_class_install_properties(obj_class, NUM_PROPS, props);
 }
 
 static void
@@ -304,11 +345,19 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
+    priv->css_provider = gtk_css_provider_new();
+    gtk_style_context_add_provider(gtk_widget_get_style_context(priv->chat_view),
+                                   GTK_STYLE_PROVIDER(priv->css_provider),
+                                   GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+        priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
+    g_signal_connect(self, "notify::background-colour", G_CALLBACK(background_colour_set_cb), self);
+
+    ADD_STYLE_CLASS(self, "gt-twitch-chat-view");
 }

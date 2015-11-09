@@ -75,15 +75,13 @@ gt_player_clutter_new(void)
                         NULL);
 }
 
-static gboolean
-opacity_transformer(GBinding* binding,
-                    const GValue* from,
-                    GValue* to,
-                    gpointer udata)
+static GtkWidget*
+get_chat_view(GtPlayer* player)
 {
-    g_value_set_uint(to, UROUND(g_value_get_double(from)*255.0));
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    return TRUE;
+    return priv->chat_view;
 }
 
 static void
@@ -104,6 +102,26 @@ update_chat_view_size_cb(GObject* source,
                  "width", (gfloat) stage_width * priv->chat_width,
                  "height", (gfloat) stage_height * priv->chat_height,
                  NULL);
+}
+
+static void
+chat_docked_cb(GObject* source,
+               GParamSpec* pspec,
+               gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    if (priv->chat_docked)
+    {
+        clutter_actor_remove_child(priv->stage, priv->chat_actor);
+        clutter_actor_add_child(priv->docked_layour_actor, priv->chat_actor);
+    }
+    else
+    {
+        clutter_actor_remove_child(priv->docked_layour_actor, priv->chat_actor);
+        clutter_actor_add_child(priv->stage, priv->chat_actor);
+    }
 }
 
 static void
@@ -264,6 +282,7 @@ realise_cb(GtkWidget* widget,
     priv->win = GT_WIN_TOPLEVEL(self);
 
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
+    g_signal_connect(self, "notify::chat-docked", G_CALLBACK(chat_docked_cb), self);
 }
 
 static void
@@ -279,8 +298,8 @@ static void
 get_property (GObject*    obj,
               guint       prop,
               GValue*     val,
-              GParamSpec* pspec)
-{
+              GParamSpec* pspec){
+
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(obj);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
@@ -294,9 +313,6 @@ get_property (GObject*    obj,
             break;
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
-            break;
-        case PROP_CHAT_OPACITY:
-            g_value_set_double(val, priv->chat_opacity);
             break;
         case PROP_CHAT_WIDTH:
             g_value_set_double(val, priv->chat_width);
@@ -339,9 +355,6 @@ set_property(GObject*      obj,
             g_clear_object(&priv->open_channel);
             priv->open_channel = g_value_dup_object(val);
             break;
-        case PROP_CHAT_OPACITY:
-            priv->chat_opacity = g_value_get_double(val);
-            break;
         case PROP_CHAT_WIDTH:
             priv->chat_width = g_value_get_double(val);
             break;
@@ -381,6 +394,7 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     player_class->set_uri = set_uri;
     player_class->play = play;
     player_class->stop = stop;
+    player_class->get_chat_view = get_chat_view;
 
     props[PROP_VOLUME] = g_param_spec_double("volume",
                                              "Volume",
@@ -397,11 +411,6 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                                "Whether playing",
                                                FALSE,
                                                G_PARAM_READABLE);
-    props[PROP_CHAT_OPACITY] = g_param_spec_double("chat-opacity",
-                                                   "Chat Opacity",
-                                                   "Current chat opacity",
-                                                   0, 1.0, 0,
-                                                   G_PARAM_READWRITE);
     props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
                                                  "Chat Width",
                                                  "Current chat width",
@@ -415,8 +424,8 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     props[PROP_CHAT_DOCKED] = g_param_spec_boolean("chat-docked",
                                                    "Chat Docked",
                                                    "Whether chat docked",
-                                                   FALSE,
-                                                  G_PARAM_READWRITE);
+                                                   TRUE,
+                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_X] = g_param_spec_double("chat-x",
                                              "Chat X",
                                              "Current chat x",
@@ -436,9 +445,9 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_override_property(object_class, PROP_VOLUME, "volume");
     g_object_class_override_property(object_class, PROP_OPEN_CHANNEL, "open-channel");
     g_object_class_override_property(object_class, PROP_PLAYING, "playing");
+    g_object_class_override_property(object_class, PROP_CHAT_DOCKED, "chat-docked");
     g_object_class_override_property(object_class, PROP_CHAT_VISIBLE, "chat-visible");
     //TODO Move these into GtPlayer
-    g_object_class_install_property(object_class, PROP_CHAT_OPACITY, props[PROP_CHAT_OPACITY]);
     g_object_class_install_property(object_class, PROP_CHAT_WIDTH, props[PROP_CHAT_WIDTH]);
     g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
 }
@@ -463,6 +472,8 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->chat_actor = gtk_clutter_actor_new_with_contents(priv->chat_view);
     priv->docked_layour_actor = clutter_actor_new();
     priv->playing = FALSE;
+
+    g_object_ref_sink(G_OBJECT(priv->chat_actor));
 
     ClutterLayoutManager* layout = clutter_box_layout_new();
 //    g_object_set(layout, "homogeneous", TRUE, NULL);
@@ -526,11 +537,6 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_object_bind_property(priv->stage, "height",
                            priv->docked_layour_actor, "height",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property_full(self, "chat-opacity",
-                                priv->chat_actor, "opacity",
-                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                (GBindingTransformFunc) opacity_transformer,
-                                NULL, NULL, NULL);
     g_object_bind_property(self, "chat-visible",
                            priv->chat_actor, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);

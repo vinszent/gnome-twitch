@@ -18,6 +18,7 @@ enum
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
+    PROP_CHAT_DOCKED,
     NUM_PROPS
 };
 
@@ -109,6 +110,19 @@ show_chat_action_cb(GSimpleAction* action,
 }
 
 static void
+dock_chat_action_cb(GSimpleAction* action,
+                    GVariant* arg,
+                    gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    g_object_set(self, "chat-docked", g_variant_get_boolean(arg), NULL);
+
+    g_simple_action_set_state(action, arg);
+}
+
+static void
 gt_player_class_init(GtPlayerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
@@ -138,14 +152,21 @@ gt_player_class_init(GtPlayerClass* klass)
                                                     "Whether chat visible",
                                                     TRUE,
                                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_DOCKED] = g_param_spec_boolean("chat-docked",
+                                                   "Chat Docked",
+                                                   "Whether chat docked",
+                                                   TRUE,
+                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
 static GActionEntry actions[] =
 {
+    //TODO: Make these GPropertyAction?
     {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
     {"show_chat", NULL, NULL, "true", show_chat_action_cb},
+    {"dock_chat", NULL, NULL, "true", dock_chat_action_cb},
 };
 
 static void
@@ -243,4 +264,10 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
     g_free(sig);
     g_object_unref(chan);
     gt_twitch_stream_data_free(stream_data);
+}
+
+GtkWidget*
+gt_player_get_chat_view(GtPlayer* self)
+{
+    return GT_PLAYER_GET_CLASS(self)->get_chat_view(self);
 }
