@@ -85,6 +85,49 @@ get_chat_view(GtPlayer* player)
 }
 
 static void
+scale_chat_view_cb(GObject* source,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+    gfloat stage_width, stage_height, new_height, new_width, chat_height, chat_width, chat_x, chat_y, new_x, new_y;
+
+    g_object_get(priv->stage,
+                 "width", &stage_width,
+                 "height", &stage_height,
+                 NULL);
+    g_object_get(priv->chat_actor,
+                 "width", &chat_width,
+                 "height", &chat_height,
+                 "x", &chat_x,
+                 "y", &chat_y,
+                 NULL);
+    new_width = (gfloat) stage_width * priv->chat_width;
+    new_height = (gfloat) stage_height * priv->chat_height;
+
+    new_x = (gfloat) priv->chat_x*stage_width;
+    new_y = (gfloat) priv->chat_y*stage_height;
+
+    if (new_x < 0)
+        new_x = 0;
+    else if (new_x + chat_width > stage_width)
+        new_x = stage_width - chat_width;
+
+    if (new_y < 0)
+        new_y = 0;
+    else if (new_y + chat_height > stage_height)
+        new_y = stage_height - chat_height;
+
+    g_object_set(priv->chat_actor,
+                 "width", new_width,
+                 "height", new_height,
+                 "x", new_x,
+                 "y", new_y,
+                 NULL);
+}
+
+static void
 update_chat_view_size_cb(GObject* source,
                          GParamSpec* pspec,
                          gpointer udata)
@@ -574,7 +617,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
     g_signal_connect(priv->root_widget, "button-press-event", G_CALLBACK(button_press_cb), self);
-    g_signal_connect(priv->stage, "notify::size", G_CALLBACK(update_chat_view_size_cb), self);
+    g_signal_connect(priv->stage, "notify::size", G_CALLBACK(scale_chat_view_cb), self);
     g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-height", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-x", G_CALLBACK(update_chat_view_pos_cb), self);
