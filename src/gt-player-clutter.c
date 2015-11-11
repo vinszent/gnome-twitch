@@ -91,17 +91,48 @@ update_chat_view_size_cb(GObject* source,
 {
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-    gfloat stage_width, stage_height;
+    gfloat stage_width, stage_height, new_height, new_width, chat_height, chat_width, chat_x, chat_y, new_x, new_y;
+    //TODO: Cleanup & simplify?
 
     g_object_get(priv->stage,
                  "width", &stage_width,
                  "height", &stage_height,
                  NULL);
+    g_object_get(priv->chat_actor,
+                 "width", &chat_width,
+                 "height", &chat_height,
+                 "x", &chat_x,
+                 "y", &chat_y,
+                 NULL);
+
+    new_width = (gfloat) stage_width * priv->chat_width;
+    new_height = (gfloat) stage_height * priv->chat_height;
+
+    new_x = (gfloat) chat_x - (new_width - chat_width) / 2.0f;
+    new_y = (gfloat) chat_y - (new_height - chat_height) / 2.0f;
+
+    if (new_x < 0)
+        new_x = 0;
+    else if (new_x + chat_width > stage_width)
+        new_x = stage_width - chat_width;
+
+    if (new_y < 0)
+        new_y = 0;
+    else if (new_y + chat_height > stage_height)
+        new_y = stage_height - chat_height;
+
+    priv->chat_x = (gdouble) new_x / stage_width;
+    priv->chat_y = (gdouble) new_y / stage_height;
 
     g_object_set(priv->chat_actor,
-                 "width", (gfloat) stage_width * priv->chat_width,
-                 "height", (gfloat) stage_height * priv->chat_height,
+                 "width", new_width,
+                 "height", new_height,
+                 "x", new_x,
+                 "y", new_y,
                  NULL);
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_X]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_Y]);
 }
 
 static void
@@ -118,8 +149,10 @@ update_chat_view_pos_cb(GObject* source,
                  "height", &stage_height,
                  NULL);
 
-    clutter_actor_set_x(priv->chat_actor, (gfloat) priv->chat_x*stage_width);
-    clutter_actor_set_y(priv->chat_actor, (gfloat) priv->chat_y*stage_height);
+    g_object_set(priv->chat_actor,
+                 "x", (gfloat) priv->chat_x*stage_width,
+                 "y", (gfloat) priv->chat_y*stage_height,
+                 NULL);
 }
 
 static void

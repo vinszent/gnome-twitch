@@ -157,6 +157,17 @@ opened_channel_cb(GObject* source,
     g_object_unref(chan);
 }
 
+static gboolean
+chat_pos_upper_transformer(GBinding* binding,
+                           const GValue* from,
+                           GValue* to,
+                           gpointer udata)
+{
+    g_value_set_double(to, 1 - g_value_get_double(from));
+
+    return TRUE;
+}
+
 static void
 player_set_cb(GObject* source,
               GParamSpec* pspec,
@@ -186,7 +197,16 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->chat_view_y_adjustment, "value",
                                priv->player, "chat-y",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-
+        g_object_bind_property_full(priv->player, "chat-width",
+                                    priv->chat_view_x_adjustment, "upper",
+                                    G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                    (GBindingTransformFunc) chat_pos_upper_transformer,
+                                    NULL, NULL, NULL);
+        g_object_bind_property_full(priv->player, "chat-height",
+                                    priv->chat_view_y_adjustment, "upper",
+                                    G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                    (GBindingTransformFunc) chat_pos_upper_transformer,
+                                    NULL, NULL, NULL);
 
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
         g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
