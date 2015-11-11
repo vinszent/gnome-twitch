@@ -215,6 +215,7 @@ chat_docked_cb(GObject* source,
     {
         clutter_actor_remove_child(priv->docked_layour_actor, priv->chat_actor);
         clutter_actor_add_child(priv->stage, priv->chat_actor);
+        clutter_actor_set_z_position(priv->chat_actor, -1);
     }
 }
 
@@ -605,6 +606,9 @@ gt_player_clutter_init(GtPlayerClutter* self)
     clutter_actor_add_child(priv->stage, priv->docked_layour_actor);
     clutter_actor_add_child(priv->stage, priv->fullscreen_bar_actor);
     clutter_actor_add_child(priv->stage, priv->buffer_actor);
+
+    clutter_actor_set_z_position(priv->docked_layour_actor, -2);
+    clutter_actor_set_z_position(priv->fullscreen_bar_actor, 1);
 
     clutter_actor_set_background_color(priv->stage, &bg_colour);
     clutter_actor_set_opacity(priv->fullscreen_bar_actor, 200);
