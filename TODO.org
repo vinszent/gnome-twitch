@@ -1,7 +1,8 @@
 * Bugs
 ** TODO Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory somewhere with GStreamer that happens when the stream is changed
-
+   *** Not sure how much can be done from our side if it's a internal leak.
+** TODO UI seems to randomly freeze when loading a stream sometimes.
 * Minor milestones
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
 ** DONE Twitch emotes in chat
@@ -15,6 +16,10 @@
    *** Make sure first message received after oauth token is sent is 001
 ** TODO Clear chat and clear user messages when user is timed out by a mod/admin
 ** TODO Chat user list
+** TODO Stream specific chat settings
+   *** Save width, height, x-pos, y-pos, etc
+** TODO Add subscriber,turbo,admin,etc badges
+** TODO Have chat scrollback and delete messages after a certain amount have been received
 ** TODO Add info to player
    *** Viewer count
    *** Time online
