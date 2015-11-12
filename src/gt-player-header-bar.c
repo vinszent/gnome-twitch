@@ -2,6 +2,8 @@
 #include "gt-player.h"
 #include "gt-win.h"
 
+static const GdkRGBA chat_default_bg_colour = {1.0, 1.0, 1.0, 1.0};
+
 typedef struct
 {
     GtPlayer* player;
@@ -374,6 +376,8 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(priv->bg_colour_chooser), &chat_default_bg_colour);
 
     gtk_style_context_remove_class(gtk_widget_get_style_context(priv->volume_button), GTK_STYLE_CLASS_FLAT);
 
