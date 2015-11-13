@@ -524,12 +524,12 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                              "Chat X",
                                              "Current chat x",
                                              0, G_MAXDOUBLE, 0,
-                                             G_PARAM_READWRITE);
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_Y] = g_param_spec_double("chat-y",
                                              "Chat Y",
                                              "Current chat y",
-                                             0, G_MAXDOUBLE, 0,
-                                             G_PARAM_READWRITE);
+                                             0, G_MAXDOUBLE, 0.0,
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_VISIBLE] = g_param_spec_boolean("chat-visible",
                                                     "Chat Visible",
                                                     "Whether chat visible",
