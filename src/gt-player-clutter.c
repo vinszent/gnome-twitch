@@ -37,7 +37,6 @@ typedef struct
 
     gchar* current_uri;
 
-    gdouble chat_opacity;
     gdouble chat_width;
     gdouble chat_height;
     gdouble chat_x;
@@ -57,6 +56,7 @@ enum
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
     PROP_CHAT_OPACITY,
+    PROP_CHAT_DARK_THEME,
     PROP_CHAT_WIDTH,
     PROP_CHAT_HEIGHT,
     PROP_CHAT_DOCKED,
@@ -304,7 +304,7 @@ clutter_stage_event_cb(ClutterStage* stage,
             break;
         }
         default:
-        break;
+            break;
     }
 
     return handled;

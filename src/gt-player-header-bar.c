@@ -2,7 +2,8 @@
 #include "gt-player.h"
 #include "gt-win.h"
 
-static const GdkRGBA chat_default_bg_colour = {1.0, 1.0, 1.0, 1.0};
+//static const GdkRGBA chat_default_bg_colour = {0.0, 1.0, 0.0, 1.0};
+//static const GdkRGBA chat_default_fg_colour = {1.0, 0.0, 0.0, 1.0};
 
 typedef struct
 {
@@ -25,12 +26,9 @@ typedef struct
 
     GtkWidget* volume_button;
 
-    GtkWidget* bg_colour_forward_button;
-    GtkWidget* bg_colour_backward_button;
-    GtkWidget* bg_colour_chooser;
-
     GMenu* hamburger_menu;
 
+    GtkAdjustment* chat_view_opacity_adjustment;
     GtkAdjustment* chat_view_width_adjustment;
     GtkAdjustment* chat_view_height_adjustment;
     GtkAdjustment* chat_view_x_adjustment;
@@ -190,9 +188,6 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->chat_view_height_adjustment, "value",
                                priv->player, "chat-height",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->bg_colour_chooser, "rgba",
-                               gt_player_get_chat_view(GT_PLAYER(priv->player)), "background-colour",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
         g_object_bind_property(priv->chat_view_x_adjustment, "value",
                                priv->player, "chat-x",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
@@ -209,23 +204,13 @@ player_set_cb(GObject* source,
                                     G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                     (GBindingTransformFunc) chat_pos_upper_transformer,
                                     NULL, NULL, NULL);
+        g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
+                               gt_player_get_chat_view(priv->player), "opacity",
+                               G_BINDING_BIDIRECTIONAL);
 
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(opened_channel_cb), self);
         g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
     }
-}
-
-static void
-bg_colour_clicked_cb(GtkButton* button,
-                     gpointer udata)
-{
-    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
-    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
-
-    if (GTK_WIDGET(button) == priv->bg_colour_forward_button)
-        gtk_widget_set_visible(GTK_WIDGET(priv->bg_colour_chooser), TRUE);
-    else
-        gtk_widget_set_visible(GTK_WIDGET(priv->bg_colour_chooser), FALSE);
 }
 
 static void
@@ -357,17 +342,14 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, unfullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, volume_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_stop_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_opacity_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_width_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_x_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_y_adjustment);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_backward_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_forward_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, bg_colour_chooser);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_back_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), bg_colour_clicked_cb);
 }
 
 static void
@@ -376,8 +358,6 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
-
-    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(priv->bg_colour_chooser), &chat_default_bg_colour);
 
     gtk_style_context_remove_class(gtk_widget_get_style_context(priv->volume_button), GTK_STYLE_CLASS_FLAT);
 

@@ -94,7 +94,6 @@
             <property name="image">hamburger_image</property>
             <!-- <property name="menu-model">player_hamburger_menu</property> -->
             <property name="popover">player_menu_popover</property>
-            <signal name="clicked" handler="bg_colour_clicked_cb"/>
           </object>
         </child>
       </object>
@@ -147,15 +146,15 @@
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="menu-name">stream_quality_menu</property>
-            <property name="text" translatable="yes">Stream quality</property>
+            <property name="menu-name">edit_chat_menu</property>
+            <property name="text" translatable="yes">Edit chat</property>
           </object>
         </child>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="menu-name">edit_chat_menu</property>
-            <property name="text" translatable="yes">Edit chat</property>
+            <property name="menu-name">stream_quality_menu</property>
+            <property name="text" translatable="yes">Stream quality</property>
           </object>
         </child>
       </object>
@@ -165,6 +164,7 @@
         <property name="visible">True</property>
         <property name="orientation">vertical</property>
         <property name="margin">10</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
@@ -178,16 +178,15 @@
           <object class="GtkSeparator">
             <property name="visible">True</property>
             <property name="orientation">horizontal</property>
-            <property name="margin-top">6</property>
-            <property name="margin-bottom">6</property>
+            <property name="margin-top">2</property>
+            <property name="margin-bottom">2</property>
           </object>
         </child>
         <child>
-          <object class="GtkModelButton" id="bg_colour_forward_button">
+          <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="menu-name">background_colour_menu</property>
-            <property name="text" translatable="yes">Background colour</property>
-            <signal name="clicked" handler="bg_colour_clicked_cb"/>
+            <property name="text" translatable="yes">Dark theme</property>
+            <property name="action-name">chat-view.dark-theme</property>
           </object>
         </child>
         <child>
@@ -195,7 +194,7 @@
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="halign">start</property>
-            <property name="label" translatable="yes">Width</property>
+            <property name="label" translatable="yes">Opacity</property>
             <style>
               <class name="separator"/>
             </style>
@@ -205,7 +204,7 @@
           <object class="GtkScale">
             <property name="visible">True</property>
             <property name="orientation">horizontal</property>
-            <property name="adjustment">chat_view_width_adjustment</property>
+            <property name="adjustment">chat_view_opacity_adjustment</property>
             <property name="draw-value">False</property>
           </object>
         </child>
@@ -322,33 +321,11 @@
         <property name="submenu">stream_quality_menu</property>
       </packing>
     </child>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">6</property>
-        <property name="margin">10</property>
-        <child>
-          <object class="GtkModelButton" id="bg_colour_backward_button">
-            <property name="visible">True</property>
-            <property name="menu-name">edit_chat_menu</property>
-            <property name="centered">True</property>
-            <property name="inverted">True</property>
-            <property name="text" translatable="yes">Edit chat</property>
-            <signal name="clicked" handler="bg_colour_clicked_cb"/>
-          </object>
-        </child>
-        <child>
-          <object class="GtkColorChooserWidget" id="bg_colour_chooser">
-            <property name="visible">False</property>
-            <property name="show-editor">True</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">background_colour_menu</property>
-      </packing>
-    </child>
+  </object>
+  <object class="GtkAdjustment" id="chat_view_opacity_adjustment">
+    <property name="lower">0.0</property>
+    <property name="upper">1.0</property>
+    <property name="value">1.0</property>
   </object>
   <object class="GtkAdjustment" id="chat_view_height_adjustment">
     <property name="lower">0.0</property>

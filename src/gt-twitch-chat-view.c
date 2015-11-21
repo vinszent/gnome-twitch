@@ -1,15 +1,21 @@
 #include "gt-twitch-chat-view.h"
 #include "gt-twitch-chat-client.h"
 #include "gt-app.h"
+#include "gt-win.h"
 #include "utils.h"
 #include <string.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
 
-#define CHAT_VIEW_CSS "GtkTextView { background-color: %s; }"
+#define CHAT_VIEW_DARK_THEME_CSS "GtkTextView { color: #8C8C9C; background-color: rgba(25, 25, 31, %.2f); }"
+#define CHAT_VIEW_LIGHT_THEME_CSS "GtkTextView { color: #32323E; background-color: rgba(242, 242, 242, %.2f); }"
 
 typedef struct
 {
+    gboolean dark_theme;
+    gdouble opacity;
+    gchar* cur_theme;
+
     GtkWidget* chat_view;
     GtkWidget* chat_scroll;
     GtkWidget* chat_entry;
@@ -18,7 +24,9 @@ typedef struct
     GHashTable* twitch_emotes;
 
     GtkCssProvider* css_provider;
-    GdkRGBA* background_colour;
+
+    GSimpleActionGroup* action_group;
+    GPropertyAction* dark_theme_action;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -26,7 +34,8 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
 enum
 {
     PROP_0,
-    PROP_BACKGROUND_COLOUR,
+    PROP_DARK_THEME,
+    PROP_OPACITY,
     NUM_PROPS
 };
 
@@ -212,6 +221,17 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
 }
 
 static void
+realise_cb(GtkWidget* widget,
+           gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
+                                   "chat-view", G_ACTION_GROUP(priv->action_group));
+}
+
+static void
 channel_joined_cb(GtTwitchChatClient* chat,
                   const gchar* channel,
                   gpointer udata)
@@ -237,16 +257,13 @@ key_press_cb(GtkWidget* widget,
 }
 
 static void
-background_colour_set_cb(GObject* source,
-                         GParamSpec* pspec,
-                         gpointer udata)
+reset_theme_css(GtTwitchChatView* self)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
-
     gchar css[100];
 
-    g_sprintf(css, CHAT_VIEW_CSS, gdk_rgba_to_string(priv->background_colour));
+    g_sprintf(css, priv->dark_theme ? CHAT_VIEW_DARK_THEME_CSS : CHAT_VIEW_LIGHT_THEME_CSS,
+              priv->opacity);
 
     gtk_css_provider_load_from_data(priv->css_provider, css, -1, NULL); //TODO Error handling
     gtk_widget_reset_style(priv->chat_view);
@@ -272,8 +289,11 @@ get_property(GObject* obj,
 
     switch (prop)
     {
-        case PROP_BACKGROUND_COLOUR:
-            g_value_set_boxed(val, priv->background_colour);
+        case PROP_OPACITY:
+            g_value_set_double(val, priv->opacity);
+            break;
+        case PROP_DARK_THEME:
+            g_value_set_boolean(val, priv->dark_theme);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -291,13 +311,14 @@ set_property(GObject* obj,
 
     switch (prop)
     {
-        case PROP_BACKGROUND_COLOUR:
-        {
-            if (priv->background_colour)
-                gdk_rgba_free(priv->background_colour);
-            priv->background_colour = g_value_dup_boxed(val);
+        case PROP_OPACITY:
+            priv->opacity = g_value_get_double(val);
+            reset_theme_css(self);
             break;
-        }
+        case PROP_DARK_THEME:
+            priv->dark_theme = g_value_get_boolean(val);
+            reset_theme_css(self);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -320,22 +341,18 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_scroll);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_entry);
 
-    props[PROP_BACKGROUND_COLOUR] = g_param_spec_boxed("background-colour",
-                                                       "Background Colour",
-                                                       "Current background colour",
-                                                       GDK_TYPE_RGBA,
-                                                       G_PARAM_READWRITE);
+    props[PROP_DARK_THEME] = g_param_spec_boolean("dark-theme",
+                                                  "Dark Theme",
+                                                  "Whether dark theme",
+                                                  FALSE,
+                                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_OPACITY] = g_param_spec_double("opacity",
+                                              "Opacity",
+                                              "Current opacity",
+                                              0, 1.0, 1.0,
+                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(obj_class, NUM_PROPS, props);
-}
-
-static void
-test_cb(GObject* source,
-        gpointer udata)
-{
-    gdouble value;
-    g_object_get(source, "upper", &value, NULL);
-    g_object_set(source, "value", value, NULL);
 }
 
 static void
@@ -345,19 +362,22 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
+    priv->action_group = g_simple_action_group_new();
+    priv->dark_theme_action = g_property_action_new("dark-theme", self, "dark-theme");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(priv->dark_theme_action));
+
     priv->css_provider = gtk_css_provider_new();
     gtk_style_context_add_provider(gtk_widget_get_style_context(priv->chat_view),
                                    GTK_STYLE_PROVIDER(priv->css_provider),
                                    GTK_STYLE_PROVIDER_PRIORITY_USER);
 
-        priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
+    priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
 
-    g_signal_connect(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll)), "changed", G_CALLBACK(test_cb), self);
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
-    g_signal_connect(self, "notify::background-colour", G_CALLBACK(background_colour_set_cb), self);
+    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
 
     ADD_STYLE_CLASS(self, "gt-twitch-chat-view");
 }
