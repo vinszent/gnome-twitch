@@ -3,4 +3,5 @@ Type=Application
 Name=GNOME Twitch
 Exec=gnome-twitch
 Icon=gnome-twitch
-Categories=GTK;GNOME;AudioVideo;Player;Video
+Categories=GTK;GNOME;AudioVideo;Player;Video;
+Keywords=stream;video;twitch;live;games;
