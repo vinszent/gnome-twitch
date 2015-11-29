@@ -40,6 +40,7 @@ typedef struct
 {
     GtTwitchChatClient* self;
     GDataInputStream* istream;
+    GOutputStream* ostream;
 } ChatThreadData;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatClient, gt_twitch_chat_client, G_TYPE_OBJECT)
@@ -251,7 +252,7 @@ read_lines(ChatThreadData* data)
             /* g_print("Command %s\n", msg->command); */
             /* g_print("Params %s\n", msg->params); */
 
-            handle_message(self, priv->ostream_recv, msg);
+            handle_message(self, data->ostream, msg);
         }
     }
 
@@ -389,9 +390,11 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self)
 
     recv_data->self = self;
     recv_data->istream = priv->istream_recv;
+    recv_data->ostream = priv->ostream_recv;
 
     send_data->self = self;
     send_data->istream = priv->istream_send;
+    send_data->ostream = priv->ostream_send;
 
     priv->worker_thread_recv = g_thread_new("gnome-twitch-chat-worker-recv",
                                        (GThreadFunc) read_lines, recv_data);
