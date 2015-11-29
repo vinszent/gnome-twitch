@@ -184,8 +184,6 @@ send_msg_from_entry(GtTwitchChatView* self)
 
     gt_twitch_chat_client_privmsg(main_app->chat, msg);
 
-    add_chat_msg(self, gt_app_get_user_name(main_app), "#F5629B", msg, NULL); //TODO: User emotes
-
     gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
 }
 
