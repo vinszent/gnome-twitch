@@ -45,6 +45,10 @@
             <child>
               <object class="GtkInfoBar" id="info_bar">
                 <property name="visible">True</property>
+                <action-widgets>
+                  <action-widget response="GTK_RESPONSE_OK">info_bar_ok_button</action-widget>
+                  <action-widget response="GTK_RESPONSE_CLOSE">info_bar_close_button</action-widget>
+                </action-widgets>
                 <child internal-child="content_area">
                   <object class="GtkBox">
                     <property name="visible">True</property>
@@ -59,11 +63,22 @@
                   <object class="GtkButtonBox">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkButton">
+                      <object class="GtkButton" id="info_bar_ok_button">
+                        <property name="visible">True</property>
+                        <property name="label">OK</property>
+                      </object>
+                      <packing>
+                        <property name="pack-type">start</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="info_bar_close_button">
                         <property name="visible">True</property>
                         <property name="label">Close</property>
-                        <signal name="clicked" handler="hide_info_bar" object="GtWin"/>
                       </object>
+                      <packing>
+                        <property name="pack-type">end</property>
+                      </packing>
                     </child>
                   </object>
                 </child>

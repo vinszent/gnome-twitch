@@ -5,6 +5,7 @@
 #include "gt-twitch.h"
 #include "gt-player.h"
 #include "gt-player-clutter.h"
+#include "gt-player-mpv.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
@@ -35,6 +36,7 @@ typedef struct
     GtkWidget* info_revealer;
     GtkWidget* info_label;
     GtkWidget* info_bar;
+    GtkWidget* info_bar_ok_button;
 
     gboolean fullscreen;
 } GtWinPrivate;
@@ -102,6 +104,30 @@ show_settings_cb(GSimpleAction* action,
 }
 
 static void
+refresh_login_cb(GtkInfoBar* info_bar,
+                 gint res,
+                 gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    switch (res)
+    {
+        case GTK_RESPONSE_OK:
+            gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(self)));
+            break;
+        case GTK_RESPONSE_CLOSE:
+            // Do nothing
+            break;
+    }
+
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
+    gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+    g_signal_handlers_disconnect_by_func(info_bar, refresh_login_cb, udata);
+}
+
+
+static void
 show_twitch_login_cb(GSimpleAction* action,
                      GVariant* par,
                      gpointer udata)
@@ -109,9 +135,21 @@ show_twitch_login_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(self);
+    if (gt_app_get_oauth_token(main_app))
+    {
+        gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
+        gtk_label_set_text(GTK_LABEL(priv->info_label), _("Already logged into Twitch, refresh login?"));
+        gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
 
-    gtk_window_present(GTK_WINDOW(dlg));
+        g_signal_connect(priv->info_bar, "response", G_CALLBACK(refresh_login_cb), self);
+    }
+    else
+    {
+        GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(self);
+
+        gtk_window_present(GTK_WINDOW(dlg));
+    }
 }
 
 static void
@@ -152,8 +190,6 @@ key_press_cb(GtkWidget* widget,
     gboolean playing;
 
     g_object_get(self->player, "playing", &playing, NULL);
-
-    g_print("Win\n");
 
     if (evt->keyval == GDK_KEY_space)
     {
@@ -230,14 +266,6 @@ show_error_message(GtWin* self, const gchar* msg)
     gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
     gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_WARNING);
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
-}
-
-static void
-hide_info_bar(GtWin* self)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
 }
 
 static void
@@ -369,8 +397,7 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar);
-
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), hide_info_bar);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
 }
 
 static void
@@ -380,6 +407,7 @@ gt_win_init(GtWin* self)
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
     GT_TYPE_PLAYER_CLUTTER;
+    GT_TYPE_PLAYER_MPV;
     GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
