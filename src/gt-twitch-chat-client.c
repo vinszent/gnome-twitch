@@ -170,7 +170,7 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
     gchar* orig = line;
     gchar* prefix = NULL;
 
-    g_print("%s\n", line);
+//    g_print("%s\n", line);
 
     if (line[0] == '@')
     {
@@ -202,26 +202,24 @@ static void
 handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
-    gboolean handled = FALSE;
-
-    if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
-    {
-        send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
-        gt_twitch_chat_message_free(msg);
-
-        handled = TRUE;
-    }
 
     if (ostream == priv->ostream_recv)
     {
-        if (self->source)
-            g_async_queue_push(self->source->queue, msg);
-
-        handled = TRUE;
+        if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
+            send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
+        else
+        {
+            if (self->source)
+                g_async_queue_push(self->source->queue, msg);
+        }
     }
+    else if (ostream == priv->ostream_send)
+    {
+        if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
+            send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
 
-    if (!handled)
         gt_twitch_chat_message_free(msg);
+    }
 }
 
 static void
