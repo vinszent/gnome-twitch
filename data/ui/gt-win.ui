@@ -22,7 +22,7 @@
           </object>
           <packing>
             <property name="name">browse</property>
-            <property name="title">Browse</property>
+            <property name="title" translatable="yes">Browse</property>
           </packing>
         </child> 
         <child>
@@ -32,7 +32,7 @@
           </object>
           <packing>
             <property name="name">player</property>
-            <property name="title">Player</property>
+            <property name="title" translatable="yes">Player</property>
           </packing>
         </child> 
       </object>
@@ -63,7 +63,7 @@
                     <child>
                       <object class="GtkButton">
                         <property name="visible">True</property>
-                        <property name="label">Close</property> 
+                        <property name="label" translatable="yes">Close</property> 
                         <signal name="clicked" handler="hide_info_bar" object="GtWin"/>
                       </object>
                     </child>
@@ -112,7 +112,7 @@
               </object>
               <packing>
                 <property name="name">browse</property>
-                <property name="title">Browse</property>
+                <property name="title" translatable="yes">Browse</property>
               </packing>
             </child>
             <child>
@@ -122,7 +122,7 @@
               </object>
               <packing>
                 <property name="name">player</property>
-                <property name="title">Player</property>
+                <property name="title" translatable="yes">Player</property>
               </packing>
             </child>
           </object>
