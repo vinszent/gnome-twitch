@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface domain="gnome-twitch">
   <template class="GtWin" parent="GtkApplicationWindow">
-    <property name="title">Gnome Twitch</property>
+    <property name="title">GNOME Twitch</property>
     <property name="default-height">710</property>
     <property name="default-width">1050</property>
     <child type="titlebar">
