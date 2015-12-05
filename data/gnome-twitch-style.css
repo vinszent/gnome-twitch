@@ -54,3 +54,43 @@
     border-radius: 4px;
     opacity: 0.8;
 }
+
+.gt-twitch-chat-view GtkTextView
+{
+    background-color: transparent;
+}
+
+.gt-twitch-chat-view GtkEntry
+{
+    background-color: transparent;
+    background-image: none;
+}
+
+.gth-twitch-chat-view GtkTextView.light-theme
+{
+    color: rgba(50, 50, 62, 1.0);
+}
+
+.gt-twitch-chat-view GtkTextView.dark-theme
+{
+    color: rgba(255, 255, 255, 1.0);
+}
+
+.gt-twitch-chat-view GtkTextView:selected,
+.gt-twitch-chat-view GtkEntry:selected
+{
+    color: @selected_fg_color;
+    background-color: @selected_bg_color;
+}
+
+.gt-twitch-chat-view GtkEntry.light-theme
+{
+    color: rgba(0, 0, 0, 1);
+    border-color: rgba(204, 204, 204, 1.0);
+}
+
+.gt-twitch-chat-view GtkEntry.dark-theme
+{
+    color: rgba(255, 255, 255, 1.0);
+    border-color: rgba(81, 81, 85, 1.0);
+}

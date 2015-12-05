@@ -7,8 +7,10 @@
 #include <stdlib.h>
 #include <glib/gprintf.h>
 
-#define CHAT_VIEW_DARK_THEME_CSS "GtkTextView { color: #8C8C9C; background-color: rgba(25, 25, 31, %.2f); }"
-#define CHAT_VIEW_LIGHT_THEME_CSS "GtkTextView { color: #32323E; background-color: rgba(242, 242, 242, %.2f); }"
+#define CHAT_DARK_THEME_CSS_CLASS "dark-theme"
+#define CHAT_LIGHT_THEME_CSS_CLASS "light-theme"
+#define CHAT_DARK_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(25, 25, 31, %.2f); }"
+#define CHAT_LIGHT_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(242, 242, 242, %.2f); }"
 
 typedef struct
 {
@@ -23,7 +25,10 @@ typedef struct
     GtkTextTagTable* tag_table;
     GHashTable* twitch_emotes;
 
-    GtkCssProvider* css_provider;
+    GtkTextMark* bottom_mark;
+    GtkTextIter bottom_iter;
+
+    GtkCssProvider* chat_css_provider;
 
     GSimpleActionGroup* action_group;
     GPropertyAction* dark_theme_action;
@@ -145,9 +150,8 @@ add_chat_msg(GtTwitchChatView* self,
 {
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GtkTextTag* sender_colour_tag = NULL;
-    GtkTextIter insert_iter;
 
-    gtk_text_buffer_get_end_iter(priv->chat_buffer, &insert_iter);
+    gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
 
     if (!colour || strlen(colour) < 1) //TODO: Set random colour instead of just black
         colour = "#000000";
@@ -164,14 +168,16 @@ add_chat_msg(GtTwitchChatView* self,
         gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
     }
 
-    gtk_text_buffer_insert_with_tags(priv->chat_buffer, &insert_iter, sender, -1, sender_colour_tag, NULL);
-    gtk_text_iter_forward_word_end(&insert_iter);
-    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, ": ", -1);
-    gtk_text_iter_forward_chars(&insert_iter, 2);
+    gtk_text_buffer_insert_with_tags(priv->chat_buffer, &priv->bottom_iter, sender, -1, sender_colour_tag, NULL);
+    gtk_text_iter_forward_word_end(&priv->bottom_iter);
+    gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, ": ", -1);
+    gtk_text_iter_forward_chars(&priv->bottom_iter, 2);
 //    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
-    insert_message_with_emotes(priv->chat_buffer, &insert_iter, emotes, msg, strlen(sender) + 2);
-    gtk_text_iter_forward_to_line_end(&insert_iter);
-    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, "\n", -1);
+    insert_message_with_emotes(priv->chat_buffer, &priv->bottom_iter, emotes, msg, strlen(sender) + 2);
+    gtk_text_iter_forward_to_line_end(&priv->bottom_iter);
+    gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, "\n", -1);
+    gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &priv->bottom_iter);
+    gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
 }
 
 static void
@@ -258,13 +264,28 @@ static void
 reset_theme_css(GtTwitchChatView* self)
 {
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
-    gchar css[100];
+    gchar css[200];
 
-    g_sprintf(css, priv->dark_theme ? CHAT_VIEW_DARK_THEME_CSS : CHAT_VIEW_LIGHT_THEME_CSS,
+    g_sprintf(css, priv->dark_theme ? CHAT_DARK_THEME_CSS : CHAT_LIGHT_THEME_CSS,
               priv->opacity);
 
-    gtk_css_provider_load_from_data(priv->css_provider, css, -1, NULL); //TODO Error handling
-    gtk_widget_reset_style(priv->chat_view);
+    if (priv->dark_theme)
+    {
+        REMOVE_STYLE_CLASS(priv->chat_view, CHAT_LIGHT_THEME_CSS_CLASS);
+        REMOVE_STYLE_CLASS(priv->chat_entry, CHAT_LIGHT_THEME_CSS_CLASS);
+        ADD_STYLE_CLASS(priv->chat_view, CHAT_DARK_THEME_CSS_CLASS);
+        ADD_STYLE_CLASS(priv->chat_entry, CHAT_DARK_THEME_CSS_CLASS);
+    }
+    else
+    {
+        REMOVE_STYLE_CLASS(priv->chat_view, CHAT_DARK_THEME_CSS_CLASS);
+        REMOVE_STYLE_CLASS(priv->chat_entry, CHAT_DARK_THEME_CSS_CLASS);
+        ADD_STYLE_CLASS(priv->chat_view, CHAT_LIGHT_THEME_CSS_CLASS);
+        ADD_STYLE_CLASS(priv->chat_entry, CHAT_LIGHT_THEME_CSS_CLASS);
+    }
+
+    gtk_css_provider_load_from_data(priv->chat_css_provider, css, -1, NULL); //TODO Error handling
+    gtk_widget_reset_style(GTK_WIDGET(self));
 }
 
 static void
@@ -364,14 +385,16 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     priv->dark_theme_action = g_property_action_new("dark-theme", self, "dark-theme");
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(priv->dark_theme_action));
 
-    priv->css_provider = gtk_css_provider_new();
-    gtk_style_context_add_provider(gtk_widget_get_style_context(priv->chat_view),
-                                   GTK_STYLE_PROVIDER(priv->css_provider),
+    priv->chat_css_provider = gtk_css_provider_new();
+    gtk_style_context_add_provider(gtk_widget_get_style_context(GTK_WIDGET(self)),
+                                   GTK_STYLE_PROVIDER(priv->chat_css_provider),
                                    GTK_STYLE_PROVIDER_PRIORITY_USER);
 
     priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
+    gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
+    priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
 
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
