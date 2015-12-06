@@ -17,6 +17,7 @@
 #define SEARCH_GAMES_URI    "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
 #define STREAMS_URI         "https://api.twitch.tv/kraken/streams/%s"
 #define CHANNELS_URI        "https://api.twitch.tv/kraken/channels/%s"
+#define CHAT_BADGES_URI     "https://api.twitch.tv/kraken/chat/%s/badges/"
 #define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
@@ -479,8 +480,8 @@ gt_twitch_top_games(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-	g_warning("{GtTwitch} Error sending message to get top channels");
-	goto finish;
+        g_warning("{GtTwitch} Error sending message to get top channels");
+        goto finish;
     }
 
     parser = json_parser_new();
@@ -852,8 +853,8 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
 
     if (!send_message(self, msg))
     {
-	g_warning("{GtTwitch} Error sending message to get raw channel data");
-	goto finish;
+        g_warning("{GtTwitch} Error sending message to get raw channel data");
+        goto finish;
     }
 
     parser = json_parser_new();
@@ -1052,5 +1053,106 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
     g_info("{GtTwitch} Downloading emote from url '%s'", url);
 
     return utils_download_picture(priv->soup, url);
+}
 
+static GtTwitchChatBadges*
+gt_twitch_chat_badges_new()
+{
+    return g_new(GtTwitchChatBadges, 1);
+}
+
+void
+gt_twitch_chat_badges_free(GtTwitchChatBadges* badges)
+{
+    g_assert_nonnull(badges);
+
+    g_clear_object(&badges->global_mod);
+    g_clear_object(&badges->admin);
+    g_clear_object(&badges->broadcaster);
+    g_clear_object(&badges->mod);
+    g_clear_object(&badges->staff);
+    g_clear_object(&badges->turbo);
+    g_clear_object(&badges->subscriber);
+    g_free(badges);
+}
+
+GtTwitchChatBadges*
+gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar uri[100];
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GtTwitchChatBadges* ret = NULL;
+
+    g_info("{GtTwitch} Getting twitch chat badges for channel '%s'", chan);
+
+    g_sprintf(uri, CHAT_BADGES_URI, chan);
+
+    msg = soup_message_new("GET", uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error getting twitch chat badges for channel '%s'", chan);
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL); //TODO: Error handling
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    ret = gt_twitch_chat_badges_new();
+
+    json_reader_read_member(reader, "global_mod");
+    json_reader_read_member(reader, "image");
+    ret->global_mod = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "admin");
+    json_reader_read_member(reader, "image");
+    ret->admin = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "broadcaster");
+    json_reader_read_member(reader, "image");
+    ret->broadcaster = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "mod");
+    json_reader_read_member(reader, "image");
+    ret->mod = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "staff");
+    json_reader_read_member(reader, "image");
+    ret->staff = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "turbo");
+    json_reader_read_member(reader, "image");
+    ret->turbo = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "subscriber");
+    json_reader_read_member(reader, "image");
+    ret->subscriber = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_object_unref(msg);
+
+    return ret;
 }

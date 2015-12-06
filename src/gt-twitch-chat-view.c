@@ -12,6 +12,14 @@
 #define CHAT_DARK_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(25, 25, 31, %.2f); }"
 #define CHAT_LIGHT_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(242, 242, 242, %.2f); }"
 
+#define USER_MODE_GLOBAL_MOD 1
+#define USER_MODE_ADMIN 1 << 2
+#define USER_MODE_BROADCASTER 1 << 3
+#define USER_MODE_MOD 1 << 4
+#define USER_MODE_STAFF 1 << 5
+#define USER_MODE_TURBO 1 << 6
+#define USER_MODE_SUBSCRIBER 1 << 7
+
 typedef struct
 {
     gboolean dark_theme;
@@ -32,6 +40,8 @@ typedef struct
 
     GSimpleActionGroup* action_group;
     GPropertyAction* dark_theme_action;
+
+    GtTwitchChatBadges* chat_badges;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -146,10 +156,12 @@ add_chat_msg(GtTwitchChatView* self,
              const gchar* sender,
              const gchar* colour,
              const gchar* msg,
-             GList* emotes)
+             GList* emotes,
+             gint user_modes)
 {
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GtkTextTag* sender_colour_tag = NULL;
+    gint offset = 0;
 
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
 
@@ -168,12 +180,34 @@ add_chat_msg(GtTwitchChatView* self,
         gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
     }
 
+    offset = strlen(sender) + 2;
+
+    //TODO: Cleanup?
+#define INSERT_USER_MOD_PIXBUF(mode, name)                              \
+    if (user_modes & mode)                                              \
+    {                                                                   \
+        gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &priv->bottom_iter, priv->chat_badges->name); \
+        gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, " ", -1); \
+        gtk_text_iter_forward_chars(&priv->bottom_iter, 2);             \
+        offset += 2;                                                    \
+    }                                                                   \
+
+    INSERT_USER_MOD_PIXBUF(USER_MODE_SUBSCRIBER, subscriber);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_TURBO, turbo);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_GLOBAL_MOD, global_mod);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_BROADCASTER, broadcaster);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_STAFF, staff);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_ADMIN, admin);
+    INSERT_USER_MOD_PIXBUF(USER_MODE_MOD, mod);
+
+#undef INSERT_USER_MOD_PIXBUF
+
     gtk_text_buffer_insert_with_tags(priv->chat_buffer, &priv->bottom_iter, sender, -1, sender_colour_tag, NULL);
     gtk_text_iter_forward_word_end(&priv->bottom_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, ": ", -1);
     gtk_text_iter_forward_chars(&priv->bottom_iter, 2);
 //    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
-    insert_message_with_emotes(priv->chat_buffer, &priv->bottom_iter, emotes, msg, strlen(sender) + 2);
+    insert_message_with_emotes(priv->chat_buffer, &priv->bottom_iter, emotes, msg, offset);
     gtk_text_iter_forward_to_line_end(&priv->bottom_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, "\n", -1);
     gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &priv->bottom_iter);
@@ -205,17 +239,31 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
     {
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
         {
+            if (g_strcmp0(msg->nick, "twitchnotify") == 0) //TODO: Handle this better
+                goto cont;
+
+            gint user_modes = 0;
             gchar* sender = utils_search_key_value_strv(msg->tags, "display-name");
             if (!sender || strlen(sender) < 1)
                 sender = msg->nick;
             gchar* colour = utils_search_key_value_strv(msg->tags, "color");
             gchar* msg_str = msg->params;
             GList* emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
+            gboolean subscriber = atoi(utils_search_key_value_strv(msg->tags, "subscriber"));
+            gboolean turbo = atoi(utils_search_key_value_strv(msg->tags, "turbo"));
+            gchar* user_type = utils_search_key_value_strv(msg->tags, "user-type");
+            if (subscriber) user_modes |= USER_MODE_SUBSCRIBER;
+            if (turbo) user_modes |= USER_MODE_TURBO;
+            if (g_strcmp0(user_type, "mod") == 0) user_modes |= USER_MODE_MOD;
+            else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= USER_MODE_GLOBAL_MOD;
+            else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
+            else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
             strsep(&msg_str, " :");
-            add_chat_msg(self, sender, colour, msg_str+1, emotes);
+            add_chat_msg(self, sender, colour, msg_str+1, emotes, user_modes);
             g_list_free_full(emotes, g_free);
         }
 
+    cont:
         ret = G_SOURCE_CONTINUE;
     }
 
@@ -242,6 +290,11 @@ channel_joined_cb(GtTwitchChatClient* chat,
 {
     GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    //TODO: Make async
+    if (priv->chat_badges)
+        gt_twitch_chat_badges_free(priv->chat_badges);
+    priv->chat_badges = gt_twitch_chat_badges(main_app->twitch, channel + 1);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
     g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);

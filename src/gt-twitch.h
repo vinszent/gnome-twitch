@@ -66,6 +66,17 @@ typedef struct _GtGameRawData
     gint64 channels;
 } GtGameRawData;
 
+typedef struct _GtTwitchChatBadges
+{
+    GdkPixbuf* global_mod;
+    GdkPixbuf* admin;
+    GdkPixbuf* broadcaster;
+    GdkPixbuf* mod;
+    GdkPixbuf* staff;
+    GdkPixbuf* turbo;
+    GdkPixbuf* subscriber;
+} GtTwitchChatBadges;
+
 GtTwitch*               gt_twitch_new(void);
 void                    gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gchar** sig);
 GtTwitchStreamData*     gt_twitch_stream_by_quality(GtTwitch* self, gchar* channel, GtTwitchStreamQuality qual, gchar* token, gchar* sig);
@@ -88,6 +99,9 @@ void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
 GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
 void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
+GtTwitchChatBadges*     gt_twitch_chat_badges(GtTwitch* self, const gchar* chan);
+void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void                    gt_twitch_chat_badges_free(GtTwitchChatBadges* badges);
 
 G_END_DECLS
 
