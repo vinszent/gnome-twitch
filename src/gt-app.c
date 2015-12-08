@@ -100,9 +100,12 @@ startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
+    GtkSettings *settings = gtk_settings_get_default();
 
     self->fav_mgr = gt_favourites_manager_new();
     gt_favourites_manager_load(self->fav_mgr);
+
+    g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 }
