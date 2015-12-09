@@ -126,22 +126,22 @@
       <attribute name="label" translatable="yes">Stream quality</attribute>
       <section>
         <item>
-          <attribute name="label">Source</attribute>
+          <attribute name="label" translatable="yes">Source</attribute>
           <attribute name="action">win.player_set_quality</attribute>
           <attribute name="target">source</attribute>
         </item> 
         <item>
-          <attribute name="label">High</attribute>
+          <attribute name="label" translatable="yes">High</attribute>
           <attribute name="action">win.player_set_quality</attribute>
           <attribute name="target">high</attribute>
         </item> 
         <item>
-          <attribute name="label">Medium</attribute>
+          <attribute name="label" translatable="yes">Medium</attribute>
           <attribute name="action">win.player_set_quality</attribute>
           <attribute name="target">medium</attribute>
         </item> 
         <item>
-          <attribute name="label">Low</attribute>
+          <attribute name="label" translatable="yes">Low</attribute>
           <attribute name="action">win.player_set_quality</attribute>
           <attribute name="target">low</attribute>
         </item> 

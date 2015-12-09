@@ -103,7 +103,7 @@ show_about_cb(GSimpleAction* action,
                           "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
                           "logo-icon-name", "gnome-twitch",
                           "website", "https://github.com/Ippytraxx/gnome-twitch",
-                          "website-label", "Github",
+                          "website-label", "GitHub",
                           "translator-credits", _("translator-credits"),
                           NULL);
 }
