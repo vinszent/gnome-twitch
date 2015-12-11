@@ -1072,7 +1072,8 @@ gt_twitch_chat_badges_free(GtTwitchChatBadges* badges)
     g_clear_object(&badges->mod);
     g_clear_object(&badges->staff);
     g_clear_object(&badges->turbo);
-    g_clear_object(&badges->subscriber);
+    if (badges->subscriber)
+        g_clear_object(&badges->subscriber);
     g_free(badges);
 }
 
@@ -1143,9 +1144,12 @@ gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "subscriber");
-    json_reader_read_member(reader, "image");
-    ret->subscriber = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    if (!json_reader_get_null_value(reader))
+    {
+        json_reader_read_member(reader, "image");
+        ret->subscriber = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+    }
     json_reader_end_member(reader);
 
     g_object_unref(parser);
