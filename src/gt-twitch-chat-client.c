@@ -175,8 +175,7 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
     if (line[0] == '@')
     {
         line = line+1;
-        msg->tags = g_strsplit_set(line, ";=", -1);
-        strsep(&line, " ");
+        msg->tags = g_strsplit_set(strsep(&line, " "), ";=", -1);
     }
 
     if (line[0] == ':')
