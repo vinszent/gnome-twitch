@@ -116,14 +116,23 @@ refresh_login_cb(GtkInfoBar* info_bar,
         case GTK_RESPONSE_OK:
             gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(self)));
             break;
-        case GTK_RESPONSE_CLOSE:
-            // Do nothing
-            break;
     }
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
     gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
     g_signal_handlers_disconnect_by_func(info_bar, refresh_login_cb, udata);
+}
+
+static void
+close_info_bar_cb(GtkInfoBar* bar,
+                  gint res,
+                  gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (res == GTK_RESPONSE_CLOSE)
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
 }
 
 
@@ -134,8 +143,9 @@ show_twitch_login_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    const gchar* oauth = gt_app_get_oauth_token(main_app);
 
-    if (gt_app_get_oauth_token(main_app))
+    if (oauth && strlen(oauth) > 1)
     {
         gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
         gtk_label_set_text(GTK_LABEL(priv->info_label), _("Already logged into Twitch, refresh login?"));
@@ -437,6 +447,7 @@ gt_win_init(GtWin* self)
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
     g_signal_connect_after(self, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
+    g_signal_connect(priv->info_bar, "response", G_CALLBACK(close_info_bar_cb), self);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     win_actions,

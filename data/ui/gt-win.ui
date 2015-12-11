@@ -45,6 +45,7 @@
             <child>
               <object class="GtkInfoBar" id="info_bar">
                 <property name="visible">True</property>
+                <property name="show-close-button">True</property>
                 <action-widgets>
                   <action-widget response="GTK_RESPONSE_OK">info_bar_ok_button</action-widget>
                   <action-widget response="GTK_RESPONSE_CLOSE">info_bar_close_button</action-widget>
@@ -64,7 +65,7 @@
                     <property name="visible">True</property>
                     <child>
                       <object class="GtkButton" id="info_bar_ok_button">
-                        <property name="visible">True</property>
+                        <property name="visible">False</property>
                         <property name="label">OK</property>
                       </object>
                       <packing>
@@ -73,7 +74,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="info_bar_close_button">
-                        <property name="visible">True</property>
+                        <property name="visible">False</property>
                         <property name="label">Close</property>
                       </object>
                       <packing>
