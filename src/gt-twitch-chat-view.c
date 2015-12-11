@@ -259,7 +259,13 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
             else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
             else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
             strsep(&msg_str, " :");
-            add_chat_msg(self, sender, colour, msg_str+1, emotes, user_modes);
+            msg_str++;
+            if (msg_str[0] == '\001')
+            {
+                strsep(&msg_str, " ");
+                msg_str[strlen(msg_str) - 1] = '\0';
+            }
+            add_chat_msg(self, sender, colour, msg_str, emotes, user_modes);
             g_list_free_full(emotes, g_free);
         }
 
