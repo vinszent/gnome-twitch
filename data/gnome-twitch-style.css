@@ -71,7 +71,7 @@
     background-image: none;
 }
 
-.gth-twitch-chat-view GtkTextView.light-theme
+.gt-twitch-chat-view GtkTextView.light-theme
 {
     color: rgba(50, 50, 62, 1.0);
 }
