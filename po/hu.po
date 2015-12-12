@@ -7,65 +7,66 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-10-10 22:42+0200\n"
-"PO-Revision-Date: 2015-11-08 18:40+0200\n"
+"POT-Creation-Date: 2015-10-09 22:42+0200\n"
+"PO-Revision-Date: 2015-10-27 00:16+0100\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.5\n"
+"X-Generator: Emacs PO mode, version 2.23\n"
 "Last-Translator: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: fr\n"
+"Language: hu\n"
+"Gergő Rubint <gergo@rubint.me>"
 
 #: data/ui/gt-win.ui:55
 msgid "Channels"
-msgstr "Chaînes"
+msgstr "Csatornák"
 
 #: data/ui/gt-win.ui:64
 msgid "Favourites"
-msgstr "Favoris"
+msgstr "Kedvencek"
 
 #: data/ui/gt-win.ui:73
 msgid "Games"
-msgstr "Jeux"
+msgstr "Játékok"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
 msgid "Settings"
-msgstr "Paramètres"
+msgstr "Beállítások"
 
 #: data/ui/app-menu.ui:12
 msgid "About"
-msgstr "À propos de"
+msgstr "Névjegy"
 
 #: data/ui/app-menu.ui:16
 msgid "Quit"
-msgstr "Quitter"
+msgstr "Kilépés"
 
 #: data/ui/gt-settings-dlg.ui:17
 msgid "Default video quality: "
-msgstr "Qualité vidéo par défaut:"
+msgstr "Alapértelmezett Videó Minőség"
 
 #: data/ui/gt-settings-dlg.ui:28
 msgid "Source"
-msgstr "Originale"
+msgstr "Forrás"
 
 #: data/ui/gt-settings-dlg.ui:29
 msgid "High"
-msgstr "Élevée"
+msgstr "Magas"
 
 #: data/ui/gt-settings-dlg.ui:30
 msgid "Medium"
-msgstr "Moyenne"
+msgstr "Közepes"
 
 #: data/ui/gt-settings-dlg.ui:31
 msgid "Low"
-msgstr "Faible"
+msgstr "Alacsony"
 
 #: src/gt-win.c:96
 msgid "Enjoy Twitch on your GNU/Linux desktop"
-msgstr "Profitez de Twitch sur votre bureau GNU/Linux"
+msgstr "Élvezd a Twitch-et a GNU/Linux gépeden"
 
 #: src/gt-win.c:100
 msgid "translator-credits"
-msgstr "mr-intrepide <theintrepid95@gmail.com>"
+msgstr "Gergő Rubint <gergo@rubint.me>"

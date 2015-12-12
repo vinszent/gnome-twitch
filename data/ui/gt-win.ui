@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface domain="gnome-twitch">
   <template class="GtWin" parent="GtkApplicationWindow">
-    <property name="title">Gnome Twitch</property>
+    <property name="title">GNOME Twitch</property>
+    <property name="default-height">710</property>
+    <property name="default-width">1050</property>
     <child type="titlebar">
       <object class="GtkStack" id="header_stack">
         <property name="visible">True</property>
@@ -20,7 +22,7 @@
           </object>
           <packing>
             <property name="name">browse</property>
-            <property name="title">Browse</property>
+            <property name="title" translatable="yes">Browse</property>
           </packing>
         </child>
         <child>
@@ -30,7 +32,7 @@
           </object>
           <packing>
             <property name="name">player</property>
-            <property name="title">Player</property>
+            <property name="title" translatable="yes">Player</property>
           </packing>
         </child>
       </object>
@@ -126,7 +128,7 @@
               </object>
               <packing>
                 <property name="name">browse</property>
-                <property name="title">Browse</property>
+                <property name="title" translatable="yes">Browse</property>
               </packing>
             </child>
             <child>
@@ -136,7 +138,7 @@
               </object>
               <packing>
                 <property name="name">player</property>
-                <property name="title">Player</property>
+                <property name="title" translatable="yes">Player</property>
               </packing>
             </child>
           </object>

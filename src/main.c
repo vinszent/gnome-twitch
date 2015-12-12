@@ -58,7 +58,7 @@ gt_log(const gchar* domain,
             level = "All";
             break;
         default:
-            level = "Unkown";
+            level = "Unknown";
             break;
     }
 

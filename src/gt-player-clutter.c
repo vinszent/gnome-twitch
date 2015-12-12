@@ -45,6 +45,8 @@ typedef struct
     gboolean chat_visible;
 
     GtWin* win; // Save a reference
+
+    guint inhibitor_cookie;
 } GtPlayerClutterPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerClutter, gt_player_clutter, GT_TYPE_PLAYER)
@@ -255,6 +257,11 @@ play(GtPlayer* player)
 
     priv->playing = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
+
+    priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
+                                                     GTK_WINDOW(priv->win),
+                                                     GTK_APPLICATION_INHIBIT_IDLE,
+                                                     "Displaying a stream");
 }
 
 static void
@@ -268,6 +275,9 @@ stop(GtPlayer* player)
 
     priv->playing = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
+
+    gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
+    priv->inhibitor_cookie = 0;
 }
 
 static void
