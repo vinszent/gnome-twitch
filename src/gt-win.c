@@ -36,7 +36,7 @@ typedef struct
     GtkWidget* info_revealer;
     GtkWidget* info_label;
     GtkWidget* info_bar;
-    GtkWidget* info_bar_ok_button;
+    GtkWidget* info_bar_yes_button;
 
     gboolean fullscreen;
 } GtWinPrivate;
@@ -119,7 +119,7 @@ refresh_login_cb(GtkInfoBar* info_bar,
     }
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
-    gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+    gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
     g_signal_handlers_disconnect_by_func(info_bar, refresh_login_cb, udata);
 }
 
@@ -147,7 +147,7 @@ show_twitch_login_cb(GSimpleAction* action,
 
     if (oauth && strlen(oauth) > 1)
     {
-        gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
+        gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
         gtk_label_set_text(GTK_LABEL(priv->info_label), _("Already logged into Twitch, refresh login?"));
         gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
@@ -407,7 +407,7 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_yes_button);
 }
 
 static void
@@ -468,6 +468,7 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                  "status", &status,
                  NULL);
 
+    //TODO: Make all of this async!
     gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
     GtTwitchStreamData* stream_data = gt_twitch_stream_by_quality(main_app->twitch,
                                                                   name,
