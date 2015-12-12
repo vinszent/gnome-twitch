@@ -33,6 +33,12 @@ struct _GtTwitch
     GObject parent_instance;
 };
 
+typedef struct _GtTwitchStreamAccessToken
+{
+    gchar* token;
+    gchar* sig;
+} GtTwitchStreamAccessToken;
+
 typedef struct _GtTwitchStreamData
 {
     gint width;
@@ -78,9 +84,12 @@ typedef struct _GtTwitchChatBadges
 } GtTwitchChatBadges;
 
 GtTwitch*               gt_twitch_new(void);
-void                    gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gchar** sig);
-GtTwitchStreamData*     gt_twitch_stream_by_quality(GtTwitch* self, gchar* channel, GtTwitchStreamQuality qual, gchar* token, gchar* sig);
-GList*                  gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig);
+void                    gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token);
+GtTwitchStreamAccessToken*                    gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel);
+void                    gt_twitch_stream_access_token_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GtTwitchStreamData*     gt_twitch_stream_list_filter_quality(GList* list, GtTwitchStreamQuality qual);
+GList*                  gt_twitch_all_streams(GtTwitch* self, const gchar* channel);
+void                    gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game);
 void                    gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_top_games(GtTwitch* self, gint n, gint offset);
@@ -89,7 +98,8 @@ GList*                  gt_twitch_search_channels(GtTwitch* self, const gchar* q
 void                    gt_twitch_search_channels_async(GtTwitch* self, const gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset);
 void                    gt_twitch_search_games_async(GtTwitch* self, const gchar* query, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void                    gt_twitch_stream_data_free(GtTwitchStreamData* channel);
+void                    gt_twitch_stream_data_free(GtTwitchStreamData* data);
+void                    gt_twitch_stream_data_list_free(GList* list);
 GtChannelRawData*       gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name);
 GtChannelRawData*       gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
@@ -100,7 +110,7 @@ GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* 
 void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
 GtTwitchChatBadges*     gt_twitch_chat_badges(GtTwitch* self, const gchar* chan);
-void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_chat_badges_free(GtTwitchChatBadges* badges);
 
 G_END_DECLS

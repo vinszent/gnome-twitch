@@ -68,6 +68,20 @@ generic_task_data_free(GenericTaskData* data)
     g_free(data);
 }
 
+static GtTwitchStreamAccessToken*
+gt_twitch_stream_access_token_new()
+{
+    return g_new0(GtTwitchStreamAccessToken, 1);
+}
+
+void
+gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token)
+{
+    g_free(token->token);
+    g_free(token->sig);
+    g_free(token);
+}
+
 static GQuark
 gt_spawn_twitch_top_channels_error_quark()
 {
@@ -319,20 +333,27 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
     json_reader_end_member(reader);
 }
 
-void
-gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gchar** sig)
+GtTwitchStreamAccessToken*
+gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
-    gchar* uri;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
+    GtTwitchStreamAccessToken* ret;
+    gchar uri[100];
 
-    uri = g_strdup_printf(ACCESS_TOKEN_URI, channel);
+    g_sprintf(uri, ACCESS_TOKEN_URI, channel);
     msg = soup_message_new("GET", uri);
 
-    send_message(self, msg);
+    if (!send_message(self, msg))
+    {
+        g_error("{GtTwitch} Error getting stream access token for channel '%s'", channel);
+        goto finish;
+    }
+
+    ret = gt_twitch_stream_access_token_new();
 
     parser = json_parser_new();
 
@@ -341,63 +362,146 @@ gt_twitch_stream_access_token(GtTwitch* self, gchar* channel, gchar** token, gch
     reader = json_reader_new(node);
 
     json_reader_read_member(reader, "sig");
-    *sig = g_strdup(json_reader_get_string_value(reader));
+    ret->sig = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "token");
-    *token = g_strdup(json_reader_get_string_value(reader));
+    ret->token = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    g_free(uri);
-    g_object_unref(msg);
     g_object_unref(reader);
     g_object_unref(parser);
-}
-
-GList*
-gt_twitch_all_streams(GtTwitch* self, gchar* channel, gchar* token, gchar* sig)
-{
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    GList* ret;
-
-    uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token, sig, g_random_int_range(0, 999999));
-    msg = soup_message_new("GET", uri);
-
-    if (!send_message(self, msg))
-    {
-	g_warning("{GtTwitch} Error sending message to get stream uris");
-        return NULL;
-    }
-
-    ret = parse_playlist(msg->response_body->data);
-
+finish:
     g_object_unref(msg);
-    g_free(uri);
 
     return ret;
 }
 
-GtTwitchStreamData*
-gt_twitch_stream_by_quality(GtTwitch* self,
-                            gchar* channel,
-                            GtTwitchStreamQuality qual,
-                            gchar* token, gchar* sig)
+//Not used but here if the are needed in the future
+static void
+stream_access_token_cb(GTask* task,
+                       gpointer source,
+                       gpointer task_data,
+                       GCancellable* cancel)
 {
-    GList* channels = gt_twitch_all_streams(self, channel, token, sig);
-    GtTwitchStreamData* ret = NULL;
+    GenericTaskData* data = task_data;
+    GtTwitchStreamAccessToken* ret;
 
-    for (GList* l = channels; l != NULL; l = l->next)
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_stream_access_token(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_stream_access_token_free);
+}
+
+G_DEPRECATED
+void
+gt_twitch_stream_access_token_async(GtTwitch* self, const gchar* channel,
+                                    GCancellable* cancel, GAsyncReadyCallback cb,
+                                    gpointer udata)
+{
+    GTask* task;
+    GenericTaskData* data;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(channel);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, stream_access_token_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar uri[500];
+    GtTwitchStreamAccessToken* token;
+    GList* ret = NULL;
+
+    token = gt_twitch_stream_access_token(self, channel);
+
+    g_sprintf(uri, STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
+    msg = soup_message_new("GET", uri);
+
+    if (!send_message(self, msg))
     {
-	ret = (GtTwitchStreamData*) l->data;
-
-        if (ret->quality == qual)
-	    break;
+        g_warning("{GtTwitch} Error sending message to get stream uris");
+        goto finish;
     }
 
-    channels = g_list_remove(channels, ret);
-    g_list_free_full(channels, (GDestroyNotify) gt_twitch_stream_data_free);
+    ret = parse_playlist(msg->response_body->data);
+
+finish:
+    g_object_unref(msg);
+    gt_twitch_stream_access_token_free(token);
+
+    return ret;
+}
+
+static void
+all_streams_cb(GTask* task,
+               gpointer source,
+               gpointer task_data,
+               GCancellable* cancel)
+{
+    GenericTaskData* data;
+    GtTwitchStreamAccessToken* token;
+    GList* ret;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    data = task_data;
+
+    ret = gt_twitch_all_streams(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_stream_data_list_free);
+}
+
+void
+gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel,
+                            GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    GTask* task;
+    GenericTaskData* data;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(channel);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, all_streams_cb);
+}
+
+GtTwitchStreamData*
+gt_twitch_stream_list_filter_quality(GList* list,
+                                  GtTwitchStreamQuality qual)
+{
+    GtTwitchStreamData* ret = NULL;
+
+    for (GList* l = list; l != NULL; l = l->next)
+    {
+        ret = (GtTwitchStreamData*) l->data;
+
+        if (ret->quality == qual)
+            break;
+    }
+
+    list = g_list_remove(list, ret);
+    gt_twitch_stream_data_list_free(list);
 
     return ret;
 }
@@ -698,8 +802,8 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
 
     if (!send_message(self, msg))
     {
-	g_warning("{GtTwitch} Error sending message to search games");
-	goto finish;
+        g_warning("{GtTwitch} Error sending message to search games");
+        goto finish;
     }
 
     parser = json_parser_new();
@@ -830,11 +934,16 @@ gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
 }
 
 void
-gt_twitch_stream_data_free(GtTwitchStreamData* channel)
+gt_twitch_stream_data_free(GtTwitchStreamData* data)
 {
-    g_free(channel->url);
+    g_free(data->url);
+    g_free(data);
+}
 
-    g_free(channel);
+void
+gt_twitch_stream_data_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_twitch_stream_data_free);
 }
 
 GtChannelRawData*
@@ -940,6 +1049,7 @@ channel_raw_data_cb(GTask* task,
 }
 
 // This was a bit unecessary, but at least it's here if it's ever needed
+G_DEPRECATED
 void
 gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
                           GCancellable* cancel,
@@ -1160,4 +1270,45 @@ finish:
     g_object_unref(msg);
 
     return ret;
+}
+
+static void
+chat_badges_async_cb(GTask* task,
+                     gpointer source,
+                     gpointer task_data,
+                     GCancellable* cancel)
+{
+    GenericTaskData* data;
+    GtTwitchChatBadges* ret;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    data = task_data;
+
+    ret = gt_twitch_chat_badges(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_chat_badges_free);
+}
+
+void
+gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
+                            GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    GTask* task;
+    GenericTaskData* data;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(channel);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, chat_badges_async_cb);
+
+    g_object_unref(task);
+
 }

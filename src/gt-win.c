@@ -468,25 +468,13 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
                  "status", &status,
                  NULL);
 
-    //TODO: Make all of this async!
-    gt_twitch_stream_access_token(main_app->twitch, name, &token, &sig);
-    GtTwitchStreamData* stream_data = gt_twitch_stream_by_quality(main_app->twitch,
-                                                                  name,
-                                                                  GT_TWITCH_STREAM_QUALITY_SOURCE,
-                                                                  token, sig);
+    gt_player_open_channel(GT_PLAYER(self->player), chan);
+    gt_twitch_chat_client_join(main_app->chat, name);
 
-    if (!stream_data)
-        show_error_message(self, "Error opening stream");
-    else
-    {
-        gt_player_open_channel(GT_PLAYER(self->player), chan);
-        gt_twitch_chat_client_join(main_app->chat, name);
-
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
-                                         "player");
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
-                                         "player");
-    }
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
+                                     "player");
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
+                                     "player");
 
     g_free(name);
     g_free(status);

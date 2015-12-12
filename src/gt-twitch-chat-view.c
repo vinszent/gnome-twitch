@@ -334,6 +334,26 @@ realise_cb(GtkWidget* widget,
 }
 
 static void
+chat_badges_cb(GObject* source,
+               GAsyncResult* res,
+               gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtTwitchChatBadges* badges;
+
+    badges = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
+
+    if (!badges)
+        return;
+
+    g_print("Here\n");
+
+    priv->chat_badges = badges;
+    g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
+}
+
+static void
 channel_joined_cb(GtTwitchChatClient* chat,
                   const gchar* channel,
                   gpointer udata)
@@ -344,10 +364,9 @@ channel_joined_cb(GtTwitchChatClient* chat,
     //TODO: Make async
     if (priv->chat_badges)
         gt_twitch_chat_badges_free(priv->chat_badges);
-    priv->chat_badges = gt_twitch_chat_badges(main_app->twitch, channel + 1);
+    gt_twitch_chat_badges_async(main_app->twitch, channel+1, NULL, (GAsyncReadyCallback) chat_badges_cb, self);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
-    g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 }
 
 static gboolean

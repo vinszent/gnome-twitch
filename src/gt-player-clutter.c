@@ -276,8 +276,11 @@ stop(GtPlayer* player)
     priv->playing = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
 
-    gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
-    priv->inhibitor_cookie = 0;
+    if (priv->inhibitor_cookie != 0)
+    {
+        gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
+        priv->inhibitor_cookie = 0;
+    }
 }
 
 static void
