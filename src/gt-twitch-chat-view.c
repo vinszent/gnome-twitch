@@ -45,8 +45,6 @@ typedef struct
     GPropertyAction* dark_theme_action;
 
     GtTwitchChatBadges* chat_badges;
-
-    GRand* rand;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -77,11 +75,14 @@ gt_twitch_chat_view_new()
 
 //TODO: Use "unique" hash
 const gchar*
-pick_random_default_chat_colour(GtTwitchChatView* self)
+get_default_chat_colour(const gchar* name)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    gint total = 0;
 
-    return default_chat_colours[g_rand_int_range(priv->rand, 0, 12)];
+    for (const char* c = name; c[0] != '\0'; c++)
+        total += c[0];
+
+    return default_chat_colours[total % 13];
 }
 
 gint
@@ -180,35 +181,18 @@ add_chat_msg(GtTwitchChatView* self,
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
 
     if (!colour || strlen(colour) < 1) //TODO: Set random colour instead of just black
+        colour = get_default_chat_colour(sender);
+
+    sender_colour_tag = gtk_text_tag_table_lookup(priv->tag_table, colour);
+
+    if (!sender_colour_tag)
     {
-        gchar tag_name[100];
-
-        g_sprintf(tag_name, "chat_colour_%s", sender);
-        sender_colour_tag = gtk_text_tag_table_lookup(priv->tag_table, tag_name);
-
-        if (!sender_colour_tag)
-        {
-            sender_colour_tag = gtk_text_tag_new(tag_name);
-            g_object_set(sender_colour_tag,
-                         "foreground", pick_random_default_chat_colour(self),
-                         "weight", PANGO_WEIGHT_BOLD,
-                         NULL);
-            gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
-        }
-    }
-    else
-    {
-        sender_colour_tag = gtk_text_tag_table_lookup(priv->tag_table, colour);
-
-        if (!sender_colour_tag)
-        {
-            sender_colour_tag = gtk_text_tag_new(colour);
-            g_object_set(sender_colour_tag,
-                         "foreground", colour,
-                         "weight", PANGO_WEIGHT_BOLD,
-                         NULL);
-            gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
-        }
+        sender_colour_tag = gtk_text_tag_new(colour);
+        g_object_set(sender_colour_tag,
+                     "foreground", colour,
+                     "weight", PANGO_WEIGHT_BOLD,
+                     NULL);
+        gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
     }
 
     offset = strlen(sender) + 2;
@@ -347,8 +331,6 @@ chat_badges_cb(GObject* source,
     if (!badges)
         return;
 
-    g_print("Here\n");
-
     priv->chat_badges = badges;
     g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 }
@@ -408,6 +390,7 @@ reset_theme_css(GtTwitchChatView* self)
 
     gtk_css_provider_load_from_data(priv->chat_css_provider, css, -1, NULL); //TODO Error handling
     gtk_widget_reset_style(GTK_WIDGET(self));
+    gtk_widget_reset_style(priv->chat_view);
 }
 
 static void
@@ -517,8 +500,6 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
     priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
-
-    priv->rand = g_rand_new();
 
     g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
