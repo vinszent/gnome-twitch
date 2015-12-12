@@ -1059,7 +1059,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
 static GtTwitchChatBadges*
 gt_twitch_chat_badges_new()
 {
-    return g_new(GtTwitchChatBadges, 1);
+    return g_new0(GtTwitchChatBadges, 1);
 }
 
 void
