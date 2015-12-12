@@ -901,7 +901,8 @@ gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
     if (json_reader_get_null_value(reader))
     {
         ret = gt_twitch_channel_raw_data(self, name);
-        ret->online = FALSE;
+
+        if (ret) ret->online = FALSE;
     }
     else
     {
