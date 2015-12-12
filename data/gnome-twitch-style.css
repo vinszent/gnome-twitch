@@ -55,6 +55,11 @@
     opacity: 0.8;
 }
 
+.player-clutter .buffer-box GtkProgressBar
+{
+    color: white;
+}
+
 .gt-twitch-chat-view GtkTextView
 {
     background-color: transparent;
