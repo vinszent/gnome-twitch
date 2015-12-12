@@ -7,6 +7,10 @@
     <value nick="low" value='3'/>
   </enum>
   <schema path="/com/gnome-twitch/app/" id="com.gnome-twitch.app">
+    <key name="prefer-dark-theme" type="b">
+      <default>true</default>
+      <description>Whether to use the dark variant of the theme</description>
+    </key>
     <key name="default-quality" enum="com.gnome-twitch.GtTwitchStreamQuality">
       <default>"source"</default>
       <summary>Default quality</summary>

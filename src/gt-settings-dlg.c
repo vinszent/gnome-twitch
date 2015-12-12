@@ -2,6 +2,7 @@
 
 typedef struct
 {
+    GtkWidget* prefer_dark_theme_button;
     GtkWidget* quality_combo;
     GtWin* win;
 
@@ -92,6 +93,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     object_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-settings-dlg.ui");
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, prefer_dark_theme_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
 }
 
@@ -104,6 +106,9 @@ gt_settings_dlg_init(GtSettingsDlg* self)
 
     priv->settings = g_settings_new("com.gnome-twitch.app");
 
+    g_settings_bind(priv->settings, "prefer-dark-theme",
+                    priv->prefer_dark_theme_button, "active",
+                    G_SETTINGS_BIND_DEFAULT);
     g_settings_bind(priv->settings, "default-quality",
                     priv->quality_combo, "active-id",
                     G_SETTINGS_BIND_DEFAULT);

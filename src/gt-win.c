@@ -18,6 +18,8 @@
 
 #define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
 
+static GtSettingsDlg* settings_dlg = NULL;
+
 typedef struct
 {
     GtkWidget* main_stack;
@@ -116,7 +118,11 @@ show_settings_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    GtSettingsDlg* settings_dlg = gt_settings_dlg_new(self);
+    if (!settings_dlg)
+    {
+        settings_dlg = gt_settings_dlg_new(self);
+        g_object_add_weak_pointer(G_OBJECT(settings_dlg), (gpointer *) &settings_dlg);
+    }
 
     gtk_window_present(GTK_WINDOW(settings_dlg));
 }
