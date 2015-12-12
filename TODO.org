@@ -3,13 +3,19 @@
 ** TODO There seems to be a memory somewhere with GStreamer that happens when the stream is changed
    *** Not sure how much can be done from our side if it's a internal leak.
 ** TODO UI seems to randomly freeze when loading a stream sometimes.
+* Technical milestones
+** TODO Convert g_printf_strdups to g_sprintf with stack strings where applicable
+** TODO Add margin to channel and games containers. Use margin = 15.
+** TODO Make functions in opening channel async.
 * Minor milestones
+** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
 ** DONE Twitch emotes in chat
    *** Probably embed the most popular ones as resources
 ** TODO Chat make links clickable
 ** TODO Save chat properties
 ** TODO Add UTF-8 support to chat
+   *** Is this ne
 ** TODO Un-dockable chat
 ** TODO Hide chat
 ** TODO Proper error handling for IRC client
@@ -18,7 +24,7 @@
 ** TODO Chat user list
 ** TODO Stream specific chat settings
    *** Save width, height, x-pos, y-pos, etc
-** TODO Add subscriber,turbo,admin,etc badges
+** DONE Add subscriber,turbo,admin,etc badges
 ** TODO Have chat scrollback and delete messages after a certain amount have been received
 ** TODO Add info to player
    *** Viewer count
@@ -29,6 +35,7 @@
 ** TODO Localistation
    *** Translators will need to revise their translations for 0.2.0
 
+** TODO Calculate amount of channels/games needed to load on scroll
 * Major milestones
 ** TODO Followed streams
 ** TODO Screenshotting streams
