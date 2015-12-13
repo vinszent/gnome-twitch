@@ -401,6 +401,10 @@ gt_win_init(GtWin* self)
                                     win_actions,
                                     G_N_ELEMENTS(win_actions),
                                     self);
+
+    GtkWindowGroup* window_group = gtk_window_group_new();
+    gtk_window_group_add_window(window_group, GTK_WINDOW(self));
+    g_object_unref(window_group);
 }
 
 //TODO: Make this action
