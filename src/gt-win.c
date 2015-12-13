@@ -18,8 +18,6 @@
 
 #define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
 
-static GtSettingsDlg* settings_dlg = NULL;
-
 typedef struct
 {
     GtkWidget* main_stack;
@@ -56,6 +54,7 @@ enum
 };
 
 static GParamSpec* props[NUM_PROPS];
+static GtSettingsDlg* settings_dlg = NULL;
 
 GtWin*
 gt_win_new(GtApp* app)
