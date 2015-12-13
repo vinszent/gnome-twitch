@@ -35,6 +35,8 @@ typedef struct
     GtkWidget* info_label;
     GtkWidget* info_bar;
 
+    GtSettingsDlg* settings_dlg;
+
     gboolean fullscreen;
 } GtWinPrivate;
 
@@ -54,7 +56,6 @@ enum
 };
 
 static GParamSpec* props[NUM_PROPS];
-static GtSettingsDlg* settings_dlg = NULL;
 
 GtWin*
 gt_win_new(GtApp* app)
@@ -117,13 +118,13 @@ show_settings_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (!settings_dlg)
+    if (!priv->settings_dlg)
     {
-        settings_dlg = gt_settings_dlg_new(self);
-        g_object_add_weak_pointer(G_OBJECT(settings_dlg), (gpointer *) &settings_dlg);
+        priv->settings_dlg = gt_settings_dlg_new(self);
+        g_object_add_weak_pointer(G_OBJECT(priv->settings_dlg), (gpointer *) &priv->settings_dlg);
     }
 
-    gtk_window_present(GTK_WINDOW(settings_dlg));
+    gtk_window_present(GTK_WINDOW(priv->settings_dlg));
 }
 
 static void
