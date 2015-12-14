@@ -7,7 +7,7 @@
 ** TODO Convert g_printf_strdup to g_sprintf with stack strings where applicable.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
-** TODO Change buffer progress bar to spinner.
+** DONE Change buffer progress bar to spinner.
 * Minor milestones
 ** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
