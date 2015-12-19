@@ -241,3 +241,11 @@ gt_games_view_show_type(GtGamesView* self, gint type)
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_GAMES]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_GAME_CHANNELS]);
 }
+
+gboolean
+gt_games_view_handle_event(GtGamesView* self, GdkEvent* event)
+{
+    GtGamesViewPrivate* priv = gt_games_view_get_instance_private(self);
+
+    return gtk_search_bar_handle_event(GTK_SEARCH_BAR(priv->search_bar), event);
+}

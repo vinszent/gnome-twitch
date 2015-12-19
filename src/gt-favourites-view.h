@@ -14,7 +14,7 @@ struct _GtFavouritesView
     GtkBox parent_instance;
 };
 
-GtFavouritesView* gt_favourites_view_new(void);
+gboolean gt_favourites_view_handle_event(GtFavouritesView* self, GdkEvent* event);
 
 G_END_DECLS
 
