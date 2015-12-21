@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-10-10 22:42+0200\n"
-"PO-Revision-Date: 2015-11-08 18:40+0200\n"
+"PO-Revision-Date: 2015-12-21 23:40+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -18,54 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: fr\n"
 
-#: data/ui/gt-win.ui:55
-msgid "Channels"
-msgstr "Chaînes"
-
-#: data/ui/gt-win.ui:64
-msgid "Favourites"
-msgstr "Favoris"
-
-#: data/ui/gt-win.ui:73
-msgid "Games"
-msgstr "Jeux"
-
-#: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
+#: data/ui/app-menu.ui:1 data/ui/gt-settings-dlg.ui:1
 msgid "Settings"
 msgstr "Paramètres"
 
-#: data/ui/app-menu.ui:12
+#: data/ui/app-menu.ui:2
 msgid "About"
 msgstr "À propos de"
 
-#: data/ui/app-menu.ui:16
+#: data/ui/app-menu.ui:3
 msgid "Quit"
 msgstr "Quitter"
 
-#: data/ui/gt-settings-dlg.ui:17
-msgid "Default video quality: "
-msgstr "Qualité vidéo par défaut:"
+#: data/ui/gt-player-header-bar.ui:1
+msgid "Stream quality"
+msgstr "Qualité du flux"
 
-#: data/ui/gt-settings-dlg.ui:28
+#: data/ui/gt-player-header-bar.ui:2 data/ui/gt-settings-dlg.ui:3
 msgid "Source"
 msgstr "Originale"
 
-#: data/ui/gt-settings-dlg.ui:29
+#: data/ui/gt-player-header-bar.ui:3 data/ui/gt-settings-dlg.ui:4
 msgid "High"
 msgstr "Élevée"
 
-#: data/ui/gt-settings-dlg.ui:30
+#: data/ui/gt-player-header-bar.ui:4 data/ui/gt-settings-dlg.ui:5
 msgid "Medium"
 msgstr "Moyenne"
 
-#: data/ui/gt-settings-dlg.ui:31
+#: data/ui/gt-player-header-bar.ui:5 data/ui/gt-settings-dlg.ui:6
 msgid "Low"
 msgstr "Faible"
 
-#: src/gt-win.c:96
+#: data/ui/gt-settings-dlg.ui:2
+msgid "Default video quality: "
+msgstr "Qualité vidéo par défaut : "
+
+#: data/ui/gt-win.ui:1
+msgid "Browse"
+msgstr "Parcourir"
+
+#: data/ui/gt-win.ui:2
+msgid "Player"
+msgstr "Joueur"
+
+#: data/ui/gt-win.ui:3
+msgid "Close"
+msgstr "Fermer"
+
+#: data/ui/gt-win.ui:4
+msgid "Channels"
+msgstr "Chaînes"
+
+#: data/ui/gt-win.ui:5
+msgid "Favourites"
+msgstr "Favoris"
+
+#: data/ui/gt-win.ui:6
+msgid "Games"
+msgstr "Jeux"
+
+#: src/gt-win.c:103
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Profitez de Twitch sur votre bureau GNU/Linux"
 
-#: src/gt-win.c:100
+#: src/gt-win.c:107
 msgid "translator-credits"
 msgstr "mr-intrepide <theintrepid95@gmail.com>"
