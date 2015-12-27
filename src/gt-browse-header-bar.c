@@ -20,7 +20,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtBrowseHeaderBar, gt_browse_header_bar, GTK_TYPE_HEADER_BAR)
 
-enum 
+enum
 {
     PROP_0,
     PROP_CHANNELS_VIEW,
@@ -34,7 +34,7 @@ static GParamSpec* props[NUM_PROPS];
 GtBrowseHeaderBar*
 gt_browse_header_bar_new(void)
 {
-    return g_object_new(GT_TYPE_BROWSE_HEADER_BAR, 
+    return g_object_new(GT_TYPE_BROWSE_HEADER_BAR,
                         NULL);
 }
 
@@ -47,12 +47,13 @@ show_nav_buttons_cb(GObject* source,
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
     GtWin* win = GT_WIN_TOPLEVEL(self);
     gboolean showing_game_channels = FALSE;
-    gboolean showing_games_view = FALSE;
+    GtkWidget* view = NULL;
 
     g_object_get(priv->games_view, "showing-game-channels", &showing_game_channels, NULL);
-    g_object_get(win, "showing-games-view", &showing_games_view, NULL);
+    g_object_get(win, "visible-view", &view, NULL);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->nav_buttons_revealer), showing_game_channels && showing_games_view);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->nav_buttons_revealer),
+                                  showing_game_channels && view == GTK_WIDGET(priv->games_view));
 }
 
 static void
@@ -125,7 +126,7 @@ show_refresh_button_cb(GObject* source,
     GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
     GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
     GtkWidget* view = NULL;
-     
+
     g_object_get(GT_WIN_TOPLEVEL(self), "visible-view", &view, NULL);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != GTK_WIDGET(priv->favourites_view));
@@ -225,7 +226,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_revealer);

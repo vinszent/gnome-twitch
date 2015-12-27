@@ -52,9 +52,6 @@ enum
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
     PROP_FULLSCREEN,
-    PROP_SHOWING_CHANNELS, //TODO: Get rid of these "showing" properties
-    PROP_SHOWING_FAVOURITES,
-    PROP_SHOWING_GAMES_VIEW,
     PROP_VISIBLE_VIEW,
     NUM_PROPS
 };
@@ -338,15 +335,6 @@ get_property (GObject*    obj,
         case PROP_FULLSCREEN:
             g_value_set_boolean(val, priv->fullscreen);
             break;
-        case PROP_SHOWING_CHANNELS:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view);
-            break;
-        case PROP_SHOWING_FAVOURITES:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->favourites_view);
-            break;
-        case PROP_SHOWING_GAMES_VIEW:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view);
-            break;
         case PROP_VISIBLE_VIEW:
             g_value_set_object(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)));
             break;
@@ -398,21 +386,6 @@ gt_win_class_init(GtWinClass* klass)
                                                   "Whether window is fullscreen",
                                                   FALSE,
                                                   G_PARAM_READABLE);
-    props[PROP_SHOWING_CHANNELS] = g_param_spec_boolean("showing-channels",
-                                                        "Showing Channels",
-                                                        "Whether showing channels",
-                                                        FALSE,
-                                                        G_PARAM_READABLE);
-    props[PROP_SHOWING_FAVOURITES] = g_param_spec_boolean("showing-favourites",
-                                                          "Showing Favourites",
-                                                          "Whether showing favourites",
-                                                          FALSE,
-                                                          G_PARAM_READABLE);
-    props[PROP_SHOWING_GAMES_VIEW] = g_param_spec_boolean("showing-games-view",
-                                                          "Showing Games View",
-                                                          "Whether showing games view",
-                                                          FALSE,
-                                                          G_PARAM_READABLE);
     props[PROP_VISIBLE_VIEW] = g_param_spec_object("visible-view",
                                                    "Visible View",
                                                    "Visible View",
