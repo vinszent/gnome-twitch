@@ -21,7 +21,8 @@ the hassle of flash or the web.
 ### From source
 ```
 mkdir build
-meson --prefix /usr -Ddo-post-install=true
+cd build
+meson --prefix /usr -Ddo-post-install=true ..
 ninja install
 ```
 
