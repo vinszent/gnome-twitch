@@ -13,9 +13,9 @@ deps = [dependency('gtk+-3.0', version : '>=3.16'),
         dependency('json-glib-1.0'),
         dependency('clutter-gst-3.0'),
         dependency('clutter-gtk-1.0'),
-        dependency('webkit2gtk-4.0'),
+        dependency('webkit2gtk-4.0')]
 #        dependency('mpv'),
-        dependency('epoxy')]
+#        dependency('epoxy')]
 
 src = ['main.c',
        'gt-app.c',
