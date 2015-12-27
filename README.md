@@ -16,13 +16,12 @@ the hassle of flash or the web.
 * gst-plugins-bad
 * clutter-gst
 * clutter-gtk
+* webkit2gtk
 
 ### From source
 ```
 mkdir build
-meson . build
-cd build
-mesonconf -Dprefix=/usr
+meson --prefix /usr -Ddo-post-install=true
 ninja install
 ```
 
@@ -34,6 +33,6 @@ ninja install
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (Same requirements as the PPA)
 
 ## Screenshots
+![](/data/screenshots/scrot_player.png?raw=true)
 ![](/data/screenshots/scrot_streams.png?raw=true)
 ![](/data/screenshots/scrot_games.png?raw=true)
-![](/data/screenshots/scrot_player.png?raw=true)
