@@ -109,16 +109,35 @@ activate(GApplication* app)
 }
 
 static void
+gt_app_prefer_dark_theme_changed_cb(GSettings *settings,
+                                    const char* key,
+                                    GtkSettings *gtk_settings)
+{
+    gboolean prefer_dark_theme = g_settings_get_boolean(settings, key);
+
+    g_object_set(gtk_settings,
+                 "gtk-application-prefer-dark-theme",
+                 prefer_dark_theme,
+                 NULL);
+}
+
+static void
 startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
-    GtkSettings *settings = gtk_settings_get_default();
+    GtkSettings *gtk_settings = gtk_settings_get_default();
 
     self->fav_mgr = gt_favourites_manager_new();
     gt_favourites_manager_load(self->fav_mgr);
 
-    g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
+    gt_app_prefer_dark_theme_changed_cb(self->settings,
+                                        "prefer-dark-theme",
+                                        gtk_settings);
+    g_signal_connect(self->settings,
+                     "changed::prefer-dark-theme",
+                     G_CALLBACK(gt_app_prefer_dark_theme_changed_cb),
+                     gtk_settings);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 }

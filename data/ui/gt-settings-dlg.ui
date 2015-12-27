@@ -7,6 +7,13 @@
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="visible">True</property>
+        <property name="margin">10</property>
+        <child>
+          <object class="GtkCheckButton" id="prefer_dark_theme_button">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Use dark theme variant</property>
+          </object>
+        </child>
         <child>
           <object class="GtkGrid">
             <property name="visible">True</property>

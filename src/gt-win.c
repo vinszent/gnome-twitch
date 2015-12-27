@@ -39,6 +39,8 @@ typedef struct
     GtkWidget* info_bar;
     GtkWidget* info_bar_yes_button;
 
+    GtSettingsDlg* settings_dlg;
+
     gboolean fullscreen;
 } GtWinPrivate;
 
@@ -99,9 +101,13 @@ show_settings_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    GtSettingsDlg* settings_dlg = gt_settings_dlg_new(self);
+    if (!priv->settings_dlg)
+    {
+        priv->settings_dlg = gt_settings_dlg_new(self);
+        g_object_add_weak_pointer(G_OBJECT(priv->settings_dlg), (gpointer *) &priv->settings_dlg);
+    }
 
-    gtk_window_present(GTK_WINDOW(settings_dlg));
+    gtk_window_present(GTK_WINDOW(priv->settings_dlg));
 }
 
 static void
@@ -478,6 +484,10 @@ gt_win_init(GtWin* self)
                                     win_actions,
                                     G_N_ELEMENTS(win_actions),
                                     self);
+
+    GtkWindowGroup* window_group = gtk_window_group_new();
+    gtk_window_group_add_window(window_group, GTK_WINDOW(self));
+    g_object_unref(window_group);
 }
 
 //TODO: Make this action
