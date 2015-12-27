@@ -63,7 +63,7 @@
             <child>
               <object class="GtkEntry" id="chat_entry">
                 <property name="visible">True</property>
-                <property name="placeholder-text">Send a message</property>
+                <property name="placeholder-text" translatable="yes">Send a message</property>
                 <property name="margin-top">10</property>
                 <property name="margin-bottom">10</property>
                 <property name="margin-right">7</property>

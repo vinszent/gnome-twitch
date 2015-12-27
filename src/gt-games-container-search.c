@@ -16,7 +16,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainerSearch, gt_games_container_search, GT_TYPE_GAMES_CONTAINER)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -27,7 +27,7 @@ static GParamSpec* props[NUM_PROPS];
 GtGamesContainerSearch*
 gt_games_container_search_new(void)
 {
-    return g_object_new(GT_TYPE_GAMES_CONTAINER_SEARCH, 
+    return g_object_new(GT_TYPE_GAMES_CONTAINER_SEARCH,
                         NULL);
 }
 
@@ -64,12 +64,12 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
     g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
 
-    gt_twitch_search_games_async(main_app->twitch, 
-                                 query, 
-                                 MAX_QUERY, 
-                                 (priv->page++)*MAX_QUERY, 
-                                 priv->cancel, 
-                                 (GAsyncReadyCallback) search_games_cb, 
+    gt_twitch_search_games_async(main_app->twitch,
+                                 query,
+                                 MAX_QUERY,
+                                 (priv->page++)*MAX_QUERY,
+                                 priv->cancel,
+                                 (GAsyncReadyCallback) search_games_cb,
                                  self);
 }
 

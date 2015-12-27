@@ -1,6 +1,8 @@
 #include "gt-favourites-manager.h"
 #include "gt-app.h"
 #include <json-glib/json-glib.h>
+#include <glib/gprintf.h>
+#include <glib/gi18n.h>
 
 #define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
 
@@ -11,7 +13,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFavouritesManager, gt_favourites_manager, G_TYPE_OBJECT)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -31,7 +33,7 @@ static guint sigs[NUM_SIGS];
 GtFavouritesManager*
 gt_favourites_manager_new(void)
 {
-    return g_object_new(GT_TYPE_FAVOURITES_MANAGER, 
+    return g_object_new(GT_TYPE_FAVOURITES_MANAGER,
                         NULL);
 }
 
@@ -45,31 +47,28 @@ channel_online_cb(GObject* source,
     gboolean online;
     gchar* name;
     gchar* game;
-    gchar* title;
-    gchar* body;
 
-    g_object_get(source, 
-                 "online", &online, 
+    g_object_get(source,
+                 "online", &online,
                  "name", &name,
                  "game", &game,
                  NULL);
 
     if (online)
-    {   
+    {
         GNotification* notification;
+        gchar title_str[100];
+        gchar body_str[100];
 
-        title = g_strdup_printf("Channel %s is now online", name);
-        body = g_strdup_printf("Streaming %s", game);
+        g_sprintf(title_str, _("Channel %s is now online"), name);
+        g_sprintf(body_str, _("Streaming %s"), game);
 
-        notification = g_notification_new(title);
-        g_notification_set_body(notification, body);
+        notification = g_notification_new(title_str);
+        g_notification_set_body(notification, body_str);
         g_application_send_notification(G_APPLICATION(main_app), NULL, notification);
 
         g_object_unref(notification);
     }
-
-    g_free(name);
-    g_free(game);
 }
 
 static void
@@ -84,7 +83,7 @@ channel_favourited_cb(GObject* source,
     gboolean favourited;
 
     g_object_get(chan, "favourited", &favourited, NULL);
-    
+
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
@@ -238,8 +237,8 @@ gt_favourites_manager_load(GtFavouritesManager* self)
         GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
         g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
-        g_object_set(chan, 
-                     "auto-update", TRUE, 
+        g_object_set(chan,
+                     "auto-update", TRUE,
                      "favourited", TRUE,
                      NULL);
         g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);

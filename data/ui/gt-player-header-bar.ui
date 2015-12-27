@@ -92,7 +92,6 @@
           <object class="GtkMenuButton">
             <property name="visible">True</property>
             <property name="image">hamburger_image</property>
-            <!-- <property name="menu-model">player_hamburger_menu</property> -->
             <property name="popover">player_menu_popover</property>
           </object>
         </child>

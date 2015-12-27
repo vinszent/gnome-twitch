@@ -1,5 +1,7 @@
 #include "gt-channels-container-child.h"
 #include "utils.h"
+#include <glib/gprintf.h>
+#include <glib/gi18n.h>
 
 typedef struct
 {
@@ -20,7 +22,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerChild, gt_channels_container_child, GTK_TYPE_FLOW_BOX_CHILD)
 
-enum 
+enum
 {
     PROP_0,
     PROP_CHANNEL,
@@ -32,7 +34,7 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsContainerChild*
 gt_channels_container_child_new(GtChannel* chan)
 {
-    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_CHILD, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_CHILD,
                         "channel", chan,
                         NULL);
 }
@@ -90,19 +92,19 @@ viewers_converter(GBinding* bind,
                   gpointer udata)
 {
     gint64 viewers;
-    gchar* label = NULL;
+    gchar label[20];
 
     if (g_value_get_int64(from) > -1)
     {
         viewers = g_value_get_int64(from);
 
         if (viewers > 1e4)
-            label = g_strdup_printf("%3.1fk", (gdouble) viewers / 1e3);
+            g_sprintf(label, _("%3.1fk"), (gdouble) viewers / 1e3);
         else
-            label = g_strdup_printf("%ld", viewers);
+            g_sprintf(label, _("%ld"), viewers);
     }
 
-    g_value_take_string(to, label);
+    g_value_set_string(to, label);
 }
 
 static void
@@ -111,7 +113,7 @@ time_converter(GBinding* bind,
                GValue* to,
                gpointer udata)
 {
-    gchar* label = NULL;
+    gchar label[100];
     GDateTime* now_time;
     GDateTime* stream_started_time;
     GTimeSpan dif;
@@ -124,14 +126,14 @@ time_converter(GBinding* bind,
         dif = g_date_time_difference(now_time, stream_started_time);
 
         if (dif > G_TIME_SPAN_HOUR)
-            label = g_strdup_printf("%2.1fh", (gdouble) dif / G_TIME_SPAN_HOUR);
+            g_sprintf(label, _("%2.1fh"), (gdouble) dif / G_TIME_SPAN_HOUR);
         else
-            label = g_strdup_printf("%ldm", dif / G_TIME_SPAN_MINUTE);
+            g_sprintf(label, _("%ldm"), dif / G_TIME_SPAN_MINUTE);
 
         g_date_time_unref(now_time);
     }
 
-    g_value_take_string(to, label);
+    g_value_set_string(to, label);
 }
 
 static void
@@ -259,7 +261,7 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     object_class->set_property = set_property;
     object_class->constructed = constructed;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-channels-container-child.ui");
 
     props[PROP_CHANNEL] = g_param_spec_object("channel",

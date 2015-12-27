@@ -7,6 +7,7 @@
 #include "gt-enums.h"
 #include "utils.h"
 #include <glib/gprintf.h>
+#include <glib/gi18n.h>
 
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
@@ -295,7 +296,7 @@ channel_set_cb(GObject* source,
 
     if (priv->open_channel)
     {
-        gtk_label_set_text(GTK_LABEL(priv->buffer_label), "Loading stream");
+        gtk_label_set_text(GTK_LABEL(priv->buffer_label), _("Loading stream"));
         clutter_actor_show(priv->buffer_actor);
 
         gt_twitch_chat_view_connect(GT_TWITCH_CHAT_VIEW(priv->chat_view),
@@ -362,7 +363,7 @@ buffer_fill_cb(GObject* source,
     if (percent < 1.0)
     {
         gchar text[20];
-        g_sprintf(text, "Buffered %d%%", (gint) (percent * 100));
+        g_sprintf(text, _("Buffered %d%%"), (gint) (percent * 100));
 
         gtk_label_set_text(GTK_LABEL(priv->buffer_label), text);
         clutter_actor_show(priv->buffer_actor);
