@@ -8,8 +8,8 @@
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
 ** DONE Change buffer progress bar to spinner.
-** TODO Disconnect chat when stream is closed.
-** TODO gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
+** DONE Disconnect chat when stream is closed.
+** DONE gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
 * Minor milestones
 ** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
