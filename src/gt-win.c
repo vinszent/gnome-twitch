@@ -5,7 +5,7 @@
 #include "gt-twitch.h"
 #include "gt-player.h"
 #include "gt-player-clutter.h"
-#include "gt-player-mpv.h"
+//#include "gt-player-mpv.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
@@ -442,7 +442,7 @@ gt_win_init(GtWin* self)
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
     GT_TYPE_PLAYER_CLUTTER;
-    GT_TYPE_PLAYER_MPV;
+//    GT_TYPE_PLAYER_MPV;
     GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
