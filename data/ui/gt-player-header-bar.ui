@@ -9,7 +9,7 @@
         <child>
           <object class="GtkButton" id="back_button">
             <property name="visible" bind-source="GtPlayerHeaderBar" bind-property="fullscreen" bind-flags="G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN"/>
-            <signal name="clicked" handler="player_back_button_cb" object="GtPlayerHeaderBar"/>
+            <property name="action-name">win.close_player</property>
             <style>
               <class name="image-button"/>
             </style>

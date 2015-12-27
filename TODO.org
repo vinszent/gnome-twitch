@@ -2,12 +2,14 @@
 ** TODO Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
    - Not sure how much can be done from our side if it's a internal leak.
-** TODO UI seems to randomly freeze when loading a stream sometimes.
+** DONE UI seems to randomly freeze when loading a stream sometimes.
 * Technical milestones
 ** TODO Convert g_printf_strdup to g_sprintf with stack strings where applicable.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
 ** DONE Change buffer progress bar to spinner.
+** TODO Disconnect chat when stream is closed.
+** TODO gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
 * Minor milestones
 ** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
@@ -17,12 +19,13 @@
 ** TODO Save chat properties
 ** TODO Add UTF-8 support to chat
    - Is this necessary? IRC doesn't use UTF-8.
-** TODO Un-dockable chat
-** TODO Hide chat
+** DONE Un-dockable chat
+** DONE Hide chat
 ** TODO Proper error handling for IRC client
    - Make sure first message received after oauth token is sent is 001
 ** TODO Clear chat and clear user messages when user is timed out by a mod/admin
 ** TODO Chat user list
+   - See http://tmi.twitch.tv/group/user/{channel}/chatters
 ** TODO Stream specific chat settings
    - Save width, height, x-pos, y-pos, etc
 ** DONE Add subscriber,turbo,admin,etc badges
@@ -36,6 +39,10 @@
 ** TODO Localistation
    - Translators will need to revise their translations for 0.2.0
 ** TODO Calculate amount of channels/games needed to load on scroll
+** TODO Use chat ip list to select irc server
+   - See https://api.twitch.tv/api/channels/{channel}/chat_properties
+** TODO Force window to have same aspect ratio as video
+   - Use gtk_window_set_geometry_hints
 * Major milestones
 ** TODO Followed streams
 ** TODO Screenshotting streams

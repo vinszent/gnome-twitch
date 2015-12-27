@@ -32,6 +32,7 @@ typedef struct
     GtkWidget* player_header_bar;
     GtkWidget* browse_header_bar;
     GtkWidget* browse_stack_switcher;
+    GtkWidget* chat_view;
 
     GtkWidget* info_revealer;
     GtkWidget* info_label;
@@ -113,7 +114,7 @@ refresh_login_cb(GtkInfoBar* info_bar,
 
     switch (res)
     {
-        case GTK_RESPONSE_OK:
+        case GTK_RESPONSE_YES:
             gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(self)));
             break;
     }
@@ -143,9 +144,16 @@ show_twitch_login_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
-    const gchar* oauth = gt_app_get_oauth_token(main_app);
+    gchar* oauth_token;
+    gchar* user_name;
 
-    if (oauth && strlen(oauth) > 1)
+    g_object_get(main_app,
+                 "oauth-token", &oauth_token,
+                 "user-name", &user_name,
+                 NULL);
+
+    if (oauth_token && user_name &&
+        strlen(oauth_token) > 0 && strlen(user_name) > 0)
     {
         gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
         gtk_label_set_text(GTK_LABEL(priv->info_label), _("Already logged into Twitch, refresh login?"));
@@ -239,6 +247,22 @@ delete_cb(GtkWidget* widget,
     return FALSE;
 }
 
+static void
+close_player_cb(GSimpleAction* action,
+                GVariant* arg,
+                gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gt_player_close_channel(GT_PLAYER(self->player));
+
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
+                                     "browse");
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
+                                     "browse");
+}
+
 static GActionEntry win_actions[] =
 {
     {"refresh_view", refresh_view_cb, NULL, NULL, NULL},
@@ -246,6 +270,7 @@ static GActionEntry win_actions[] =
     {"show_about", show_about_cb, NULL, NULL, NULL},
     {"show_settings", show_settings_cb, NULL, NULL, NULL},
     {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
+    {"close_player", close_player_cb, NULL, NULL, NULL},
 };
 
 static gboolean
@@ -425,19 +450,19 @@ gt_win_init(GtWin* self)
     GT_TYPE_FAVOURITES_VIEW;
     GT_TYPE_TWITCH_CHAT_VIEW;
 
+//    self->open_channel = NULL;
+
     gtk_window_set_default_size(GTK_WINDOW(self),
                                 g_settings_get_int(main_app->settings, "window-width"),
                                 g_settings_get_int(main_app->settings, "window-height"));
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
+//    g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
 
     g_object_bind_property(priv->browse_stack, "visible-child",
                            self, "visible-view",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-
-    /* gtk_widget_realize(GTK_WIDGET(priv->player)); */
 
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
@@ -461,24 +486,12 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    gchar* status; gchar* display_name; gchar* name; gchar* token; gchar* sig;
-    g_object_get(chan,
-                 "display-name", &display_name,
-                 "name", &name,
-                 "status", &status,
-                 NULL);
-
     gt_player_open_channel(GT_PLAYER(self->player), chan);
-    gt_twitch_chat_client_join(main_app->chat, name);
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
                                      "player");
     gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
                                      "player");
-
-    g_free(name);
-    g_free(status);
-    g_free(display_name);
 }
 
 //TODO: Make these actions

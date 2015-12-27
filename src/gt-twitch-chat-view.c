@@ -20,7 +20,7 @@
 #define USER_MODE_TURBO 1 << 6
 #define USER_MODE_SUBSCRIBER 1 << 7
 
-const char* default_chat_colours[] = {"#FF0000", "#0000FF", "#008000", "#B22222", "#FF7F50", "#9ACD32", "#FF4500",
+const char* default_chat_colours[] = {"#FF0000", "#0000FF", "#00FF00", "#B22222", "#FF7F50", "#9ACD32", "#FF4500",
                                       "#2E8B57", "#DAA520", "#D2691E", "#5F9EA0", "#1E90FF", "#FF69B4", "#8A2BE2", "#00FF7F"};
 
 typedef struct
@@ -29,12 +29,15 @@ typedef struct
     gdouble opacity;
     gchar* cur_theme;
 
+    gboolean joined_channel;
+
     GtkWidget* chat_view;
     GtkWidget* chat_scroll;
     GtkWidget* chat_entry;
     GtkTextBuffer* chat_buffer;
     GtkTextTagTable* tag_table;
     GHashTable* twitch_emotes;
+    GtkWidget* main_stack;
 
     GtkTextMark* bottom_mark;
     GtkTextIter bottom_iter;
@@ -45,6 +48,10 @@ typedef struct
     GPropertyAction* dark_theme_action;
 
     GtTwitchChatBadges* chat_badges;
+    GCancellable* chat_badges_cancel;
+
+    GtTwitchChatClient* chat;
+    gchar* cur_chan;
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -102,9 +109,10 @@ parse_emote_string(GtTwitchChatView* self, const gchar* emotes)
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GList* ret = NULL;
     gchar* tmp;
+    gchar* _tmp;
     gchar* emote;
 
-    tmp = g_strdup(emotes);
+    _tmp = tmp = g_strdup(emotes);
 
     while ((emote = strsep(&tmp, "/")) != NULL)
     {
@@ -137,7 +145,7 @@ parse_emote_string(GtTwitchChatView* self, const gchar* emotes)
         }
     }
 
-    g_free(tmp);
+    g_free(_tmp);
     ret = g_list_sort(ret, (GCompareFunc) twitch_emote_compare);
 
     return ret;
@@ -221,7 +229,6 @@ add_chat_msg(GtTwitchChatView* self,
     gtk_text_iter_forward_word_end(&priv->bottom_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, ": ", -1);
     gtk_text_iter_forward_chars(&priv->bottom_iter, 2);
-//    gtk_text_buffer_insert(priv->chat_buffer, &insert_iter, msg, -1);
     insert_message_with_emotes(priv->chat_buffer, &priv->bottom_iter, emotes, msg, offset);
     gtk_text_iter_forward_to_line_end(&priv->bottom_iter);
     gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, "\n", -1);
@@ -237,7 +244,7 @@ send_msg_from_entry(GtTwitchChatView* self)
 
     msg = gtk_entry_get_text(GTK_ENTRY(priv->chat_entry));
 
-    gt_twitch_chat_client_privmsg(main_app->chat, msg);
+    gt_twitch_chat_client_privmsg(priv->chat, msg);
 
     gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
 }
@@ -250,71 +257,57 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     gboolean ret = G_SOURCE_REMOVE;
 
-    if (!g_source_is_destroyed(g_main_current_source()))
+    if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
     {
-        if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
+        gint user_modes;
+        gchar* sender;
+        gchar* colour;
+        gchar* msg_str;
+        gboolean subscriber;
+        gboolean turbo;
+        gchar* user_type;
+        GList* emotes;
+
+        if (g_strcmp0(msg->nick, "twitchnotify") == 0) //TODO: Handle this better
+            goto cont;
+
+        user_modes = 0;
+        sender = utils_search_key_value_strv(msg->tags, "display-name");
+        msg_str = msg->params;
+        emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
+        subscriber = atoi(utils_search_key_value_strv(msg->tags, "subscriber"));
+        turbo = atoi(utils_search_key_value_strv(msg->tags, "turbo"));
+        user_type = utils_search_key_value_strv(msg->tags, "user-type");
+        colour = utils_search_key_value_strv(msg->tags, "color");
+
+        if (!sender || strlen(sender) < 1)
+            sender = msg->nick;
+
+        if (subscriber) user_modes |= USER_MODE_SUBSCRIBER;
+        if (turbo) user_modes |= USER_MODE_TURBO;
+        if (g_strcmp0(user_type, "mod") == 0) user_modes |= USER_MODE_MOD;
+        else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= USER_MODE_GLOBAL_MOD;
+        else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
+        else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
+
+        strsep(&msg_str, " :");
+        msg_str++;
+        if (msg_str[0] == '\001')
         {
-            gint user_modes;
-            gchar* sender;
-            gchar* colour;
-            gchar* msg_str;
-            gboolean subscriber;
-            gboolean turbo;
-            gchar* user_type;
-            GList* emotes;
-
-            if (g_strcmp0(msg->nick, "twitchnotify") == 0) //TODO: Handle this better
-                goto cont;
-
-            user_modes = 0;
-            sender = utils_search_key_value_strv(msg->tags, "display-name");
-            msg_str = msg->params;
-            emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
-            subscriber = atoi(utils_search_key_value_strv(msg->tags, "subscriber"));
-            turbo = atoi(utils_search_key_value_strv(msg->tags, "turbo"));
-            user_type = utils_search_key_value_strv(msg->tags, "user-type");
-            colour = utils_search_key_value_strv(msg->tags, "color");
-
-            if (!sender || strlen(sender) < 1)
-                sender = msg->nick;
-
-            if (subscriber) user_modes |= USER_MODE_SUBSCRIBER;
-            if (turbo) user_modes |= USER_MODE_TURBO;
-            if (g_strcmp0(user_type, "mod") == 0) user_modes |= USER_MODE_MOD;
-            else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= USER_MODE_GLOBAL_MOD;
-            else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
-            else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
-
-            strsep(&msg_str, " :");
-            msg_str++;
-            if (msg_str[0] == '\001')
-            {
-                strsep(&msg_str, " ");
-                msg_str[strlen(msg_str) - 1] = '\0';
-            }
-
-            add_chat_msg(self, sender, colour, msg_str, emotes, user_modes);
-            g_list_free_full(emotes, g_free);
+            strsep(&msg_str, " ");
+            msg_str[strlen(msg_str) - 1] = '\0';
         }
 
-    cont:
-        ret = G_SOURCE_CONTINUE;
+        add_chat_msg(self, sender, colour, msg_str, emotes, user_modes);
+        g_list_free_full(emotes, g_free);
     }
+
+cont:
+    ret = G_SOURCE_CONTINUE;
 
     gt_twitch_chat_message_free(msg);
 
     return ret;
-}
-
-static void
-realise_cb(GtkWidget* widget,
-           gpointer udata)
-{
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
-
-    gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
-                                   "chat-view", G_ACTION_GROUP(priv->action_group));
 }
 
 static void
@@ -328,27 +321,19 @@ chat_badges_cb(GObject* source,
 
     badges = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
 
+    if (priv->chat_badges)
+    {
+        gt_twitch_chat_badges_free(priv->chat_badges);
+        priv->chat_badges = NULL;
+    }
+
     if (!badges)
         return;
 
     priv->chat_badges = badges;
-    g_source_set_callback((GSource*) main_app->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
-}
 
-static void
-channel_joined_cb(GtTwitchChatClient* chat,
-                  const gchar* channel,
-                  gpointer udata)
-{
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
-
-    //TODO: Make async
-    if (priv->chat_badges)
-        gt_twitch_chat_badges_free(priv->chat_badges);
-    gt_twitch_chat_badges_async(main_app->twitch, channel+1, NULL, (GAsyncReadyCallback) chat_badges_cb, self);
-
-    gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
+    if (gt_twitch_chat_client_is_connected(priv->chat))
+        gt_twitch_chat_client_join(priv->chat, priv->cur_chan);
 }
 
 static gboolean
@@ -391,6 +376,70 @@ reset_theme_css(GtTwitchChatView* self)
     gtk_css_provider_load_from_data(priv->chat_css_provider, css, -1, NULL); //TODO Error handling
     gtk_widget_reset_style(GTK_WIDGET(self));
     gtk_widget_reset_style(priv->chat_view);
+}
+
+static void
+credentials_set_cb(GObject* source,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    gchar* user_name;
+    gchar* oauth_token;
+
+    g_object_get(main_app,
+                 "user-name", &user_name,
+                 "oauth-token", &oauth_token,
+                 NULL);
+
+    if (!user_name || !oauth_token ||
+        strlen(user_name) < 1 || strlen(oauth_token) < 1)
+    {
+        gt_twitch_chat_client_disconnect(priv->chat);
+        gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
+
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
+
+        priv->joined_channel = FALSE;
+    }
+    else
+    {
+        GtChannel* open_chan = NULL;
+
+        g_object_get(GT_WIN_TOPLEVEL(self)->player, "open-channel", &open_chan, NULL);
+
+        gt_twitch_chat_client_connect(priv->chat, oauth_token, user_name);
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
+
+        if (open_chan && !priv->joined_channel)
+        {
+            gt_twitch_chat_client_join(priv->chat, gt_channel_get_name(open_chan));
+            g_object_unref(open_chan);
+        }
+    }
+
+    g_free(user_name);
+    g_free(oauth_token);
+}
+
+static void
+anchored_cb(GtkWidget* widget,
+            GtkWidget* prev_toplevel,
+            gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
+
+    gtk_widget_insert_action_group(GTK_WIDGET(win),
+                                   "chat-view", G_ACTION_GROUP(priv->action_group));
+
+    credentials_set_cb(NULL, NULL, self);
+
+    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(credentials_set_cb), self);
+
+    g_signal_handlers_disconnect_by_func(self, anchored_cb, udata); //One-shot
 }
 
 static void
@@ -464,6 +513,7 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_view);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_scroll);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_entry);
+    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, main_stack);
 
     props[PROP_DARK_THEME] = g_param_spec_boolean("dark-theme",
                                                   "Dark Theme",
@@ -501,9 +551,46 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
     priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
 
-    g_signal_connect(main_app->chat, "channel-joined", G_CALLBACK(channel_joined_cb), self);
+    priv->chat = gt_twitch_chat_client_new();
+    priv->cur_chan = NULL;
+
+    priv->joined_channel = FALSE;
+
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
-    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
+    g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
+
+    g_source_set_callback((GSource*) priv->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 
     ADD_STYLE_CLASS(self, "gt-twitch-chat-view");
+}
+
+void
+gt_twitch_chat_view_connect(GtTwitchChatView* self, const gchar* chan)
+{
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    priv->joined_channel = TRUE;
+
+    g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
+    priv->cur_chan = g_strdup(chan);
+
+    if (priv->chat_badges_cancel)
+         g_cancellable_cancel(priv->chat_badges_cancel);
+    g_clear_object(&priv->chat_badges_cancel);
+    priv->chat_badges_cancel = g_cancellable_new();
+
+    gt_twitch_chat_badges_async(main_app->twitch, chan,
+                                priv->chat_badges_cancel,
+                                (GAsyncReadyCallback) chat_badges_cb, self);
+}
+
+void
+gt_twitch_chat_view_disconnect(GtTwitchChatView* self)
+{
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    priv->joined_channel = FALSE;
+
+    gt_twitch_chat_client_part(priv->chat);
+    gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
 }

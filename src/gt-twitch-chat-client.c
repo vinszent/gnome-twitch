@@ -8,10 +8,6 @@
 
 #define CR_LF "\r\n"
 
-#define CHECK_CONNECTION(priv)                  \
-    if (!priv->connected)                       \
-        return;                                 \
-
 //TODO: Need to check for 001 message before setting connected
 
 typedef struct
@@ -53,14 +49,6 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-enum
-{
-    SIG_CHANNEL_JOINED,
-    NUM_SIGS
-};
-
-static guint sigs[NUM_SIGS];
-
 GtTwitchChatClient*
 gt_twitch_chat_client_new()
 {
@@ -73,8 +61,13 @@ source_prepare(GSource* source,
                gint* timeout)
 {
     GtTwitchChatSource* self = (GtTwitchChatSource*) source;
+    gint len;
 
-    return g_async_queue_length(self->queue) > 0;
+    g_async_queue_lock(self->queue);
+    len = g_async_queue_length_unlocked(self->queue);
+    g_async_queue_unlock(self->queue);
+
+    return len > 0;
 }
 
 static gboolean
@@ -144,7 +137,7 @@ send_raw_printf(GOutputStream* ostream, const gchar* format, ...)
 static void
 send_cmd(GOutputStream* ostream, const gchar* cmd, const gchar* param)
 {
-    g_debug("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+    g_message("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -208,8 +201,7 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
             send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
         else
         {
-            if (self->source)
-                g_async_queue_push(self->source->queue, msg);
+            g_async_queue_push(self->source->queue, msg);
         }
     }
     else if (ostream == priv->ostream_send)
@@ -238,6 +230,9 @@ read_lines(ChatThreadData* data)
     for (gchar* line = g_data_input_stream_read_line(data->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(data->istream, &read, NULL, &err))
     {
+        if (!priv->connected)
+            break;
+
         if (line)
         {
             GtTwitchChatMessage* msg = gt_twitch_chat_message_new();
@@ -254,8 +249,6 @@ read_lines(ChatThreadData* data)
     }
 
     g_message("{GtTwitchChatClient} Stopping chat worker thread");
-
-    g_free(data);
 }
 
 static void
@@ -307,15 +300,6 @@ gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
     obj_class->finalize = finalise;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
-
-    sigs[SIG_CHANNEL_JOINED] = g_signal_new("channel-joined",
-                                            GT_TYPE_TWITCH_CHAT_CLIENT,
-                                            G_SIGNAL_RUN_LAST,
-                                            0, NULL, NULL,
-                                            g_cclosure_marshal_VOID__STRING,
-                                            G_TYPE_NONE,
-                                            1, G_TYPE_STRING);
-
 }
 
 static void
@@ -324,20 +308,26 @@ gt_twitch_chat_client_init(GtTwitchChatClient* self)
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
     priv->connected = FALSE;
+
+    self->source = gt_twitch_chat_source_new();
+    g_source_attach((GSource*) self->source, g_main_context_default());
 }
 
 void
-gt_twitch_chat_client_connect(GtTwitchChatClient* self)
+gt_twitch_chat_client_connect(GtTwitchChatClient* self, const gchar* oauth_token, const gchar* nick)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
     GSocketConnectable* addr;
     GSocketClient* sock_client;
     GError* err = NULL;
-    gchar* oauth_token;
-    gchar* nick;
     ChatThreadData* recv_data;
     ChatThreadData* send_data;
+
+    g_assert_nonnull(oauth_token);
+    g_assert_nonnull(nick);
+
+    g_message("{GtTwitchChatClient} Connecting");
 
     addr = g_network_address_new(TWITCH_IRC_HOSTNAME, TWITC_IRC_PORT);
     sock_client = g_socket_client_new();
@@ -366,10 +356,6 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self)
     g_data_input_stream_set_newline_type(priv->istream_send, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_send = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_send));
 
-    g_object_get(main_app,
-                 "oauth-token", &oauth_token,
-                 "user-name", &nick,
-                 NULL);
     send_raw_printf(priv->ostream_recv, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_NICK, nick);
     send_raw_printf(priv->ostream_send, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
@@ -379,7 +365,6 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self)
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/membership");
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/commands");
 
-    g_message("{GtTwitchChatClient} Connected to chat");
     priv->connected = TRUE;
 
     send_data = g_new(ChatThreadData, 2);
@@ -398,11 +383,23 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self)
     priv->worker_thread_send = g_thread_new("gnome-twitch-chat-worker-send",
                                        (GThreadFunc) read_lines, send_data);
 
-    g_free(oauth_token);
-    g_free(nick);
 cleanup:
     g_object_unref(sock_client);
     g_object_unref(addr);
+}
+
+void
+gt_twitch_chat_client_connect_simple(GtTwitchChatClient* self)
+{
+    gchar* oauth_token;
+    gchar* nick;
+
+    g_object_get(main_app,
+                 "oauth-token", &oauth_token,
+                 "user-name", &nick,
+                 NULL);
+
+    gt_twitch_chat_client_connect(self, oauth_token, nick);
 }
 
 void
@@ -410,20 +407,25 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
-    priv->connected = FALSE;
+    if (priv->connected)
+    {
+        gt_twitch_chat_client_part(self);
 
-    g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
-    g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
-    g_clear_object(&priv->irc_conn_recv);
-    g_clear_object(&priv->istream_recv);
-    g_clear_object(&priv->ostream_recv);
-    g_clear_object(&priv->irc_conn_send);
-    g_clear_object(&priv->istream_send);
-    g_clear_object(&priv->ostream_send);
-    g_thread_exit(priv->worker_thread_recv);
-    g_thread_unref(priv->worker_thread_recv);
-    g_thread_exit(priv->worker_thread_send);
-    g_thread_unref(priv->worker_thread_send);
+        priv->connected = FALSE;
+
+        g_message("{GtTwitchChatClient} Disconnecting");
+
+//        g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
+//        g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
+        g_clear_object(&priv->irc_conn_recv);
+//        g_clear_object(&priv->istream_recv);
+//        g_clear_object(&priv->ostream_recv);
+        g_clear_object(&priv->irc_conn_send);
+//        g_clear_object(&priv->istream_send);
+//        g_clear_object(&priv->ostream_send);
+        g_thread_unref(priv->worker_thread_recv);
+        g_thread_unref(priv->worker_thread_send);
+    }
 }
 
 void
@@ -432,12 +434,7 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
     gchar* chan = NULL;
 
-    CHECK_CONNECTION(priv);
-
-    gt_twitch_chat_client_part(self);
-
-    self->source = gt_twitch_chat_source_new();
-    g_source_attach((GSource*) self->source, g_main_context_default());
+    g_return_if_fail(priv->connected);
 
     if (channel[0] != '#')
         chan = g_strdup_printf("#%s", channel);
@@ -449,29 +446,35 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_JOIN, chan);
     send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_JOIN, chan);
 
-    g_free(priv->cur_chan);
     priv->cur_chan = chan;
-
-    g_signal_emit(self, sigs[SIG_CHANNEL_JOINED], 0, priv->cur_chan);
 }
 
 void
 gt_twitch_chat_client_part(GtTwitchChatClient* self)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    gint len;
 
-    CHECK_CONNECTION(priv);
+    g_return_if_fail(priv->connected);
+    g_return_if_fail(priv->cur_chan != NULL);
 
-    if (priv->cur_chan)
-    {
-        g_message("{GtTwitchChatClient} Parting channel '%s'", priv->cur_chan);
-        send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_PART, priv->cur_chan);
-        send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_PART, priv->cur_chan);
-    }
+    g_message("{GtTwitchChatClient} Parting channel '%s'", priv->cur_chan);
+    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_PART, priv->cur_chan);
+    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_PART, priv->cur_chan);
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
-    g_source_destroy((GSource*) self->source);
-    g_clear_pointer(&self->source, (GDestroyNotify) g_source_unref);
+
+    g_async_queue_lock(self->source->queue);
+    len = g_async_queue_length_unlocked(self->source->queue);
+    if (len > 0)
+    {
+        for (int i = 0; i < len; i++)
+            gt_twitch_chat_message_free(g_async_queue_pop_unlocked(self->source->queue));
+
+    }
+    g_async_queue_unlock(self->source->queue);
+
+    g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 }
 
 void
@@ -479,9 +482,17 @@ gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
-    CHECK_CONNECTION(priv);
+    g_return_if_fail(priv->connected);
 
     send_cmd_printf(priv->ostream_send, TWITCH_CHAT_CMD_PRIVMSG, "%s :%s", priv->cur_chan, msg);
+}
+
+gboolean
+gt_twitch_chat_client_is_connected(GtTwitchChatClient* self)
+{
+    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+
+    return priv->connected;
 }
 
 GtTwitchChatMessage*

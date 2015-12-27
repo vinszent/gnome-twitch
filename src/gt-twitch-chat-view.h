@@ -16,6 +16,8 @@ struct _GtTwitchChatView
 };
 
 GtTwitchChatView* gt_twitch_chat_view_new();
+void gt_twitch_chat_view_connect(GtTwitchChatView* self, const gchar* chan);
+void gt_twitch_chat_view_disconnect(GtTwitchChatView* self);
 
 G_END_DECLS
 

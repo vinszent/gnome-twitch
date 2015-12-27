@@ -41,10 +41,13 @@ struct _GtTwitchChatClient
 };
 
 GtTwitchChatClient* gt_twitch_chat_client_new();
-void gt_twitch_chat_client_connect(GtTwitchChatClient* self);
+void gt_twitch_chat_client_connect_simple(GtTwitchChatClient* self);
+void gt_twitch_chat_client_connect(GtTwitchChatClient* self, const gchar* oauth_token, const gchar* nick);
+void gt_twitch_chat_client_disconnect(GtTwitchChatClient* self);
 void gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel);
 void gt_twitch_chat_client_part(GtTwitchChatClient* self);
 void gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg);
+gboolean gt_twitch_chat_client_is_connected(GtTwitchChatClient* self);
 GtTwitchChatMessage* gt_twitch_chat_message_new();
 void gt_twitch_chat_message_free(GtTwitchChatMessage* msg);
 

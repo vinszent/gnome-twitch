@@ -69,19 +69,6 @@ quit_cb(GSimpleAction* action,
     g_application_quit(G_APPLICATION(self));
 }
 
-static void
-oauth_token_set_cb(GObject* source,
-                   GParamSpec* pspec,
-                   gpointer udata)
-{
-    GtApp* self = GT_APP(udata);
-    GtAppPrivate* priv = gt_app_get_instance_private(self);
-
-    if (priv->oauth_token && strlen(priv->oauth_token) > 0 &&
-        priv->user_name && strlen(priv->user_name) > 0)
-        gt_twitch_chat_client_connect(self->chat);
-}
-
 static GActionEntry app_actions[] =
 {
     {"quit", quit_cb, NULL, NULL, NULL}
@@ -109,16 +96,16 @@ activate(GApplication* app)
     gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(app_menu));
     g_object_unref(menu_bld);
 
-    priv->win = gt_win_new(self);
-
-    gtk_window_present(GTK_WINDOW(priv->win));
-
     g_settings_bind(self->settings, "user-name",
                     self, "user-name",
                     G_SETTINGS_BIND_DEFAULT);
     g_settings_bind(self->settings, "oauth-token",
                     self, "oauth-token",
                     G_SETTINGS_BIND_DEFAULT);
+
+    priv->win = gt_win_new(self);
+
+    gtk_window_present(GTK_WINDOW(priv->win));
 }
 
 static void
@@ -226,9 +213,9 @@ gt_app_init(GtApp* self)
 
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.gnome-twitch.app");
-    self->chat = gt_twitch_chat_client_new();
+    //  self->chat = gt_twitch_chat_client_new();
 
-    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
+//    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */

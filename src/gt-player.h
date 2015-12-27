@@ -21,6 +21,7 @@ struct _GtPlayerClass
 };
 
 void gt_player_open_channel(GtPlayer* self, GtChannel* chan);
+void gt_player_close_channel(GtPlayer* self);
 void gt_player_play(GtPlayer* self);
 void gt_player_stop(GtPlayer* self);
 void gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality q);

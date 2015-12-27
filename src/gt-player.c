@@ -7,6 +7,8 @@
 typedef struct
 {
     GSimpleActionGroup* action_group;
+
+    GtTwitchStreamQuality cur_quality;
 } GtPlayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -67,15 +69,42 @@ get_property(GObject* obj,
 }
 
 static void
-realise_cb(GtkWidget* widget,
-           gpointer udata)
+streams_list_cb(GObject* source,
+                GAsyncResult* res,
+                gpointer udata)
 {
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GList* streams;
+    GtTwitchStreamData* stream;
+    GtTwitchStreamQuality default_quality;
+
+    streams = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
+
+    if (!streams)
+    {
+        g_warning("{GtPlayer} Error opening stream");
+        return;
+    }
+
+    stream = gt_twitch_stream_list_filter_quality(streams, priv->cur_quality);
+
+    GT_PLAYER_GET_CLASS(self)->stop(self);
+    GT_PLAYER_GET_CLASS(self)->set_uri(self, stream->url);
+    GT_PLAYER_GET_CLASS(self)->play(self);
+}
+
+static void
+anchored_cb(GtkWidget* widget,
+            GtkWidget* prev_toplevel,
+            gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
 
     gtk_widget_insert_action_group(GTK_WIDGET(GT_WIN_TOPLEVEL(self)),
                                    "player", G_ACTION_GROUP(priv->action_group));
-
 }
 
 static void
@@ -91,7 +120,8 @@ set_quality_action_cb(GSimpleAction* action,
     eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
     eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(arg, NULL));
 
-    gt_player_set_quality(self, eval->value);
+    if (eval->value != priv->cur_quality)
+        gt_player_set_quality(self, eval->value);
 
     g_simple_action_set_state(action, arg);
 
@@ -122,33 +152,6 @@ dock_chat_action_cb(GSimpleAction* action,
     g_object_set(self, "chat-docked", g_variant_get_boolean(arg), NULL);
 
     g_simple_action_set_state(action, arg);
-}
-
-static void
-streams_list_cb(GObject* source,
-                GAsyncResult* res,
-                gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    GList* streams;
-    GtTwitchStreamData* stream;
-    GtTwitchStreamQuality default_quality;
-
-    streams = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
-
-    if (!streams)
-    {
-        g_error("{GtPlayer} Error opening stream");
-        return;
-    }
-
-    default_quality = g_settings_get_enum(main_app->settings, "default-quality");
-    stream = gt_twitch_stream_list_filter_quality(streams, default_quality);
-
-    GT_PLAYER_GET_CLASS(self)->stop(self);
-    GT_PLAYER_GET_CLASS(self)->set_uri(self, stream->url);
-    GT_PLAYER_GET_CLASS(self)->play(self);
 }
 
 static void
@@ -216,7 +219,7 @@ gt_player_init(GtPlayer* self)
     priv->action_group = g_simple_action_group_new();
     g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
                                     G_N_ELEMENTS(actions), self);
-    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
+    g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
 }
 
 void
@@ -248,6 +251,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
                  NULL);
 
     default_quality = g_settings_get_value(main_app->settings, "default-quality");
+    priv->cur_quality = g_settings_get_enum(main_app->settings, "default-quality");
 
     g_message("{GtPlayer} Opening stream '%s' with quality '%s'", name, g_variant_get_string(default_quality, NULL));
 
@@ -260,14 +264,25 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 }
 
 void
+gt_player_close_channel(GtPlayer* self)
+{
+    g_object_set(self, "open-channel", NULL, NULL);
+
+    gt_player_stop(self);
+}
+
+void
 gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
 {
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     gchar* name;
     GtTwitchStreamData* stream_data;
     GtChannel* chan;
 
     g_object_get(self, "open-channel", &chan, NULL);
     g_object_get(chan, "name", &name, NULL);
+
+    priv->cur_quality = qual;
 
     gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
 

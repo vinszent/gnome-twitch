@@ -286,15 +286,26 @@ stop(GtPlayer* player)
 }
 
 static void
-open_channel_cb(GObject* source,
-                GParamSpec* pspec,
-                gpointer udata)
+channel_set_cb(GObject* source,
+               GParamSpec* pspec,
+               gpointer udata)
 {
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    gtk_label_set_text(GTK_LABEL(priv->buffer_label), "Loading stream");
-    clutter_actor_show(priv->buffer_actor);
+    if (priv->open_channel)
+    {
+        gtk_label_set_text(GTK_LABEL(priv->buffer_label), "Loading stream");
+        clutter_actor_show(priv->buffer_actor);
+
+        gt_twitch_chat_view_connect(GT_TWITCH_CHAT_VIEW(priv->chat_view),
+                                    gt_channel_get_name(priv->open_channel));
+    }
+    else
+    {
+        gt_twitch_chat_view_disconnect(GT_TWITCH_CHAT_VIEW(priv->chat_view));
+    }
+
 }
 
 static void
@@ -393,8 +404,9 @@ button_press_cb(GtkWidget* widget,
 }
 
 static void
-realise_cb(GtkWidget* widget,
-           gpointer udata)
+anchored_cb(GtkWidget* widget,
+            GtkWidget* prev_toplevel,
+            gpointer udata)
 {
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(widget);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
@@ -403,6 +415,8 @@ realise_cb(GtkWidget* widget,
 
     g_signal_connect(priv->win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
     g_signal_connect(self, "notify::chat-docked", G_CALLBACK(chat_docked_cb), self);
+
+    g_signal_handlers_disconnect_by_func(self, anchored_cb, udata); //One-shot
 }
 
 static void
@@ -603,6 +617,8 @@ gt_player_clutter_init(GtPlayerClutter* self)
 
     clutter_actor_set_layout_manager(priv->docked_layour_actor, layout);
 
+    clutter_actor_hide(priv->fullscreen_bar_actor);
+
     g_object_set(priv->buffer_spinner,
                  "width-request", 32,
                  "height-request", 32,
@@ -642,7 +658,6 @@ gt_player_clutter_init(GtPlayerClutter* self)
     clutter_actor_hide(priv->buffer_actor);
 
     g_object_set(priv->fullscreen_bar, "player", self, NULL);
-    clutter_actor_hide(priv->fullscreen_bar_actor);
 
     g_object_set(priv->content, "player", priv->player, NULL);
     g_object_set(priv->video_actor, "content", priv->content, NULL);
@@ -659,17 +674,17 @@ gt_player_clutter_init(GtPlayerClutter* self)
     /* clutter_gst_playback_set_buffering_mode(priv->player, CLUTTER_GST_BUFFERING_MODE_STREAM); // In-memory buffering (let user choose?) */
     clutter_gst_playback_set_buffering_mode(priv->player, CLUTTER_GST_BUFFERING_MODE_DOWNLOAD); // On-disk buffering
 
-    g_signal_connect(priv->stage, "event", G_CALLBACK(clutter_stage_event_cb), self);
-    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
+    g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
     g_signal_connect(priv->player, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(size_changed_cb), self);
+    g_signal_connect(priv->stage, "event", G_CALLBACK(clutter_stage_event_cb), self);
     g_signal_connect(priv->root_widget, "button-press-event", G_CALLBACK(button_press_cb), self);
     g_signal_connect(priv->stage, "notify::size", G_CALLBACK(scale_chat_view_cb), self);
     g_signal_connect(self, "notify::chat-width", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-height", G_CALLBACK(update_chat_view_size_cb), self);
     g_signal_connect(self, "notify::chat-x", G_CALLBACK(update_chat_view_pos_cb), self);
     g_signal_connect(self, "notify::chat-y", G_CALLBACK(update_chat_view_pos_cb), self);
-    g_signal_connect(self, "notify::open-channel", G_CALLBACK(open_channel_cb), self);
+    g_signal_connect(self, "notify::open-channel", G_CALLBACK(channel_set_cb), self);
 
     g_object_bind_property(self, "volume",
                            priv->player, "audio-volume",
