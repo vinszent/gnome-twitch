@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="gnome-twitch">
+  <object class="GtkBox" id="panel_box">
+    <property name="visible">True</property>
+    <property name="orientation">vertical</property>
+    <property name="width-request">420</property>
+    <child>
+      <object class="GtkLabel" id="panel_label">
+        <property name="visible">True</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImage" id="panel_image">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkTextView" id="panel_text">
+        <property name="visible">True</property>
+        <property name="wrap-mode">word-char</property>
+      </object>
+    </child>
+  </object>
+</interface>
