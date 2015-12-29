@@ -18,10 +18,10 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 GtTwitchLoginDlg*
-gt_twitch_login_dlg_new(GtWin* win)
+gt_twitch_login_dlg_new(GtkWindow* parent)
 {
     return g_object_new(GT_TYPE_TWITCH_LOGIN_DLG,
-                        "transient-for", win,
+                        "transient-for", parent,
                         "use-header-bar", 1,
                         NULL);
 }

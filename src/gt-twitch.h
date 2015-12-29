@@ -83,6 +83,23 @@ typedef struct _GtTwitchChatBadges
     GdkPixbuf* subscriber;
 } GtTwitchChatBadges;
 
+typedef enum _GtTwitchChannelInfoPanelType
+{
+    GT_TWITCH_CHANNEL_INFO_PANEL_TYPE_DEFAULT,
+    GT_TWITCH_CHANNEL_INFO_PANEL_TYPE_TEESPRING,
+} GtTwitchChannelInfoPanelType;
+
+typedef struct _GtTwitchChannelInfoPanel
+{
+    GtTwitchChannelInfoPanelType type;
+    gchar* title;
+    gchar* html_description;
+    gchar* markdown_description;
+    GdkPixbuf* image;
+    gchar* link;
+    gint64 order;
+} GtTwitchChannelInfoPanel;
+
 GtTwitch*               gt_twitch_new(void);
 void                    gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token);
 GtTwitchStreamAccessToken*                    gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel);
@@ -112,6 +129,9 @@ GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
 GtTwitchChatBadges*     gt_twitch_chat_badges(GtTwitch* self, const gchar* chan);
 void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                    gt_twitch_chat_badges_free(GtTwitchChatBadges* badges);
+GList*                  gt_twitch_channel_info(GtTwitch* self, const gchar* chan);
+void                    gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
+
 
 G_END_DECLS
 

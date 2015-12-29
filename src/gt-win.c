@@ -13,6 +13,7 @@
 #include "gt-favourites-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
+#include "gt-twitch-channel-info-dlg.h"
 #include "gt-twitch-chat-view.h"
 #include "gt-enums.h"
 #include "utils.h"
@@ -42,6 +43,8 @@ typedef struct
     GtSettingsDlg* settings_dlg;
 
     gboolean fullscreen;
+
+    GtChannel* open_channel;
 } GtWinPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
@@ -118,7 +121,7 @@ refresh_login_cb(GtkInfoBar* info_bar,
     switch (res)
     {
         case GTK_RESPONSE_YES:
-            gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(self)));
+            gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(GTK_WINDOW(self))));
             break;
     }
 
@@ -167,11 +170,31 @@ show_twitch_login_cb(GSimpleAction* action,
     }
     else
     {
-        GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(self);
+        GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(GTK_WINDOW(self));
 
         gtk_window_present(GTK_WINDOW(dlg));
     }
 }
+
+static void
+show_channel_info_cb(GSimpleAction* action,
+                     GVariant* arg,
+                     gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GtTwitchChannelInfoDlg* dlg = gt_twitch_channel_info_dlg_new(GTK_WINDOW(self));
+    const gchar* chan;
+
+    chan = gt_channel_get_name(priv->open_channel);
+
+    g_message("{GtWin} Showing channel info for '%s'", chan);
+
+    gtk_window_present(GTK_WINDOW(dlg));
+
+    gt_twitch_channel_info_dlg_load_channel(dlg, chan);
+}
+
 
 static void
 refresh_view_cb(GSimpleAction* action,
@@ -273,6 +296,7 @@ static GActionEntry win_actions[] =
     {"show_about", show_about_cb, NULL, NULL, NULL},
     {"show_settings", show_settings_cb, NULL, NULL, NULL},
     {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
+    {"show_channel_info", show_channel_info_cb, NULL, NULL, NULL},
     {"close_player", close_player_cb, NULL, NULL, NULL},
 };
 
@@ -294,16 +318,6 @@ window_state_cb(GtkWidget* widget,
     }
 
     return FALSE;
-}
-
-static void
-show_error_message(GtWin* self, const gchar* msg)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
-    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_WARNING);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
 }
 
 static void
@@ -468,6 +482,10 @@ void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    g_clear_object(&priv->open_channel);
+    g_object_ref(chan);
+    priv->open_channel = chan;
 
     gt_player_open_channel(GT_PLAYER(self->player), chan);
 

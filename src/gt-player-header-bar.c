@@ -2,9 +2,6 @@
 #include "gt-player.h"
 #include "gt-win.h"
 
-//static const GdkRGBA chat_default_bg_colour = {0.0, 1.0, 0.0, 1.0};
-//static const GdkRGBA chat_default_fg_colour = {1.0, 0.0, 0.0, 1.0};
-
 typedef struct
 {
     GtPlayer* player;
@@ -14,6 +11,7 @@ typedef struct
 
     GtkWidget* status_label;
     GtkWidget* name_label;
+    GtkWidget* title_button;
 
     GtkWidget* fullscreen_button;
 
@@ -141,8 +139,8 @@ player_channel_set_cb(GObject* source,
                      NULL);
 
         g_object_set(self,
-                     "name", name,
-                     "status", status,
+                     "channel-name", name,
+                     "channel-status", status,
                      NULL);
 
         g_object_unref(chan);
@@ -307,16 +305,16 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
                                              "Associated player",
                                              GT_TYPE_PLAYER,
                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-    props[PROP_CHANNEL_NAME] = g_param_spec_string("name",
-                                           "Name",
-                                           "Name of channel",
-                                           NULL,
-                                           G_PARAM_WRITABLE);
-    props[PROP_CHANNEL_STATUS] = g_param_spec_string("status",
-                                             "Status",
-                                             "Staus of channel",
-                                             NULL,
-                                             G_PARAM_WRITABLE);
+    props[PROP_CHANNEL_NAME] = g_param_spec_string("channel-name",
+                                                   "Channel name",
+                                                   "Name of channel",
+                                                   NULL,
+                                                   G_PARAM_READWRITE);
+    props[PROP_CHANNEL_STATUS] = g_param_spec_string("channel-status",
+                                                     "Channel status",
+                                                     "Staus of channel",
+                                                     NULL,
+                                                     G_PARAM_READWRITE);
     props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
                                                   "Fullscreen",
                                                   "Whether in fullscreen",
@@ -341,6 +339,9 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_x_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_y_adjustment);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, title_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, status_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, name_label);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
 }
@@ -357,4 +358,9 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
     g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
     g_signal_connect(self, "notify::player", G_CALLBACK(player_set_cb), self);
+
+    g_object_bind_property(self, "channel-name", priv->name_label, "label", G_BINDING_DEFAULT);
+    g_object_bind_property(self, "channel-status", priv->status_label, "label", G_BINDING_DEFAULT);
+
+    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(self), priv->title_button);
 }

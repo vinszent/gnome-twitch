@@ -80,8 +80,8 @@ int main(int argc, char** argv)
     g_option_context_add_main_entries(opt_ctxt, cli_options, "gnome-twitch");
     if (!g_option_context_parse(opt_ctxt, &argc, &argv, &err))
     {
-	g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
-	exit(1);
+        g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
+        exit(1);
     }
 
 #ifdef GDK_WINDOWING_X11

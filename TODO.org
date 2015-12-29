@@ -43,6 +43,9 @@
    - See https://api.twitch.tv/api/channels/{channel}/chat_properties
 ** TODO Force window to have same aspect ratio as video
    - Use gtk_window_set_geometry_hints
+** TODO Add channel info dialog
+   - Use http://api.twitch.tv/api/channels/%s/panels
+   - Use GMarkupParser and parse the html_description
 * Major milestones
 ** TODO Followed streams
 ** TODO Screenshotting streams

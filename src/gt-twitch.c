@@ -19,6 +19,7 @@
 #define CHANNELS_URI        "https://api.twitch.tv/kraken/channels/%s"
 #define CHAT_BADGES_URI     "https://api.twitch.tv/kraken/chat/%s/badges/"
 #define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
+#define CHANNEL_INFO_URI    "http://api.twitch.tv/api/channels/%s/panels"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -1109,6 +1110,9 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url)
 
     g_info("{GtTwitch} Downloading picture from url '%s'", url);
 
+    if (!url || strlen(url) < 1)
+        return NULL;
+
     return utils_download_picture(priv->soup, url);
 }
 
@@ -1311,4 +1315,114 @@ gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
 
     g_object_unref(task);
 
+}
+
+static GtTwitchChannelInfoPanel*
+gt_twitch_channel_info_panel_new()
+{
+    return g_new0(GtTwitchChannelInfoPanel, 1);
+}
+
+void
+gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel)
+{
+    g_free(panel->html_description);
+    g_free(panel->markdown_description);
+    g_clear_object(&panel->image);
+    g_free(panel->link);
+    g_free(panel);
+}
+
+GList*
+gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar uri[100];
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GList* ret = NULL;
+
+    g_info("{GtTwitch} Getting channel info for '%s'", chan);
+
+    g_sprintf(uri, CHANNEL_INFO_URI, chan);
+
+    msg = soup_message_new("GET", uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error getting twitch chat badges for channel '%s'", chan);
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL); //TODO: Error handling
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        GtTwitchChannelInfoPanel* panel = gt_twitch_channel_info_panel_new();
+        const gchar* type = NULL;
+
+        json_reader_read_element(reader, i);
+
+        json_reader_read_member(reader, "display_order");
+        panel->order = json_reader_get_int_value(reader) - 1;
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "kind");
+        type = json_reader_get_string_value(reader);
+        if (g_strcmp0(type, "default") == 0)
+        {
+            panel->type = GT_TWITCH_CHANNEL_INFO_PANEL_TYPE_DEFAULT;
+        }
+        else
+        {
+            //TODO: Eventually handle other types of panels
+            gt_twitch_channel_info_panel_free(panel);
+            json_reader_end_member(reader);
+            json_reader_end_element(reader);
+            continue;
+        }
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "html_description");
+        if (!json_reader_get_null_value(reader))
+            panel->html_description = g_strdup(json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "data");
+
+        json_reader_read_member(reader, "link");
+        panel->link = g_strdup(json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+
+        json_reader_read_member(reader, "image");
+        panel->image = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+
+        if (json_reader_read_member(reader, "description"))
+            panel->markdown_description = g_strdup(json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+
+        if (json_reader_read_member(reader, "title"))
+            panel->title = g_strdup(json_reader_get_string_value(reader));
+        json_reader_end_member(reader);
+
+        json_reader_end_member(reader);
+
+        json_reader_end_element(reader);
+
+        ret = g_list_append(ret, panel);
+    }
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_object_unref(msg);
+
+    return ret;
 }
