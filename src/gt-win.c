@@ -66,6 +66,7 @@ gt_win_new(GtApp* app)
 {
     return g_object_new(GT_TYPE_WIN,
                         "application", app,
+                        "show-menubar", FALSE,
                         NULL);
 }
 
