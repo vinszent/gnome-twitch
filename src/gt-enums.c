@@ -12,7 +12,7 @@ static const GEnumValue gt_twitch_stream_quality_enum_values[] =
 GType
 gt_twitch_stream_quality_get_type()
 {
-    static GType type = NULL;
+    static GType type = 0;
 
     if (!type)
         type = g_enum_register_static("GtTwitchStreamQuality", gt_twitch_stream_quality_enum_values);
