@@ -1,6 +1,7 @@
 #include "gt-twitch-channel-info-dlg.h"
 #include "gt-twitch.h"
 #include "gt-app.h"
+#include "utils.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
 #include <webkit2/webkit2.h>
@@ -20,6 +21,9 @@ typedef struct
 
     GMarkupParseContext* ctxt;
 
+    GList* link_tags;
+
+    GtkTextView* cur_view;
     GtkTextBuffer* cur_buff;
     gchar* cur_link;
     GQueue* offset_queue;
@@ -44,6 +48,68 @@ gt_twitch_channel_info_dlg_new(GtkWindow* parent)
                         NULL);
 }
 
+static gboolean
+tag_event_cb(GtkTextTag* tag,
+             GObject* obj,
+             GdkEvent* evt,
+             GtkTextIter* iter,
+             gpointer udata)
+{
+    GtTwitchChannelInfoDlg* self = GT_TWITCH_CHANNEL_INFO_DLG(udata);
+
+    if (evt->type == GDK_BUTTON_PRESS)
+    {
+        if (((GdkEventButton*) evt)->button == 1)
+        {
+            gtk_show_uri(gtk_widget_get_screen(GTK_WIDGET(self)),
+                         g_object_get_data(G_OBJECT(tag), "link"),
+                         GDK_CURRENT_TIME, NULL);
+        }
+    }
+
+    return FALSE;
+}
+
+static gboolean
+text_panel_motion_cb(GtkWidget* widget,
+                     GdkEventMotion* evt,
+                     gpointer udata)
+{
+    GtTwitchChannelInfoDlg* self = GT_TWITCH_CHANNEL_INFO_DLG(udata);
+    GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
+    gint buf_x, buf_y;
+    GtkTextIter iter;
+    GdkCursor* cursor = NULL;
+
+    gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(widget),
+                                          GTK_TEXT_WINDOW_WIDGET,
+                                          evt->x, evt->y,
+                                          &buf_x, &buf_y);
+
+    gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(widget), &iter, buf_x, buf_y);
+
+    for (GList* l = priv->link_tags; l != NULL; l = l->next)
+    {
+        GtkTextTag* tag = GTK_TEXT_TAG(l->data);
+
+        if (gtk_text_iter_has_tag(&iter, tag))
+        {
+            cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_HAND2);
+
+            break;
+        }
+    }
+
+    if (!cursor) cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_XTERM);
+
+    gdk_window_set_cursor(evt->window, cursor);
+
+    g_object_unref(cursor);
+
+    return FALSE;
+}
+
+//TODO Parse more tags
 static void
 start_element(GMarkupParseContext* ctxt,
               const gchar* element_name,
@@ -91,7 +157,7 @@ start_element(GMarkupParseContext* ctxt,
     }
     else if (g_strcmp0(element_name, HTML_LIST_ITEM) == 0)
     {
-        gtk_text_buffer_insert(priv->cur_buff, &iter, _("•"), -1);
+        gtk_text_buffer_insert(priv->cur_buff, &iter, _("• "), -1);
     }
     else if (g_strcmp0(element_name, HTML_HEADER_1) == 0)
     {
@@ -120,11 +186,20 @@ end_element(GMarkupParseContext* ctxt,
     else if (g_strcmp0(element_name, HTML_LINK) == 0)
     {
         GtkTextIter prev_iter;
+        GtkTextTag* tag;
         gint* offset = g_queue_pop_head(priv->offset_queue);
 
         gtk_text_buffer_get_iter_at_offset(priv->cur_buff, &prev_iter, *offset);
 
-        gtk_text_buffer_apply_tag_by_name(priv->cur_buff, "link", &prev_iter, &iter);
+        tag = gtk_text_buffer_create_tag(priv->cur_buff, NULL,
+                                         "underline", PANGO_UNDERLINE_SINGLE,
+                                         "foreground", "blue",
+                                         NULL);
+        g_object_set_data(G_OBJECT(tag), "link", priv->cur_link);
+        g_signal_connect(tag, "event", G_CALLBACK(tag_event_cb), self);
+        priv->link_tags = g_list_append(priv->link_tags, tag);
+
+        gtk_text_buffer_apply_tag(priv->cur_buff, tag, &prev_iter, &iter);
 
         g_free(offset);
     }
@@ -189,11 +264,12 @@ static GMarkupParser parser =
 };
 
 static void
-parse_html_description(GtTwitchChannelInfoDlg* self,  GtkTextBuffer* buffer, const gchar* text)
+parse_html_description(GtTwitchChannelInfoDlg* self,  GtkTextView* view, const gchar* text)
 {
     GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
 
-    priv->cur_buff = buffer;
+    priv->cur_view = view;
+    priv->cur_buff = gtk_text_view_get_buffer(view);
 
     g_markup_parse_context_parse(priv->ctxt, text, -1, NULL);
 }
@@ -208,6 +284,7 @@ create_default_panel(GtTwitchChannelInfoDlg* self, GtTwitchChannelInfoPanel* pan
     GtkWidget* panel_label;
     GtkWidget* panel_image;
     GtkWidget* panel_text;
+    GtkWidget* evt_box;
     GtkTextTag* bold_tag;
     GtkTextTag* link_tag;
     GtkTextTag* h1_tag;
@@ -218,6 +295,14 @@ create_default_panel(GtTwitchChannelInfoDlg* self, GtTwitchChannelInfoPanel* pan
     panel_label = GTK_WIDGET(gtk_builder_get_object(builder, "panel_label"));
     panel_image = GTK_WIDGET(gtk_builder_get_object(builder, "panel_image"));
     panel_text = GTK_WIDGET(gtk_builder_get_object(builder, "panel_text"));
+    evt_box = GTK_WIDGET(gtk_builder_get_object(builder, "evt_box"));
+
+    if (panel->link && strlen(panel->link) > 0)
+    {
+        utils_connect_link(evt_box, panel->link);
+    }
+
+    g_signal_connect(panel_text, "motion-notify-event", G_CALLBACK(text_panel_motion_cb), self);
 
     bold_tag = gtk_text_tag_new("bold");
     link_tag = gtk_text_tag_new("link");
@@ -247,7 +332,7 @@ create_default_panel(GtTwitchChannelInfoDlg* self, GtTwitchChannelInfoPanel* pan
         gtk_widget_set_visible(panel_image, FALSE);
 
     if (panel->html_description)
-        parse_html_description(self, gtk_text_view_get_buffer(GTK_TEXT_VIEW(panel_text)), panel->html_description);
+        parse_html_description(self, GTK_TEXT_VIEW(panel_text), panel->html_description);
     else
         gtk_widget_set_visible(panel_text, FALSE);
 
@@ -327,16 +412,20 @@ gt_twitch_channel_info_dlg_init(GtTwitchChannelInfoDlg* self)
 
     priv->ctxt = g_markup_parse_context_new(&parser, 0, self, NULL);
     priv->offset_queue = g_queue_new();
+    priv->link_tags = NULL;
 }
 
-void
-gt_twitch_channel_info_dlg_load_channel(GtTwitchChannelInfoDlg* self, const gchar* chan)
+static void
+channel_info_cb(GObject* source,
+                GAsyncResult* res,
+                gpointer udata)
 {
+    GtTwitchChannelInfoDlg* self = GT_TWITCH_CHANNEL_INFO_DLG(udata);
     GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
     GList* panel_list = NULL;
     gint pos = 0;
 
-    panel_list = gt_twitch_channel_info(main_app->twitch, chan);
+    panel_list = g_task_propagate_pointer(G_TASK(res), NULL);
 
     for (GList* l = panel_list; l != NULL; l = l->next, pos++)
     {
@@ -357,4 +446,10 @@ gt_twitch_channel_info_dlg_load_channel(GtTwitchChannelInfoDlg* self, const gcha
     }
 
     g_list_free_full(panel_list, (GDestroyNotify) gt_twitch_channel_info_panel_free);
+}
+
+void
+gt_twitch_channel_info_dlg_load_channel(GtTwitchChannelInfoDlg* self, const gchar* chan)
+{
+    gt_twitch_channel_info_async(main_app->twitch, chan, NULL, (GAsyncReadyCallback) channel_info_cb, self); //TODO Use a cancellable
 }

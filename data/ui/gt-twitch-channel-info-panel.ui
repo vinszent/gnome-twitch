@@ -3,23 +3,35 @@
   <object class="GtkBox" id="panel_box">
     <property name="visible">True</property>
     <property name="orientation">vertical</property>
-    <property name="width-request">420</property>
+    <property name="width-request">320</property>
     <child>
-      <object class="GtkLabel" id="panel_label">
+      <object class="GtkEventBox" id="evt_box">
         <property name="visible">True</property>
-        <property name="margin-top">5</property>
-        <property name="margin-bottom">5</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImage" id="panel_image">
-        <property name="visible">True</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel" id="panel_label">
+                    <property name="visible">True</property>
+                    <property name="margin-top">5</property>
+                    <property name="margin-bottom">5</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkImage" id="panel_image">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
       <object class="GtkTextView" id="panel_text">
         <property name="visible">True</property>
         <property name="wrap-mode">word-char</property>
+        <property name="editable">False</property>
       </object>
     </child>
   </object>
