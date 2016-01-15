@@ -452,6 +452,8 @@ gt_win_init(GtWin* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
+    gtk_window_set_default_icon_name("gnome-twitch");
+
 //    g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
 
     g_object_bind_property(priv->browse_stack, "visible-child",
