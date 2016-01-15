@@ -83,3 +83,75 @@ utils_search_key_value_strv(gchar** strv, const gchar* key)
 
     return NULL;
 }
+
+static gboolean
+utils_mouse_hover_enter_cb(GtkWidget* widget,
+                           GdkEvent* evt,
+                           gpointer udata)
+{
+    GdkWindow* win;
+    GdkDisplay* disp;
+    GdkCursor* cursor;
+
+    win = ((GdkEventMotion*) evt)->window;
+    disp = gdk_window_get_display(win);
+    cursor = gdk_cursor_new_for_display(disp, GDK_HAND2);
+
+    gdk_window_set_cursor(win, cursor);
+
+    g_object_unref(cursor);
+
+    return FALSE;
+}
+
+static gboolean
+utils_mouse_hover_leave_cb(GtkWidget* widget,
+                           GdkEvent* evt,
+                           gpointer udata)
+{
+    GdkWindow* win;
+    GdkDisplay* disp;
+    GdkCursor* cursor;
+
+    win = ((GdkEventMotion*) evt)->window;
+    disp = gdk_window_get_display(win);
+    cursor = gdk_cursor_new_for_display(disp, GDK_LEFT_PTR);
+
+    gdk_window_set_cursor(win, cursor);
+
+    g_object_unref(cursor);
+
+    return FALSE;
+}
+
+static gboolean
+utils_mouse_clicked_link_cb(GtkWidget* widget,
+                            GdkEventButton* evt,
+                            gpointer udata)
+{
+    GdkScreen* screen;
+
+    screen = gtk_widget_get_screen(widget);
+
+    if (evt->button == 1 && evt->type == GDK_BUTTON_PRESS)
+    {
+        gtk_show_uri(screen, (gchar*) udata, GDK_CURRENT_TIME, NULL);
+    }
+
+    return FALSE;
+}
+
+void
+utils_connect_mouse_hover(GtkWidget* widget)
+{
+    g_signal_connect(widget, "enter-notify-event", G_CALLBACK(utils_mouse_hover_enter_cb), NULL);
+    g_signal_connect(widget, "leave-notify-event", G_CALLBACK(utils_mouse_hover_leave_cb), NULL);
+}
+
+void
+utils_connect_link(GtkWidget* widget, const gchar* link)
+{
+    gchar* tmp = g_strdup(link); //TODO: Free this
+    utils_connect_mouse_hover(widget);
+    g_signal_connect(widget, "button-press-event", G_CALLBACK(utils_mouse_clicked_link_cb), tmp);
+}
