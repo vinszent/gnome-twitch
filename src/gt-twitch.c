@@ -1314,7 +1314,6 @@ gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
     g_task_run_in_thread(task, chat_badges_async_cb);
 
     g_object_unref(task);
-
 }
 
 static GtTwitchChannelInfoPanel*
@@ -1331,6 +1330,12 @@ gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel)
     g_clear_object(&panel->image);
     g_free(panel->link);
     g_free(panel);
+}
+
+void
+gt_twitch_channel_info_panel_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_twitch_channel_info_panel_free);
 }
 
 GList*
@@ -1425,4 +1430,45 @@ finish:
     g_object_unref(msg);
 
     return ret;
+}
+
+
+static void
+channel_info_async_cb(GTask* task,
+                      gpointer source,
+                      gpointer task_data,
+                      GCancellable* cancel)
+{
+    GenericTaskData* data;
+    GList* ret;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    data = task_data;
+
+    ret = gt_twitch_channel_info(data->twitch, data->str_1);
+
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_info_panel_list_free);
+}
+
+void
+gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan,
+                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    GTask* task;
+    GenericTaskData* data;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(chan);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, channel_info_async_cb);
+
+    g_object_unref(task);
 }

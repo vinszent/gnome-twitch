@@ -131,6 +131,7 @@ void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar*
 void                    gt_twitch_chat_badges_free(GtTwitchChatBadges* badges);
 GList*                  gt_twitch_channel_info(GtTwitch* self, const gchar* chan);
 void                    gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
+void                    gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 
 
 G_END_DECLS
