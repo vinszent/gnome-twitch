@@ -369,6 +369,14 @@
             <property name="text" translatable="yes">Low</property>
           </object>
         </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="action-name">player.set_quality</property>
+            <property name="action-target">'mobile'</property>
+            <property name="text" translatable="yes">Mobile</property>
+          </object>
+        </child>
       </object>
       <packing>
         <property name="submenu">stream_quality_menu</property>
