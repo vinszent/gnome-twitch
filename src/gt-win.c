@@ -300,16 +300,6 @@ window_state_cb(GtkWidget* widget,
 }
 
 static void
-show_error_message(GtWin* self, const gchar* msg)
-{
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
-    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_WARNING);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
-}
-
-static void
 finalize(GObject* object)
 {
     GtWin* self = (GtWin*) object;
