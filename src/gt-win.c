@@ -217,12 +217,7 @@ key_press_cb(GtkWidget* widget,
 
     g_object_get(self->player, "playing", &playing, NULL);
 
-    if (evt->keyval == GDK_KEY_q && (evt->state & modifiers) == GDK_CONTROL_MASK)
-    {
-        action = g_action_map_lookup_action(G_ACTION_MAP(main_app), "quit");
-        g_action_activate(action, NULL);
-    }
-    else if (MAIN_VISIBLE_CHILD == self->player)
+    if (MAIN_VISIBLE_CHILD == self->player)
     {
         if (evt->keyval == GDK_KEY_space)
         {
