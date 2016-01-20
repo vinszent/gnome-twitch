@@ -27,6 +27,8 @@ typedef struct
     GtkTextBuffer* cur_buff;
     gchar* cur_link;
     GQueue* offset_queue;
+
+    GCancellable* cancel;
 } GtTwitchChannelInfoDlgPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChannelInfoDlg, gt_twitch_channel_info_dlg, GTK_TYPE_DIALOG)
@@ -345,6 +347,9 @@ finalise(GObject* obj)
     GtTwitchChannelInfoDlg* self = GT_TWITCH_CHANNEL_INFO_DLG(obj);
     GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
 
+    g_cancellable_cancel(priv->cancel);
+    g_object_unref(priv->cancel);
+
     G_OBJECT_CLASS(gt_twitch_channel_info_dlg_parent_class)->finalize(obj);
 }
 
@@ -413,6 +418,7 @@ gt_twitch_channel_info_dlg_init(GtTwitchChannelInfoDlg* self)
     priv->ctxt = g_markup_parse_context_new(&parser, 0, self, NULL);
     priv->offset_queue = g_queue_new();
     priv->link_tags = NULL;
+    priv->cancel = g_cancellable_new();
 }
 
 static void
@@ -420,12 +426,13 @@ channel_info_cb(GObject* source,
                 GAsyncResult* res,
                 gpointer udata)
 {
+    GList* panel_list = NULL;
+
+    if (!(panel_list = g_task_propagate_pointer(G_TASK(res), NULL))) return;
+
     GtTwitchChannelInfoDlg* self = GT_TWITCH_CHANNEL_INFO_DLG(udata);
     GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
-    GList* panel_list = NULL;
     gint pos = 0;
-
-    panel_list = g_task_propagate_pointer(G_TASK(res), NULL);
 
     for (GList* l = panel_list; l != NULL; l = l->next, pos++)
     {
@@ -451,5 +458,7 @@ channel_info_cb(GObject* source,
 void
 gt_twitch_channel_info_dlg_load_channel(GtTwitchChannelInfoDlg* self, const gchar* chan)
 {
-    gt_twitch_channel_info_async(main_app->twitch, chan, NULL, (GAsyncReadyCallback) channel_info_cb, self); //TODO Use a cancellable
+    GtTwitchChannelInfoDlgPrivate* priv = gt_twitch_channel_info_dlg_get_instance_private(self);
+
+    gt_twitch_channel_info_async(main_app->twitch, chan, priv->cancel, (GAsyncReadyCallback) channel_info_cb, self); //TODO Use a cancellable
 }
