@@ -3,10 +3,6 @@
   <menu id="app_menu">
     <section>
       <item>
-        <attribute name="label" translatable="yes">Login to Twitch</attribute>
-        <attribute name="action">win.show_twitch_login</attribute>
-      </item>
-      <item>
         <attribute name="label" translatable="yes">Settings</attribute>
         <attribute name="action">win.show_settings</attribute>
       </item>
@@ -15,7 +11,7 @@
       <item>
         <attribute name="label" translatable="yes">About</attribute>
         <attribute name="action">win.show_about</attribute>
-      </item> 
+      </item>
       <item>
         <attribute name="label" translatable="yes">Quit</attribute>
         <attribute name="action">app.quit</attribute>
