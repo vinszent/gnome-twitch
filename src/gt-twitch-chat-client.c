@@ -195,6 +195,13 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
+    if (!priv->cur_chan)
+    {
+        gt_twitch_chat_message_free(msg);
+
+        return;
+    }
+
     if (ostream == priv->ostream_recv)
     {
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
@@ -409,9 +416,9 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 
     if (priv->connected)
     {
-        gt_twitch_chat_client_part(self);
-
         priv->connected = FALSE;
+
+        gt_twitch_chat_client_part(self);
 
         g_message("{GtTwitchChatClient} Disconnecting");
 
