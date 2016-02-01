@@ -8,6 +8,13 @@
 
 #define CR_LF "\r\n"
 
+#define GT_TWITCH_CHAT_CLIENT_ERROR g_quark_from_static_string("gt-twitch-chat-client-error")
+
+enum
+{
+    ERROR_LOG_IN_FAILED,
+};
+
 //TODO: Need to check for 001 message before setting connected
 
 typedef struct
@@ -24,6 +31,8 @@ typedef struct
 
     gchar* cur_chan;
     gboolean connected;
+    gboolean recv_logged_in;
+    gboolean send_logged_in;
 } GtTwitchChatClientPrivate;
 
 struct _GtTwitchChatSource
@@ -47,7 +56,15 @@ enum
     NUM_PROPS
 };
 
+enum
+{
+    SIG_ERROR_ENCOUNTERED,
+    NUM_SIGS
+};
+
 static GParamSpec* props[NUM_PROPS];
+
+static guint sigs[NUM_SIGS];
 
 GtTwitchChatClient*
 gt_twitch_chat_client_new()
@@ -190,34 +207,67 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
     g_free(orig);
 }
 
-static void
+static gboolean
 handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
-    if (!priv->cur_chan)
-    {
-        gt_twitch_chat_message_free(msg);
-
-        return;
-    }
-
     if (ostream == priv->ostream_recv)
     {
+        if (!priv->recv_logged_in)
+        {
+            if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_WELCOME) != 0)
+            {
+                GError* err; //TODO: Needs free somehow
+
+                err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
+                                  "Unable to log in on receive socket, server replied '%s'", msg->params);
+
+                g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+                g_warning("{GtTwitchChatClient} Unable to log in on recive socket, server replied '%s'", msg->params);
+
+                return FALSE;
+            }
+            else
+                priv->recv_logged_in = TRUE;
+        }
+
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
             send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
         else
         {
-            g_async_queue_push(self->source->queue, msg);
+            if (priv->cur_chan) g_async_queue_push(self->source->queue, msg);
         }
     }
     else if (ostream == priv->ostream_send)
     {
+        if (!priv->send_logged_in)
+        {
+            if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_WELCOME) != 0)
+            {
+                GError* err; //TODO: Needs free somehow
+
+                err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
+                                  "Unable to log in on send socket, server replied '%s'", msg->params);
+
+                g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+                g_warning("{GtTwitchChatClient} Unable to log in on send socket, server replied '%s'", msg->params);
+
+                return FALSE;
+            }
+            else
+                priv->send_logged_in = TRUE;
+        }
+
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
             send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->params);
 
         gt_twitch_chat_message_free(msg);
     }
+
+    return TRUE;
 }
 
 static void
@@ -232,7 +282,10 @@ read_lines(ChatThreadData* data)
     gsize read1 = 0;
     GError* err = NULL;
 
-    g_message("{GtTwitchChatClient} Running chat worker thread");
+    if (data->istream == priv->istream_recv)
+        g_message("{GtTwitchChatClient} Running chat worker thread for receive");
+    else if (data->istream == priv->istream_send)
+        g_message("{GtTwitchChatClient} Running chat worker thread for send");
 
     for (gchar* line = g_data_input_stream_read_line(data->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(data->istream, &read, NULL, &err))
@@ -251,11 +304,24 @@ read_lines(ChatThreadData* data)
             /* g_print("Command %s\n", msg->command); */
             /* g_print("Params %s\n", msg->params); */
 
-            handle_message(self, data->ostream, msg);
+            if (!handle_message(self, data->ostream, msg))
+                break;
         }
     }
+    if (data->istream == priv->istream_recv)
+        g_message("{GtTwitchChatClient} Stopping chat worker thread for receive");
+    else if (data->istream == priv->istream_send)
+        g_message("{GtTwitchChatClient} Stopping chat worker thread for send");
+}
 
-    g_message("{GtTwitchChatClient} Stopping chat worker thread");
+static void
+error_encountered_cb(GtTwitchChatClient* self,
+                     GError* error,
+                     gpointer udata)
+{
+    gt_twitch_chat_client_disconnect(self);
+
+    g_error_free(error);
 }
 
 static void
@@ -307,6 +373,14 @@ gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
     obj_class->finalize = finalise;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
+
+    sigs[SIG_ERROR_ENCOUNTERED] = g_signal_new("error-encountered",
+                                               GT_TYPE_TWITCH_CHAT_CLIENT,
+                                               G_SIGNAL_RUN_LAST,
+                                               0, NULL, NULL,
+                                               g_cclosure_marshal_VOID__OBJECT,
+                                               G_TYPE_NONE,
+                                               1, G_TYPE_ERROR);
 }
 
 static void
@@ -315,9 +389,13 @@ gt_twitch_chat_client_init(GtTwitchChatClient* self)
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
     priv->connected = FALSE;
+    priv->recv_logged_in = FALSE;
+    priv->send_logged_in = FALSE;
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
+
+    g_signal_connect_after(self, "error-encountered", G_CALLBACK(error_encountered_cb), NULL);
 }
 
 void
@@ -416,9 +494,9 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 
     if (priv->connected)
     {
-        priv->connected = FALSE;
+        if (priv->cur_chan) gt_twitch_chat_client_part(self);
 
-        gt_twitch_chat_client_part(self);
+        priv->connected = FALSE;
 
         g_message("{GtTwitchChatClient} Disconnecting");
 
@@ -448,12 +526,13 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
     else
         chan = g_strdup(channel);
 
+    priv->cur_chan = chan;
+
     g_message("{GtTwitchChatClient} Joining channel '%s'", chan);
 
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_JOIN, chan);
     send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_JOIN, chan);
 
-    priv->cur_chan = chan;
 }
 
 void
@@ -471,6 +550,7 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 
+    //TODO: Just create a new one instead?
     g_async_queue_lock(self->source->queue);
     len = g_async_queue_length_unlocked(self->source->queue);
     if (len > 0)
