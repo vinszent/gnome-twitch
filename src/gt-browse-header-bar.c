@@ -118,22 +118,6 @@ set_property(GObject*      obj,
 }
 
 static void
-show_refresh_button_cb(GObject* source,
-                       GParamSpec* pspec,
-                       gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-    GtkWidget* view = NULL;
-     
-    g_object_get(GT_WIN_TOPLEVEL(self), "visible-view", &view, NULL);
-
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != GTK_WIDGET(priv->favourites_view));
-
-    g_object_unref(view);
-}
-
-static void
 search_active_cb(GObject* source,
                  GParamSpec* pspec,
                  gpointer udata)
@@ -191,7 +175,6 @@ realize(GtkWidget* widget,
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(visible_view_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
-    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
     g_signal_connect(priv->search_button, "notify::active", G_CALLBACK(search_active_cb), self);
 }
