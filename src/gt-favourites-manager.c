@@ -140,6 +140,17 @@ auto_update_cb(GtFavouritesManager* self)
 }
 
 static void
+auto_update_interval_changed_cb(GSettings* settings,
+                           const gchar* key,
+                           GtFavouritesManager* self)
+{
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    priv->auto_update_interval = g_settings_get_uint(settings, key);
+    gt_favourites_manager_update(self);
+}
+
+static void
 shutdown_cb(GApplication* app,
             gpointer udata)
 {
@@ -222,7 +233,11 @@ gt_favourites_manager_init(GtFavouritesManager* self)
 {
     GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
 
-    priv->auto_update_interval = 120;
+    auto_update_interval_changed_cb(main_app->settings, "auto-update-interval", self);
+    g_signal_connect(main_app->settings,
+                     "changed::auto-update-interval",
+                     G_CALLBACK(auto_update_interval_changed_cb),
+                     self);
 
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
 }
