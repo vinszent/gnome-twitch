@@ -23,6 +23,7 @@ void gt_favourites_manager_load(GtFavouritesManager* self);
 void gt_favourites_manager_save(GtFavouritesManager* self);
 gboolean gt_favourites_manager_is_channel_favourited(GtFavouritesManager* self, GtChannel* chan);
 void gt_favourites_manager_attach_to_channel(GtFavouritesManager* self, GtChannel* chan);
+void gt_favourites_manager_update(GtFavouritesManager* self);
 
 G_END_DECLS
 

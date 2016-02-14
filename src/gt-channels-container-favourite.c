@@ -34,8 +34,7 @@ bottom_edge_reached(GtChannelsContainer* container)
 static void
 refresh(GtChannelsContainer* container)
 {
-    for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
-        gt_channel_update(GT_CHANNEL(l->data));
+    gt_favourites_manager_update(main_app->fav_mgr);
 }
 
 static void
