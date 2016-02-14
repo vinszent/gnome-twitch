@@ -34,7 +34,11 @@ bottom_edge_reached(GtChannelsContainer* container)
 static void
 refresh(GtChannelsContainer* container)
 {
-    //TODO: Force favourites refresh
+    for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
+    {
+        g_object_set(G_OBJECT(l->data), "auto-update", FALSE, NULL);
+        g_object_set(G_OBJECT(l->data), "auto-update", TRUE, NULL);
+    }
 }
 
 static void
