@@ -76,21 +76,31 @@ show_about_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GtkWidget* about_dlg = NULL;
 
-    char* authors[] = {"Vincent Szolnoky", NULL};
+    const char* authors[] = {"Vincent Szolnoky", NULL};
+    const char* contributors[] = {"Dimitrios Christidis", NULL};
 
-    gtk_show_about_dialog(GTK_WINDOW(self),
-                          "version", GT_VERSION,
-                          "program-name", "GNOME Twitch",
-                          "authors", &authors,
-                          "license-type", GTK_LICENSE_GPL_3_0,
-                          "copyright", "Copyright © 2015 Vincent Szolnoky",
-                          "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
-                          "logo-icon-name", "gnome-twitch",
-                          "website", "https://github.com/Ippytraxx/gnome-twitch",
-                          "website-label", "GitHub",
-                          "translator-credits", _("translator-credits"),
-                          NULL);
+    about_dlg = gtk_about_dialog_new();
+
+    g_object_set(about_dlg,
+                 "version", GT_VERSION,
+                 "program-name", "GNOME Twitch",
+                 "authors", &authors,
+                 "license-type", GTK_LICENSE_GPL_3_0,
+                 "copyright", "Copyright © 2015 Vincent Szolnoky",
+                 "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
+                 "logo-icon-name", "gnome-twitch",
+                 "website", "https://github.com/Ippytraxx/gnome-twitch",
+                 "website-label", "GitHub",
+                 "translator-credits", _("translator-credits"),
+                 NULL);
+
+    gtk_about_dialog_add_credit_section(GTK_ABOUT_DIALOG(about_dlg), "Contributors", contributors);
+    gtk_window_set_transient_for(GTK_WINDOW(about_dlg), GTK_WINDOW(self));
+
+    gtk_dialog_run(GTK_DIALOG(about_dlg));
+    gtk_widget_destroy(about_dlg);
 }
 
 static void
