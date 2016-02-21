@@ -57,7 +57,6 @@ typedef struct
 
     gdouble prev_scroll_val;
     gdouble prev_scroll_upper;
-    gdouble prev_page_size;
     gboolean prev_sticky;
 
     gboolean chat_sticky;
@@ -246,7 +245,6 @@ add_chat_msg(GtTwitchChatView* self,
 
     gdouble cur_val = gtk_adjustment_get_value(priv->chat_adjustment);
     gdouble cur_upper = gtk_adjustment_get_upper(priv->chat_adjustment);
-    gdouble cur_page_size = gtk_adjustment_get_page_size(priv->chat_adjustment);
 
     // Scrolling upwards causes the pos to be further from the bottom than the natural size increment
     if (priv->chat_sticky && cur_val > priv->prev_scroll_val - cur_upper + priv->prev_scroll_upper - 10)
@@ -258,7 +256,6 @@ add_chat_msg(GtTwitchChatView* self,
 
     priv->prev_scroll_val = cur_val;
     priv->prev_scroll_upper = cur_upper;
-    priv->prev_page_size = cur_page_size;
 }
 
 static void
@@ -627,7 +624,6 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     priv->chat_sticky = TRUE;
     priv->prev_scroll_val = 0;
     priv->prev_scroll_upper = 0;
-    priv->prev_page_size = 0;
 
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
