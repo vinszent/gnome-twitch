@@ -6,10 +6,14 @@
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
 
+#define FILTER_TIMEOUT_MS 500
+
 typedef struct
 {
     gchar* query;
     gint page;
+
+    gint filter_timeout_id;
 
     GCancellable* cancel;
 } GtGamesContainerSearchPrivate;
@@ -58,8 +62,6 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
     if (!query || strlen(query) == 0)
         return;
 
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query != NULL);
-
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
@@ -73,11 +75,28 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
                                  self);
 }
 
+static gboolean
+filter_timeout_cb(gpointer udata)
+{
+    GtGamesContainerSearch* self = GT_GAMES_CONTAINER_SEARCH(udata);
+    GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
+
+    get_games(self, priv->query);
+    priv->filter_timeout_id = -1;
+
+    return G_SOURCE_REMOVE;
+}
+
 static void
 filter(GtGamesContainer* container, const gchar* query)
 {
     GtGamesContainerSearch* self = GT_GAMES_CONTAINER_SEARCH(container);
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
+
+    if (priv->filter_timeout_id > 0)
+        g_source_remove(priv->filter_timeout_id);
+
+    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query && strlen(query) > 0);
 
     priv->page = 0;
     g_free(priv->query);
@@ -85,7 +104,7 @@ filter(GtGamesContainer* container, const gchar* query)
 
     utils_container_clear(GTK_CONTAINER(PCLASS->get_games_flow(container)));
 
-    get_games(self, query);
+    priv->filter_timeout_id = g_timeout_add(FILTER_TIMEOUT_MS, filter_timeout_cb, self);
 }
 
 static void
@@ -171,5 +190,6 @@ gt_games_container_search_init(GtGamesContainerSearch* self)
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
     priv->page = 0;
+    priv->filter_timeout_id = -1;
     priv->cancel = g_cancellable_new();
 }
