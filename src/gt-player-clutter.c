@@ -476,8 +476,7 @@ finalize(GObject* object)
     GtPlayerClutter* self = (GtPlayerClutter*) object;
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    if (priv->cursor_hiding_timeout_id != 0)
-        g_source_remove(priv->cursor_hiding_timeout_id);
+    unschedule_cursor_hiding(self);
 
     G_OBJECT_CLASS(gt_player_clutter_parent_class)->finalize(object);
 }
