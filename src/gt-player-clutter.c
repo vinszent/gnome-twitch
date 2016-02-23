@@ -8,6 +8,8 @@
 #include "utils.h"
 #include <glib/gprintf.h>
 
+#define CURSOR_HIDING_TIMEOUT 2
+
 static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
 typedef struct
@@ -48,6 +50,7 @@ typedef struct
     GtWin* win; // Save a reference
 
     guint inhibitor_cookie;
+    guint cursor_hiding_timeout_id;
 } GtPlayerClutterPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerClutter, gt_player_clutter, GT_TYPE_PLAYER)
@@ -320,6 +323,39 @@ fullscreen_cb(GObject* source,
         hide_fullscreen_bar(self);
 }
 
+static void
+unschedule_cursor_hiding(GtPlayerClutter* self)
+{
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    if (priv->cursor_hiding_timeout_id != 0)
+    {
+        g_source_remove(priv->cursor_hiding_timeout_id);
+        priv->cursor_hiding_timeout_id = 0;
+    }
+}
+
+static gboolean
+hide_cursor_timeout_cb(GtPlayerClutter* self)
+{
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    clutter_stage_hide_cursor(CLUTTER_STAGE(priv->stage));
+    unschedule_cursor_hiding(self);
+    return G_SOURCE_REMOVE;
+}
+
+static void
+schedule_cursor_hiding(GtPlayerClutter* self)
+{
+    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    unschedule_cursor_hiding(self);
+    priv->cursor_hiding_timeout_id = g_timeout_add_seconds(CURSOR_HIDING_TIMEOUT,
+                                                           (GSourceFunc) hide_cursor_timeout_cb,
+                                                           self);
+}
+
 static gboolean
 clutter_stage_event_cb(ClutterStage* stage,
                        ClutterEvent* event,
@@ -333,11 +369,26 @@ clutter_stage_event_cb(ClutterStage* stage,
     {
         case CLUTTER_MOTION:
         {
+            clutter_stage_show_cursor(stage);
+            schedule_cursor_hiding(self);
+
             if (gt_win_get_fullscreen(priv->win) && ((ClutterMotionEvent*) event)->y < 50)
                 show_fullscreen_bar(self);
             else
                 hide_fullscreen_bar(self);
 
+            handled = TRUE;
+            break;
+        }
+        case CLUTTER_ENTER:
+        {
+            schedule_cursor_hiding(self);
+            handled = TRUE;
+            break;
+        }
+        case CLUTTER_LEAVE:
+        {
+            unschedule_cursor_hiding(self);
             handled = TRUE;
             break;
         }
@@ -424,6 +475,8 @@ finalize(GObject* object)
 {
     GtPlayerClutter* self = (GtPlayerClutter*) object;
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
+
+    unschedule_cursor_hiding(self);
 
     G_OBJECT_CLASS(gt_player_clutter_parent_class)->finalize(object);
 }
