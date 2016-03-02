@@ -218,12 +218,14 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
         {
             if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_WELCOME) != 0)
             {
-                GError* err; //TODO: Needs free somehow
+                GError* err;
 
                 err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
                                   "Unable to log in on receive socket, server replied '%s'", msg->params);
 
                 g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+                g_error_free(err);
 
                 g_warning("{GtTwitchChatClient} Unable to log in on recive socket, server replied '%s'", msg->params);
 
@@ -246,12 +248,14 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
         {
             if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_WELCOME) != 0)
             {
-                GError* err; //TODO: Needs free somehow
+                GError* err;
 
                 err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
                                   "Unable to log in on send socket, server replied '%s'", msg->params);
 
                 g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+                g_error_free(err);
 
                 g_warning("{GtTwitchChatClient} Unable to log in on send socket, server replied '%s'", msg->params);
 
@@ -320,8 +324,6 @@ error_encountered_cb(GtTwitchChatClient* self,
                      gpointer udata)
 {
     gt_twitch_chat_client_disconnect(self);
-
-    g_error_free(error);
 }
 
 static void
