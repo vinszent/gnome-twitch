@@ -1,5 +1,5 @@
-* Bugs
-** TODO Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
+* Bugs**
+** DONE Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
    - Not sure how much can be done from our side if it's a internal leak.
 ** DONE UI seems to randomly freeze when loading a stream sometimes.
@@ -13,6 +13,7 @@
 * Minor milestones
 ** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
+   - Not possible?
 ** DONE Twitch emotes in chat
    - embed the most popular ones as resources
 ** TODO Chat make links clickable
