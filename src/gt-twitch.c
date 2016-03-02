@@ -20,6 +20,7 @@
 #define CHAT_BADGES_URI     "https://api.twitch.tv/kraken/chat/%s/badges/"
 #define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 #define CHANNEL_INFO_URI    "http://api.twitch.tv/api/channels/%s/panels"
+#define CHAT_SERVERS_URI    "https://api.twitch.tv/api/channels/%s/chat_properties"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -1471,4 +1472,47 @@ gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan,
     g_task_run_in_thread(task, channel_info_async_cb);
 
     g_object_unref(task);
+}
+
+GList*
+gt_twitch_chat_servers(GtTwitch* self,
+                       const gchar* chan)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GList* ret = NULL;
+
+    uri = g_strdup_printf(CHAT_SERVERS_URI, chan);
+    msg = soup_message_new("GET", uri);
+
+    if (!send_message(self, msg))
+        goto finish;
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "chat_servers");
+
+    for (int i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        json_reader_read_element(reader, i);
+        ret = g_list_append(ret, g_strdup(json_reader_get_string_value(reader)));
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_object_unref(msg);
+
+    return ret;
 }
