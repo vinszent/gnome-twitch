@@ -85,7 +85,7 @@ favourite_button_cb(GtkButton* button,
     gt_channel_toggle_favourited(priv->channel);
 }
 
-static void
+static gboolean
 viewers_converter(GBinding* bind,
                   const GValue* from,
                   GValue* to,
@@ -105,9 +105,11 @@ viewers_converter(GBinding* bind,
     }
 
     g_value_set_string(to, label);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 time_converter(GBinding* bind,
                const GValue* from,
                GValue* to,
@@ -134,6 +136,8 @@ time_converter(GBinding* bind,
     }
 
     g_value_set_string(to, label);
+
+    return TRUE;
 }
 
 static void
