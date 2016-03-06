@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.gnome-twitch.app.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>GNOME Twitch</name>
+  <summary>Enjoy Twitch on your GNU/Linux desktop</summary>
+
+  <description>
+    <p>
+      GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy
+      your favourite streams without the hassle of flash or the web.
+    </p>
+    <p>Notable Features:</p>
+    <ul>
+      <li>Watch your favourite streams natively with fully accelerated video</li>
+      <li>Built in chat which can even be overlayed over the video</li>
+      <li>Easy favourites/follows management and receive notifications when they are online</li>
+    </ul>
+  </description>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Player with overlayed chat</caption>
+      <image>https://github.com/Ippytraxx/gnome-twitch/blob/master/data/screenshots/scrot_player.png?raw=true</image>
+    </screenshot>
+    <screenshot>
+      <caption>Browsing through channels</caption>
+      <image>https://github.com/Ippytraxx/gnome-twitch/blob/master/data/screenshots/scrot_streams.png?raw=true</image>
+    </screenshot>
+    <screenshot>
+      <caption>Browsing through games</caption>
+      <image>https://github.com/Ippytraxx/gnome-twitch/blob/master/data/screenshots/scrot_games.png?raw=true</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/Ippytraxx/gnome-twitch</url>
+  <url type="bugtracker">https://github.com/Ippytraxx/gnome-twitch/issues/new</url>
+
+  <kudos>
+    <kudo>AppMenu</kudo>
+    <kudo>HiDpiIcon</kudo>
+    <kudo>ModernToolkit</kudo>
+  </kudos>
+
+  <update_contact>ippytraxx_at_installgentoo.com</update_contact>
+</component>
