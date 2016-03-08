@@ -1,7 +1,6 @@
-# translation of gnome-twitch to Polish
+# Translation of gnome-twitch to Polish.
 # Copyright (C) 2015 Piotr Drąg <piotrdrag@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.1.0\n"

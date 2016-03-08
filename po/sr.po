@@ -1,4 +1,4 @@
-# translation of gnome-twitch to Serbian
+# Translation of gnome-twitch to Serbian.
 # Copyright (C) 2015 Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""

@@ -1,4 +1,4 @@
-# translation of gnome-twitch to Swedish
+# Translation of gnome-twitch to Swedish.
 # Copyright (C) 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""

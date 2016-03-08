@@ -1,7 +1,6 @@
-# translation of gnome-twitch to German
+# Translation of gnome-twitch to German.
 # Copyright (C) 2015 Philipp Fent <philipp@fent.de>
 # This file is distributed under the same license as the gnome-twitch package.
-
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.1.0\n"

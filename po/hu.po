@@ -1,4 +1,4 @@
-# translation of gnome-twitch to Hungarian
+# Translation of gnome-twitch to Hungarian.
 # Copyright (C) 2015 Gergő Rubint <gergo@rubint.me>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
