@@ -3,8 +3,8 @@
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-10 22:42+0200\n"
 "PO-Revision-Date: 2015-10-12 15:04+0900\n"
 "Language-Team: \n"

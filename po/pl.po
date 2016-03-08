@@ -4,8 +4,8 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-12-05 16:06+0100\n"
 "PO-Revision-Date: 2015-12-05 16:07+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
