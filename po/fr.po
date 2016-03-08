@@ -1,8 +1,7 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# translation of gnome-twitch to French
+# Copyright (C) 2015 mr-intrepide <theintrepid95@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
@@ -14,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.5\n"
-"Last-Translator: \n"
+"Last-Translator: mr-intrepide <theintrepid95@gmail.com>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: fr\n"
 

@@ -1,6 +1,6 @@
 # translation of gnome-twitch to Portuguese
+# Copyright (C) 2016 Bruno Guerreiro <american.jesus.pt@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# Bruno Guerreiro <american.jesus.pt@gmail.com>, 2016.
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"

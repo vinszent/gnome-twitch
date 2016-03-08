@@ -1,8 +1,6 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# translation of gnome-twitch to Swedish
+# Copyright (C) 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
