@@ -42,7 +42,7 @@ msgstr "Kilépés"
 
 #: data/ui/gt-settings-dlg.ui:17
 msgid "Default video quality: "
-msgstr "Alapértelmezett Videó Minőség"
+msgstr "Alapértelmezett Videó Minőség: "
 
 #: data/ui/gt-settings-dlg.ui:28
 msgid "Source"

@@ -43,7 +43,7 @@ msgstr "Beenden"
 
 #: data/ui/gt-settings-dlg.ui:17
 msgid "Default video quality: "
-msgstr "Standard Video Qualität:"
+msgstr "Standard Video Qualität: "
 
 #: data/ui/gt-settings-dlg.ui:28
 msgid "Source"
