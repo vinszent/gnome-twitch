@@ -7,30 +7,86 @@
     <child>
       <object class="GtkStack" id="main_stack">
         <property name="visible">True</property>
+        <property name="transition-type">crossfade</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtkOverlay">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
-            <property name="valign">center</property>
-            <property name="halign">center</property>
-            <property name="expand">True</property>
-            <property name="spacing">7</property>
             <child>
-              <object class="GtkLabel" id="error_label">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="wrap">True</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkScrolledWindow" id="chat_scroll">
+                    <property name="visible">True</property>
+                    <property name="margin-top">7</property>
+                    <property name="margin-right">7</property>
+                    <property name="margin-left">7</property>
+                    <child>
+                      <object class="GtkTextView" id="chat_view">
+                        <property name="visible">True</property>
+                        <property name="left-margin">3</property>
+                        <property name="right-margin">3</property>
+                        <property name="pixels-above-lines">2</property>
+                        <property name="pixels-below-lines">2</property>
+                        <property name="editable">False</property>
+                        <property name="cursor-visible">False</property>
+                        <property name="wrap-mode">word-char</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="chat_entry">
+                    <property name="visible">True</property>
+                    <property name="placeholder-text" translatable="yes">Send a message</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="margin-right">7</property>
+                    <property name="margin-left">7</property>
+                  </object>
+                </child>
               </object>
             </child>
-            <child>
-              <object class="GtkButton">
+            <child type="overlay">
+              <object class="GtkRevealer" id="connecting_revealer">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Click to reconnect</property>
-                <signal name="clicked" handler="reconnect_cb"/>
+                <property name="can_focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="visible">True</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="spacing">7</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">Connecting to chat</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinner">
+                            <property name="visible">True</property>
+                            <property name="active">True</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <style>
+                      <class name="app-notification"/>
+                    </style>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
           <packing>
-            <property name="name">errorview</property>
+            <property name="name">chatview</property>
           </packing>
         </child>
         <child>
@@ -63,42 +119,26 @@
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="orientation">vertical</property>
+            <property name="valign">center</property>
+            <property name="halign">center</property>
+            <property name="expand">True</property>
+            <property name="spacing">7</property>
             <child>
-              <object class="GtkScrolledWindow" id="chat_scroll">
+              <object class="GtkLabel" id="error_label">
                 <property name="visible">True</property>
-                <property name="margin-top">7</property>
-                <property name="margin-right">7</property>
-                <property name="margin-left">7</property>
-                <child>
-                  <object class="GtkTextView" id="chat_view">
-                    <property name="visible">True</property>
-                    <property name="left-margin">3</property>
-                    <property name="right-margin">3</property>
-                    <property name="pixels-above-lines">2</property>
-                    <property name="pixels-below-lines">2</property>
-                    <property name="editable">False</property>
-                    <property name="cursor-visible">False</property>
-                    <property name="wrap-mode">word-char</property>
-                  </object>
-                </child>
+                <property name="wrap">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-              </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="chat_entry">
+              <object class="GtkButton">
                 <property name="visible">True</property>
-                <property name="placeholder-text" translatable="yes">Send a message</property>
-                <property name="margin-top">10</property>
-                <property name="margin-bottom">10</property>
-                <property name="margin-right">7</property>
-                <property name="margin-left">7</property>
+                <property name="label" translatable="yes">Click to reconnect</property>
+                <signal name="clicked" handler="reconnect_cb"/>
               </object>
             </child>
           </object>
           <packing>
-            <property name="name">chatview</property>
+            <property name="name">errorview</property>
           </packing>
         </child>
       </object>

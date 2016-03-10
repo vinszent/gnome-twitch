@@ -40,6 +40,7 @@ typedef struct
     GtkTextTagTable* tag_table;
     GHashTable* twitch_emotes;
     GtkWidget* main_stack;
+    GtkWidget* connecting_revealer;
 
     GtkTextMark* bottom_mark;
     GtkTextIter bottom_iter;
@@ -333,6 +334,11 @@ cont:
 }
 
 static void
+do_nothing()
+{
+}
+
+static void
 chat_badges_cb(GObject* source,
                GAsyncResult* res,
                gpointer udata)
@@ -354,8 +360,12 @@ chat_badges_cb(GObject* source,
 
     priv->chat_badges = badges;
 
-    if (gt_twitch_chat_client_is_connected(priv->chat))
-        gt_twitch_chat_client_join(priv->chat, priv->cur_chan);
+//    if (gt_twitch_chat_client_is_connected(priv->chat))
+//    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
+//    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
+
+    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan, NULL, (GAsyncReadyCallback) do_nothing, NULL);
+
 }
 
 static gboolean
@@ -431,12 +441,11 @@ credentials_set_cb(GObject* source,
 
         g_object_get(GT_WIN_TOPLEVEL(self)->player, "open-channel", &open_chan, NULL);
 
-        gt_twitch_chat_client_connect(priv->chat, oauth_token, user_name);
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-        if (open_chan && !priv->joined_channel)
+        if (open_chan && !gt_twitch_chat_client_is_connected(priv->chat))
         {
-            gt_twitch_chat_client_join(priv->chat, gt_channel_get_name(open_chan));
+            gt_twitch_chat_client_connect_and_join(priv->chat, gt_channel_get_name(open_chan));
             g_object_unref(open_chan);
         }
     }
@@ -454,10 +463,7 @@ reconnect_cb(GtkButton* button,
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-    gt_twitch_chat_client_connect(priv->chat,
-                                  gt_app_get_oauth_token(main_app),
-                                  gt_app_get_user_name(main_app));
-    gt_twitch_chat_client_join(priv->chat, priv->cur_chan);
+    gt_twitch_chat_client_connect_and_join(priv->chat, priv->cur_chan);
 }
 
 static void
@@ -484,8 +490,6 @@ anchored_cb(GtkWidget* widget,
     gtk_widget_insert_action_group(GTK_WIDGET(win),
                                    "chat-view", G_ACTION_GROUP(priv->action_group));
 
-    credentials_set_cb(NULL, NULL, self);
-
     g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(credentials_set_cb), self);
 
     g_signal_handlers_disconnect_by_func(self, anchored_cb, udata); //One-shot
@@ -502,6 +506,22 @@ error_encountered_cb(GtTwitchChatClient* client,
     gtk_label_set_label(GTK_LABEL(priv->error_label), err->message);
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "errorview");
+}
+
+static void
+connected_cb(GObject* source,
+             GParamSpec* pspec,
+             gpointer udata)
+{
+    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+
+    if (gt_twitch_chat_client_is_logged_in(priv->chat))
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
+//        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
+    else
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), TRUE);
+//        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "connectingview");
 }
 
 static void
@@ -577,6 +597,7 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_entry);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, main_stack);
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, error_label);
+    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, connecting_revealer);
     gtk_widget_class_bind_template_callback(widget_class, reconnect_cb);
 
     props[PROP_DARK_THEME] = g_param_spec_boolean("dark-theme",
@@ -584,6 +605,7 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
                                                   "Whether dark theme",
                                                   TRUE,
                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+
     props[PROP_OPACITY] = g_param_spec_double("opacity",
                                               "Opacity",
                                               "Current opacity",
@@ -628,7 +650,15 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
     g_signal_connect(priv->chat, "error-encountered", G_CALLBACK(error_encountered_cb), self);
+    g_signal_connect(priv->chat, "notify::logged-in", G_CALLBACK(connected_cb), self);
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+
+    g_object_bind_property(priv->chat, "logged-in",
+                           priv->connecting_revealer, "reveal-child",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
+    g_object_bind_property(priv->chat, "logged-in",
+                           priv->chat_entry, "sensitive",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     g_source_set_callback((GSource*) priv->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 
@@ -641,6 +671,7 @@ gt_twitch_chat_view_connect(GtTwitchChatView* self, const gchar* chan)
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
 
     priv->joined_channel = TRUE;
+    priv->chat_sticky = TRUE;
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
     priv->cur_chan = g_strdup(chan);
@@ -663,7 +694,8 @@ gt_twitch_chat_view_disconnect(GtTwitchChatView* self)
     priv->joined_channel = FALSE;
 
     if (gt_twitch_chat_client_is_connected(priv->chat))
-                gt_twitch_chat_client_part(priv->chat);
+        gt_twitch_chat_client_disconnect(priv->chat);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
+//    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "connectingview");
 }
