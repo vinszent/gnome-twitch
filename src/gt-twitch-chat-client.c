@@ -1,6 +1,7 @@
 #include "gt-twitch-chat-client.h"
 #include "gt-app.h"
 #include <string.h>
+#include <stdio.h>
 #include <glib/gprintf.h>
 
 #define TWITCH_IRC_HOSTNAME "irc.twitch.tv"
@@ -53,6 +54,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatClient, gt_twitch_chat_client, G_TYPE_OBJ
 enum
 {
     PROP_0,
+    PROP_LOGGED_IN,
     NUM_PROPS
 };
 
@@ -232,7 +234,10 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
                 return FALSE;
             }
             else
+            {
                 priv->recv_logged_in = TRUE;
+                g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+            }
         }
 
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
@@ -262,7 +267,10 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
                 return FALSE;
             }
             else
+            {
                 priv->send_logged_in = TRUE;
+                g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+            }
         }
 
         if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PING) == 0)
@@ -346,6 +354,9 @@ get_property(GObject* obj,
 
     switch (prop)
     {
+        case PROP_LOGGED_IN:
+            g_value_set_boolean(val, priv->recv_logged_in && priv->send_logged_in);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -383,6 +394,14 @@ gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
                                                g_cclosure_marshal_VOID__OBJECT,
                                                G_TYPE_NONE,
                                                1, G_TYPE_ERROR);
+
+    props[PROP_LOGGED_IN] = g_param_spec_boolean("logged-in",
+                                                 "Logged In",
+                                                 "Whether logged in",
+                                                 FALSE,
+                                                 G_PARAM_READABLE);
+
+    g_object_class_install_properties(obj_class, NUM_PROPS, props);
 }
 
 static void
@@ -401,7 +420,9 @@ gt_twitch_chat_client_init(GtTwitchChatClient* self)
 }
 
 void
-gt_twitch_chat_client_connect(GtTwitchChatClient* self, const gchar* oauth_token, const gchar* nick)
+gt_twitch_chat_client_connect(GtTwitchChatClient* self,
+                              const gchar* host, int port,
+                              const gchar* oauth_token, const gchar* nick)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
@@ -416,7 +437,7 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self, const gchar* oauth_token
 
     g_message("{GtTwitchChatClient} Connecting");
 
-    addr = g_network_address_new(TWITCH_IRC_HOSTNAME, TWITC_IRC_PORT);
+    addr = g_network_address_new(host, port);
     sock_client = g_socket_client_new();
 
     priv->irc_conn_recv = g_socket_client_connect(sock_client, addr, NULL, &err);
@@ -476,20 +497,6 @@ cleanup:
 }
 
 void
-gt_twitch_chat_client_connect_simple(GtTwitchChatClient* self)
-{
-    gchar* oauth_token;
-    gchar* nick;
-
-    g_object_get(main_app,
-                 "oauth-token", &oauth_token,
-                 "user-name", &nick,
-                 NULL);
-
-    gt_twitch_chat_client_connect(self, oauth_token, nick);
-}
-
-void
 gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 {
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
@@ -499,6 +506,10 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
         if (priv->cur_chan) gt_twitch_chat_client_part(self);
 
         priv->connected = FALSE;
+        priv->recv_logged_in = FALSE;
+        priv->send_logged_in = FALSE;
+
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 
         g_message("{GtTwitchChatClient} Disconnecting");
 
@@ -534,7 +545,6 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
 
     send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_JOIN, chan);
     send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_JOIN, chan);
-
 }
 
 void
@@ -566,6 +576,66 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 }
 
+//TODO: Async version
+void
+gt_twitch_chat_client_connect_and_join(GtTwitchChatClient* self, const gchar* chan)
+{
+    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GList* servers = NULL;
+    int pos = 0;
+    gchar host[20];
+    int port;
+
+    g_return_if_fail(!priv->connected);
+
+    servers = gt_twitch_chat_servers(main_app->twitch, chan);
+
+    pos = g_random_int() % g_list_length(servers);
+
+    sscanf((gchar*) g_list_nth(servers, pos)->data, "%[^:]:%d", host, &port);
+
+    gt_twitch_chat_client_connect(self, host, port,
+                                  gt_app_get_oauth_token(main_app),
+                                  gt_app_get_user_name(main_app));
+
+    gt_twitch_chat_client_join(self, chan);
+
+    g_list_free_full(servers, g_free);
+}
+
+static void
+connect_and_join_async_cb(GTask* task,
+                          gpointer source,
+                          gpointer task_data,
+                          GCancellable* cancel)
+{
+    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(source);
+    gchar* chan;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    chan = task_data;
+
+    gt_twitch_chat_client_connect_and_join(self, chan);
+}
+
+void
+gt_twitch_chat_client_connect_and_join_async(GtTwitchChatClient* self, const gchar* chan,
+                                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    GTask* task;
+
+    task = g_task_new(self, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    g_task_set_task_data(task, g_strdup(chan), (GDestroyNotify) g_free);
+
+    g_task_run_in_thread(task, connect_and_join_async_cb);
+
+    g_object_unref(task);
+}
+
 void
 gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
 {
@@ -582,6 +652,14 @@ gt_twitch_chat_client_is_connected(GtTwitchChatClient* self)
     GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
 
     return priv->connected;
+}
+
+gboolean
+gt_twitch_chat_client_is_logged_in(GtTwitchChatClient* self)
+{
+    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+
+    return priv->recv_logged_in && priv->send_logged_in;
 }
 
 GtTwitchChatMessage*
