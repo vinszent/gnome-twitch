@@ -40,6 +40,7 @@ struct _GtTwitchChatSource
 {
     GSource parent_instance;
     GAsyncQueue* queue;
+    gboolean resetting_queue;
 };
 
 typedef struct
@@ -80,11 +81,10 @@ source_prepare(GSource* source,
                gint* timeout)
 {
     GtTwitchChatSource* self = (GtTwitchChatSource*) source;
-    gint len;
+    gint len = 0;
 
-    g_async_queue_lock(self->queue);
-    len = g_async_queue_length_unlocked(self->queue);
-    g_async_queue_unlock(self->queue);
+    if (!self->resetting_queue)
+        len = g_async_queue_length_unlocked(self->queue);
 
     return len > 0;
 }
@@ -524,6 +524,12 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
         g_thread_unref(priv->worker_thread_recv);
         g_thread_unref(priv->worker_thread_send);
     }
+
+    self->source->resetting_queue = TRUE;
+    g_async_queue_unref(self->source->queue);
+    self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_twitch_chat_message_free);
+    self->source->resetting_queue = FALSE;
+
 }
 
 void
@@ -562,18 +568,6 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 
-    //TODO: Just create a new one instead?
-    g_async_queue_lock(self->source->queue);
-    len = g_async_queue_length_unlocked(self->source->queue);
-    if (len > 0)
-    {
-        for (int i = 0; i < len; i++)
-            gt_twitch_chat_message_free(g_async_queue_pop_unlocked(self->source->queue));
-
-    }
-    g_async_queue_unlock(self->source->queue);
-
-    g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 }
 
 //TODO: Async version
