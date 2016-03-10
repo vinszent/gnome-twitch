@@ -61,7 +61,6 @@ typedef struct
     gboolean prev_sticky;
 
     gboolean chat_sticky;
-
 } GtTwitchChatViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
@@ -89,6 +88,7 @@ gt_twitch_chat_view_new()
     return g_object_new(GT_TYPE_TWITCH_CHAT_VIEW,
                         NULL);
 }
+
 
 //TODO: Use "unique" hash
 const gchar*
@@ -333,10 +333,6 @@ cont:
     return ret;
 }
 
-static void
-do_nothing()
-{
-}
 
 static void
 chat_badges_cb(GObject* source,
@@ -364,7 +360,8 @@ chat_badges_cb(GObject* source,
 //    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 //    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
 
-    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan, NULL, (GAsyncReadyCallback) do_nothing, NULL);
+    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan,
+                                                 NULL, NULL, NULL);
 
 }
 
@@ -522,6 +519,11 @@ connected_cb(GObject* source,
     else
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), TRUE);
 //        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "connectingview");
+}
+
+static void
+settings_chandged_cb()
+{
 }
 
 static void

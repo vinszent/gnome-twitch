@@ -59,8 +59,6 @@ enum
     PROP_VOLUME,
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
-    PROP_CHAT_OPACITY,
-    PROP_CHAT_DARK_THEME,
     PROP_CHAT_WIDTH,
     PROP_CHAT_HEIGHT,
     PROP_CHAT_DOCKED,
@@ -584,9 +582,8 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_override_property(object_class, PROP_CHAT_VISIBLE, "chat-visible");
     g_object_class_override_property(object_class, PROP_CHAT_X, "chat-x");
     g_object_class_override_property(object_class, PROP_CHAT_Y, "chat-y");
-    //TODO Move these into GtPlayer
-    g_object_class_install_property(object_class, PROP_CHAT_WIDTH, props[PROP_CHAT_WIDTH]);
-    g_object_class_install_property(object_class, PROP_CHAT_HEIGHT, props[PROP_CHAT_HEIGHT]);
+    g_object_class_override_property(object_class, PROP_CHAT_WIDTH, "chat-width");
+    g_object_class_override_property(object_class, PROP_CHAT_HEIGHT, "chat-height");
 }
 
 static void

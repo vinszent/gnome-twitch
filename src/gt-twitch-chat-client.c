@@ -16,8 +16,6 @@ enum
     ERROR_LOG_IN_FAILED,
 };
 
-//TODO: Need to check for 001 message before setting connected
-
 typedef struct
 {
     GSocketConnection* irc_conn_recv;
