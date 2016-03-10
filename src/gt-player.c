@@ -6,9 +6,25 @@
 
 typedef struct
 {
+    gchar* name;
+    gboolean show_chat;
+    gboolean dock_chat;
+    gboolean dark_theme;
+    gdouble opacity;
+    gdouble width;
+    gdouble height;
+    gdouble x_pos;
+    gdouble y_pos;
+} GtChatViewSettings;
+
+typedef struct
+{
     GSimpleActionGroup* action_group;
 
     GtTwitchStreamQuality cur_quality;
+
+    GHashTable* chat_settings_table;
+    GtChatViewSettings* cur_settings;
 } GtPlayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -21,6 +37,8 @@ enum
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
+    PROP_CHAT_WIDTH,
+    PROP_CHAT_HEIGHT,
     PROP_CHAT_X,
     PROP_CHAT_Y,
     NUM_PROPS
@@ -28,6 +46,20 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
+static GtChatViewSettings*
+gt_chat_view_settings_new()
+{
+    GtChatViewSettings* ret = g_new0(GtChatViewSettings, 1);
+
+    ret->show_chat = TRUE;
+    ret->dock_chat = TRUE;
+    ret->width = 0.2;
+    ret->height = 1.0;
+    ret->x_pos = 0;
+    ret->y_pos = 0;
+
+    return ret;
+}
 
 static void
 finalise(GObject* obj)
@@ -189,6 +221,16 @@ gt_player_class_init(GtPlayerClass* klass)
                                                    "Whether chat docked",
                                                    TRUE,
                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
+                                                 "Chat Width",
+                                                 "Current chat width",
+                                                 0, 1.0, 0.2,
+                                                 G_PARAM_READWRITE);
+    props[PROP_CHAT_HEIGHT] = g_param_spec_double("chat-height",
+                                                  "Chat Height",
+                                                  "Current chat height",
+                                                  0, 1.0, 1.0,
+                                                  G_PARAM_READWRITE);
     props[PROP_CHAT_X] = g_param_spec_double("chat-x",
                                              "Chat X",
                                              "Current chat x",
@@ -212,6 +254,27 @@ static GActionEntry actions[] =
 };
 
 static void
+chat_settings_changed_cb(GObject* source,
+                         GParamSpec* pspec,
+                         gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (!priv->cur_settings)
+        return;
+
+    g_object_get(G_OBJECT(self),
+                 "chat-docked", &priv->cur_settings->dock_chat,
+                 "chat-visible", &priv->cur_settings->show_chat,
+                 "chat-width", &priv->cur_settings->width,
+                 "chat-height", &priv->cur_settings->height,
+                 "chat-x", &priv->cur_settings->x_pos,
+                 "chat-y", &priv->cur_settings->y_pos,
+                 NULL);
+}
+
+static void
 gt_player_init(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
@@ -219,7 +282,18 @@ gt_player_init(GtPlayer* self)
     priv->action_group = g_simple_action_group_new();
     g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
                                     G_N_ELEMENTS(actions), self);
+
+    priv->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
+    g_hash_table_insert(priv->chat_settings_table, "fucker", gt_chat_view_settings_new());
+
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
+
+    g_signal_connect(self, "notify::chat-docked", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-visible", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-width", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-height", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-x", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-y", G_CALLBACK(chat_settings_changed_cb), self);
 }
 
 void
@@ -257,6 +331,27 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
     g_action_change_state(quality_action, default_quality);
+
+    priv->cur_settings = g_hash_table_lookup(priv->chat_settings_table, name);
+    if (!priv->cur_settings)
+    {
+        priv->cur_settings = gt_chat_view_settings_new();
+        g_hash_table_insert(priv->chat_settings_table, g_strdup(name), priv->cur_settings);
+    }
+
+    g_signal_handlers_block_by_func(self, chat_settings_changed_cb, self);
+    g_object_set(G_OBJECT(self),
+                 "chat-docked", priv->cur_settings->dock_chat,
+                 "chat-visible", priv->cur_settings->show_chat,
+                 "chat-width", priv->cur_settings->width,
+                 "chat-height", priv->cur_settings->height,
+                 "chat-x", priv->cur_settings->x_pos,
+                 NULL);
+    g_object_set(G_OBJECT(self),
+                 "chat-y", priv->cur_settings->y_pos, //x and y need to be set seperately
+                 NULL);
+    g_signal_handlers_unblock_by_func(self, chat_settings_changed_cb, self);
+
 
     gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
 

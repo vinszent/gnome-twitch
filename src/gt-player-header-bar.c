@@ -26,6 +26,9 @@ typedef struct
 
     GMenu* hamburger_menu;
 
+    GtkWidget* dock_chat_button;
+    GtkWidget* show_chat_button;
+
     GtkAdjustment* chat_view_opacity_adjustment;
     GtkAdjustment* chat_view_width_adjustment;
     GtkAdjustment* chat_view_height_adjustment;
@@ -186,6 +189,12 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->chat_view_y_adjustment, "value",
                                priv->player, "chat-y",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(priv->player, "chat-docked",
+                               priv->dock_chat_button, "active",
+                               G_BINDING_DEFAULT);
+        g_object_bind_property(priv->player, "chat-visible",
+                               priv->show_chat_button, "active",
+                               G_BINDING_DEFAULT);
         g_object_bind_property_full(priv->player, "chat-width",
                                     priv->chat_view_x_adjustment, "upper",
                                     G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
@@ -342,6 +351,8 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, title_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, status_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, name_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, dock_chat_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
 }
