@@ -47,9 +47,6 @@ typedef struct
 
     GtkCssProvider* chat_css_provider;
 
-    GSimpleActionGroup* action_group;
-    GPropertyAction* dark_theme_action;
-
     GtTwitchChatBadges* chat_badges;
     GCancellable* chat_badges_cancel;
 
@@ -484,9 +481,6 @@ anchored_cb(GtkWidget* widget,
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     GtWin* win = GT_WIN_TOPLEVEL(self);
 
-    gtk_widget_insert_action_group(GTK_WIDGET(win),
-                                   "chat-view", G_ACTION_GROUP(priv->action_group));
-
     g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(credentials_set_cb), self);
 
     g_signal_handlers_disconnect_by_func(self, anchored_cb, udata); //One-shot
@@ -515,15 +509,8 @@ connected_cb(GObject* source,
 
     if (gt_twitch_chat_client_is_logged_in(priv->chat))
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
-//        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
     else
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), TRUE);
-//        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "connectingview");
-}
-
-static void
-settings_chandged_cb()
-{
 }
 
 static void
@@ -626,10 +613,6 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     priv->chat_adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll));
 
-    priv->action_group = g_simple_action_group_new();
-    priv->dark_theme_action = g_property_action_new("dark-theme", self, "dark-theme");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(priv->dark_theme_action));
-
     priv->chat_css_provider = gtk_css_provider_new();
     gtk_style_context_add_provider(gtk_widget_get_style_context(GTK_WIDGET(self)),
                                    GTK_STYLE_PROVIDER(priv->chat_css_provider),
@@ -699,5 +682,4 @@ gt_twitch_chat_view_disconnect(GtTwitchChatView* self)
         gt_twitch_chat_client_disconnect(priv->chat);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
-//    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "connectingview");
 }

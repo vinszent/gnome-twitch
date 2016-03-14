@@ -154,7 +154,7 @@ send_raw_printf(GOutputStream* ostream, const gchar* format, ...)
 static void
 send_cmd(GOutputStream* ostream, const gchar* cmd, const gchar* param)
 {
-    g_message("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+    g_info("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -169,7 +169,7 @@ send_cmd_printf(GOutputStream* ostream, const gchar* cmd, const gchar* format, .
     g_vsprintf(param, format, args);
     va_end(args);
 
-    g_message("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+    g_info("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -454,6 +454,8 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self,
         goto cleanup;
     }
 
+    priv->connected = TRUE;
+
     priv->istream_recv = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_recv)));
     g_data_input_stream_set_newline_type(priv->istream_recv, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_recv = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_recv));
@@ -461,17 +463,6 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self,
     priv->istream_send = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_send)));
     g_data_input_stream_set_newline_type(priv->istream_send, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_send = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_send));
-
-    send_raw_printf(priv->ostream_recv, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_NICK, nick);
-    send_raw_printf(priv->ostream_send, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
-    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_NICK, nick);
-
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/tags");
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/membership");
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/commands");
-
-    priv->connected = TRUE;
 
     send_data = g_new(ChatThreadData, 2);
     recv_data = send_data + 1;
@@ -488,6 +479,15 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self,
                                        (GThreadFunc) read_lines, recv_data);
     priv->worker_thread_send = g_thread_new("gnome-twitch-chat-worker-send",
                                        (GThreadFunc) read_lines, send_data);
+
+    send_raw_printf(priv->ostream_recv, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
+    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_NICK, nick);
+    send_raw_printf(priv->ostream_send, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
+    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_NICK, nick);
+
+    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/tags");
+    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/membership");
+    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/commands");
 
 cleanup:
     g_object_unref(sock_client);
