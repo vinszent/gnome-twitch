@@ -43,8 +43,10 @@ typedef struct
     gdouble chat_height;
     gdouble chat_x;
     gdouble chat_y;
+    gdouble chat_opacity;
     gboolean chat_docked;
     gboolean chat_visible;
+    gboolean chat_dark_theme;
 
     GtWin* win; // Save a reference
 
@@ -65,6 +67,8 @@ enum
     PROP_CHAT_X,
     PROP_CHAT_Y,
     PROP_CHAT_VISIBLE,
+    PROP_CHAT_DARK_THEME,
+    PROP_CHAT_OPACITY,
     NUM_PROPS
 };
 
@@ -75,15 +79,6 @@ gt_player_clutter_new(void)
 {
     return g_object_new(GT_TYPE_PLAYER_CLUTTER,
                         NULL);
-}
-
-static GtkWidget*
-get_chat_view(GtPlayer* player)
-{
-    GtPlayerClutter* self = GT_PLAYER_CLUTTER(player);
-    GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
-
-    return priv->chat_view;
 }
 
 static void
@@ -465,6 +460,12 @@ get_property (GObject*    obj,
         case PROP_CHAT_VISIBLE:
             g_value_set_boolean(val, priv->chat_visible);
             break;
+        case PROP_CHAT_OPACITY:
+            g_value_set_double(val, priv->chat_opacity);
+            break;
+        case PROP_CHAT_DARK_THEME:
+            g_value_set_boolean(val, priv->chat_dark_theme);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -506,6 +507,12 @@ set_property(GObject*      obj,
         case PROP_CHAT_VISIBLE:
             priv->chat_visible = g_value_get_boolean(val);
             break;
+        case PROP_CHAT_OPACITY:
+            priv->chat_opacity = g_value_get_double(val);
+            break;
+        case PROP_CHAT_DARK_THEME:
+            priv->chat_dark_theme = g_value_get_boolean(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -527,7 +534,6 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     player_class->set_uri = set_uri;
     player_class->play = play;
     player_class->stop = stop;
-    player_class->get_chat_view = get_chat_view;
 
     props[PROP_VOLUME] = g_param_spec_double("volume",
                                              "Volume",
@@ -543,17 +549,17 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                                "Playing",
                                                "Whether playing",
                                                FALSE,
-                                               G_PARAM_READABLE);
+                                               G_PARAM_READABLE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
                                                  "Chat Width",
                                                  "Current chat width",
                                                  0, 1.0, 0.2,
-                                                 G_PARAM_READWRITE);
+                                                 G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_HEIGHT] = g_param_spec_double("chat-height",
                                                   "Chat Height",
                                                   "Current chat height",
                                                   0, 1.0, 1.0,
-                                                  G_PARAM_READWRITE);
+                                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_CHAT_DOCKED] = g_param_spec_boolean("chat-docked",
                                                    "Chat Docked",
                                                    "Whether chat docked",
@@ -573,7 +579,17 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                                     "Chat Visible",
                                                     "Whether chat visible",
                                                     TRUE,
-                                                    G_PARAM_READWRITE);
+                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_DARK_THEME] = g_param_spec_boolean("chat-dark-theme",
+                                                       "Chat Dark Theme",
+                                                       "Whether chat dark theme",
+                                                       TRUE,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_OPACITY] = g_param_spec_double("chat-opacity",
+                                                   "Chat Opacity",
+                                                   "Current chat opacity",
+                                                   0, 1.0, 1.0,
+                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_override_property(object_class, PROP_VOLUME, "volume");
     g_object_class_override_property(object_class, PROP_OPEN_CHANNEL, "open-channel");
@@ -584,6 +600,8 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_override_property(object_class, PROP_CHAT_Y, "chat-y");
     g_object_class_override_property(object_class, PROP_CHAT_WIDTH, "chat-width");
     g_object_class_override_property(object_class, PROP_CHAT_HEIGHT, "chat-height");
+    g_object_class_override_property(object_class, PROP_CHAT_DARK_THEME, "chat-dark-theme");
+    g_object_class_override_property(object_class, PROP_CHAT_OPACITY, "chat-opacity");
 }
 
 static void
@@ -699,6 +717,12 @@ gt_player_clutter_init(GtPlayerClutter* self)
     g_object_bind_property(self, "chat-visible",
                            priv->chat_actor, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self, "chat-dark-theme",
+                           priv->chat_view, "dark-theme",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self, "chat-opacity",
+                           priv->chat_view, "opacity",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
     g_settings_bind(main_app->settings, "volume",
                     self, "volume",

@@ -13,6 +13,8 @@
             <child>
               <object class="GtkLabel" id="status_label">
                 <property name="visible">True</property>
+                <property name="ellipsize">end</property>
+                <property name="width-chars">75</property>
                 <style>
                   <class name="title"/>
                 </style>
@@ -216,7 +218,7 @@
           <object class="GtkModelButton">
             <property name="visible">True</property>
             <property name="text" translatable="yes">Dark theme</property>
-            <property name="action-name">chat-view.dark-theme</property>
+            <property name="action-name">player.dark_theme_chat</property>
           </object>
         </child>
         <child>

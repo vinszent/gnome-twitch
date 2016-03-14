@@ -189,12 +189,6 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->chat_view_y_adjustment, "value",
                                priv->player, "chat-y",
                                G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->player, "chat-docked",
-                               priv->dock_chat_button, "active",
-                               G_BINDING_DEFAULT);
-        g_object_bind_property(priv->player, "chat-visible",
-                               priv->show_chat_button, "active",
-                               G_BINDING_DEFAULT);
         g_object_bind_property_full(priv->player, "chat-width",
                                     priv->chat_view_x_adjustment, "upper",
                                     G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
@@ -206,7 +200,7 @@ player_set_cb(GObject* source,
                                     (GBindingTransformFunc) chat_pos_upper_transformer,
                                     NULL, NULL, NULL);
         g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
-                               gt_player_get_chat_view(priv->player), "opacity",
+                               priv->player, "chat-opacity",
                                G_BINDING_BIDIRECTIONAL);
 
         g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);

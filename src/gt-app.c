@@ -3,8 +3,10 @@
 #include <glib/gstdio.h>
 #include <errno.h>
 #include <string.h>
+#include <json-glib/json-glib.h>
 
 #define DATA_DIR g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL)
+#define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
 typedef struct
 {
@@ -39,6 +41,120 @@ gt_app_new(void)
     return g_object_new(GT_TYPE_APP,
                         "application-id", "com.gnome-twitch.app",
                         NULL);
+}
+
+GtChatViewSettings*
+gt_chat_view_settings_new()
+{
+    GtChatViewSettings* ret = g_new0(GtChatViewSettings, 1);
+
+    ret->dark_theme = TRUE;
+    ret->opacity = 1.0;
+    ret->visible = TRUE;
+    ret->docked = TRUE;
+    ret->width = 0.2;
+    ret->height = 1.0;
+    ret->x_pos = 0;
+    ret->y_pos = 0;
+
+    return ret;
+}
+
+static void
+load_chat_settings(GtApp* self)
+{
+    gchar* fp = CHANNEL_SETTINGS_FILE;
+    JsonParser* parse = json_parser_new();
+    JsonNode* root = NULL;
+    JsonArray* array = NULL;
+    GError* err = NULL;
+
+    g_message("{GtApp} Loading chat settings");
+
+    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
+        goto finish;
+
+    json_parser_load_from_file(parse, fp, &err);
+
+    if (err)
+    {
+        g_warning("{GtApp} Error loading chat settings '%s'", err->message);
+        goto finish;
+    }
+
+    root = json_parser_get_root(parse);
+    array = json_node_get_array(root);
+
+    for (GList* l = json_array_get_elements(array); l != NULL; l = l->next)
+    {
+        JsonNode* node = l->data;
+        JsonObject* chan = json_node_get_object(node);
+        GtChatViewSettings* settings = gt_chat_view_settings_new();
+        const gchar* name;
+
+        name = json_object_get_string_member(chan, "name");
+        settings->dark_theme = json_object_get_boolean_member(chan, "dark-theme");
+        settings->visible = json_object_get_boolean_member(chan, "visible");
+        settings->docked = json_object_get_boolean_member(chan, "docked");
+        settings->opacity = json_object_get_double_member(chan, "opacity");
+        settings->width = json_object_get_double_member(chan, "width");
+        settings->height = json_object_get_double_member(chan, "height");
+        settings->x_pos = json_object_get_double_member(chan, "x-pos");
+        settings->y_pos = json_object_get_double_member(chan, "y-pos");
+
+        g_hash_table_insert(self->chat_settings_table, g_strdup(name), settings);
+    }
+
+finish:
+    g_object_unref(parse);
+    g_free(fp);
+}
+
+static void
+save_chat_settings(GtApp* self)
+{
+    gchar* fp = CHANNEL_SETTINGS_FILE;
+    JsonArray* array = json_array_new();
+    JsonGenerator* generator = json_generator_new();
+    JsonNode* root = json_node_new(JSON_NODE_ARRAY);
+    GList* keys = g_hash_table_get_keys(self->chat_settings_table);
+    GError* err = NULL;
+
+    g_message("{GtApp} Saving chat settings");
+
+    for (GList* l = keys; l != NULL; l = l->next)
+    {
+        JsonObject* obj = json_object_new();
+        JsonNode* node = json_node_new(JSON_NODE_OBJECT);
+        const gchar* key = l->data;
+        GtChatViewSettings* settings = g_hash_table_lookup(self->chat_settings_table, key);
+
+        json_object_set_string_member(obj, "name", key);
+        json_object_set_boolean_member(obj, "dark-theme", settings->dark_theme);
+        json_object_set_boolean_member(obj, "visible", settings->visible);
+        json_object_set_boolean_member(obj, "docked", settings->docked);
+        json_object_set_double_member(obj, "opacity", settings->opacity);
+        json_object_set_double_member(obj, "width", settings->width);
+        json_object_set_double_member(obj, "height", settings->height);
+        json_object_set_double_member(obj, "x-pos", settings->x_pos);
+        json_object_set_double_member(obj, "y-pos", settings->y_pos);
+
+        json_node_take_object(node, obj);
+        json_array_add_element(array, node);
+    }
+
+    json_node_take_array(root, array);
+
+    json_generator_set_root(generator, root);
+    json_generator_to_file(generator, fp, &err);
+
+    if (err)
+        g_warning("{GtApp} Error saving chat settings '%s'", err->message);
+
+    json_node_free(root);
+    g_object_unref(generator);
+    g_list_free(keys);
+    g_free(fp);
 }
 
 static void
@@ -143,9 +259,22 @@ startup(GApplication* app)
 }
 
 static void
+shutdown(GApplication* app)
+{
+    GtApp* self = GT_APP(app);
+
+    g_message("{GtApp} Shutting down");
+
+    save_chat_settings(self);
+
+    G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
+}
+
+
+static void
 finalize(GObject* object)
 {
-    g_message("Startup");
+    g_message("{GtApp} Finalise");
 
     GtApp* self = (GtApp*) object;
     GtAppPrivate* priv = gt_app_get_instance_private(self);
@@ -206,6 +335,7 @@ gt_app_class_init(GtAppClass* klass)
 
     G_APPLICATION_CLASS(klass)->activate = activate;
     G_APPLICATION_CLASS(klass)->startup = startup;
+    G_APPLICATION_CLASS(klass)->shutdown = shutdown;
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
@@ -230,8 +360,12 @@ gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
+    self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
+
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.gnome-twitch.app");
+
+    load_chat_settings(self);
     //  self->chat = gt_twitch_chat_client_new();
 
 //    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
