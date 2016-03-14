@@ -99,3 +99,17 @@
     color: rgba(255, 255, 255, 1.0);
     border-color: rgba(81, 81, 85, 1.0);
 }
+
+.empty-channels-box .empty-title,
+.empty-games-box .empty-title
+{
+    font-weight: bold;
+    font-size: large;
+}
+
+.empty-channels-box .empty-subtitle,
+.empty-games-box .empty-subtitle
+{
+    font-weight: lighter;
+    font-size: small;
+}
