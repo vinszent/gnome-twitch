@@ -745,7 +745,7 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
     if (!send_message(self, msg))
     {
-	g_warning("{GtTwitch} Error sending message to search channels");
+        g_warning("{GtTwitch} Error sending message to search channels");
         goto finish;
     }
 

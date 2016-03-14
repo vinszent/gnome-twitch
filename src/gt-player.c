@@ -135,32 +135,6 @@ set_quality_action_cb(GSimpleAction* action,
 }
 
 static void
-show_chat_action_cb(GSimpleAction* action,
-                    GVariant* arg,
-                    gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    g_object_set(self, "chat-visible", g_variant_get_boolean(arg), NULL);
-
-    g_simple_action_set_state(action, arg);
-}
-
-static void
-dock_chat_action_cb(GSimpleAction* action,
-                    GVariant* arg,
-                    gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    g_object_set(self, "chat-docked", g_variant_get_boolean(arg), NULL);
-
-    g_simple_action_set_state(action, arg);
-}
-
-static void
 gt_player_class_init(GtPlayerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
