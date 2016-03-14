@@ -3,6 +3,7 @@
 #include "gt-twitch.h"
 #include "utils.h"
 #include <string.h>
+#include <glib/gi18n.h>
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
 
@@ -51,8 +52,9 @@ search_games_cb(GObject* source,
     else
         PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
 
-    if (g_cancellable_is_cancelled(priv->cancel))
-        PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
+    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
+
+    PCLASS->check_empty(GT_GAMES_CONTAINER(self));
 }
 
 static void
@@ -61,7 +63,10 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
     if (!query || strlen(query) == 0)
+    {
+        PCLASS->check_empty(GT_GAMES_CONTAINER(self));
         return;
+    }
 
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);
@@ -189,6 +194,13 @@ static void
 gt_games_container_search_init(GtGamesContainerSearch* self)
 {
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
+
+    PCLASS->set_empty_info(GT_GAMES_CONTAINER(self),
+                           "edit-find-symbolic",
+                           _("No games found"),
+                           _("Try a different search"));
+
+    PCLASS->check_empty(GT_GAMES_CONTAINER(self));
 
     priv->page = 0;
     priv->filter_timeout_id = -1;
