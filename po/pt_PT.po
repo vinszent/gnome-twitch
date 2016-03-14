@@ -1,15 +1,15 @@
-# translation of gnome-twitch to Portuguese
+# Translation of gnome-twitch to Portuguese.
+# Copyright (C) 2016 Bruno Guerreiro <american.jesus.pt@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# Bruno Guerreiro <american.jesus.pt@gmail.com>, 2016.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-02-25 22:23+0000\n"
 "PO-Revision-Date: 2016-03-03 16:21+0100\n"
 "Last-Translator: Bruno Guerreiro <american.jesus.pt@gmail.com>\n"
 "Language-Team: Portuguese\n"
-"Language: pt\n"
+"Language: pt_PT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
