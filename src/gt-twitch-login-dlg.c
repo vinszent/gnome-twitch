@@ -133,7 +133,7 @@ submit_form_cb(WebKitWebView* web_view,
 {
     GHashTable* text_fields = webkit_form_submission_request_get_text_fields(request);
 
-    gchar* user_name = g_hash_table_lookup(text_fields, "login");
+    gchar* user_name = g_hash_table_lookup(text_fields, "username");
 
     g_message("{GtTwitchLoginDlg} Got username '%s' from form", user_name);
 
