@@ -15,17 +15,16 @@ typedef struct
 
     GtkWidget* fullscreen_button;
 
-    GtkWidget* play_image;
-    GtkWidget* stop_image;
+    GtkWidget* show_chat_image;
+    GtkWidget* hide_chat_image;
     GtkWidget* fullscreen_image;
     GtkWidget* unfullscreen_image;
-
-    GtkWidget* play_stop_button;
 
     GtkWidget* volume_button;
 
     GMenu* hamburger_menu;
 
+    GtkWidget* edit_chat_button;
     GtkWidget* dock_chat_button;
     GtkWidget* show_chat_button;
 
@@ -76,37 +75,20 @@ fullscreen_cb(GtkWidget* widget,
 }
 
 static void
-player_play_stop_button_cb(GtPlayerHeaderBar* self,
-                           GtkButton* button)
-{
-    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
-
-    gboolean playing;
-
-    g_object_get(priv->player, "playing", &playing, NULL);
-
-    if (playing)
-        gt_player_stop(GT_PLAYER(priv->player));
-    else
-        gt_player_play(GT_PLAYER(priv->player));
-}
-
-static void
-playing_cb(GObject* source,
-           GParamSpec* pspec,
-           gpointer udata)
+chat_visible_cb(GObject* source,
+                GParamSpec* pspec,
+                gpointer udata)
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    gboolean visible;
 
-    gboolean playing;
+    g_object_get(priv->player, "chat-visible", &visible, NULL);
 
-    g_object_get(priv->player, "playing", &playing, NULL);
-
-    if (playing)
-        gtk_button_set_image(GTK_BUTTON(priv->play_stop_button), priv->stop_image);
+    if (visible)
+        gtk_button_set_image(GTK_BUTTON(priv->show_chat_button), priv->hide_chat_image);
     else
-        gtk_button_set_image(GTK_BUTTON(priv->play_stop_button), priv->play_image);
+        gtk_button_set_image(GTK_BUTTON(priv->show_chat_button), priv->show_chat_image);
 }
 
 static void
@@ -202,8 +184,12 @@ player_set_cb(GObject* source,
         g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
                                priv->player, "chat-opacity",
                                G_BINDING_BIDIRECTIONAL);
+        g_object_bind_property(priv->player, "chat-visible",
+                               priv->edit_chat_button, "visible",
+                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-        g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self);
+        /* g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self); */
+        g_signal_connect(priv->player, "notify::chat-visible", G_CALLBACK(chat_visible_cb), self);
         g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(player_channel_set_cb), self);
     }
 }
@@ -330,13 +316,12 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-player-header-bar.ui");
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, hide_chat_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, fullscreen_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_image);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, stop_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, fullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, unfullscreen_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, volume_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, play_stop_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_opacity_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_width_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
@@ -345,10 +330,10 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
 //    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, title_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, status_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, name_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, edit_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, dock_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_button);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_play_stop_button_cb);
 }
 
 static void

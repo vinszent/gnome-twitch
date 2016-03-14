@@ -62,16 +62,17 @@
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="play_stop_button">
+          <object class="GtkVolumeButton" id="volume_button">
             <property name="visible">True</property>
-            <property name="image">stop_image</property>
-            <signal name="clicked" handler="player_play_stop_button_cb" object="GtPlayerHeaderBar"/>
           </object>
         </child>
         <child>
-          <object class="GtkVolumeButton" id="volume_button">
+          <object class="GtkButton" id="show_chat_button">
             <property name="visible">True</property>
-            <property name="value">0.3</property>
+            <property name="action-name">player.show_chat</property>
+            <style>
+              <class name="image-button"/>
+            </style>
           </object>
         </child>
       </object>
@@ -159,27 +160,18 @@
         <property name="margin">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
+        <!-- <child> -->
+        <!--   <object class="GtkModelButton" id="show_chat_button"> -->
+        <!--     <property name="visible">True</property> -->
+        <!--     <property name="action-name">player.show_chat</property> -->
+        <!--     <property name="text" translatable="yes">Show chat</property> -->
+        <!--   </object> -->
+        <!-- </child> -->
         <child>
-          <object class="GtkModelButton" id="show_chat_button">
-            <property name="visible">True</property>
-            <property name="action-name">player.show_chat</property>
-            <property name="text" translatable="yes">Show chat</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="dock_chat_button">
-            <property name="visible">True</property>
-            <property name="action-name">player.dock_chat</property>
-            <property name="text" translatable="yes">Dock chat</property>
-            <property name="visible" bind-source="show_chat_button" bind-property="active" bind-flags="default|sync-create"/>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton">
+          <object class="GtkModelButton" id="edit_chat_button">
             <property name="visible">True</property>
             <property name="menu-name">edit_chat_menu</property>
             <property name="text" translatable="yes">Edit chat</property>
-            <property name="visible" bind-source="show_chat_button" bind-property="active" bind-flags="default|sync-create"/>
           </object>
         </child>
         <child>
@@ -212,6 +204,13 @@
             <property name="orientation">horizontal</property>
             <property name="margin-top">2</property>
             <property name="margin-bottom">2</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="dock_chat_button">
+            <property name="visible">True</property>
+            <property name="action-name">player.dock_chat</property>
+            <property name="text" translatable="yes">Dock chat</property>
           </object>
         </child>
         <child>
@@ -409,5 +408,13 @@
     <property name="lower">0.0</property>
     <property name="upper">1.0</property>
     <property name="value">0.0</property>
+  </object>
+  <object class="GtkImage" id="show_chat_image">
+    <property name="visible">True</property>
+    <property name="icon-name">user-available-symbolic</property>
+  </object>
+  <object class="GtkImage" id="hide_chat_image">
+    <property name="visible">True</property>
+    <property name="icon-name">user-offline-symbolic</property>
   </object>
 </interface>
