@@ -3,6 +3,7 @@
 #include "gt-app.h"
 #include "utils.h"
 #include <string.h>
+#include <glib/gi18n.h>
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_search_parent_class)
 
@@ -16,7 +17,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerSearch, gt_channels_container_search, GT_TYPE_CHANNELS_CONTAINER)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -27,7 +28,7 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsContainerSearch*
 gt_channels_container_search_new(void)
 {
-    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_SEARCH, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_SEARCH,
                         NULL);
 }
 
@@ -48,6 +49,8 @@ search_channels_cb(GObject* source,
         PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), new);
 
     PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), FALSE);
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 }
 
 static void
@@ -55,21 +58,24 @@ get_channels(GtChannelsContainerSearch* self, const gchar* query)
 {
     GtChannelsContainerSearchPrivate* priv = gt_channels_container_search_get_instance_private(self);
 
-    if (!query || strlen(query) == 0)
-        return;
-
-    PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), TRUE);
-
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
 
-    gt_twitch_search_channels_async(main_app->twitch, 
-                                    query, 
-                                    MAX_QUERY, 
-                                    (priv->page++)*MAX_QUERY, 
-                                    priv->cancel, 
-                                    (GAsyncReadyCallback) search_channels_cb, 
+    if (!query || strlen(query) == 0)
+    {
+        PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
+        return;
+    }
+
+    PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), TRUE);
+
+    gt_twitch_search_channels_async(main_app->twitch,
+                                    query,
+                                    MAX_QUERY,
+                                    (priv->page++)*MAX_QUERY,
+                                    priv->cancel,
+                                    (GAsyncReadyCallback) search_channels_cb,
                                     self);
 }
 
@@ -169,6 +175,13 @@ static void
 gt_channels_container_search_init(GtChannelsContainerSearch* self)
 {
     GtChannelsContainerSearchPrivate* priv = gt_channels_container_search_get_instance_private(self);
+
+    PCLASS->set_empty_info(GT_CHANNELS_CONTAINER(self),
+                           "edit-find-symbolic",
+                           _("No channels found"),
+                           _("Try a different search"));
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 
     priv->page = 0;
     priv->cancel = g_cancellable_new();
