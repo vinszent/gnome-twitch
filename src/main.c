@@ -81,13 +81,17 @@ int main(int argc, char** argv)
     if (!g_option_context_parse(opt_ctxt, &argc, &argv, &err))
     {
 	g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif
-    gtk_clutter_init(NULL, NULL);
+    if (gtk_clutter_init(NULL, NULL) != CLUTTER_INIT_SUCCESS)
+    {
+        g_critical("Could not initialize GtkClutter");
+        exit(EXIT_FAILURE);
+    }
 
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
     bind_textdomain_codeset("gnome-twitch", "UTF-8");
