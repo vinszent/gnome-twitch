@@ -48,13 +48,14 @@
                                   <object class="GtkToggleButton" id="favourite_button">
                                     <property name="visible">True</property>
                                     <property name="halign">start</property>
+                                    <property name="relief">none</property>
                                     <style>
                                       <class name="favourite-button"/>
                                     </style>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
-                                        <property name="icon-name">starred-symbolic</property>      
+                                        <property name="icon-name">emblem-favorite-symbolic</property>
                                       </object>
                                     </child>
                                   </object>
@@ -64,7 +65,7 @@
                             <child>
                               <object class="GtkImage" id="play_image">
                                 <property name="visible">True</property>
-                                <property name="icon-name">media-playback-start</property> 
+                                <property name="icon-name">media-playback-start</property>
                                 <property name="icon-size">5</property>
                                 <property name="halign">center</property>
                                 <property name="valign">center</property>
@@ -81,7 +82,7 @@
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>
-                                    <property name="icon-name">system-users-symbolic</property> 
+                                    <property name="icon-name">system-users-symbolic</property>
                                     <style>
                                       <class name="info-image"/>
                                     </style>
@@ -95,7 +96,7 @@
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>
-                                    <property name="icon-name">camera-web-symbolic</property> 
+                                    <property name="icon-name">camera-web-symbolic</property>
                                     <style>
                                       <class name="info-image"/>
                                     </style>
@@ -131,7 +132,7 @@
             <child>
               <object class="GtkSpinner">
                 <property name="visible">True</property>
-                <property name="active">True</property> 
+                <property name="active">True</property>
               </object>
               <packing>
                 <property name="name">spinner</property>
