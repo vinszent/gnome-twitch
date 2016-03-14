@@ -51,7 +51,8 @@ search_games_cb(GObject* source,
     else
         PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
 
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
+    if (g_cancellable_is_cancelled(priv->cancel))
+        PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
 }
 
 static void

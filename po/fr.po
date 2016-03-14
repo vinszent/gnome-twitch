@@ -1,12 +1,10 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Translation of gnome-twitch to French.
+# Copyright (C) 2015 mr-intrepide <theintrepid95@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-10 22:42+0200\n"
 "PO-Revision-Date: 2015-11-08 18:40+0200\n"
 "Language-Team: \n"
@@ -14,8 +12,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.5\n"
-"Last-Translator: \n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Last-Translator: mr-intrepide <theintrepid95@gmail.com>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Language: fr\n"
 
 #: data/ui/gt-win.ui:55
@@ -44,7 +42,7 @@ msgstr "Quitter"
 
 #: data/ui/gt-settings-dlg.ui:17
 msgid "Default video quality: "
-msgstr "Qualité vidéo par défaut:"
+msgstr "Qualité vidéo par défaut: "
 
 #: data/ui/gt-settings-dlg.ui:28
 msgid "Source"

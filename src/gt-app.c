@@ -1,5 +1,6 @@
 #include "gt-app.h"
 #include "gt-win.h"
+#include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <errno.h>
 #include <string.h>
@@ -14,6 +15,9 @@ typedef struct
 
     gchar* oauth_token;
     gchar* user_name;
+
+    GMenuItem* login_item;
+    GMenuModel* app_menu;
 } GtAppPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
@@ -158,6 +162,22 @@ save_chat_settings(GtApp* self)
 }
 
 static void
+oauth_token_set_cb(GObject* src,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtApp* self = GT_APP(udata);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    if (priv->oauth_token && strlen(priv->oauth_token) > 0)
+    {
+        g_menu_remove(G_MENU(priv->app_menu), 0);
+        g_menu_item_set_label(priv->login_item, _("Refresh login"));
+        g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
+    }
+}
+
+static void
 init_dirs()
 {
     gchar* fp = DATA_DIR;
@@ -198,7 +218,6 @@ activate(GApplication* app)
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
     GtkBuilder* menu_bld;
-    GMenuModel* app_menu;
 
     init_dirs();
 
@@ -208,8 +227,10 @@ activate(GApplication* app)
                                     self);
 
     menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
-    app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
-    gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(app_menu));
+    priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
+    g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
+
+    gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
     g_object_unref(menu_bld);
 
     g_settings_bind(self->settings, "user-name",
@@ -362,13 +383,15 @@ gt_app_init(GtApp* self)
 
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
 
+    priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
+
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.gnome-twitch.app");
 
     load_chat_settings(self);
     //  self->chat = gt_twitch_chat_client_new();
 
-//    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
+    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 
     /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
     /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
