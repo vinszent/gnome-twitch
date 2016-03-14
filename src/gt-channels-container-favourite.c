@@ -34,7 +34,7 @@ bottom_edge_reached(GtChannelsContainer* container)
 static void
 refresh(GtChannelsContainer* container)
 {
-    //TODO: Force favourites refresh
+    gt_favourites_manager_update(main_app->fav_mgr);
 }
 
 static void

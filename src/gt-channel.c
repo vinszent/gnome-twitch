@@ -24,10 +24,7 @@ typedef struct
 
     gboolean favourited;
     gboolean online;
-    gboolean auto_update;
     gboolean updating;
-
-    guint update_id;
 
     GCancellable* cancel;
 } GtChannelPrivate;
@@ -56,7 +53,6 @@ enum
     PROP_STREAM_STARTED_TIME,
     PROP_FAVOURITED,
     PROP_ONLINE,
-    PROP_AUTO_UPDATE,
     PROP_UPDATING,
     NUM_PROPS
 };
@@ -149,37 +145,6 @@ update_cb(gpointer data,
     g_idle_add((GSourceFunc) update_set_cb, setd);
 }
 
-static gboolean
-update(GtChannel* self)
-{
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-
-    g_info("{GtChannel} Initiating update '%s'", priv->name);
-
-    priv->updating = TRUE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
-
-    g_thread_pool_push(update_pool, self, NULL);
-
-    return TRUE;
-}
-
-static void
-auto_update_cb(GObject* src,
-               GParamSpec* pspec,
-               gpointer udata)
-{
-    GtChannel* self = GT_CHANNEL(src);
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-
-    if (priv->auto_update)
-        priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
-    else
-        g_source_remove(priv->update_id);
-
-    update(self);
-}
-
 static void
 download_picture_cb(GObject* source,
                     GAsyncResult* res,
@@ -259,9 +224,6 @@ finalize(GObject* object)
     g_clear_object(&priv->preview);
     g_clear_object(&priv->video_banner);
 
-    if (priv->update_id > 0)
-        g_source_remove(priv->update_id);
-
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_favourited_cb, self);
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfavourited_cb, self);
 
@@ -314,9 +276,6 @@ get_property (GObject*    obj,
             break;
         case PROP_ONLINE:
             g_value_set_boolean(val, priv->online);
-            break;
-        case PROP_AUTO_UPDATE:
-            g_value_set_boolean(val, priv->auto_update);
             break;
         case PROP_UPDATING:
             g_value_set_boolean(val, priv->updating);
@@ -379,9 +338,6 @@ set_property(GObject*      obj,
             break;
         case PROP_ONLINE:
             priv->online = g_value_get_boolean(val);
-            break;
-        case PROP_AUTO_UPDATE:
-            priv->auto_update = g_value_get_boolean(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -471,11 +427,6 @@ gt_channel_class_init(GtChannelClass* klass)
                                               "Whether the channel is online",
                                               TRUE,
                                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-    props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update",
-                                                   "Auto Update",
-                                                   "Whether it should update itself automatically",
-                                                   FALSE,
-                                                   G_PARAM_READWRITE);
     props[PROP_UPDATING] = g_param_spec_boolean("updating",
                                                 "Updating",
                                                 "Whether updating",
@@ -498,7 +449,6 @@ gt_channel_init(GtChannel* self)
     priv->updating = FALSE;
     priv->cancel = g_cancellable_new();
 
-    g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
     g_signal_connect(main_app->fav_mgr, "channel-favourited", G_CALLBACK(channel_favourited_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfavourited", G_CALLBACK(channel_unfavourited_cb), self);
 
@@ -606,4 +556,17 @@ gt_channel_get_name(GtChannel* self)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     return priv->name;
+}
+
+void
+gt_channel_update(GtChannel* self)
+{
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_info("{GtChannel} Initiating update '%s'", priv->name);
+
+    priv->updating = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
+    g_thread_pool_push(update_pool, self, NULL);
 }

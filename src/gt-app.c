@@ -130,9 +130,9 @@ activate(GApplication* app)
 }
 
 static void
-gt_app_prefer_dark_theme_changed_cb(GSettings *settings,
+gt_app_prefer_dark_theme_changed_cb(GSettings* settings,
                                     const char* key,
-                                    GtkSettings *gtk_settings)
+                                    GtkSettings* gtk_settings)
 {
     gboolean prefer_dark_theme = g_settings_get_boolean(settings, key);
 
@@ -147,7 +147,7 @@ startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
-    GtkSettings *gtk_settings = gtk_settings_get_default();
+    GtkSettings* gtk_settings = gtk_settings_get_default();
 
     self->fav_mgr = gt_favourites_manager_new();
     gt_favourites_manager_load(self->fav_mgr);

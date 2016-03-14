@@ -16,6 +16,12 @@
       <summary>Default quality</summary>
       <description>Default quality selected when opening a stream</description>
     </key>
+    <key name="auto-update-interval" type="u">
+      <range min="60"/>
+      <default>120</default>
+      <summary>Auto-Update interval</summary>
+      <description>Interval (in seconds) between automatic update for favourite channels</description>
+    </key>
     <key name="volume" type="d">
       <range min="0.0" max="1.0"/>
       <default>0.3</default>

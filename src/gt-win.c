@@ -197,6 +197,8 @@ refresh_view_cb(GSimpleAction* action,
 
     if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
         gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
+    else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->favourites_view)
+        gt_favourites_view_refresh(GT_FAVOURITES_VIEW(priv->favourites_view));
     else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
         gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
 }

@@ -15,6 +15,7 @@ struct _GtFavouritesView
 };
 
 GtFavouritesView* gt_favourites_view_new(void);
+void gt_favourites_view_refresh(GtFavouritesView* self);
 
 G_END_DECLS
 

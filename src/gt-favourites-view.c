@@ -126,3 +126,11 @@ gt_favourites_view_init(GtFavouritesView* self)
                            priv->search_bar, "search-mode-enabled",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 }
+
+void
+gt_favourites_view_refresh(GtFavouritesView* self)
+{
+    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+
+    gt_channels_container_refresh(GT_CHANNELS_CONTAINER(priv->favourite_container));
+}

@@ -6,6 +6,8 @@
 
 typedef struct
 {
+    guint auto_update_id;
+    guint auto_update_interval;
     void* tmp;
 } GtFavouritesManagerPrivate;
 
@@ -128,6 +130,26 @@ oneshot_updating_cb(GObject* source,
     }
 }
 
+static gboolean
+auto_update_cb(GtFavouritesManager* self)
+{
+    for (GList* l = self->favourite_channels; l != NULL; l = l->next)
+        gt_channel_update(GT_CHANNEL(l->data));
+
+    return G_SOURCE_CONTINUE;
+}
+
+static void
+auto_update_interval_changed_cb(GSettings* settings,
+                           const gchar* key,
+                           GtFavouritesManager* self)
+{
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    priv->auto_update_interval = g_settings_get_uint(settings, key);
+    gt_favourites_manager_update(self);
+}
+
 static void
 shutdown_cb(GApplication* app,
             gpointer udata)
@@ -142,6 +164,9 @@ finalize(GObject* object)
 {
     GtFavouritesManager* self = (GtFavouritesManager*) object;
     GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    if (priv->auto_update_id != 0)
+        g_source_remove(priv->auto_update_id);
 
     G_OBJECT_CLASS(gt_favourites_manager_parent_class)->finalize(object);
 }
@@ -206,6 +231,14 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
 static void
 gt_favourites_manager_init(GtFavouritesManager* self)
 {
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    auto_update_interval_changed_cb(main_app->settings, "auto-update-interval", self);
+    g_signal_connect(main_app->settings,
+                     "changed::auto-update-interval",
+                     G_CALLBACK(auto_update_interval_changed_cb),
+                     self);
+
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
 }
 
@@ -238,14 +271,13 @@ gt_favourites_manager_load(GtFavouritesManager* self)
         GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
         g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
-        g_object_set(chan, 
-                     "auto-update", TRUE, 
-                     "favourited", TRUE,
-                     NULL);
+        g_object_set(chan, "favourited", TRUE, NULL);
         g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
 
         g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
+
+    gt_favourites_manager_update(self);
 
 finish:
     g_object_unref(parse);
@@ -288,4 +320,17 @@ void
 gt_favourites_manager_attach_to_channel(GtFavouritesManager* self, GtChannel* chan)
 {
     g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
+}
+
+void
+gt_favourites_manager_update(GtFavouritesManager* self)
+{
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    auto_update_cb(self);
+    if (priv->auto_update_id != 0)
+        g_source_remove(priv->auto_update_id);
+    priv->auto_update_id = g_timeout_add_seconds(priv->auto_update_interval,
+                                                 (GSourceFunc) auto_update_cb,
+                                                 self);
 }
