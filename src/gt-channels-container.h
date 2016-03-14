@@ -8,7 +8,7 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_CHANNELS_CONTAINER (gt_channels_container_get_type())
 
-G_DECLARE_DERIVABLE_TYPE(GtChannelsContainer, gt_channels_container, GT, CHANNELS_CONTAINER, GtkBox)
+G_DECLARE_DERIVABLE_TYPE(GtChannelsContainer, gt_channels_container, GT, CHANNELS_CONTAINER, GtkStack)
 
 typedef enum
 {
@@ -20,8 +20,10 @@ typedef enum
 
 struct _GtChannelsContainerClass
 {
-    GtkBoxClass parent_class;
+    GtkStackClass parent_class;
 
+    void (*check_empty) (GtChannelsContainer* self);
+    void (*set_empty_info) (GtChannelsContainer* self, const gchar* icon_name, const gchar* title, const gchar* subtitle);
     void (*show_load_spinner) (GtChannelsContainer* self, gboolean show);
     void (*append_channel) (GtChannelsContainer* self, GtChannel* chan);
     void (*append_channels) (GtChannelsContainer* self, GList* channels);

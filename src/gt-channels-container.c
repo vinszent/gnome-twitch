@@ -6,13 +6,18 @@
 
 typedef struct
 {
+    GtkWidget* channels_scroll;
     GtkWidget* channels_flow;
     GtkWidget* load_revealer;
+    GtkWidget* empty_box;
+    GtkWidget* empty_image;
+    GtkWidget* empty_title_label;
+    GtkWidget* empty_subtitle_label;
 } GtChannelsContainerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainer, gt_channels_container, GTK_TYPE_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainer, gt_channels_container, GTK_TYPE_STACK)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -23,14 +28,38 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsContainer*
 gt_channels_container_new(void)
 {
-    return g_object_new(GT_TYPE_CHANNELS_CONTAINER, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER,
                         NULL);
+}
+
+static void
+check_empty(GtChannelsContainer* self)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    if (g_list_length(gtk_container_get_children(GTK_CONTAINER(priv->channels_flow))) == 0)
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->channels_scroll);
+}
+
+static void
+set_empty_info(GtChannelsContainer* self, const gchar* image_icon,
+               const gchar* title, const gchar* subtitle)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), image_icon, GTK_ICON_SIZE_DIALOG);
+    gtk_label_set_label(GTK_LABEL(priv->empty_title_label), title);
+    gtk_label_set_label(GTK_LABEL(priv->empty_subtitle_label), subtitle);
 }
 
 static void
 show_load_spinner(GtChannelsContainer* self, gboolean show)
 {
     GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->channels_scroll);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->load_revealer), show);
 }
@@ -115,15 +144,15 @@ child_activated_cb(GtkFlowBox* flow,
     gboolean online = FALSE;
 
     g_object_get(child, "channel", &chan, NULL);
-    
-    g_object_get(chan, 
-                 "updating", &updating, 
+
+    g_object_get(chan,
+                 "updating", &updating,
                  "online", &online,
                  NULL);
-    
+
     if (!updating && online)
     {
-	gt_win_open_channel(GT_WIN_TOPLEVEL(GTK_WIDGET(child)), chan);
+        gt_win_open_channel(GT_WIN_TOPLEVEL(GTK_WIDGET(child)), chan);
         gt_channels_container_child_hide_overlay(child);
     }
 
@@ -180,16 +209,24 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
+    klass->check_empty = check_empty;
+    klass->set_empty_info = set_empty_info;
     klass->show_load_spinner = show_load_spinner;
     klass->append_channel = append_channel;
     klass->append_channels = append_channels;
     klass->remove_channel = remove_channel;
     klass->get_channels_flow = get_channels_flow;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-channels-container.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
+                                                "/com/gnome-twitch/ui/gt-channels-container.ui");
 
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, load_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_title_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_subtitle_label);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), edge_reached_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), child_activated_cb);
