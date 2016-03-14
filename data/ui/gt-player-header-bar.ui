@@ -2,36 +2,36 @@
 <interface>
   <template class="GtPlayerHeaderBar" parent="GtkHeaderBar">
     <child type="title">
-      <object class="GtkButton" id="title_button">
+      <!-- <object class="GtkButton" id="title_button"> -->
+      <!--   <property name="visible">True</property> -->
+      <!--   <property name="relief">GTK_RELIEF_NONE</property> -->
+      <!--   <property name="action-name">win.show_channel_info</property> -->
+      <!--   <child> -->
+      <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="relief">GTK_RELIEF_NONE</property>
-        <property name="action-name">win.show_channel_info</property>
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtkLabel" id="status_label">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkLabel" id="status_label">
-                <property name="visible">True</property>
-                <property name="ellipsize">end</property>
-                <property name="width-chars">75</property>
-                <style>
-                  <class name="title"/>
-                </style>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="name_label">
-                <property name="visible">True</property>
-                <style>
-                  <class name="subtitle"/>
-                </style>
-              </object>
-            </child>
+            <property name="ellipsize">end</property>
+            <property name="width-chars">75</property>
+            <style>
+              <class name="title"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="name_label">
+            <property name="visible">True</property>
+            <style>
+              <class name="subtitle"/>
+            </style>
           </object>
         </child>
       </object>
     </child>
+    <!--   </object> -->
+    <!-- </child> -->
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>

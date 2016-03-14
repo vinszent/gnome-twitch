@@ -342,7 +342,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_height_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_x_adjustment);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, chat_view_y_adjustment);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, title_button);
+//    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, title_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, status_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, name_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, dock_chat_button);
@@ -367,5 +367,5 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     g_object_bind_property(self, "channel-name", priv->name_label, "label", G_BINDING_DEFAULT);
     g_object_bind_property(self, "channel-status", priv->status_label, "label", G_BINDING_DEFAULT);
 
-    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(self), priv->title_button);
+//    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(self), priv->title_button);
 }
