@@ -5,16 +5,6 @@
 
 G_BEGIN_DECLS
 
-#define TWITCH_CHAT_CMD_WELCOME "001"
-#define TWITCH_CHAT_CMD_PING "PING"
-#define TWITCH_CHAT_CMD_PONG "PONG"
-#define TWITCH_CHAT_CMD_PASS "PASS oauth:"
-#define TWITCH_CHAT_CMD_NICK "NICK"
-#define TWITCH_CHAT_CMD_JOIN "JOIN"
-#define TWITCH_CHAT_CMD_PART "PART"
-#define TWITCH_CHAT_CMD_PRIVMSG "PRIVMSG"
-#define TWITCH_CHAT_CMD_CAP_REQ "CAP REQ"
-
 #define GT_TYPE_TWITCH_CHAT_CLIENT gt_twitch_chat_client_get_type()
 
 G_DECLARE_FINAL_TYPE(GtTwitchChatClient, gt_twitch_chat_client, GT, TWITCH_CHAT_CLIENT, GObject)
@@ -56,6 +46,10 @@ typedef struct
 {
     gchar* target;
     gchar* msg;
+    gint user_modes;
+    gchar* display_name;
+    gchar** emotes;
+    gchar* colour;
 } GtChatCommandPrivmsg;
 
 typedef struct
@@ -100,6 +94,22 @@ typedef struct
 
 typedef struct
 {
+    gchar* channel;
+} GtChatCommandUserstate;
+
+typedef struct
+{
+    gchar* channel;
+} GtChatCommandRoomstate;
+
+typedef struct
+{
+    gchar* channel;
+    gchar* target;
+} GtChatCommandClearchat;
+
+typedef struct
+{
     gchar* nick;
     gchar* user;
     gchar* host;
@@ -114,6 +124,9 @@ typedef struct
         GtChatCommandCap* cap;
         GtChatCommandReply* reply;
         GtChatCommandChannelMode* chan_mode;
+        GtChatCommandUserstate* userstate;
+        GtChatCommandRoomstate* roomstate;
+        GtChatCommandClearchat* clearchat;
     } cmd;
 } GtTwitchChatMessage;
 

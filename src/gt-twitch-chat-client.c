@@ -14,20 +14,23 @@
 #define CHAT_RPL_STR_NAMEREPLY  "353"
 #define CHAT_RPL_STR_ENDOFNAMES "366"
 
-#define CHAT_CMD_STR_PING    "PING"
-#define CHAT_CMD_STR_PONG    "PONG"
-#define CHAT_CMD_STR_PASS    "PASS oauth:"
-#define CHAT_CMD_STR_NICK    "NICK"
-#define CHAT_CMD_STR_JOIN    "JOIN"
-#define CHAT_CMD_STR_PART    "PART"
-#define CHAT_CMD_STR_PRIVMSG "PRIVMSG"
-#define CHAT_CMD_STR_CAP_REQ "CAP REQ"
-#define CHAT_CMD_STR_CAP     "CAP"
-#define CHAT_CMD_STR_NOTICE  "NOTICE"
-#define CHAT_CMD_STR_MODE    "MODE"
+#define CHAT_CMD_STR_PING         "PING"
+#define CHAT_CMD_STR_PONG         "PONG"
+#define CHAT_CMD_STR_PASS_OAUTH   "PASS oauth:"
+#define CHAT_CMD_STR_NICK         "NICK"
+#define CHAT_CMD_STR_JOIN         "JOIN"
+#define CHAT_CMD_STR_PART         "PART"
+#define CHAT_CMD_STR_PRIVMSG      "PRIVMSG"
+#define CHAT_CMD_STR_CAP_REQ      "CAP REQ"
+#define CHAT_CMD_STR_CAP          "CAP"
+#define CHAT_CMD_STR_NOTICE       "NOTICE"
+#define CHAT_CMD_STR_CHANNEL_MODE "MODE"
+#define CHAT_CMD_STR_USERSTATE    "USERSTATE"
+#define CHAT_CMD_STR_ROOMSTATE    "ROOMSTATE"
+#define CHAT_CMD_STR_CLEARCHAT    "CLEARCHAT"
 
 #define TWITCH_IRC_HOSTNAME "irc.twitch.tv"
-#define TWITC_IRC_PORT 6667
+#define TWITC_IRC_PORT      6667
 
 #define CR_LF "\r\n"
 
@@ -225,6 +228,10 @@ chat_cmd_str_to_enum(const gchar* str_cmd)
     IFCASE(CAP)
     IFCASE(JOIN)
     IFCASE(PING)
+    IFCASE(USERSTATE)
+    IFCASE(ROOMSTATE)
+    IFCASE(CHANNEL_MODE)
+    IFCASE(CLEARCHAT)
 
 #undef IFCASE
 
@@ -248,6 +255,10 @@ chat_cmd_enum_to_str(GtChatCommandType num)
         ADDCASE(PRIVMSG);
         ADDCASE(CAP);
         ADDCASE(JOIN);
+        ADDCASE(CHANNEL_MODE);
+        ADDCASE(USERSTATE);
+        ADDCASE(ROOMSTATE);
+        ADDCASE(CLEARCHAT);
 
         default:
             break;
@@ -290,7 +301,7 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
     gchar* orig = line;
     gchar* prefix = NULL;
 
-    g_print("%s\n", line);
+//    g_print("%s\n", line);
 
     if (line[0] == '@')
     {
@@ -353,6 +364,20 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
             msg->cmd.chan_mode->modes = g_strdup(strsep(&line, " "));
             msg->cmd.chan_mode->nick = g_strdup(strsep(&line, " "));
             break;
+        case GT_CHAT_COMMAND_USERSTATE:
+            msg->cmd.userstate = g_new0(GtChatCommandUserstate, 1);
+            msg->cmd.userstate->channel = g_strdup(strsep(&line, " "));
+            break;
+        case GT_CHAT_COMMAND_ROOMSTATE:
+            msg->cmd.roomstate = g_new0(GtChatCommandRoomstate, 1);
+            msg->cmd.roomstate->channel = g_strdup(strsep(&line, " "));
+            break;
+        case GT_CHAT_COMMAND_CLEARCHAT:
+            msg->cmd.clearchat = g_new0(GtChatCommandClearchat, 1);
+            msg->cmd.clearchat->channel = g_strdup(strsep(&line, " "));
+            strsep(&line, ":");
+            msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
+            break;
         default:
             g_warning("{GtTwitchChatClient} Unhandled irc command '%s'\n", line);
             break;
@@ -397,7 +422,7 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
 
         if (msg->cmd_type == GT_CHAT_COMMAND_PING)
         {
-            send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->cmd.ping->server);
+            send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
         }
         else
         {
@@ -434,7 +459,7 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
         }
 
         if (msg->cmd_type == GT_CHAT_COMMAND_PING)
-            send_cmd(ostream, TWITCH_CHAT_CMD_PONG, msg->cmd.ping->server);
+            send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
 
         gt_twitch_chat_message_free(msg);
     }
@@ -642,14 +667,14 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self,
     priv->worker_thread_send = g_thread_new("gnome-twitch-chat-worker-send",
                                        (GThreadFunc) read_lines, send_data);
 
-    send_raw_printf(priv->ostream_recv, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_NICK, nick);
-    send_raw_printf(priv->ostream_send, "%s%s%s", TWITCH_CHAT_CMD_PASS, oauth_token, CR_LF);
-    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_NICK, nick);
+    send_raw_printf(priv->ostream_recv, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, nick);
+    send_raw_printf(priv->ostream_send, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+    send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, nick);
 
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/tags");
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/membership");
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_CAP_REQ, ":twitch.tv/commands");
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/tags");
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/membership");
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/commands");
 
 cleanup:
     g_object_unref(sock_client);
@@ -709,8 +734,8 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
 
     g_message("{GtTwitchChatClient} Joining channel '%s'", chan);
 
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_JOIN, chan);
-    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_JOIN, chan);
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_JOIN, chan);
+    send_cmd(priv->ostream_send, CHAT_CMD_STR_JOIN, chan);
 }
 
 void
@@ -723,8 +748,8 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
     g_return_if_fail(priv->cur_chan != NULL);
 
     g_message("{GtTwitchChatClient} Parting channel '%s'", priv->cur_chan);
-    send_cmd(priv->ostream_recv, TWITCH_CHAT_CMD_PART, priv->cur_chan);
-    send_cmd(priv->ostream_send, TWITCH_CHAT_CMD_PART, priv->cur_chan);
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_PART, priv->cur_chan);
+    send_cmd(priv->ostream_send, CHAT_CMD_STR_PART, priv->cur_chan);
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
 
@@ -797,7 +822,7 @@ gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
 
     g_return_if_fail(priv->connected);
 
-    send_cmd_printf(priv->ostream_send, TWITCH_CHAT_CMD_PRIVMSG, "%s :%s", priv->cur_chan, msg);
+    send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "%s :%s", priv->cur_chan, msg);
 }
 
 gboolean
@@ -865,6 +890,19 @@ gt_twitch_chat_message_free(GtTwitchChatMessage* msg)
             g_free(msg->cmd.chan_mode->modes);
             g_free(msg->cmd.chan_mode->nick);
             g_free(msg->cmd.chan_mode);
+            break;
+        case GT_CHAT_COMMAND_USERSTATE:
+            g_free(msg->cmd.userstate->channel);
+            g_free(msg->cmd.userstate);
+            break;
+        case GT_CHAT_COMMAND_ROOMSTATE:
+            g_free(msg->cmd.roomstate->channel);
+            g_free(msg->cmd.roomstate);
+            break;
+        case GT_CHAT_COMMAND_CLEARCHAT:
+            g_free(msg->cmd.clearchat->channel);
+            g_free(msg->cmd.clearchat->target);
+            g_free(msg->cmd.clearchat);
             break;
         default:
             break;

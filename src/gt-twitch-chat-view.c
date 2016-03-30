@@ -55,8 +55,6 @@ typedef struct
 
     gdouble prev_scroll_val;
     gdouble prev_scroll_upper;
-    gboolean prev_sticky;
-
     gboolean chat_sticky;
 } GtTwitchChatViewPrivate;
 
@@ -277,7 +275,7 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
     GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
     gboolean ret = G_SOURCE_REMOVE;
 
-    if (g_strcmp0(msg->command, TWITCH_CHAT_CMD_PRIVMSG) == 0)
+    if (msg->cmd_type == GT_CHAT_COMMAND_PRIVMSG)
     {
         gint user_modes;
         gchar* sender;
@@ -293,7 +291,7 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
 
         user_modes = 0;
         sender = utils_search_key_value_strv(msg->tags, "display-name");
-        msg_str = msg->params;
+        msg_str = msg->cmd.privmsg->msg;
         emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
         subscriber = atoi(utils_search_key_value_strv(msg->tags, "subscriber"));
         turbo = atoi(utils_search_key_value_strv(msg->tags, "turbo"));
@@ -310,8 +308,6 @@ twitch_chat_source_cb(GtTwitchChatMessage* msg,
         else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
         else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
 
-        strsep(&msg_str, " :");
-        msg_str++;
         if (msg_str[0] == '\001')
         {
             strsep(&msg_str, " ");
@@ -344,8 +340,9 @@ chat_badges_cb(GObject* source,
 
     if (priv->chat_badges)
     {
-        gt_twitch_chat_badges_free(priv->chat_badges);
-        priv->chat_badges = NULL;
+        g_clear_pointer(&priv->chat_badges, (GDestroyNotify) gt_twitch_chat_badges_free);
+//        gt_twitch_chat_badges_free(priv->chat_badges);
+//        priv->chat_badges = NULL;
     }
 
     if (!badges)
@@ -457,7 +454,8 @@ reconnect_cb(GtkButton* button,
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-    gt_twitch_chat_client_connect_and_join(priv->chat, priv->cur_chan);
+    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan,
+                                                 NULL, NULL, NULL);
 }
 
 static void
