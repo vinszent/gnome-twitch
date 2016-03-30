@@ -1,4 +1,5 @@
-* Bugs**
+* Bugs
+** TODO If stream is closed before chat is connected then it still connects after.
 ** DONE Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
    - Not sure how much can be done from our side if it's a internal leak.
@@ -11,13 +12,21 @@
 ** DONE Disconnect chat when stream is closed.
 ** DONE gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
 * Minor milestones
+** TODO Do proper CLI handling with built GtkApplication
+** TODO Create a better offline image
+** TODO Add labels to load spinners for views
+** TODO Replace emotes with their original text when replacing
+   - Use GObject data on tag?
+** TODO Automatically set opacity to 1.0 when docked
+   - Use secondary icon for GtkEntry
+** TODO Add setting to dock chat on left or right
 ** TODO Stop chat thread on shutdown
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
    - Not possible?
 ** DONE Twitch emotes in chat
+   CLOSED: [2016-03-16 Wed 23:44]
    - embed the most popular ones as resources
 ** TODO Chat make links clickable
-** TODO Save chat properties
 ** TODO Add UTF-8 support to chat
    - Is this necessary? IRC doesn't use UTF-8.
 ** DONE Un-dockable chat
@@ -27,20 +36,23 @@
 ** TODO Clear chat and clear user messages when user is timed out by a mod/admin
 ** TODO Chat user list
    - See http://tmi.twitch.tv/group/user/{channel}/chatters
-** TODO Stream specific chat settings
+** DONE Stream specific chat settings
+   CLOSED: [2016-03-16 Wed 23:45]
    - Save width, height, x-pos, y-pos, etc
 ** DONE Add subscriber,turbo,admin,etc badges
 ** TODO Have chat scrollback and delete messages after a certain amount have been received
 ** TODO Add info to player
    - Viewer count
    - Time online
-** TODO Add info images to empty views
+** DONE Add info images to empty views
+   CLOSED: [2016-03-16 Wed 23:45]
    - Search view could have "Type something in search bar to search Twitch"
    - Favourites view could have "Press the star in a stream to favourite it"
 ** TODO Localistation
    - Translators will need to revise their translations for 0.2.0
 ** TODO Calculate amount of channels/games needed to load on scroll
-** TODO Use chat ip list to select irc server
+** DONE Use chat ip list to select irc server
+   CLOSED: [2016-03-16 Wed 23:45]
    - See https://api.twitch.tv/api/channels/{channel}/chat_properties
 ** TODO Force window to have same aspect ratio as video
    - Use gtk_window_set_geometry_hints
@@ -49,6 +61,7 @@
    - Use GMarkupParser and parse the html_description
 * Major milestones
 ** TODO Followed streams
+** TODO VODS
 ** TODO Screenshotting streams
 ** TODO Recording streams
 ** TODO Different player backends
