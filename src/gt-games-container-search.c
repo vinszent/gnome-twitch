@@ -47,14 +47,16 @@ search_games_cb(GObject* source,
 
     GList* new = g_task_propagate_pointer(G_TASK(res), &err);
 
+    PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
+
+    if (!err || err->code != 19)
+    {
+            PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
+            PCLASS->check_empty(GT_GAMES_CONTAINER(self));
+    }
+
     if (err)
         g_error_free(err);
-    else
-        PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
-
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
-
-    PCLASS->check_empty(GT_GAMES_CONTAINER(self));
 }
 
 static void
