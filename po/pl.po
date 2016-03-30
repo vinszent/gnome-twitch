@@ -1,12 +1,12 @@
 # Translation of gnome-twitch to Polish.
-# Copyright (C) 2015 Piotr Drąg <piotrdrag@gmail.com>
+# Copyright (C) 2015-2016 Piotr Drąg <piotrdrag@gmail.com>.
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2015-12-05 16:06+0100\n"
-"PO-Revision-Date: 2015-12-05 16:07+0100\n"
+"POT-Creation-Date: 2016-03-30 18:20+0200\n"
+"PO-Revision-Date: 2016-03-30 18:22+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -29,28 +29,92 @@ msgid "Quit"
 msgstr "Zakończ"
 
 #: data/ui/gt-player-header-bar.ui:1
+msgid "Show chat"
+msgstr "Wyświetl czat"
+
+#: data/ui/gt-player-header-bar.ui:2
+msgid "Edit chat"
+msgstr "Modyfikuj czat"
+
+#: data/ui/gt-player-header-bar.ui:3
 msgid "Stream quality"
 msgstr "Jakość obrazu"
 
-#: data/ui/gt-player-header-bar.ui:2 data/ui/gt-settings-dlg.ui:3
+#: data/ui/gt-player-header-bar.ui:4
+msgid "Dock chat"
+msgstr "Przyłącz czat"
+
+#: data/ui/gt-player-header-bar.ui:5
+msgid "Dark theme"
+msgstr "Ciemny motyw"
+
+#: data/ui/gt-player-header-bar.ui:6
+msgid "Opacity"
+msgstr "Nieprzezroczystość"
+
+#: data/ui/gt-player-header-bar.ui:7
+msgid "Width"
+msgstr "Szerokość"
+
+#: data/ui/gt-player-header-bar.ui:8
+msgid "Height"
+msgstr "Wysokość"
+
+#: data/ui/gt-player-header-bar.ui:9
+msgid "X position"
+msgstr "Położenie na osi X"
+
+#: data/ui/gt-player-header-bar.ui:10
+msgid "Y position"
+msgstr "Położenie na osi Y"
+
+#: data/ui/gt-player-header-bar.ui:11 data/ui/gt-settings-dlg.ui:4
 msgid "Source"
 msgstr "Źródłowa"
 
-#: data/ui/gt-player-header-bar.ui:3 data/ui/gt-settings-dlg.ui:4
+#: data/ui/gt-player-header-bar.ui:12 data/ui/gt-settings-dlg.ui:5
 msgid "High"
 msgstr "Wysoka"
 
-#: data/ui/gt-player-header-bar.ui:4 data/ui/gt-settings-dlg.ui:5
+#: data/ui/gt-player-header-bar.ui:13 data/ui/gt-settings-dlg.ui:6
 msgid "Medium"
 msgstr "Średnia"
 
-#: data/ui/gt-player-header-bar.ui:5 data/ui/gt-settings-dlg.ui:6
+#: data/ui/gt-player-header-bar.ui:14 data/ui/gt-settings-dlg.ui:7
 msgid "Low"
 msgstr "Niska"
 
+#: data/ui/gt-player-header-bar.ui:15
+msgid "Mobile"
+msgstr "Mobilna"
+
 #: data/ui/gt-settings-dlg.ui:2
-msgid "Default video quality: "
-msgstr "Domyślna jakość obrazu: "
+msgid "Use dark theme variant"
+msgstr "Ciemny wariant motywu"
+
+#: data/ui/gt-settings-dlg.ui:3
+msgid "Default video quality:"
+msgstr "Domyślna jakość obrazu:"
+
+#: data/ui/gt-twitch-chat-view.ui:1
+msgid "Send a message"
+msgstr "Wyślij wiadomość"
+
+#: data/ui/gt-twitch-chat-view.ui:2
+msgid "Connecting to chat"
+msgstr "Łączenie z czatem"
+
+#: data/ui/gt-twitch-chat-view.ui:3
+msgid "Not logged into Twitch!"
+msgstr "Nie zalogowano w serwisie Twitch"
+
+#: data/ui/gt-twitch-chat-view.ui:4
+msgid "Click to login"
+msgstr "Zaloguj"
+
+#: data/ui/gt-twitch-chat-view.ui:5
+msgid "Click to reconnect"
+msgstr "Połącz ponownie"
 
 #: data/ui/gt-win.ui:1
 msgid "Browse"
@@ -61,25 +125,103 @@ msgid "Player"
 msgstr "Odtwarzacz"
 
 #: data/ui/gt-win.ui:3
-msgid "Close"
-msgstr "Zamknij"
-
-#: data/ui/gt-win.ui:4
 msgid "Channels"
 msgstr "Kanały"
 
-#: data/ui/gt-win.ui:5
+#: data/ui/gt-win.ui:4
 msgid "Favourites"
 msgstr "Ulubione"
 
-#: data/ui/gt-win.ui:6
+#: data/ui/gt-win.ui:5
 msgid "Games"
 msgstr "Gry"
 
-#: src/gt-win.c:103
+#: src/gt-app.c:175
+msgid "Refresh login"
+msgstr "Odśwież logowanie"
+
+#: src/gt-app.c:386
+msgid "Login to Twitch"
+msgstr "Zaloguj w serwisie Twitch"
+
+#: src/gt-channels-container-child.c:102
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1f tys."
+
+#: src/gt-channels-container-child.c:104
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#: src/gt-channels-container-child.c:131
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1f godz."
+
+#: src/gt-channels-container-child.c:133
+#, c-format
+msgid "%ldm"
+msgstr "%ld min."
+
+#: src/gt-channels-container-favourite.c:229
+msgid "No channels favourited"
+msgstr "Brak ulubionych kanałów"
+
+#: src/gt-channels-container-favourite.c:230
+msgid "Favourite channels that you like for them to show up here"
+msgstr "Tutaj pojawią się ulubione kanały"
+
+#: src/gt-channels-container-search.c:183
+msgid "No channels found"
+msgstr "Nie odnaleziono kanałów"
+
+#: src/gt-channels-container-search.c:184
+#: src/gt-games-container-search.c:203
+msgid "Try a different search"
+msgstr "Proszę spróbować innych słów"
+
+#: src/gt-favourites-manager.c:63
+#, c-format
+msgid "Channel %s is now online"
+msgstr "Kanał „%s” jest online"
+
+#: src/gt-favourites-manager.c:64
+#, c-format
+msgid "Streaming %s"
+msgstr "Streamowanie „%s”"
+
+#: src/gt-game.c:111
+msgid "Untitled broadcast"
+msgstr "Audycja bez tytułu"
+
+#: src/gt-games-container-search.c:202
+msgid "No games found"
+msgstr "Nie odnaleziono gier"
+
+#: src/gt-player-clutter.c:295
+msgid "Loading stream"
+msgstr "Wczytywanie streamu"
+
+#: src/gt-player-clutter.c:410
+#, c-format
+msgid "Buffered %d%%"
+msgstr "Zbuforowano %d%%"
+
+#: src/gt-twitch-channel-info-dlg.c:162
+msgid "• "
+msgstr "• "
+
+#: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Oglądanie serwisu Twitch w systemie GNU/Linux"
 
-#: src/gt-win.c:107
+#: src/gt-win.c:97
 msgid "translator-credits"
-msgstr "Piotr Drąg <piotrdrag@gmail.com>"
+msgstr ""
+"Piotr Drąg <piotrdrag@gmail.com>, 2015-2016\n"
+"Aviary.pl <gnomepl@aviary.pl>, 2015-2016"
+
+#: src/gt-win.c:176
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Już zalogowano w serwisie Twitch, odświeżyć logowanie?"
