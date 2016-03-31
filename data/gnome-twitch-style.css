@@ -60,41 +60,41 @@
     color: white;
 }
 
-.gt-twitch-chat-view GtkTextView
+.gt-chat GtkTextView
 {
     background-color: transparent;
 }
 
-.gt-twitch-chat-view GtkEntry
+.gt-chat GtkEntry
 {
     background-color: transparent;
     background-image: none;
 }
 
-.gt-twitch-chat-view GtkTextView.light-theme
+.gt-chat GtkTextView.light-theme
 {
     color: rgba(50, 50, 62, 1.0);
 }
 
-.gt-twitch-chat-view GtkTextView.dark-theme
+.gt-chat GtkTextView.dark-theme
 {
     color: rgba(255, 255, 255, 1.0);
 }
 
-.gt-twitch-chat-view GtkTextView:selected,
-.gt-twitch-chat-view GtkEntry:selected
+.gt-chat GtkTextView:selected,
+.gt-chat GtkEntry:selected
 {
     color: @selected_fg_color;
     background-color: @selected_bg_color;
 }
 
-.gt-twitch-chat-view GtkEntry.light-theme
+.gt-chat GtkEntry.light-theme
 {
     color: rgba(0, 0, 0, 1);
     border-color: rgba(204, 204, 204, 1.0);
 }
 
-.gt-twitch-chat-view GtkEntry.dark-theme
+.gt-chat GtkEntry.dark-theme
 {
     color: rgba(255, 255, 255, 1.0);
     border-color: rgba(81, 81, 85, 1.0);

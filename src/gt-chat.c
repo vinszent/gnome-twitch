@@ -1,5 +1,5 @@
-#include "gt-twitch-chat-view.h"
-#include "gt-twitch-chat-client.h"
+#include "gt-chat.h"
+#include "gt-irc.h"
 #include "gt-app.h"
 #include "gt-win.h"
 #include "utils.h"
@@ -9,8 +9,8 @@
 
 #define CHAT_DARK_THEME_CSS_CLASS "dark-theme"
 #define CHAT_LIGHT_THEME_CSS_CLASS "light-theme"
-#define CHAT_DARK_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(25, 25, 31, %.2f); }"
-#define CHAT_LIGHT_THEME_CSS ".gt-twitch-chat-view { background-color: rgba(242, 242, 242, %.2f); }"
+#define CHAT_DARK_THEME_CSS ".gt-chat { background-color: rgba(25, 25, 31, %.2f); }"
+#define CHAT_LIGHT_THEME_CSS ".gt-chat { background-color: rgba(242, 242, 242, %.2f); }"
 
 #define USER_MODE_GLOBAL_MOD 1
 #define USER_MODE_ADMIN 1 << 2
@@ -50,15 +50,15 @@ typedef struct
     GtTwitchChatBadges* chat_badges;
     GCancellable* chat_badges_cancel;
 
-    GtTwitchChatClient* chat;
+    GtIrc* chat;
     gchar* cur_chan;
 
     gdouble prev_scroll_val;
     gdouble prev_scroll_upper;
     gboolean chat_sticky;
-} GtTwitchChatViewPrivate;
+} GtChatPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatView, gt_twitch_chat_view, GTK_TYPE_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtChat, gt_chat, GTK_TYPE_BOX)
 
 enum
 {
@@ -77,10 +77,10 @@ typedef struct
     GdkPixbuf* pixbuf;
 } TwitchEmote;
 
-GtTwitchChatView*
-gt_twitch_chat_view_new()
+GtChat*
+gt_chat_new()
 {
-    return g_object_new(GT_TYPE_TWITCH_CHAT_VIEW,
+    return g_object_new(GT_TYPE_CHAT,
                         NULL);
 }
 
@@ -109,9 +109,9 @@ twitch_emote_compare(TwitchEmote* a, TwitchEmote* b)
 }
 
 static GList*
-parse_emote_string(GtTwitchChatView* self, const gchar* emotes)
+parse_emote_string(GtChat* self, const gchar* emotes)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     GList* ret = NULL;
     gchar* tmp;
     gchar* _tmp;
@@ -180,14 +180,14 @@ insert_message_with_emotes(GtkTextBuffer* buf, GtkTextIter* iter, GList* emotes,
 }
 
 static void
-add_chat_msg(GtTwitchChatView* self,
+add_chat_msg(GtChat* self,
              const gchar* sender,
              const gchar* colour,
              const gchar* msg,
              GList* emotes,
              gint user_modes)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     GtkTextTag* sender_colour_tag = NULL;
     gint offset = 0;
 
@@ -255,14 +255,14 @@ add_chat_msg(GtTwitchChatView* self,
 }
 
 static void
-send_msg_from_entry(GtTwitchChatView* self)
+send_msg_from_entry(GtChat* self)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     const gchar* msg;
 
     msg = gtk_entry_get_text(GTK_ENTRY(priv->chat_entry));
 
-    gt_twitch_chat_client_privmsg(priv->chat, msg);
+    gt_irc_privmsg(priv->chat, msg);
 
     gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
 }
@@ -271,8 +271,8 @@ static gboolean
 twitch_chat_source_cb(GtTwitchChatMessage* msg,
                       gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gboolean ret = G_SOURCE_REMOVE;
 
     if (msg->cmd_type == GT_CHAT_COMMAND_PRIVMSG)
@@ -332,8 +332,8 @@ chat_badges_cb(GObject* source,
                GAsyncResult* res,
                gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     GtTwitchChatBadges* badges;
 
     badges = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
@@ -350,11 +350,11 @@ chat_badges_cb(GObject* source,
 
     priv->chat_badges = badges;
 
-//    if (gt_twitch_chat_client_is_connected(priv->chat))
+//    if (gt_irc_is_connected(priv->chat))
 //    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 //    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
 
-    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan,
+    gt_irc_connect_and_join_async(priv->chat, priv->cur_chan,
                                                  NULL, NULL, NULL);
 
 }
@@ -364,7 +364,7 @@ key_press_cb(GtkWidget* widget,
              GdkEventKey* evt,
              gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
+    GtChat* self = GT_CHAT(udata);
 
     if (evt->keyval == GDK_KEY_Return)
         send_msg_from_entry(self);
@@ -373,9 +373,9 @@ key_press_cb(GtkWidget* widget,
 }
 
 static void
-reset_theme_css(GtTwitchChatView* self)
+reset_theme_css(GtChat* self)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gchar css[200];
 
     g_sprintf(css, priv->dark_theme ? CHAT_DARK_THEME_CSS : CHAT_LIGHT_THEME_CSS,
@@ -406,8 +406,8 @@ credentials_set_cb(GObject* source,
                    GParamSpec* pspec,
                    gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gchar* user_name;
     gchar* oauth_token;
 
@@ -419,7 +419,7 @@ credentials_set_cb(GObject* source,
     if (!user_name || !oauth_token ||
         strlen(user_name) < 1 || strlen(oauth_token) < 1)
     {
-        gt_twitch_chat_client_disconnect(priv->chat);
+        gt_irc_disconnect(priv->chat);
         gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
@@ -434,9 +434,9 @@ credentials_set_cb(GObject* source,
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-        if (open_chan && !gt_twitch_chat_client_is_connected(priv->chat))
+        if (open_chan && !gt_irc_is_connected(priv->chat))
         {
-            gt_twitch_chat_client_connect_and_join(priv->chat, gt_channel_get_name(open_chan));
+            gt_irc_connect_and_join(priv->chat, gt_channel_get_name(open_chan));
             g_object_unref(open_chan);
         }
     }
@@ -449,12 +449,12 @@ static void
 reconnect_cb(GtkButton* button,
              gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-    gt_twitch_chat_client_connect_and_join_async(priv->chat, priv->cur_chan,
+    gt_irc_connect_and_join_async(priv->chat, priv->cur_chan,
                                                  NULL, NULL, NULL);
 }
 
@@ -463,8 +463,8 @@ edge_reached_cb(GtkScrolledWindow* scroll,
                 GtkPositionType pos,
                 gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     if (pos == GTK_POS_BOTTOM)
         priv->chat_sticky = TRUE;
@@ -475,8 +475,8 @@ anchored_cb(GtkWidget* widget,
             GtkWidget* prev_toplevel,
             gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
     GtWin* win = GT_WIN_TOPLEVEL(self);
 
     g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(credentials_set_cb), self);
@@ -485,12 +485,12 @@ anchored_cb(GtkWidget* widget,
 }
 
 static void
-error_encountered_cb(GtTwitchChatClient* client,
+error_encountered_cb(GtIrc* client,
                      GError* err,
                      gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     gtk_label_set_label(GTK_LABEL(priv->error_label), err->message);
 
@@ -502,10 +502,10 @@ connected_cb(GObject* source,
              GParamSpec* pspec,
              gpointer udata)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(udata);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    if (gt_twitch_chat_client_is_logged_in(priv->chat))
+    if (gt_irc_is_logged_in(priv->chat))
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
     else
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), TRUE);
@@ -514,10 +514,10 @@ connected_cb(GObject* source,
 static void
 finalise(GObject* obj)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(obj);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(obj);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    G_OBJECT_CLASS(gt_twitch_chat_view_parent_class)->finalize(obj);
+    G_OBJECT_CLASS(gt_chat_parent_class)->finalize(obj);
 }
 
 static void
@@ -526,8 +526,8 @@ get_property(GObject* obj,
              GValue* val,
              GParamSpec* pspec)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(obj);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(obj);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     switch (prop)
     {
@@ -548,8 +548,8 @@ set_property(GObject* obj,
              const GValue* val,
              GParamSpec* pspec)
 {
-    GtTwitchChatView* self = GT_TWITCH_CHAT_VIEW(obj);
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChat* self = GT_CHAT(obj);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     switch (prop)
     {
@@ -567,7 +567,7 @@ set_property(GObject* obj,
 }
 
 static void
-gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
+gt_chat_class_init(GtChatClass* klass)
 {
     GObjectClass* obj_class = G_OBJECT_CLASS(klass);
     GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
@@ -577,14 +577,14 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
     obj_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(widget_class,
-                                                "/com/gnome-twitch/ui/gt-twitch-chat-view.ui");
+                                                "/com/gnome-twitch/ui/gt-chat.ui");
 
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_view);
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_scroll);
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, chat_entry);
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, main_stack);
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, error_label);
-    gtk_widget_class_bind_template_child_private(widget_class, GtTwitchChatView, connecting_revealer);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, chat_view);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, chat_scroll);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, chat_entry);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, main_stack);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, error_label);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, connecting_revealer);
     gtk_widget_class_bind_template_callback(widget_class, reconnect_cb);
 
     props[PROP_DARK_THEME] = g_param_spec_boolean("dark-theme",
@@ -603,9 +603,9 @@ gt_twitch_chat_view_class_init(GtTwitchChatViewClass* klass)
 }
 
 static void
-gt_twitch_chat_view_init(GtTwitchChatView* self)
+gt_chat_init(GtChat* self)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
@@ -622,7 +622,7 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
     priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
 
-    priv->chat = gt_twitch_chat_client_new();
+    priv->chat = gt_irc_new();
     priv->cur_chan = NULL;
 
     priv->joined_channel = FALSE;
@@ -645,13 +645,13 @@ gt_twitch_chat_view_init(GtTwitchChatView* self)
 
     g_source_set_callback((GSource*) priv->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
 
-    ADD_STYLE_CLASS(self, "gt-twitch-chat-view");
+    ADD_STYLE_CLASS(self, "gt-chat");
 }
 
 void
-gt_twitch_chat_view_connect(GtTwitchChatView* self, const gchar* chan)
+gt_chat_connect(GtChat* self, const gchar* chan)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
@@ -670,14 +670,14 @@ gt_twitch_chat_view_connect(GtTwitchChatView* self, const gchar* chan)
 }
 
 void
-gt_twitch_chat_view_disconnect(GtTwitchChatView* self)
+gt_chat_disconnect(GtChat* self)
 {
-    GtTwitchChatViewPrivate* priv = gt_twitch_chat_view_get_instance_private(self);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     priv->joined_channel = FALSE;
 
-    if (gt_twitch_chat_client_is_connected(priv->chat))
-        gt_twitch_chat_client_disconnect(priv->chat);
+    if (gt_irc_is_connected(priv->chat))
+        gt_irc_disconnect(priv->chat);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
 }

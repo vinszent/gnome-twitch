@@ -3,7 +3,7 @@
 #include "gt-app.h"
 #include "gt-player-header-bar.h"
 #include "gt-win.h"
-#include "gt-twitch-chat-view.h"
+#include "gt-chat.h"
 #include "gt-enums.h"
 #include "utils.h"
 #include <glib/gprintf.h>
@@ -295,12 +295,12 @@ channel_set_cb(GObject* source,
         gtk_label_set_text(GTK_LABEL(priv->buffer_label), _("Loading stream"));
         clutter_actor_show(priv->buffer_actor);
 
-        gt_twitch_chat_view_connect(GT_TWITCH_CHAT_VIEW(priv->chat_view),
+        gt_chat_connect(GT_CHAT(priv->chat_view),
                                     gt_channel_get_name(priv->open_channel));
     }
     else
     {
-        gt_twitch_chat_view_disconnect(GT_TWITCH_CHAT_VIEW(priv->chat_view));
+        gt_chat_disconnect(GT_CHAT(priv->chat_view));
     }
 
 }
@@ -674,7 +674,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->buffer_label = gtk_label_new(NULL);
     priv->buffer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     priv->buffer_actor = gtk_clutter_actor_new_with_contents(priv->buffer_box);
-    priv->chat_view = GTK_WIDGET(gt_twitch_chat_view_new());
+    priv->chat_view = GTK_WIDGET(gt_chat_new());
     priv->chat_actor = gtk_clutter_actor_new_with_contents(priv->chat_view);
     priv->docked_layour_actor = clutter_actor_new();
     priv->playing = FALSE;
