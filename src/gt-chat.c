@@ -47,7 +47,7 @@ typedef struct
 
     GtkCssProvider* chat_css_provider;
 
-    GtTwitchChatBadges* chat_badges;
+    GtChatBadges* chat_badges;
     GCancellable* chat_badges_cancel;
 
     GtIrc* chat;
@@ -334,14 +334,14 @@ chat_badges_cb(GObject* source,
 {
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
-    GtTwitchChatBadges* badges;
+    GtChatBadges* badges;
 
     badges = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
 
     if (priv->chat_badges)
     {
-        g_clear_pointer(&priv->chat_badges, (GDestroyNotify) gt_twitch_chat_badges_free);
-//        gt_twitch_chat_badges_free(priv->chat_badges);
+        g_clear_pointer(&priv->chat_badges, (GDestroyNotify) gt_chat_badges_free);
+//        gt_chat_badges_free(priv->chat_badges);
 //        priv->chat_badges = NULL;
     }
 
@@ -664,7 +664,7 @@ gt_chat_connect(GtChat* self, const gchar* chan)
     g_clear_object(&priv->chat_badges_cancel);
     priv->chat_badges_cancel = g_cancellable_new();
 
-    gt_twitch_chat_badges_async(main_app->twitch, chan,
+    gt_chat_badges_async(main_app->twitch, chan,
                                 priv->chat_badges_cancel,
                                 (GAsyncReadyCallback) chat_badges_cb, self);
 }

@@ -1171,14 +1171,14 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
     return utils_download_picture(priv->soup, url);
 }
 
-static GtTwitchChatBadges*
-gt_twitch_chat_badges_new()
+static GtChatBadges*
+gt_chat_badges_new()
 {
-    return g_new0(GtTwitchChatBadges, 1);
+    return g_new0(GtChatBadges, 1);
 }
 
 void
-gt_twitch_chat_badges_free(GtTwitchChatBadges* badges)
+gt_chat_badges_free(GtChatBadges* badges)
 {
     g_assert_nonnull(badges);
 
@@ -1193,8 +1193,8 @@ gt_twitch_chat_badges_free(GtTwitchChatBadges* badges)
     g_free(badges);
 }
 
-GtTwitchChatBadges*
-gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
+GtChatBadges*
+gt_chat_badges(GtTwitch* self, const gchar* chan)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1202,9 +1202,9 @@ gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GtTwitchChatBadges* ret = NULL;
+    GtChatBadges* ret = NULL;
 
-    g_info("{GtTwitch} Getting twitch chat badges for channel '%s'", chan);
+    g_info("{GtTwitch} Getting chat badges for channel '%s'", chan);
 
     g_sprintf(uri, CHAT_BADGES_URI, chan);
 
@@ -1212,7 +1212,7 @@ gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting twitch chat badges for channel '%s'", chan);
+        g_warning("{GtTwitch} Error getting chat badges for channel '%s'", chan);
         goto finish;
     }
 
@@ -1221,7 +1221,7 @@ gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
     node = json_parser_get_root(parser);
     reader = json_reader_new(node);
 
-    ret = gt_twitch_chat_badges_new();
+    ret = gt_chat_badges_new();
 
     json_reader_read_member(reader, "global_mod");
     json_reader_read_member(reader, "image");
@@ -1284,20 +1284,20 @@ chat_badges_async_cb(GTask* task,
                      GCancellable* cancel)
 {
     GenericTaskData* data;
-    GtTwitchChatBadges* ret;
+    GtChatBadges* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
     data = task_data;
 
-    ret = gt_twitch_chat_badges(data->twitch, data->str_1);
+    ret = gt_chat_badges(data->twitch, data->str_1);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_chat_badges_free);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_badges_free);
 }
 
 void
-gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
+gt_chat_badges_async(GtTwitch* self, const gchar* channel,
                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     GTask* task;
@@ -1358,7 +1358,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting twitch chat badges for channel '%s'", chan);
+        g_warning("{GtTwitch} Error getting chat badges for channel '%s'", chan);
         goto finish;
     }
 
