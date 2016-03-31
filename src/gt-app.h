@@ -4,7 +4,7 @@
 #include <gtk/gtk.h>
 #include "gt-twitch.h"
 #include "gt-favourites-manager.h"
-#include "gt-twitch-chat-client.h"
+#include "gt-irc.h"
 
 G_BEGIN_DECLS
 

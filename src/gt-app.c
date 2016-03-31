@@ -389,7 +389,7 @@ gt_app_init(GtApp* self)
     self->settings = g_settings_new("com.gnome-twitch.app");
 
     load_chat_settings(self);
-    //  self->chat = gt_twitch_chat_client_new();
+    //  self->chat = gt_irc_new();
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 

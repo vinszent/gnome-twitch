@@ -1,13 +1,13 @@
-#ifndef GT_TWITCH_CHAT_CLIENT_H
-#define GT_TWITCH_CHAT_CLIENT_H
+#ifndef GT_IRC_H
+#define GT_IRC_H
 
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-#define GT_TYPE_TWITCH_CHAT_CLIENT gt_twitch_chat_client_get_type()
+#define GT_TYPE_IRC gt_irc_get_type()
 
-G_DECLARE_FINAL_TYPE(GtTwitchChatClient, gt_twitch_chat_client, GT, TWITCH_CHAT_CLIENT, GObject)
+G_DECLARE_FINAL_TYPE(GtIrc, gt_irc, GT, IRC, GObject)
 
 typedef enum
 {
@@ -134,23 +134,23 @@ typedef gboolean (*GtTwitchChatSourceFunc) (GtTwitchChatMessage* msg, gpointer u
 
 typedef struct _GtTwitchChatSource GtTwitchChatSource;
 
-struct _GtTwitchChatClient
+struct _GtIrc
 {
     GObject parent_instance;
 
     GtTwitchChatSource* source;
 };
 
-GtTwitchChatClient*  gt_twitch_chat_client_new();
-void                 gt_twitch_chat_client_connect(GtTwitchChatClient* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
-void                 gt_twitch_chat_client_disconnect(GtTwitchChatClient* self);
-void                 gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel);
-void                 gt_twitch_chat_client_connect_and_join(GtTwitchChatClient* self, const gchar* chan);
-void                 gt_twitch_chat_client_connect_and_join_async(GtTwitchChatClient* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void                 gt_twitch_chat_client_part(GtTwitchChatClient* self);
-void                 gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg);
-gboolean             gt_twitch_chat_client_is_connected(GtTwitchChatClient* self);
-gboolean             gt_twitch_chat_client_is_logged_in(GtTwitchChatClient* self);
+GtIrc*  gt_irc_new();
+void                 gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
+void                 gt_irc_disconnect(GtIrc* self);
+void                 gt_irc_join(GtIrc* self, const gchar* channel);
+void                 gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
+void                 gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void                 gt_irc_part(GtIrc* self);
+void                 gt_irc_privmsg(GtIrc* self, const gchar* msg);
+gboolean             gt_irc_is_connected(GtIrc* self);
+gboolean             gt_irc_is_logged_in(GtIrc* self);
 GtTwitchChatMessage* gt_twitch_chat_message_new();
 void                 gt_twitch_chat_message_free(GtTwitchChatMessage* msg);
 
