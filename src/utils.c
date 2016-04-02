@@ -69,7 +69,7 @@ utils_download_picture(SoupSession* soup, const gchar* url)
     return ret;
 }
 
-gchar*
+const gchar*
 utils_search_key_value_strv(gchar** strv, const gchar* key)
 {
     if (!strv)
