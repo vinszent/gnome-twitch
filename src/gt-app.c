@@ -412,3 +412,15 @@ gt_app_get_oauth_token(GtApp* self)
 
     return priv->oauth_token;
 }
+
+gboolean
+gt_app_credentials_valid(GtApp* self)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return
+        priv->oauth_token             &&
+        priv->user_name               &&
+        strlen(priv->oauth_token) > 1 &&
+        strlen(priv->user_name) > 1;
+}

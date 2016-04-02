@@ -45,6 +45,7 @@ extern GtApp* main_app;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);
+gboolean gt_app_credentials_valid(GtApp* self);
 
 G_END_DECLS
 
