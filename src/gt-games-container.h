@@ -21,6 +21,7 @@ struct _GtGamesContainerClass
 
     void (*check_empty) (GtGamesContainer* self);
     void (*set_empty_info) (GtGamesContainer* self, const gchar* icon_name, const gchar* title, const gchar* subtitle);
+    void (*set_loading_info) (GtGamesContainer* self, const gchar* title);
     void (*show_load_spinner) (GtGamesContainer* self, gboolean show);
     void (*append_games) (GtGamesContainer* self, GList* games);
     GtkFlowBox* (*get_games_flow) (GtGamesContainer* self);

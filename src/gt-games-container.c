@@ -8,6 +8,7 @@ typedef struct
     GtkWidget* games_scroll;
     GtkWidget* games_flow;
     GtkWidget* load_revealer;
+    GtkWidget* loading_label;
     GtkWidget* empty_box;
     GtkWidget* empty_image;
     GtkWidget* empty_title_label;
@@ -60,6 +61,14 @@ set_empty_info(GtGamesContainer* self, const gchar* image_icon,
     gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), image_icon, GTK_ICON_SIZE_DIALOG);
     gtk_label_set_label(GTK_LABEL(priv->empty_title_label), title);
     gtk_label_set_label(GTK_LABEL(priv->empty_subtitle_label), subtitle);
+}
+
+static void
+set_loading_info(GtGamesContainer* self, const gchar* title)
+{
+    GtGamesContainerPrivate* priv = gt_games_container_get_instance_private(self);
+
+    gtk_label_set_label(GTK_LABEL(priv->loading_label), title);
 }
 
 static void
@@ -180,6 +189,7 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
 
     klass->check_empty = check_empty;
     klass->set_empty_info = set_empty_info;
+    klass->set_loading_info = set_loading_info;
     klass->show_load_spinner = show_load_spinner;
     klass->append_games = append_games;
     klass->get_games_flow = get_games_flow;
@@ -201,6 +211,7 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_title_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_subtitle_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, loading_label);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), edge_reached_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), child_activated_cb);
