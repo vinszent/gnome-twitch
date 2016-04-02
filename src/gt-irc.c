@@ -387,12 +387,11 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.privmsg->colour = g_strdup(utils_search_key_value_strv(msg->tags, "color"));
             msg->cmd.privmsg->display_name = g_strdup(utils_search_key_value_strv(msg->tags, "display-name"));
 
-            gchar emotes[300];
-            g_sprintf(emotes, "%s", utils_search_key_value_strv(msg->tags, "emotes"));
+            gchar* emotes = g_strdup(utils_search_key_value_strv(msg->tags, "emotes"));
             gchar* _emotes = emotes;
             gchar* e;
 
-            while ((e = strsep(&_emotes, "/")) != NULL)
+            while ((e = strsep(&emotes, "/")) != NULL)
             {
                 gint id;
                 gchar* indexes;
@@ -420,6 +419,8 @@ parse_line(GtIrc* self, gchar* line)
                     msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
                 }
             }
+
+            g_free(_emotes);
 
             msg->cmd.privmsg->emotes = g_list_sort(msg->cmd.privmsg->emotes, (GCompareFunc) emote_compare);
 
