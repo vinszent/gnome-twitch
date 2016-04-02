@@ -56,6 +56,7 @@ typedef struct
     gdouble prev_scroll_val;
     gdouble prev_scroll_upper;
     gboolean chat_sticky;
+    gboolean force_sticky;
 } GtChatPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChat, gt_chat, GTK_TYPE_BOX)
@@ -69,13 +70,6 @@ enum
 };
 
 static GParamSpec* props[NUM_PROPS];
-
-typedef struct
-{
-    int start;
-    int end;
-    GdkPixbuf* pixbuf;
-} TwitchEmote;
 
 GtChat*
 gt_chat_new()
@@ -97,163 +91,6 @@ get_default_chat_colour(const gchar* name)
     return default_chat_colours[total % 13];
 }
 
-gint
-twitch_emote_compare(TwitchEmote* a, TwitchEmote* b)
-{
-    if (a->start < b->start)
-        return -1;
-    else if (a->start > b->start)
-        return 1;
-    else
-        return 0;
-}
-
-static GList*
-parse_emote_string(GtChat* self, const gchar* emotes)
-{
-    GtChatPrivate* priv = gt_chat_get_instance_private(self);
-    GList* ret = NULL;
-    gchar* tmp;
-    gchar* _tmp;
-    gchar* emote;
-
-    _tmp = tmp = g_strdup(emotes);
-
-    while ((emote = strsep(&tmp, "/")) != NULL)
-    {
-        gint id;
-        gchar* indexes;
-        gchar* index;
-        GdkPixbuf* pixbuf;
-        gchar url[128];
-
-        id = atoi(strsep(&emote, ":"));
-        indexes = strsep(&emote, ":");
-
-        if (!g_hash_table_contains(priv->twitch_emotes, GINT_TO_POINTER(id)))
-        {
-            pixbuf = gt_twitch_download_emote(main_app->twitch, id);
-            g_hash_table_insert(priv->twitch_emotes, GINT_TO_POINTER(id), pixbuf);
-        }
-        else
-            pixbuf = g_hash_table_lookup(priv->twitch_emotes, GINT_TO_POINTER(id));
-
-        while ((index = strsep(&indexes, ",")) != NULL)
-        {
-            TwitchEmote* em = g_new0(TwitchEmote, 1);
-
-            em->start = atoi(strsep(&index, "-"));
-            em->end = atoi(strsep(&index, "-"));
-            em->pixbuf = pixbuf;
-
-            ret = g_list_append(ret, em);
-        }
-    }
-
-    g_free(_tmp);
-    ret = g_list_sort(ret, (GCompareFunc) twitch_emote_compare);
-
-    return ret;
-}
-
-static void
-insert_message_with_emotes(GtkTextBuffer* buf, GtkTextIter* iter, GList* emotes, const gchar* msg, gint offset)
-{
-    gint deleted = 0;
-
-    gtk_text_buffer_insert(buf, iter, msg, -1);
-
-    if (!emotes)
-        return;
-
-    for (GList* l = emotes; l != NULL; l = l->next)
-    {
-        TwitchEmote* em = (TwitchEmote*) l->data;
-        GtkTextIter iter2 = *iter;
-
-        gtk_text_iter_set_line_offset(iter, em->start + offset - deleted);
-        gtk_text_iter_set_line_offset(&iter2, em->end + offset - deleted + 1);
-        gtk_text_buffer_delete(buf, iter, &iter2);
-        gtk_text_buffer_insert_pixbuf(buf, iter, em->pixbuf);
-        deleted += em->end - em->start;
-    }
-}
-
-static void
-add_chat_msg(GtChat* self,
-             const gchar* sender,
-             const gchar* colour,
-             const gchar* msg,
-             GList* emotes,
-             gint user_modes)
-{
-    GtChatPrivate* priv = gt_chat_get_instance_private(self);
-    GtkTextTag* sender_colour_tag = NULL;
-    gint offset = 0;
-
-    gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
-
-    if (!colour || strlen(colour) < 1) //TODO: Set random colour instead of just black
-        colour = get_default_chat_colour(sender);
-
-    sender_colour_tag = gtk_text_tag_table_lookup(priv->tag_table, colour);
-
-    if (!sender_colour_tag)
-    {
-        sender_colour_tag = gtk_text_tag_new(colour);
-        g_object_set(sender_colour_tag,
-                     "foreground", colour,
-                     "weight", PANGO_WEIGHT_BOLD,
-                     NULL);
-        gtk_text_tag_table_add(priv->tag_table, sender_colour_tag);
-    }
-
-    offset = strlen(sender) + 2;
-
-    //TODO: Cleanup?
-#define INSERT_USER_MOD_PIXBUF(mode, name)                              \
-    if (user_modes & mode)                                              \
-    {                                                                   \
-        gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &priv->bottom_iter, priv->chat_badges->name); \
-        gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, " ", -1); \
-        gtk_text_iter_forward_chars(&priv->bottom_iter, 2);             \
-        offset += 2;                                                    \
-    }                                                                   \
-
-    INSERT_USER_MOD_PIXBUF(USER_MODE_SUBSCRIBER, subscriber);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_TURBO, turbo);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_GLOBAL_MOD, global_mod);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_BROADCASTER, broadcaster);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_STAFF, staff);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_ADMIN, admin);
-    INSERT_USER_MOD_PIXBUF(USER_MODE_MOD, mod);
-
-#undef INSERT_USER_MOD_PIXBUF
-
-    gtk_text_buffer_insert_with_tags(priv->chat_buffer, &priv->bottom_iter, sender, -1, sender_colour_tag, NULL);
-    gtk_text_iter_forward_word_end(&priv->bottom_iter);
-    gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, ": ", -1);
-    gtk_text_iter_forward_chars(&priv->bottom_iter, 2);
-    insert_message_with_emotes(priv->chat_buffer, &priv->bottom_iter, emotes, msg, offset);
-    gtk_text_iter_forward_to_line_end(&priv->bottom_iter);
-    gtk_text_buffer_insert(priv->chat_buffer, &priv->bottom_iter, "\n", -1);
-    gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &priv->bottom_iter);
-
-    gdouble cur_val = gtk_adjustment_get_value(priv->chat_adjustment);
-    gdouble cur_upper = gtk_adjustment_get_upper(priv->chat_adjustment);
-
-    // Scrolling upwards causes the pos to be further from the bottom than the natural size increment
-    if (priv->chat_sticky && cur_val > priv->prev_scroll_val - cur_upper + priv->prev_scroll_upper - 10)
-    {
-        gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
-    }
-    else
-        priv->chat_sticky = FALSE;
-
-    priv->prev_scroll_val = cur_val;
-    priv->prev_scroll_upper = cur_upper;
-}
-
 static void
 send_msg_from_entry(GtChat* self)
 {
@@ -268,64 +105,104 @@ send_msg_from_entry(GtChat* self)
 }
 
 static gboolean
-twitch_chat_source_cb(GtTwitchChatMessage* msg,
-                      gpointer udata)
+irc_source_cb(GtIrcMessage* msg,
+              gpointer udata)
 {
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gboolean ret = G_SOURCE_REMOVE;
+    GtkTextIter iter;
 
-    if (msg->cmd_type == GT_CHAT_COMMAND_PRIVMSG)
+    gtk_text_buffer_get_end_iter(priv->chat_buffer, &iter);
+
+    if (msg->cmd_type == GT_IRC_COMMAND_PRIVMSG)
     {
-        gint user_modes;
-        gchar* sender;
-        gchar* colour;
-        gchar* msg_str;
-        gboolean subscriber;
-        gboolean turbo;
-        gchar* user_type;
-        GList* emotes;
+        GtIrcCommandPrivmsg* privmsg = msg->cmd.privmsg;
+        GtkTextTag* colour_tag;
+        const gchar* sender;
 
-        if (g_strcmp0(msg->nick, "twitchnotify") == 0) //TODO: Handle this better
-            goto cont;
+        if (!(sender = privmsg->display_name) || strlen(sender) < 1) sender = msg->nick;
 
-        user_modes = 0;
-        sender = utils_search_key_value_strv(msg->tags, "display-name");
-        msg_str = msg->cmd.privmsg->msg;
-        emotes = parse_emote_string(self, utils_search_key_value_strv(msg->tags, "emotes"));
-        subscriber = atoi(utils_search_key_value_strv(msg->tags, "subscriber"));
-        turbo = atoi(utils_search_key_value_strv(msg->tags, "turbo"));
-        user_type = utils_search_key_value_strv(msg->tags, "user-type");
-        colour = utils_search_key_value_strv(msg->tags, "color");
+        if (!privmsg->colour || strlen(privmsg->colour) < 1)
+            privmsg->colour = g_strdup(get_default_chat_colour(msg->nick));
 
-        if (!sender || strlen(sender) < 1)
-            sender = msg->nick;
+        colour_tag = gtk_text_tag_table_lookup(priv->tag_table, privmsg->colour);
 
-        if (subscriber) user_modes |= USER_MODE_SUBSCRIBER;
-        if (turbo) user_modes |= USER_MODE_TURBO;
-        if (g_strcmp0(user_type, "mod") == 0) user_modes |= USER_MODE_MOD;
-        else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= USER_MODE_GLOBAL_MOD;
-        else if (g_strcmp0(user_type, "admin") == 0) user_modes |= USER_MODE_ADMIN;
-        else if (g_strcmp0(user_type, "staff") == 0) user_modes |= USER_MODE_STAFF;
-
-        if (msg_str[0] == '\001')
+        if (!colour_tag)
         {
-            strsep(&msg_str, " ");
-            msg_str[strlen(msg_str) - 1] = '\0';
+            colour_tag = gtk_text_buffer_create_tag(priv->chat_buffer, privmsg->colour,
+                                                    "foreground", privmsg->colour,
+                                                    "weight", PANGO_WEIGHT_BOLD,
+                                                    NULL);
         }
 
-        add_chat_msg(self, sender, colour, msg_str, emotes, user_modes);
-        g_list_free_full(emotes, g_free);
+        // Insert user mode pixbufs
+#define INSERT_USER_MODE_PIXBUF(mode, name)                             \
+        if (privmsg->user_modes & mode)                                 \
+        {                                                               \
+            gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &iter, priv->chat_badges->name); \
+            gtk_text_buffer_insert(priv->chat_buffer, &iter, " ", -1);  \
+        }
+
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_SUBSCRIBER, subscriber);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_TURBO, turbo);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_GLOBAL_MOD, global_mod);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_BROADCASTER, broadcaster);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_STAFF, staff);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_ADMIN, admin);
+        INSERT_USER_MODE_PIXBUF(IRC_USER_MODE_MOD, mod);
+
+#undef INSERT_USER_MOD_PIXBUF
+
+        gtk_text_buffer_insert_with_tags(priv->chat_buffer, &iter, sender, -1, colour_tag, NULL);
+        gtk_text_buffer_insert(priv->chat_buffer, &iter, ": ", -1);
+
+        gchar* c = g_utf8_offset_to_pointer(privmsg->msg, 0);
+        gchar* d = g_utf8_offset_to_pointer(privmsg->msg, 1);
+        GList* l = privmsg->emotes;
+        GtEmote* emote = NULL;
+        for (gint i = 0; i < g_utf8_strlen(privmsg->msg, -1);
+             ++i, c = g_utf8_offset_to_pointer(privmsg->msg, i),
+                 d = g_utf8_offset_to_pointer(privmsg->msg, i + 1))
+        {
+            if (l) emote = l->data;
+
+            if (emote && i == emote->start)
+            {
+                gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &iter, emote->pixbuf);
+                l = l->next;
+                i = emote->end;
+            }
+            else
+                gtk_text_buffer_insert(priv->chat_buffer, &iter, c, (d - c)*sizeof(gchar));
+        }
+
+        gtk_text_buffer_insert(priv->chat_buffer, &iter, "\n", 1);
+
+        //TODO: Clean up
+        gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &iter);
+
+        gdouble cur_val = gtk_adjustment_get_value(priv->chat_adjustment);
+        gdouble cur_upper = gtk_adjustment_get_upper(priv->chat_adjustment);
+
+        // Scrolling upwards causes the pos to be further from the bottom than the natural size increment
+        if (priv->force_sticky || (priv->chat_sticky && cur_val > priv->prev_scroll_val - cur_upper + priv->prev_scroll_upper - 5))
+        {
+            gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
+            priv->force_sticky = FALSE;
+        }
+        else
+            priv->chat_sticky = FALSE;
+
+        priv->prev_scroll_val = cur_val;
+        priv->prev_scroll_upper = cur_upper;
+
     }
 
-cont:
-    ret = G_SOURCE_CONTINUE;
+    gt_irc_message_free(msg);
 
-    gt_twitch_chat_message_free(msg);
-
-    return ret;
+    return G_SOURCE_CONTINUE;
 }
-
 
 static void
 chat_badges_cb(GObject* source,
@@ -341,22 +218,16 @@ chat_badges_cb(GObject* source,
     if (priv->chat_badges)
     {
         g_clear_pointer(&priv->chat_badges, (GDestroyNotify) gt_chat_badges_free);
-//        gt_chat_badges_free(priv->chat_badges);
-//        priv->chat_badges = NULL;
     }
 
+    //TODO: Error handling
     if (!badges)
         return;
 
     priv->chat_badges = badges;
 
-//    if (gt_irc_is_connected(priv->chat))
-//    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
-//    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
-
     gt_irc_connect_and_join_async(priv->chat, priv->cur_chan,
                                                  NULL, NULL, NULL);
-
 }
 
 static gboolean
@@ -467,7 +338,7 @@ edge_reached_cb(GtkScrolledWindow* scroll,
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     if (pos == GTK_POS_BOTTOM)
-        priv->chat_sticky = TRUE;
+        priv->force_sticky = priv->chat_sticky = TRUE;
 }
 
 static void
@@ -603,6 +474,12 @@ gt_chat_class_init(GtChatClass* klass)
 }
 
 static void
+scrolled()
+{
+    g_print("Scrolled\n");
+}
+
+static void
 gt_chat_init(GtChat* self)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
@@ -635,6 +512,7 @@ gt_chat_init(GtChat* self)
     g_signal_connect(priv->chat, "error-encountered", G_CALLBACK(error_encountered_cb), self);
     g_signal_connect(priv->chat, "notify::logged-in", G_CALLBACK(connected_cb), self);
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+    g_signal_connect(priv->chat_scroll, "scroll-child", G_CALLBACK(scrolled), NULL);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
@@ -643,7 +521,7 @@ gt_chat_init(GtChat* self)
                            priv->chat_entry, "sensitive",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    g_source_set_callback((GSource*) priv->chat->source, (GSourceFunc) twitch_chat_source_cb, self, NULL);
+    g_source_set_callback((GSource*) priv->chat->source, (GSourceFunc) irc_source_cb, self, NULL);
 
     ADD_STYLE_CLASS(self, "gt-chat");
 }
@@ -655,6 +533,7 @@ gt_chat_connect(GtChat* self, const gchar* chan)
 
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
+    priv->force_sticky = TRUE;
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
     priv->cur_chan = g_strdup(chan);
