@@ -24,6 +24,7 @@ struct _GtChannelsContainerClass
 
     void (*check_empty) (GtChannelsContainer* self);
     void (*set_empty_info) (GtChannelsContainer* self, const gchar* icon_name, const gchar* title, const gchar* subtitle);
+    void (*set_loading_info) (GtChannelsContainer* self, const gchar* title);
     void (*show_load_spinner) (GtChannelsContainer* self, gboolean show);
     void (*append_channel) (GtChannelsContainer* self, GtChannel* chan);
     void (*append_channels) (GtChannelsContainer* self, GList* channels);
