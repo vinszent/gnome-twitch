@@ -358,11 +358,11 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.privmsg->target = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
 
-            /* if (line[0] == '\001') */
-            /* { */
-            /*     strsep(&line, " "); */
-            /*     line[strlen(line) - 1] = '\0'; */
-            /* } */
+            if (line[0] == '\001')
+            {
+                strsep(&line, " ");
+                line[strlen(line) - 1] = '\0';
+            }
 
             msg->cmd.privmsg->msg = g_strdup(line);
 
