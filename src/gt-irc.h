@@ -11,17 +11,17 @@ G_DECLARE_FINAL_TYPE(GtIrc, gt_irc, GT, IRC, GObject)
 
 typedef enum
 {
-    GT_CHAT_COMMAND_NOTICE,
-    GT_CHAT_COMMAND_PRIVMSG,
-    GT_CHAT_COMMAND_PING,
-    GT_CHAT_COMMAND_REPLY,
-    GT_CHAT_COMMAND_CHANNEL_MODE,
-    GT_CHAT_COMMAND_CAP,
-    GT_CHAT_COMMAND_JOIN,
-    GT_CHAT_COMMAND_USERSTATE,
-    GT_CHAT_COMMAND_ROOMSTATE,
-    GT_CHAT_COMMAND_CLEARCHAT,
-} GtChatCommandType;
+    GT_IRC_COMMAND_NOTICE,
+    GT_IRC_COMMAND_PRIVMSG,
+    GT_IRC_COMMAND_PING,
+    GT_IRC_COMMAND_REPLY,
+    GT_IRC_COMMAND_CHANNEL_MODE,
+    GT_IRC_COMMAND_CAP,
+    GT_IRC_COMMAND_JOIN,
+    GT_IRC_COMMAND_USERSTATE,
+    GT_IRC_COMMAND_ROOMSTATE,
+    GT_IRC_COMMAND_CLEARCHAT,
+} GtIrcCommandType;
 
 typedef enum
 {
@@ -40,7 +40,23 @@ typedef struct
 {
     gchar* target;
     gchar* msg;
-} GtChatCommandNotice;
+} GtIrcCommandNotice;
+
+#define IRC_USER_MODE_GLOBAL_MOD  1
+#define IRC_USER_MODE_ADMIN       1 << 2
+#define IRC_USER_MODE_BROADCASTER 1 << 3
+#define IRC_USER_MODE_MOD         1 << 4
+#define IRC_USER_MODE_STAFF       1 << 5
+#define IRC_USER_MODE_TURBO       1 << 6
+#define IRC_USER_MODE_SUBSCRIBER  1 << 7
+
+typedef struct
+{
+    gint id;
+    GdkPixbuf* pixbuf;
+    gint start;
+    gint end;
+} GtEmote;
 
 typedef struct
 {
@@ -48,19 +64,19 @@ typedef struct
     gchar* msg;
     gint user_modes;
     gchar* display_name;
-    gchar** emotes;
+    GList* emotes;
     gchar* colour;
-} GtChatCommandPrivmsg;
+} GtIrcCommandPrivmsg;
 
 typedef struct
 {
     gchar* server;
-} GtChatCommandPing;
+} GtIrcCommandPing;
 
 typedef struct
 {
     gchar* channel;
-} GtChatCommandJoin;
+} GtIrcCommandJoin;
 
 typedef enum
 {
@@ -77,60 +93,60 @@ typedef struct
     gchar* target;
     gchar* sub_command; //TODO: Change this to enum
     gchar* parameter;
-} GtChatCommandCap;
+} GtIrcCommandCap;
 
 typedef struct
 {
     GtChatReplyType type;
     gchar* reply; // Might need another union for more complex replies
-} GtChatCommandReply;
+} GtIrcCommandReply;
 
 typedef struct
 {
     gchar* channel;
     gchar* modes; //TODO: Turn this into bitmask of modes
     gchar* nick;
-} GtChatCommandChannelMode;
+} GtIrcCommandChannelMode;
 
 typedef struct
 {
     gchar* channel;
-} GtChatCommandUserstate;
+} GtIrcCommandUserstate;
 
 typedef struct
 {
     gchar* channel;
-} GtChatCommandRoomstate;
+} GtIrcCommandRoomstate;
 
 typedef struct
 {
     gchar* channel;
     gchar* target;
-} GtChatCommandClearchat;
+} GtIrcCommandClearchat;
 
 typedef struct
 {
     gchar* nick;
     gchar* user;
     gchar* host;
-    GtChatCommandType cmd_type;
+    GtIrcCommandType cmd_type;
     gchar** tags;
     union
     {
-        GtChatCommandNotice* notice;
-        GtChatCommandPrivmsg* privmsg;
-        GtChatCommandPing* ping;
-        GtChatCommandJoin* join;
-        GtChatCommandCap* cap;
-        GtChatCommandReply* reply;
-        GtChatCommandChannelMode* chan_mode;
-        GtChatCommandUserstate* userstate;
-        GtChatCommandRoomstate* roomstate;
-        GtChatCommandClearchat* clearchat;
+        GtIrcCommandNotice* notice;
+        GtIrcCommandPrivmsg* privmsg;
+        GtIrcCommandPing* ping;
+        GtIrcCommandJoin* join;
+        GtIrcCommandCap* cap;
+        GtIrcCommandReply* reply;
+        GtIrcCommandChannelMode* chan_mode;
+        GtIrcCommandUserstate* userstate;
+        GtIrcCommandRoomstate* roomstate;
+        GtIrcCommandClearchat* clearchat;
     } cmd;
-} GtTwitchChatMessage;
+} GtIrcMessage;
 
-typedef gboolean (*GtTwitchChatSourceFunc) (GtTwitchChatMessage* msg, gpointer udata);
+typedef gboolean (*GtTwitchChatSourceFunc) (GtIrcMessage* msg, gpointer udata);
 
 typedef struct _GtTwitchChatSource GtTwitchChatSource;
 
@@ -141,18 +157,17 @@ struct _GtIrc
     GtTwitchChatSource* source;
 };
 
-GtIrc*  gt_irc_new();
-void                 gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
-void                 gt_irc_disconnect(GtIrc* self);
-void                 gt_irc_join(GtIrc* self, const gchar* channel);
-void                 gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
-void                 gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void                 gt_irc_part(GtIrc* self);
-void                 gt_irc_privmsg(GtIrc* self, const gchar* msg);
-gboolean             gt_irc_is_connected(GtIrc* self);
-gboolean             gt_irc_is_logged_in(GtIrc* self);
-GtTwitchChatMessage* gt_twitch_chat_message_new();
-void                 gt_twitch_chat_message_free(GtTwitchChatMessage* msg);
+GtIrc*        gt_irc_new();
+void          gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
+void          gt_irc_disconnect(GtIrc* self);
+void          gt_irc_join(GtIrc* self, const gchar* channel);
+void          gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
+void          gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void          gt_irc_part(GtIrc* self);
+void          gt_irc_privmsg(GtIrc* self, const gchar* msg);
+gboolean      gt_irc_is_connected(GtIrc* self);
+gboolean      gt_irc_is_logged_in(GtIrc* self);
+void          gt_irc_message_free(GtIrcMessage* msg);
 
 G_END_DECLS
 

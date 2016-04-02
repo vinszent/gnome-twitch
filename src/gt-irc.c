@@ -1,7 +1,9 @@
 #include "gt-irc.h"
 #include "gt-app.h"
+#include "utils.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <glib/gprintf.h>
 
 #define CHAT_RPL_STR_WELCOME    "001"
@@ -57,6 +59,8 @@ typedef struct
     gboolean connected;
     gboolean recv_logged_in;
     gboolean send_logged_in;
+
+    GHashTable* emote_table;
 } GtIrcPrivate;
 
 struct _GtTwitchChatSource
@@ -118,7 +122,7 @@ source_dispatch(GSource* source,
                 gpointer udata)
 {
     GtTwitchChatSource* self = (GtTwitchChatSource*) source;
-    GtTwitchChatMessage* msg;
+    GtIrcMessage* msg;
 
     msg = g_async_queue_try_pop(self->queue);
 
@@ -126,7 +130,7 @@ source_dispatch(GSource* source,
         return TRUE;
     if (!callback)
     {
-        gt_twitch_chat_message_free(msg);
+        gt_irc_message_free(msg);
         return TRUE;
     }
 
@@ -161,7 +165,7 @@ gt_twitch_chat_source_new()
 
     g_source_set_name(source, "GtTwitchChatSource");
 
-    ((GtTwitchChatSource*) source)->queue = g_async_queue_new_full((GDestroyNotify) gt_twitch_chat_message_free);
+    ((GtTwitchChatSource*) source)->queue = g_async_queue_new_full((GDestroyNotify) gt_irc_message_free);
 
     return (GtTwitchChatSource*) source;
 }
@@ -212,17 +216,17 @@ str_is_numeric(const gchar* str)
     return TRUE;
 }
 
-static inline GtChatCommandType
+static inline GtIrcCommandType
 chat_cmd_str_to_enum(const gchar* str_cmd)
 {
     int ret = -1;
 
 #define IFCASE(name)                                         \
     else if (g_strcmp0(str_cmd, CHAT_CMD_STR_##name) == 0)   \
-        ret = GT_CHAT_COMMAND_##name;
+        ret = GT_IRC_COMMAND_##name;
 
     if (str_is_numeric(str_cmd))
-        ret = GT_CHAT_COMMAND_REPLY;
+        ret = GT_IRC_COMMAND_REPLY;
     IFCASE(NOTICE)
     IFCASE(PRIVMSG)
     IFCASE(CAP)
@@ -239,12 +243,12 @@ chat_cmd_str_to_enum(const gchar* str_cmd)
 }
 
 static inline const gchar*
-chat_cmd_enum_to_str(GtChatCommandType num)
+chat_cmd_enum_to_str(GtIrcCommandType num)
 {
     const gchar* ret = NULL;
 
 #define ADDCASE(name)                             \
-    case GT_CHAT_COMMAND_##name:                  \
+    case GT_IRC_COMMAND_##name:                  \
         ret = CHAT_CMD_STR_##name;                \
         break;
 
@@ -294,12 +298,25 @@ chat_reply_str_to_enum(const gchar* str_reply)
     return ret;
 }
 
-
-static void
-parse_line(gchar* line, GtTwitchChatMessage* msg)
+gint
+emote_compare(const GtEmote* a, const GtEmote* b)
 {
+    if (a->start < b->start)
+        return -1;
+    else if (a->start > b->start)
+        return 1;
+    else
+        return 0;
+}
+
+
+static GtIrcMessage*
+parse_line(GtIrc* self, gchar* line)
+{
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gchar* orig = line;
     gchar* prefix = NULL;
+    GtIrcMessage* msg = g_new0(GtIrcMessage, 1);
 
 //    g_print("%s\n", line);
 
@@ -327,53 +344,118 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
 
     switch (msg->cmd_type)
     {
-        case GT_CHAT_COMMAND_REPLY:
-            msg->cmd.reply = g_new0(GtChatCommandReply, 1);
+        case GT_IRC_COMMAND_REPLY:
+            msg->cmd.reply = g_new0(GtIrcCommandReply, 1);
             msg->cmd.reply->type = chat_reply_str_to_enum(cmd);
             msg->cmd.reply->reply = g_strdup(line);
             break;
-        case GT_CHAT_COMMAND_PING:
-            msg->cmd.ping = g_new0(GtChatCommandPing, 1);
+        case GT_IRC_COMMAND_PING:
+            msg->cmd.ping = g_new0(GtIrcCommandPing, 1);
             msg->cmd.ping->server = g_strdup(line);
             break;
-        case GT_CHAT_COMMAND_PRIVMSG:
-            msg->cmd.privmsg = g_new0(GtChatCommandPrivmsg, 1);
+        case GT_IRC_COMMAND_PRIVMSG:
+            msg->cmd.privmsg = g_new0(GtIrcCommandPrivmsg, 1);
             msg->cmd.privmsg->target = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
-            msg->cmd.privmsg->msg = g_strdup(strsep(&line, ":"));
+
+            /* if (line[0] == '\001') */
+            /* { */
+            /*     strsep(&line, " "); */
+            /*     line[strlen(line) - 1] = '\0'; */
+            /* } */
+
+            msg->cmd.privmsg->msg = g_strdup(line);
+
+            if (!msg->tags)
+                break;
+
+            gint user_modes = 0;
+
+            if (atoi(utils_search_key_value_strv(msg->tags, "subscriber")))
+                user_modes |= IRC_USER_MODE_SUBSCRIBER;
+            if (atoi(utils_search_key_value_strv(msg->tags, "turbo")))
+                user_modes |= IRC_USER_MODE_TURBO;
+
+            const gchar* user_type = utils_search_key_value_strv(msg->tags, "user-type");
+            if (g_strcmp0(user_type, "mod") == 0) user_modes |= IRC_USER_MODE_MOD;
+            else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= IRC_USER_MODE_GLOBAL_MOD;
+            else if (g_strcmp0(user_type, "admin") == 0) user_modes |= IRC_USER_MODE_ADMIN;
+            else if (g_strcmp0(user_type, "staff") == 0) user_modes |= IRC_USER_MODE_STAFF;
+
+            msg->cmd.privmsg->user_modes = user_modes;
+
+            msg->cmd.privmsg->colour = g_strdup(utils_search_key_value_strv(msg->tags, "color"));
+            msg->cmd.privmsg->display_name = g_strdup(utils_search_key_value_strv(msg->tags, "display-name"));
+
+            gchar emotes[300];
+            g_sprintf(emotes, "%s", utils_search_key_value_strv(msg->tags, "emotes"));
+            gchar* _emotes = emotes;
+            gchar* e;
+
+            while ((e = strsep(&_emotes, "/")) != NULL)
+            {
+                gint id;
+                gchar* indexes;
+                gchar* i;
+
+                id = atoi(strsep(&e, ":"));
+                indexes = strsep(&e, ":");
+
+                while ((i = strsep(&indexes, ",")) != NULL)
+                {
+                    GtEmote* emp = g_new0(GtEmote, 1);
+                    emp->start = atoi(strsep(&i, "-"));
+                    emp->end = atoi(strsep(&i, "-"));
+                    emp->id = id;
+
+                    if (!g_hash_table_contains(priv->emote_table, &id))
+                    {
+                        g_hash_table_insert(priv->emote_table, &id,
+                                            gt_twitch_download_emote(main_app->twitch, id));
+                    }
+
+                    emp->pixbuf = g_hash_table_lookup(priv->emote_table, &id);
+                    g_object_ref(emp->pixbuf);
+
+                    msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
+                }
+            }
+
+            msg->cmd.privmsg->emotes = g_list_sort(msg->cmd.privmsg->emotes, (GCompareFunc) emote_compare);
+
             break;
-        case GT_CHAT_COMMAND_NOTICE:
-            msg->cmd.notice = g_new0(GtChatCommandNotice, 1);
+        case GT_IRC_COMMAND_NOTICE:
+            msg->cmd.notice = g_new0(GtIrcCommandNotice, 1);
             msg->cmd.notice->target = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
             msg->cmd.notice->msg = g_strdup(strsep(&line, ":"));
             break;
-        case GT_CHAT_COMMAND_JOIN:
-            msg->cmd.join = g_new0(GtChatCommandJoin, 1);
+        case GT_IRC_COMMAND_JOIN:
+            msg->cmd.join = g_new0(GtIrcCommandJoin, 1);
             msg->cmd.join->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CAP:
-            msg->cmd.cap = g_new0(GtChatCommandCap, 1);
+        case GT_IRC_COMMAND_CAP:
+            msg->cmd.cap = g_new0(GtIrcCommandCap, 1);
             msg->cmd.cap->target = g_strdup(strsep(&line, " "));
             msg->cmd.cap->sub_command = g_strdup(strsep(&line, " ")); //TODO: Replace with enum
             msg->cmd.cap->parameter = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CHANNEL_MODE:
-            msg->cmd.chan_mode = g_new0(GtChatCommandChannelMode, 1);
+        case GT_IRC_COMMAND_CHANNEL_MODE:
+            msg->cmd.chan_mode = g_new0(GtIrcCommandChannelMode, 1);
             msg->cmd.chan_mode->channel = g_strdup(strsep(&line, " "));
             msg->cmd.chan_mode->modes = g_strdup(strsep(&line, " "));
             msg->cmd.chan_mode->nick = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_USERSTATE:
-            msg->cmd.userstate = g_new0(GtChatCommandUserstate, 1);
+        case GT_IRC_COMMAND_USERSTATE:
+            msg->cmd.userstate = g_new0(GtIrcCommandUserstate, 1);
             msg->cmd.userstate->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_ROOMSTATE:
-            msg->cmd.roomstate = g_new0(GtChatCommandRoomstate, 1);
+        case GT_IRC_COMMAND_ROOMSTATE:
+            msg->cmd.roomstate = g_new0(GtIrcCommandRoomstate, 1);
             msg->cmd.roomstate->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CLEARCHAT:
-            msg->cmd.clearchat = g_new0(GtChatCommandClearchat, 1);
+        case GT_IRC_COMMAND_CLEARCHAT:
+            msg->cmd.clearchat = g_new0(GtIrcCommandClearchat, 1);
             msg->cmd.clearchat->channel = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
             msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
@@ -384,10 +466,12 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
     }
 
     g_free(orig);
+
+    return msg;
 }
 
 static gboolean
-handle_message(GtIrc* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
+handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
@@ -395,7 +479,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
     {
         if (!priv->recv_logged_in)
         {
-            if (msg->cmd_type == GT_CHAT_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
+            if (msg->cmd_type == GT_IRC_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
             {
                 priv->recv_logged_in = TRUE;
 
@@ -420,7 +504,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
             }
         }
 
-        if (msg->cmd_type == GT_CHAT_COMMAND_PING)
+        if (msg->cmd_type == GT_IRC_COMMAND_PING)
         {
             send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
         }
@@ -433,7 +517,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
     {
         if (!priv->send_logged_in)
         {
-            if (msg->cmd_type == GT_CHAT_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
+            if (msg->cmd_type == GT_IRC_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
             {
                 priv->send_logged_in = TRUE;
 
@@ -458,10 +542,10 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
             }
         }
 
-        if (msg->cmd_type == GT_CHAT_COMMAND_PING)
+        if (msg->cmd_type == GT_IRC_COMMAND_PING)
             send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
 
-        gt_twitch_chat_message_free(msg);
+        gt_irc_message_free(msg);
     }
 
     return TRUE;
@@ -492,9 +576,7 @@ read_lines(ChatThreadData* data)
 
         if (line)
         {
-            GtTwitchChatMessage* msg = gt_twitch_chat_message_new();
-
-            parse_line(line, msg);
+            GtIrcMessage* msg = parse_line(self, line);
             /* g_print("Nick %s\n", msg->nick); */
             /* g_print("User %s\n", msg->user); */
             /* g_print("Host %s\n", msg->host); */
@@ -597,6 +679,7 @@ gt_irc_init(GtIrc* self)
     priv->connected = FALSE;
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
+    priv->emote_table = g_hash_table_new(g_int_hash, g_int_equal);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
@@ -712,7 +795,7 @@ gt_irc_disconnect(GtIrc* self)
 
     self->source->resetting_queue = TRUE;
     g_async_queue_unref(self->source->queue);
-    self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_twitch_chat_message_free);
+    self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_irc_message_free);
     self->source->resetting_queue = FALSE;
 
 }
@@ -841,14 +924,15 @@ gt_irc_is_logged_in(GtIrc* self)
     return priv->recv_logged_in && priv->send_logged_in;
 }
 
-GtTwitchChatMessage*
-gt_twitch_chat_message_new()
+static void
+gt_emote_free(GtEmote* emote)
 {
-    return g_new0(GtTwitchChatMessage, 1);
+    g_object_unref(emote->pixbuf);
+    g_clear_pointer(&emote, g_free);
 }
 
 void
-gt_twitch_chat_message_free(GtTwitchChatMessage* msg)
+gt_irc_message_free(GtIrcMessage* msg)
 {
     g_free(msg->nick);
     g_free(msg->user);
@@ -857,49 +941,52 @@ gt_twitch_chat_message_free(GtTwitchChatMessage* msg)
 
     switch (msg->cmd_type)
     {
-        case GT_CHAT_COMMAND_NOTICE:
+        case GT_IRC_COMMAND_NOTICE:
             g_free(msg->cmd.notice->msg);
             g_free(msg->cmd.notice->target);
             g_free(msg->cmd.notice);
             break;
-        case GT_CHAT_COMMAND_PING:
+        case GT_IRC_COMMAND_PING:
             g_free(msg->cmd.ping->server);
             g_free(msg->cmd.ping);
             break;
-        case GT_CHAT_COMMAND_PRIVMSG:
+        case GT_IRC_COMMAND_PRIVMSG:
             g_free(msg->cmd.privmsg->msg);
             g_free(msg->cmd.privmsg->target);
+            g_free(msg->cmd.privmsg->colour);
+            g_free(msg->cmd.privmsg->display_name);
+            g_list_free_full(msg->cmd.privmsg->emotes, (GDestroyNotify) gt_emote_free);
             g_free(msg->cmd.privmsg);
             break;
-        case GT_CHAT_COMMAND_REPLY:
+        case GT_IRC_COMMAND_REPLY:
             g_free(msg->cmd.reply->reply);
             g_free(msg->cmd.reply);
             break;
-        case GT_CHAT_COMMAND_JOIN:
+        case GT_IRC_COMMAND_JOIN:
             g_free(msg->cmd.join->channel);
             g_free(msg->cmd.join);
             break;
-        case GT_CHAT_COMMAND_CAP:
+        case GT_IRC_COMMAND_CAP:
             g_free(msg->cmd.cap->parameter);
             g_free(msg->cmd.cap->target);
             g_free(msg->cmd.cap->sub_command);
             g_free(msg->cmd.cap);
             break;
-        case GT_CHAT_COMMAND_CHANNEL_MODE:
+        case GT_IRC_COMMAND_CHANNEL_MODE:
             g_free(msg->cmd.chan_mode->channel);
             g_free(msg->cmd.chan_mode->modes);
             g_free(msg->cmd.chan_mode->nick);
             g_free(msg->cmd.chan_mode);
             break;
-        case GT_CHAT_COMMAND_USERSTATE:
+        case GT_IRC_COMMAND_USERSTATE:
             g_free(msg->cmd.userstate->channel);
             g_free(msg->cmd.userstate);
             break;
-        case GT_CHAT_COMMAND_ROOMSTATE:
+        case GT_IRC_COMMAND_ROOMSTATE:
             g_free(msg->cmd.roomstate->channel);
             g_free(msg->cmd.roomstate);
             break;
-        case GT_CHAT_COMMAND_CLEARCHAT:
+        case GT_IRC_COMMAND_CLEARCHAT:
             g_free(msg->cmd.clearchat->channel);
             g_free(msg->cmd.clearchat->target);
             g_free(msg->cmd.clearchat);
