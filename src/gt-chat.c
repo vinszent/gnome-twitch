@@ -279,23 +279,12 @@ credentials_set_cb(GObject* source,
 {
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
-    gchar* user_name;
-    gchar* oauth_token;
 
-    g_object_get(main_app,
-                 "user-name", &user_name,
-                 "oauth-token", &oauth_token,
-                 NULL);
-
-    if (!user_name || !oauth_token ||
-        strlen(user_name) < 1 || strlen(oauth_token) < 1)
+    if (!gt_app_credentials_valid(main_app))
     {
-        gt_irc_disconnect(priv->chat);
-        gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
+        gt_chat_disconnect(self);
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
-
-        priv->joined_channel = FALSE;
     }
     else
     {
@@ -305,15 +294,12 @@ credentials_set_cb(GObject* source,
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
 
-        if (open_chan && !gt_irc_is_connected(priv->chat))
+        if (open_chan)
         {
-            gt_irc_connect_and_join(priv->chat, gt_channel_get_name(open_chan));
+            gt_chat_connect(self, gt_channel_get_name(open_chan));
             g_object_unref(open_chan);
         }
     }
-
-    g_free(user_name);
-    g_free(oauth_token);
 }
 
 static void
@@ -530,6 +516,12 @@ void
 gt_chat_connect(GtChat* self, const gchar* chan)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
+
+    if (!gt_app_credentials_valid(main_app))
+    {
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
+        return;
+    }
 
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
