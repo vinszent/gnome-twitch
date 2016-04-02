@@ -11,6 +11,8 @@
 ** DONE Change buffer progress bar to spinner.
 ** DONE Disconnect chat when stream is closed.
 ** DONE gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
+** TODO Refactor GtTwitchChannelInfoDlg into GtChannelInfoDlg
+** TODO Refactor GtTwitchLoginDlg into GtLoginDlg
 * Minor milestones
 ** TODO Do proper CLI handling with built GtkApplication
 ** TODO Create a better offline image
