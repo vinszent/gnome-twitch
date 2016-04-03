@@ -3,10 +3,10 @@
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2016-03-30 18:20+0200\n"
-"PO-Revision-Date: 2016-03-30 18:22+0200\n"
+"POT-Creation-Date: 2016-04-03 22:32+0200\n"
+"PO-Revision-Date: 2016-04-03 22:33+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -96,23 +96,23 @@ msgstr "Ciemny wariant motywu"
 msgid "Default video quality:"
 msgstr "Domyślna jakość obrazu:"
 
-#: data/ui/gt-twitch-chat-view.ui:1
+#: data/ui/gt-chat.ui:1
 msgid "Send a message"
 msgstr "Wyślij wiadomość"
 
-#: data/ui/gt-twitch-chat-view.ui:2
+#: data/ui/gt-chat.ui:2
 msgid "Connecting to chat"
 msgstr "Łączenie z czatem"
 
-#: data/ui/gt-twitch-chat-view.ui:3
+#: data/ui/gt-chat.ui:3
 msgid "Not logged into Twitch!"
 msgstr "Nie zalogowano w serwisie Twitch"
 
-#: data/ui/gt-twitch-chat-view.ui:4
+#: data/ui/gt-chat.ui:4
 msgid "Click to login"
 msgstr "Zaloguj"
 
-#: data/ui/gt-twitch-chat-view.ui:5
+#: data/ui/gt-chat.ui:5
 msgid "Click to reconnect"
 msgstr "Połącz ponownie"
 
@@ -125,14 +125,18 @@ msgid "Player"
 msgstr "Odtwarzacz"
 
 #: data/ui/gt-win.ui:3
+msgid "Yes"
+msgstr "Tak"
+
+#: data/ui/gt-win.ui:4
 msgid "Channels"
 msgstr "Kanały"
 
-#: data/ui/gt-win.ui:4
+#: data/ui/gt-win.ui:5
 msgid "Favourites"
 msgstr "Ulubione"
 
-#: data/ui/gt-win.ui:5
+#: data/ui/gt-win.ui:6
 msgid "Games"
 msgstr "Gry"
 
@@ -140,7 +144,7 @@ msgstr "Gry"
 msgid "Refresh login"
 msgstr "Odśwież logowanie"
 
-#: src/gt-app.c:386
+#: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
 msgid "Login to Twitch"
 msgstr "Zaloguj w serwisie Twitch"
 
@@ -181,6 +185,27 @@ msgstr "Nie odnaleziono kanałów"
 msgid "Try a different search"
 msgstr "Proszę spróbować innych słów"
 
+#: src/gt-channels-container-search.c:185
+msgid "Searching channels"
+msgstr "Wyszukiwanie kanałów"
+
+#: src/gt-channels-container-game.c:174
+#: src/gt-channels-container-top.c:155
+msgid "Loading channels"
+msgstr "Wczytywanie kanałów"
+
+#: src/gt-games-container-search.c:202
+msgid "No games found"
+msgstr "Nie odnaleziono gier"
+
+#: src/gt-games-container-search.c:204
+msgid "Searching games"
+msgstr "Wyszukiwanie gier"
+
+#: src/gt-games-container-top.c:161
+msgid "Loading games"
+msgstr "Wczytywanie gier"
+
 #: src/gt-favourites-manager.c:63
 #, c-format
 msgid "Channel %s is now online"
@@ -195,10 +220,6 @@ msgstr "Streamowanie „%s”"
 msgid "Untitled broadcast"
 msgstr "Audycja bez tytułu"
 
-#: src/gt-games-container-search.c:202
-msgid "No games found"
-msgstr "Nie odnaleziono gier"
-
 #: src/gt-player-clutter.c:295
 msgid "Loading stream"
 msgstr "Wczytywanie streamu"
@@ -208,9 +229,9 @@ msgstr "Wczytywanie streamu"
 msgid "Buffered %d%%"
 msgstr "Zbuforowano %d%%"
 
-#: src/gt-twitch-channel-info-dlg.c:162
-msgid "• "
-msgstr "• "
+#: src/gt-twitch-login-dlg.c:114
+msgid "Successfully logged in to Twitch!"
+msgstr "Zalogowano w serwisie Twitch"
 
 #: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
@@ -221,6 +242,10 @@ msgid "translator-credits"
 msgstr ""
 "Piotr Drąg <piotrdrag@gmail.com>, 2015-2016\n"
 "Aviary.pl <gnomepl@aviary.pl>, 2015-2016"
+
+#: src/gt-win.c:100
+msgid "Contributors"
+msgstr "Współtwórcy"
 
 #: src/gt-win.c:176
 msgid "Already logged into Twitch, refresh login?"
