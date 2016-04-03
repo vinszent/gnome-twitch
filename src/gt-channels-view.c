@@ -94,7 +94,7 @@ search_changed_cb(GtkEditable* edit,
 
     const gchar* query = gtk_entry_get_text(GTK_ENTRY(edit));
 
-    gt_channels_container_set_filter_query(VISIBLE_CONTAINER, query);
+    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->search_container), query);
 }
 
 static void
@@ -187,4 +187,12 @@ gt_channels_view_show_type(GtChannelsView* self, GtChannelsContainerType type)
     }
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_SHOWING_TOP_CHANNELS]);
+}
+
+gboolean
+gt_channels_view_handle_event(GtChannelsView* self, GdkEvent* event)
+{
+    GtChannelsViewPrivate* priv = gt_channels_view_get_instance_private(self);
+
+    return gtk_search_bar_handle_event(GTK_SEARCH_BAR(priv->search_bar), event);
 }
