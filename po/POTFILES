@@ -1,5 +1,15 @@
 data/ui/app-menu.ui
 data/ui/gt-player-header-bar.ui
 data/ui/gt-settings-dlg.ui
+data/ui/gt-twitch-chat-view.ui
 data/ui/gt-win.ui
+src/gt-app.c
+src/gt-channels-container-child.c
+src/gt-channels-container-favourite.c
+src/gt-channels-container-search.c
+src/gt-favourites-manager.c
+src/gt-game.c
+src/gt-games-container-search.c
+src/gt-player-clutter.c
+src/gt-twitch-channel-info-dlg.c
 src/gt-win.c
