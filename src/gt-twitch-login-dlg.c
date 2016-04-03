@@ -111,7 +111,7 @@ uri_changed_cb(GObject* source,
         g_message("{GtTwitchLoginDlg} Successfully got OAuth token '%s'", token);
 
         gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
-                                 "Successfully logged in to Twitch!");
+                                 _("Successfully logged in to Twitch!"));
 
         gtk_widget_destroy(GTK_WIDGET(self));
         g_free(token);
