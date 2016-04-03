@@ -250,14 +250,7 @@ key_press_cb(GtkWidget* widget,
 
     if (MAIN_VISIBLE_CHILD == self->player)
     {
-        if (evt->keyval == GDK_KEY_space)
-        {
-            if (playing)
-                gt_player_stop(GT_PLAYER(self->player));
-            else
-                gt_player_play(GT_PLAYER(self->player));
-        }
-        else if (evt->keyval == GDK_KEY_Escape)
+        if (evt->keyval == GDK_KEY_Escape)
         {
             if (priv->fullscreen)
                 gtk_window_unfullscreen(GTK_WINDOW(self));
@@ -283,14 +276,14 @@ key_press_cb(GtkWidget* widget,
             gt_browse_header_bar_toggle_search(GT_BROWSE_HEADER_BAR(priv->browse_header_bar));
         else
         {
-            GtkWidget *view = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
+            GtkWidget* view = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
 
             if (view == priv->channels_view)
-                gt_channels_view_handle_event(GT_CHANNELS_VIEW(priv->channels_view), (GdkEvent *)evt);
+                gt_channels_view_handle_event(GT_CHANNELS_VIEW(priv->channels_view), (GdkEvent*) evt);
             else if (view == priv->games_view)
-                gt_games_view_handle_event(GT_GAMES_VIEW(priv->games_view), (GdkEvent *)evt);
+                gt_games_view_handle_event(GT_GAMES_VIEW(priv->games_view), (GdkEvent*) evt);
             else if (view == priv->favourites_view)
-                gt_favourites_view_handle_event(GT_FAVOURITES_VIEW(priv->favourites_view), (GdkEvent *)evt);
+                gt_favourites_view_handle_event(GT_FAVOURITES_VIEW(priv->favourites_view), (GdkEvent* )evt);
         }
     }
 
