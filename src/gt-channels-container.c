@@ -9,6 +9,7 @@ typedef struct
     GtkWidget* channels_scroll;
     GtkWidget* channels_flow;
     GtkWidget* load_revealer;
+    GtkWidget* loading_label;
     GtkWidget* empty_box;
     GtkWidget* empty_image;
     GtkWidget* empty_title_label;
@@ -52,6 +53,14 @@ set_empty_info(GtChannelsContainer* self, const gchar* image_icon,
     gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), image_icon, GTK_ICON_SIZE_DIALOG);
     gtk_label_set_label(GTK_LABEL(priv->empty_title_label), title);
     gtk_label_set_label(GTK_LABEL(priv->empty_subtitle_label), subtitle);
+}
+
+static void
+set_loading_info(GtChannelsContainer* self, const gchar* title)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    gtk_label_set_label(GTK_LABEL(priv->loading_label), title);
 }
 
 static void
@@ -211,6 +220,7 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
 
     klass->check_empty = check_empty;
     klass->set_empty_info = set_empty_info;
+    klass->set_loading_info = set_loading_info;
     klass->show_load_spinner = show_load_spinner;
     klass->append_channel = append_channel;
     klass->append_channels = append_channels;
@@ -227,6 +237,7 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_title_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, empty_subtitle_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, loading_label);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), edge_reached_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), child_activated_cb);

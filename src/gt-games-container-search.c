@@ -201,6 +201,7 @@ gt_games_container_search_init(GtGamesContainerSearch* self)
                            "edit-find-symbolic",
                            _("No games found"),
                            _("Try a different search"));
+    PCLASS->set_loading_info(GT_GAMES_CONTAINER(self), _("Searching games"));
 
     PCLASS->check_empty(GT_GAMES_CONTAINER(self));
 

@@ -27,12 +27,25 @@
                 <property name="reveal-child">False</property>
                 <property name="transition-type">crossfade</property>
                 <child>
-                  <object class="GtkSpinner">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="active">True</property>
-                    <property name="expand">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
                     <property name="valign">center</property>
-                    <property name="height-request">100</property>
+                    <property name="halign">center</property>
+                    <child>
+                      <object class="GtkSpinner">
+                        <property name="visible">True</property>
+                        <property name="active">True</property>
+                        <property name="expand">True</property>
+                        <property name="height-request">48</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="loading_label">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

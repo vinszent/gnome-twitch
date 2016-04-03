@@ -1,7 +1,9 @@
-#include "gt-twitch-chat-client.h"
+#include "gt-irc.h"
 #include "gt-app.h"
+#include "utils.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <glib/gprintf.h>
 
 #define CHAT_RPL_STR_WELCOME    "001"
@@ -34,7 +36,7 @@
 
 #define CR_LF "\r\n"
 
-#define GT_TWITCH_CHAT_CLIENT_ERROR g_quark_from_static_string("gt-twitch-chat-client-error")
+#define GT_IRC_ERROR g_quark_from_static_string("gt-irc-error")
 
 enum
 {
@@ -57,7 +59,9 @@ typedef struct
     gboolean connected;
     gboolean recv_logged_in;
     gboolean send_logged_in;
-} GtTwitchChatClientPrivate;
+
+    GHashTable* emote_table;
+} GtIrcPrivate;
 
 struct _GtTwitchChatSource
 {
@@ -68,12 +72,12 @@ struct _GtTwitchChatSource
 
 typedef struct
 {
-    GtTwitchChatClient* self;
+    GtIrc* self;
     GDataInputStream* istream;
     GOutputStream* ostream;
 } ChatThreadData;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchChatClient, gt_twitch_chat_client, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE(GtIrc, gt_irc, G_TYPE_OBJECT)
 
 enum
 {
@@ -92,10 +96,10 @@ static GParamSpec* props[NUM_PROPS];
 
 static guint sigs[NUM_SIGS];
 
-GtTwitchChatClient*
-gt_twitch_chat_client_new()
+GtIrc*
+gt_irc_new()
 {
-    return g_object_new(GT_TYPE_TWITCH_CHAT_CLIENT,
+    return g_object_new(GT_TYPE_IRC,
                         NULL);
 }
 
@@ -118,7 +122,7 @@ source_dispatch(GSource* source,
                 gpointer udata)
 {
     GtTwitchChatSource* self = (GtTwitchChatSource*) source;
-    GtTwitchChatMessage* msg;
+    GtIrcMessage* msg;
 
     msg = g_async_queue_try_pop(self->queue);
 
@@ -126,7 +130,7 @@ source_dispatch(GSource* source,
         return TRUE;
     if (!callback)
     {
-        gt_twitch_chat_message_free(msg);
+        gt_irc_message_free(msg);
         return TRUE;
     }
 
@@ -161,7 +165,7 @@ gt_twitch_chat_source_new()
 
     g_source_set_name(source, "GtTwitchChatSource");
 
-    ((GtTwitchChatSource*) source)->queue = g_async_queue_new_full((GDestroyNotify) gt_twitch_chat_message_free);
+    ((GtTwitchChatSource*) source)->queue = g_async_queue_new_full((GDestroyNotify) gt_irc_message_free);
 
     return (GtTwitchChatSource*) source;
 }
@@ -179,7 +183,7 @@ send_raw_printf(GOutputStream* ostream, const gchar* format, ...)
 static void
 send_cmd(GOutputStream* ostream, const gchar* cmd, const gchar* param)
 {
-    g_info("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+    g_info("{GtIrc} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -194,7 +198,7 @@ send_cmd_printf(GOutputStream* ostream, const gchar* cmd, const gchar* format, .
     g_vsprintf(param, format, args);
     va_end(args);
 
-    g_info("{GtTwitchChatClient} Sending command '%s' with parameter '%s'", cmd, param);
+    g_info("{GtIrc} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -212,17 +216,17 @@ str_is_numeric(const gchar* str)
     return TRUE;
 }
 
-static inline GtChatCommandType
+static inline GtIrcCommandType
 chat_cmd_str_to_enum(const gchar* str_cmd)
 {
     int ret = -1;
 
 #define IFCASE(name)                                         \
     else if (g_strcmp0(str_cmd, CHAT_CMD_STR_##name) == 0)   \
-        ret = GT_CHAT_COMMAND_##name;
+        ret = GT_IRC_COMMAND_##name;
 
     if (str_is_numeric(str_cmd))
-        ret = GT_CHAT_COMMAND_REPLY;
+        ret = GT_IRC_COMMAND_REPLY;
     IFCASE(NOTICE)
     IFCASE(PRIVMSG)
     IFCASE(CAP)
@@ -239,12 +243,12 @@ chat_cmd_str_to_enum(const gchar* str_cmd)
 }
 
 static inline const gchar*
-chat_cmd_enum_to_str(GtChatCommandType num)
+chat_cmd_enum_to_str(GtIrcCommandType num)
 {
     const gchar* ret = NULL;
 
 #define ADDCASE(name)                             \
-    case GT_CHAT_COMMAND_##name:                  \
+    case GT_IRC_COMMAND_##name:                  \
         ret = CHAT_CMD_STR_##name;                \
         break;
 
@@ -294,12 +298,25 @@ chat_reply_str_to_enum(const gchar* str_reply)
     return ret;
 }
 
-
-static void
-parse_line(gchar* line, GtTwitchChatMessage* msg)
+gint
+emote_compare(const GtEmote* a, const GtEmote* b)
 {
+    if (a->start < b->start)
+        return -1;
+    else if (a->start > b->start)
+        return 1;
+    else
+        return 0;
+}
+
+
+static GtIrcMessage*
+parse_line(GtIrc* self, gchar* line)
+{
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gchar* orig = line;
     gchar* prefix = NULL;
+    GtIrcMessage* msg = g_new0(GtIrcMessage, 1);
 
 //    g_print("%s\n", line);
 
@@ -327,75 +344,143 @@ parse_line(gchar* line, GtTwitchChatMessage* msg)
 
     switch (msg->cmd_type)
     {
-        case GT_CHAT_COMMAND_REPLY:
-            msg->cmd.reply = g_new0(GtChatCommandReply, 1);
+        case GT_IRC_COMMAND_REPLY:
+            msg->cmd.reply = g_new0(GtIrcCommandReply, 1);
             msg->cmd.reply->type = chat_reply_str_to_enum(cmd);
             msg->cmd.reply->reply = g_strdup(line);
             break;
-        case GT_CHAT_COMMAND_PING:
-            msg->cmd.ping = g_new0(GtChatCommandPing, 1);
+        case GT_IRC_COMMAND_PING:
+            msg->cmd.ping = g_new0(GtIrcCommandPing, 1);
             msg->cmd.ping->server = g_strdup(line);
             break;
-        case GT_CHAT_COMMAND_PRIVMSG:
-            msg->cmd.privmsg = g_new0(GtChatCommandPrivmsg, 1);
+        case GT_IRC_COMMAND_PRIVMSG:
+            msg->cmd.privmsg = g_new0(GtIrcCommandPrivmsg, 1);
             msg->cmd.privmsg->target = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
-            msg->cmd.privmsg->msg = g_strdup(strsep(&line, ":"));
+
+            if (line[0] == '\001')
+            {
+                strsep(&line, " ");
+                line[strlen(line) - 1] = '\0';
+            }
+
+            msg->cmd.privmsg->msg = g_strdup(line);
+
+            if (!msg->tags)
+                break;
+
+            gint user_modes = 0;
+
+            if (atoi(utils_search_key_value_strv(msg->tags, "subscriber")))
+                user_modes |= IRC_USER_MODE_SUBSCRIBER;
+            if (atoi(utils_search_key_value_strv(msg->tags, "turbo")))
+                user_modes |= IRC_USER_MODE_TURBO;
+
+            const gchar* user_type = utils_search_key_value_strv(msg->tags, "user-type");
+            if (g_strcmp0(user_type, "mod") == 0) user_modes |= IRC_USER_MODE_MOD;
+            else if (g_strcmp0(user_type, "global_mod") == 0) user_modes |= IRC_USER_MODE_GLOBAL_MOD;
+            else if (g_strcmp0(user_type, "admin") == 0) user_modes |= IRC_USER_MODE_ADMIN;
+            else if (g_strcmp0(user_type, "staff") == 0) user_modes |= IRC_USER_MODE_STAFF;
+
+            msg->cmd.privmsg->user_modes = user_modes;
+
+            msg->cmd.privmsg->colour = g_strdup(utils_search_key_value_strv(msg->tags, "color"));
+            msg->cmd.privmsg->display_name = g_strdup(utils_search_key_value_strv(msg->tags, "display-name"));
+
+            gchar* emotes = g_strdup(utils_search_key_value_strv(msg->tags, "emotes"));
+            gchar* _emotes = emotes;
+            gchar* e;
+
+            while ((e = strsep(&emotes, "/")) != NULL)
+            {
+                gint id;
+                gchar* indexes;
+                gchar* i;
+
+                id = atoi(strsep(&e, ":"));
+                indexes = strsep(&e, ":");
+
+                while ((i = strsep(&indexes, ",")) != NULL)
+                {
+                    GtEmote* emp = g_new0(GtEmote, 1);
+                    emp->start = atoi(strsep(&i, "-"));
+                    emp->end = atoi(strsep(&i, "-"));
+                    emp->id = id;
+
+                    if (!g_hash_table_contains(priv->emote_table, &id))
+                    {
+                        g_hash_table_insert(priv->emote_table, &id,
+                                            gt_twitch_download_emote(main_app->twitch, id));
+                    }
+
+                    emp->pixbuf = g_hash_table_lookup(priv->emote_table, &id);
+                    g_object_ref(emp->pixbuf);
+
+                    msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
+                }
+            }
+
+            g_free(_emotes);
+
+            msg->cmd.privmsg->emotes = g_list_sort(msg->cmd.privmsg->emotes, (GCompareFunc) emote_compare);
+
             break;
-        case GT_CHAT_COMMAND_NOTICE:
-            msg->cmd.notice = g_new0(GtChatCommandNotice, 1);
+        case GT_IRC_COMMAND_NOTICE:
+            msg->cmd.notice = g_new0(GtIrcCommandNotice, 1);
             msg->cmd.notice->target = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
             msg->cmd.notice->msg = g_strdup(strsep(&line, ":"));
             break;
-        case GT_CHAT_COMMAND_JOIN:
-            msg->cmd.join = g_new0(GtChatCommandJoin, 1);
+        case GT_IRC_COMMAND_JOIN:
+            msg->cmd.join = g_new0(GtIrcCommandJoin, 1);
             msg->cmd.join->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CAP:
-            msg->cmd.cap = g_new0(GtChatCommandCap, 1);
+        case GT_IRC_COMMAND_CAP:
+            msg->cmd.cap = g_new0(GtIrcCommandCap, 1);
             msg->cmd.cap->target = g_strdup(strsep(&line, " "));
             msg->cmd.cap->sub_command = g_strdup(strsep(&line, " ")); //TODO: Replace with enum
             msg->cmd.cap->parameter = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CHANNEL_MODE:
-            msg->cmd.chan_mode = g_new0(GtChatCommandChannelMode, 1);
+        case GT_IRC_COMMAND_CHANNEL_MODE:
+            msg->cmd.chan_mode = g_new0(GtIrcCommandChannelMode, 1);
             msg->cmd.chan_mode->channel = g_strdup(strsep(&line, " "));
             msg->cmd.chan_mode->modes = g_strdup(strsep(&line, " "));
             msg->cmd.chan_mode->nick = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_USERSTATE:
-            msg->cmd.userstate = g_new0(GtChatCommandUserstate, 1);
+        case GT_IRC_COMMAND_USERSTATE:
+            msg->cmd.userstate = g_new0(GtIrcCommandUserstate, 1);
             msg->cmd.userstate->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_ROOMSTATE:
-            msg->cmd.roomstate = g_new0(GtChatCommandRoomstate, 1);
+        case GT_IRC_COMMAND_ROOMSTATE:
+            msg->cmd.roomstate = g_new0(GtIrcCommandRoomstate, 1);
             msg->cmd.roomstate->channel = g_strdup(strsep(&line, " "));
             break;
-        case GT_CHAT_COMMAND_CLEARCHAT:
-            msg->cmd.clearchat = g_new0(GtChatCommandClearchat, 1);
+        case GT_IRC_COMMAND_CLEARCHAT:
+            msg->cmd.clearchat = g_new0(GtIrcCommandClearchat, 1);
             msg->cmd.clearchat->channel = g_strdup(strsep(&line, " "));
             strsep(&line, ":");
             msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
             break;
         default:
-            g_warning("{GtTwitchChatClient} Unhandled irc command '%s'\n", line);
+            g_warning("{GtIrc} Unhandled irc command '%s'\n", line);
             break;
     }
 
     g_free(orig);
+
+    return msg;
 }
 
 static gboolean
-handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMessage* msg)
+handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     if (ostream == priv->ostream_recv)
     {
         if (!priv->recv_logged_in)
         {
-            if (msg->cmd_type == GT_CHAT_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
+            if (msg->cmd_type == GT_IRC_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
             {
                 priv->recv_logged_in = TRUE;
 
@@ -406,21 +491,21 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
             {
                 GError* err;
 
-                err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
+                err = g_error_new(GT_IRC_ERROR, ERROR_LOG_IN_FAILED,
                                   "Unable to log in on receive socket, server replied '%s'", msg->cmd.notice->msg);
 
                 g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
 
                 g_error_free(err);
 
-                g_warning("{GtTwitchChatClient} Unable to log in on recive socket, server replied '%s'",
+                g_warning("{GtIrc} Unable to log in on recive socket, server replied '%s'",
                           msg->cmd.notice->msg);
 
                 return FALSE;
             }
         }
 
-        if (msg->cmd_type == GT_CHAT_COMMAND_PING)
+        if (msg->cmd_type == GT_IRC_COMMAND_PING)
         {
             send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
         }
@@ -433,7 +518,7 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
     {
         if (!priv->send_logged_in)
         {
-            if (msg->cmd_type == GT_CHAT_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
+            if (msg->cmd_type == GT_IRC_COMMAND_REPLY && msg->cmd.reply->type == GT_CHAT_REPLY_WELCOME)
             {
                 priv->send_logged_in = TRUE;
 
@@ -444,24 +529,24 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
             {
                 GError* err;
 
-                err = g_error_new(GT_TWITCH_CHAT_CLIENT_ERROR, ERROR_LOG_IN_FAILED,
+                err = g_error_new(GT_IRC_ERROR, ERROR_LOG_IN_FAILED,
                                   "Unable to log in on send socket, server replied '%s'", msg->cmd.notice->msg);
 
                 g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
 
                 g_error_free(err);
 
-                g_warning("{GtTwitchChatClient} Unable to log in on send socket, server replied '%s'",
+                g_warning("{GtIrc} Unable to log in on send socket, server replied '%s'",
                           msg->cmd.notice->msg);
 
                 return FALSE;
             }
         }
 
-        if (msg->cmd_type == GT_CHAT_COMMAND_PING)
+        if (msg->cmd_type == GT_IRC_COMMAND_PING)
             send_cmd(ostream, CHAT_CMD_STR_PONG, msg->cmd.ping->server);
 
-        gt_twitch_chat_message_free(msg);
+        gt_irc_message_free(msg);
     }
 
     return TRUE;
@@ -470,8 +555,8 @@ handle_message(GtTwitchChatClient* self, GOutputStream* ostream, GtTwitchChatMes
 static void
 read_lines(ChatThreadData* data)
 {
-    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(data->self);
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrc* self = GT_IRC(data->self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     gchar buf[512];
     gsize count = 512;
@@ -480,9 +565,9 @@ read_lines(ChatThreadData* data)
     GError* err = NULL;
 
     if (data->istream == priv->istream_recv)
-        g_message("{GtTwitchChatClient} Running chat worker thread for receive");
+        g_message("{GtIrc} Running chat worker thread for receive");
     else if (data->istream == priv->istream_send)
-        g_message("{GtTwitchChatClient} Running chat worker thread for send");
+        g_message("{GtIrc} Running chat worker thread for send");
 
     for (gchar* line = g_data_input_stream_read_line(data->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(data->istream, &read, NULL, &err))
@@ -492,9 +577,7 @@ read_lines(ChatThreadData* data)
 
         if (line)
         {
-            GtTwitchChatMessage* msg = gt_twitch_chat_message_new();
-
-            parse_line(line, msg);
+            GtIrcMessage* msg = parse_line(self, line);
             /* g_print("Nick %s\n", msg->nick); */
             /* g_print("User %s\n", msg->user); */
             /* g_print("Host %s\n", msg->host); */
@@ -506,26 +589,26 @@ read_lines(ChatThreadData* data)
         }
     }
     if (data->istream == priv->istream_recv)
-        g_message("{GtTwitchChatClient} Stopping chat worker thread for receive");
+        g_message("{GtIrc} Stopping chat worker thread for receive");
     else if (data->istream == priv->istream_send)
-        g_message("{GtTwitchChatClient} Stopping chat worker thread for send");
+        g_message("{GtIrc} Stopping chat worker thread for send");
 }
 
 static void
-error_encountered_cb(GtTwitchChatClient* self,
+error_encountered_cb(GtIrc* self,
                      GError* error,
                      gpointer udata)
 {
-    gt_twitch_chat_client_disconnect(self);
+    gt_irc_disconnect(self);
 }
 
 static void
 finalise(GObject* obj)
 {
-    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(obj);
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrc* self = GT_IRC(obj);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    G_OBJECT_CLASS(gt_twitch_chat_client_parent_class)->finalize(obj);
+    G_OBJECT_CLASS(gt_irc_parent_class)->finalize(obj);
 }
 
 static void
@@ -534,8 +617,8 @@ get_property(GObject* obj,
              GValue* val,
              GParamSpec* pspec)
 {
-    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(obj);
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrc* self = GT_IRC(obj);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     switch (prop)
     {
@@ -553,8 +636,8 @@ set_property(GObject* obj,
              const GValue* val,
              GParamSpec* pspec)
 {
-    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(obj);
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrc* self = GT_IRC(obj);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     switch (prop)
     {
@@ -564,7 +647,7 @@ set_property(GObject* obj,
 }
 
 static void
-gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
+gt_irc_class_init(GtIrcClass* klass)
 {
     GObjectClass* obj_class = G_OBJECT_CLASS(klass);
 
@@ -573,7 +656,7 @@ gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
     obj_class->set_property = set_property;
 
     sigs[SIG_ERROR_ENCOUNTERED] = g_signal_new("error-encountered",
-                                               GT_TYPE_TWITCH_CHAT_CLIENT,
+                                               GT_TYPE_IRC,
                                                G_SIGNAL_RUN_LAST,
                                                0, NULL, NULL,
                                                g_cclosure_marshal_VOID__OBJECT,
@@ -590,13 +673,14 @@ gt_twitch_chat_client_class_init(GtTwitchChatClientClass* klass)
 }
 
 static void
-gt_twitch_chat_client_init(GtTwitchChatClient* self)
+gt_irc_init(GtIrc* self)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     priv->connected = FALSE;
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
+    priv->emote_table = g_hash_table_new(g_int_hash, g_int_equal);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
@@ -605,11 +689,11 @@ gt_twitch_chat_client_init(GtTwitchChatClient* self)
 }
 
 void
-gt_twitch_chat_client_connect(GtTwitchChatClient* self,
+gt_irc_connect(GtIrc* self,
                               const gchar* host, int port,
                               const gchar* oauth_token, const gchar* nick)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     GSocketConnectable* addr;
     GSocketClient* sock_client;
@@ -620,7 +704,7 @@ gt_twitch_chat_client_connect(GtTwitchChatClient* self,
     g_assert_nonnull(oauth_token);
     g_assert_nonnull(nick);
 
-    g_message("{GtTwitchChatClient} Connecting");
+    g_message("{GtIrc} Connecting");
 
     addr = g_network_address_new(host, port);
     sock_client = g_socket_client_new();
@@ -682,13 +766,13 @@ cleanup:
 }
 
 void
-gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
+gt_irc_disconnect(GtIrc* self)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     if (priv->connected)
     {
-        if (priv->cur_chan) gt_twitch_chat_client_part(self);
+        if (priv->cur_chan) gt_irc_part(self);
 
         priv->connected = FALSE;
         priv->recv_logged_in = FALSE;
@@ -696,7 +780,7 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 
-        g_message("{GtTwitchChatClient} Disconnecting");
+        g_message("{GtIrc} Disconnecting");
 
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
@@ -712,15 +796,15 @@ gt_twitch_chat_client_disconnect(GtTwitchChatClient* self)
 
     self->source->resetting_queue = TRUE;
     g_async_queue_unref(self->source->queue);
-    self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_twitch_chat_message_free);
+    self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_irc_message_free);
     self->source->resetting_queue = FALSE;
 
 }
 
 void
-gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
+gt_irc_join(GtIrc* self, const gchar* channel)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gchar* chan = NULL;
 
     g_return_if_fail(priv->connected);
@@ -732,22 +816,22 @@ gt_twitch_chat_client_join(GtTwitchChatClient* self, const gchar* channel)
 
     priv->cur_chan = chan;
 
-    g_message("{GtTwitchChatClient} Joining channel '%s'", chan);
+    g_message("{GtIrc} Joining channel '%s'", chan);
 
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_JOIN, chan);
     send_cmd(priv->ostream_send, CHAT_CMD_STR_JOIN, chan);
 }
 
 void
-gt_twitch_chat_client_part(GtTwitchChatClient* self)
+gt_irc_part(GtIrc* self)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gint len;
 
     g_return_if_fail(priv->connected);
     g_return_if_fail(priv->cur_chan != NULL);
 
-    g_message("{GtTwitchChatClient} Parting channel '%s'", priv->cur_chan);
+    g_message("{GtIrc} Parting channel '%s'", priv->cur_chan);
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_PART, priv->cur_chan);
     send_cmd(priv->ostream_send, CHAT_CMD_STR_PART, priv->cur_chan);
 
@@ -757,9 +841,9 @@ gt_twitch_chat_client_part(GtTwitchChatClient* self)
 
 //TODO: Async version
 void
-gt_twitch_chat_client_connect_and_join(GtTwitchChatClient* self, const gchar* chan)
+gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     GList* servers = NULL;
     int pos = 0;
     gchar host[20];
@@ -773,11 +857,11 @@ gt_twitch_chat_client_connect_and_join(GtTwitchChatClient* self, const gchar* ch
 
     sscanf((gchar*) g_list_nth(servers, pos)->data, "%[^:]:%d", host, &port);
 
-    gt_twitch_chat_client_connect(self, host, port,
+    gt_irc_connect(self, host, port,
                                   gt_app_get_oauth_token(main_app),
                                   gt_app_get_user_name(main_app));
 
-    gt_twitch_chat_client_join(self, chan);
+    gt_irc_join(self, chan);
 
     g_list_free_full(servers, g_free);
 }
@@ -788,7 +872,7 @@ connect_and_join_async_cb(GTask* task,
                           gpointer task_data,
                           GCancellable* cancel)
 {
-    GtTwitchChatClient* self = GT_TWITCH_CHAT_CLIENT(source);
+    GtIrc* self = GT_IRC(source);
     gchar* chan;
 
     if (g_task_return_error_if_cancelled(task))
@@ -796,11 +880,11 @@ connect_and_join_async_cb(GTask* task,
 
     chan = task_data;
 
-    gt_twitch_chat_client_connect_and_join(self, chan);
+    gt_irc_connect_and_join(self, chan);
 }
 
 void
-gt_twitch_chat_client_connect_and_join_async(GtTwitchChatClient* self, const gchar* chan,
+gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan,
                                              GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     GTask* task;
@@ -816,9 +900,9 @@ gt_twitch_chat_client_connect_and_join_async(GtTwitchChatClient* self, const gch
 }
 
 void
-gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
+gt_irc_privmsg(GtIrc* self, const gchar* msg)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     g_return_if_fail(priv->connected);
 
@@ -826,29 +910,30 @@ gt_twitch_chat_client_privmsg(GtTwitchChatClient* self, const gchar* msg)
 }
 
 gboolean
-gt_twitch_chat_client_is_connected(GtTwitchChatClient* self)
+gt_irc_is_connected(GtIrc* self)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     return priv->connected;
 }
 
 gboolean
-gt_twitch_chat_client_is_logged_in(GtTwitchChatClient* self)
+gt_irc_is_logged_in(GtIrc* self)
 {
-    GtTwitchChatClientPrivate* priv = gt_twitch_chat_client_get_instance_private(self);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     return priv->recv_logged_in && priv->send_logged_in;
 }
 
-GtTwitchChatMessage*
-gt_twitch_chat_message_new()
+static void
+gt_emote_free(GtEmote* emote)
 {
-    return g_new0(GtTwitchChatMessage, 1);
+    g_object_unref(emote->pixbuf);
+    g_clear_pointer(&emote, g_free);
 }
 
 void
-gt_twitch_chat_message_free(GtTwitchChatMessage* msg)
+gt_irc_message_free(GtIrcMessage* msg)
 {
     g_free(msg->nick);
     g_free(msg->user);
@@ -857,49 +942,52 @@ gt_twitch_chat_message_free(GtTwitchChatMessage* msg)
 
     switch (msg->cmd_type)
     {
-        case GT_CHAT_COMMAND_NOTICE:
+        case GT_IRC_COMMAND_NOTICE:
             g_free(msg->cmd.notice->msg);
             g_free(msg->cmd.notice->target);
             g_free(msg->cmd.notice);
             break;
-        case GT_CHAT_COMMAND_PING:
+        case GT_IRC_COMMAND_PING:
             g_free(msg->cmd.ping->server);
             g_free(msg->cmd.ping);
             break;
-        case GT_CHAT_COMMAND_PRIVMSG:
+        case GT_IRC_COMMAND_PRIVMSG:
             g_free(msg->cmd.privmsg->msg);
             g_free(msg->cmd.privmsg->target);
+            g_free(msg->cmd.privmsg->colour);
+            g_free(msg->cmd.privmsg->display_name);
+            g_list_free_full(msg->cmd.privmsg->emotes, (GDestroyNotify) gt_emote_free);
             g_free(msg->cmd.privmsg);
             break;
-        case GT_CHAT_COMMAND_REPLY:
+        case GT_IRC_COMMAND_REPLY:
             g_free(msg->cmd.reply->reply);
             g_free(msg->cmd.reply);
             break;
-        case GT_CHAT_COMMAND_JOIN:
+        case GT_IRC_COMMAND_JOIN:
             g_free(msg->cmd.join->channel);
             g_free(msg->cmd.join);
             break;
-        case GT_CHAT_COMMAND_CAP:
+        case GT_IRC_COMMAND_CAP:
             g_free(msg->cmd.cap->parameter);
             g_free(msg->cmd.cap->target);
             g_free(msg->cmd.cap->sub_command);
             g_free(msg->cmd.cap);
             break;
-        case GT_CHAT_COMMAND_CHANNEL_MODE:
+        case GT_IRC_COMMAND_CHANNEL_MODE:
             g_free(msg->cmd.chan_mode->channel);
             g_free(msg->cmd.chan_mode->modes);
             g_free(msg->cmd.chan_mode->nick);
             g_free(msg->cmd.chan_mode);
             break;
-        case GT_CHAT_COMMAND_USERSTATE:
+        case GT_IRC_COMMAND_USERSTATE:
             g_free(msg->cmd.userstate->channel);
             g_free(msg->cmd.userstate);
             break;
-        case GT_CHAT_COMMAND_ROOMSTATE:
+        case GT_IRC_COMMAND_ROOMSTATE:
             g_free(msg->cmd.roomstate->channel);
             g_free(msg->cmd.roomstate);
             break;
-        case GT_CHAT_COMMAND_CLEARCHAT:
+        case GT_IRC_COMMAND_CLEARCHAT:
             g_free(msg->cmd.clearchat->channel);
             g_free(msg->cmd.clearchat->target);
             g_free(msg->cmd.clearchat);

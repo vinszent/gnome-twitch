@@ -1,5 +1,5 @@
 #include "gt-player-mpv.h"
-#include "gt-twitch-chat-view.h"
+#include "gt-chat.h"
 #include "gt-channel.h"
 #include <mpv/client.h>
 #include <mpv/opengl_cb.h>
@@ -351,7 +351,7 @@ gt_player_mpv_init(GtPlayerMpv* self)
     priv->mpv = mpv_create();
     priv->opengl_area = gtk_gl_area_new();
     priv->opengl_ready = FALSE;
-    priv->chat_view = GTK_WIDGET(gt_twitch_chat_view_new());
+    priv->chat_view = GTK_WIDGET(gt_chat_new());
 
     check_mpv_error(mpv_set_option_string(priv->mpv, "vo", "opengl-cb"));
 

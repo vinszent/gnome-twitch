@@ -4,7 +4,7 @@
 #include <gtk/gtk.h>
 #include "gt-twitch.h"
 #include "gt-favourites-manager.h"
-#include "gt-twitch-chat-client.h"
+#include "gt-irc.h"
 
 G_BEGIN_DECLS
 
@@ -45,6 +45,7 @@ extern GtApp* main_app;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);
+gboolean gt_app_credentials_valid(GtApp* self);
 
 G_END_DECLS
 

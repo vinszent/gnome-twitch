@@ -159,7 +159,7 @@ start_element(GMarkupParseContext* ctxt,
     }
     else if (g_strcmp0(element_name, HTML_LIST_ITEM) == 0)
     {
-        gtk_text_buffer_insert(priv->cur_buff, &iter, _("• "), -1);
+        gtk_text_buffer_insert(priv->cur_buff, &iter, "• ", -1);
     }
     else if (g_strcmp0(element_name, HTML_HEADER_1) == 0)
     {

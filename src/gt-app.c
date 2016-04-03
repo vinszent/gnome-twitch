@@ -389,7 +389,7 @@ gt_app_init(GtApp* self)
     self->settings = g_settings_new("com.gnome-twitch.app");
 
     load_chat_settings(self);
-    //  self->chat = gt_twitch_chat_client_new();
+    //  self->chat = gt_irc_new();
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 
@@ -411,4 +411,16 @@ gt_app_get_oauth_token(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     return priv->oauth_token;
+}
+
+gboolean
+gt_app_credentials_valid(GtApp* self)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return
+        priv->oauth_token             &&
+        priv->user_name               &&
+        strlen(priv->oauth_token) > 1 &&
+        strlen(priv->user_name) > 1;
 }

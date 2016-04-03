@@ -14,7 +14,7 @@
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
 #include "gt-twitch-channel-info-dlg.h"
-#include "gt-twitch-chat-view.h"
+#include "gt-chat.h"
 #include "gt-enums.h"
 #include "utils.h"
 #include "config.h"
@@ -476,7 +476,7 @@ gt_win_init(GtWin* self)
     GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
     GT_TYPE_FAVOURITES_VIEW;
-    GT_TYPE_TWITCH_CHAT_VIEW;
+    GT_TYPE_CHAT;
 
 //    self->open_channel = NULL;
 

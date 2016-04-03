@@ -182,6 +182,7 @@ gt_channels_container_search_init(GtChannelsContainerSearch* self)
                            "edit-find-symbolic",
                            _("No channels found"),
                            _("Try a different search"));
+    PCLASS->set_loading_info(GT_CHANNELS_CONTAINER(self), _("Searching channels"));
 
     PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 

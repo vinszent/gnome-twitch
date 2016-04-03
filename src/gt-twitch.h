@@ -72,7 +72,7 @@ typedef struct _GtGameRawData
     gint64 channels;
 } GtGameRawData;
 
-typedef struct _GtTwitchChatBadges
+typedef struct _GtChatBadges
 {
     GdkPixbuf* global_mod;
     GdkPixbuf* admin;
@@ -81,7 +81,7 @@ typedef struct _GtTwitchChatBadges
     GdkPixbuf* staff;
     GdkPixbuf* turbo;
     GdkPixbuf* subscriber;
-} GtTwitchChatBadges;
+} GtChatBadges;
 
 typedef enum _GtTwitchChannelInfoPanelType
 {
@@ -126,9 +126,9 @@ void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
 GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
 void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
-GtTwitchChatBadges*     gt_twitch_chat_badges(GtTwitch* self, const gchar* chan);
-void                    gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void                    gt_twitch_chat_badges_free(GtTwitchChatBadges* badges);
+GtChatBadges*     gt_chat_badges(GtTwitch* self, const gchar* chan);
+void                    gt_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void                    gt_chat_badges_free(GtChatBadges* badges);
 GList*                  gt_twitch_channel_info(GtTwitch* self, const gchar* chan);
 void                    gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
 void                    gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
