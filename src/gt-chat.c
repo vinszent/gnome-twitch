@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
+#include <locale.h>
 
 #define CHAT_DARK_THEME_CSS_CLASS "dark-theme"
 #define CHAT_LIGHT_THEME_CSS_CLASS "light-theme"
@@ -249,8 +250,12 @@ reset_theme_css(GtChat* self)
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gchar css[200];
 
+    setlocale(LC_NUMERIC, "C");
+
     g_sprintf(css, priv->dark_theme ? CHAT_DARK_THEME_CSS : CHAT_LIGHT_THEME_CSS,
               priv->opacity);
+
+    setlocale(LC_NUMERIC, ORIGINAL_LOCALE);
 
     if (priv->dark_theme)
     {

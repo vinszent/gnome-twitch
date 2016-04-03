@@ -4,6 +4,7 @@
 #include <glib/gi18n.h>
 #include <stdlib.h>
 #include <math.h>
+#include <locale.h>
 #include "gt-app.h"
 #include "config.h"
 
@@ -12,6 +13,7 @@
 #endif
 
 GtApp* main_app;
+gchar* ORIGINAL_LOCALE;
 
 static gint LOG_LEVEL = 2;
 
@@ -98,6 +100,8 @@ int main(int argc, char** argv)
     textdomain("gnome-twitch");
 
     g_log_set_default_handler((GLogFunc) gt_log, NULL);
+
+    ORIGINAL_LOCALE = g_strdup(setlocale(LC_NUMERIC, NULL));
 
     main_app = gt_app_new();
 
