@@ -1,12 +1,12 @@
 # Translation of gnome-twitch to French.
-# Copyright (C) 2015 mr-intrepide <theintrepid95@gmail.com>
+# Copyright (C) 2015-2016 mr-intrepide <theintrepid95@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-10 22:42+0200\n"
-"PO-Revision-Date: 2015-11-08 18:40+0200\n"
+"PO-Revision-Date: 2016-04-01 10:13+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,18 +15,6 @@ msgstr ""
 "Last-Translator: mr-intrepide <theintrepid95@gmail.com>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Language: fr\n"
-
-#: data/ui/gt-win.ui:55
-msgid "Channels"
-msgstr "Chaînes"
-
-#: data/ui/gt-win.ui:64
-msgid "Favourites"
-msgstr "Favoris"
-
-#: data/ui/gt-win.ui:73
-msgid "Games"
-msgstr "Jeux"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
 msgid "Settings"
@@ -40,30 +28,98 @@ msgstr "À propos de"
 msgid "Quit"
 msgstr "Quitter"
 
-#: data/ui/gt-settings-dlg.ui:17
-msgid "Default video quality: "
-msgstr "Qualité vidéo par défaut: "
+#: data/ui/gt-player-header-bar.ui:136
+msgid "Show chat"
+msgstr "Afficher le chat"
 
-#: data/ui/gt-settings-dlg.ui:28
+#: data/ui/gt-player-header-bar.ui:143
+msgid "Dock chat"
+msgstr "Fixer le chat"
+
+#: data/ui/gt-player-header-bar.ui:150 data/ui/gt-player-header-bar.ui:174
+msgid "Edit chat"
+msgstr "Éditer le chat"
+
+#: data/ui/gt-player-header-bar.ui:157 data/ui/gt-player-header-bar.ui:307
+msgid "Stream quality"
+msgstr "Qualité du flux"
+
+#: data/ui/gt-player-header-bar.ui:188
+msgid "Dark theme"
+msgstr "Thème foncé"
+
+#: data/ui/gt-player-header-bar.ui:197
+msgid "Opacity"
+msgstr "Transparence"
+
+#: data/ui/gt-player-header-bar.ui:216
+msgid "Width"
+msgstr "Largeur"
+
+#: data/ui/gt-player-header-bar.ui:235
+msgid "Height"
+msgstr "Hauteur"
+
+#: data/ui/gt-player-header-bar.ui:254
+msgid "X position"
+msgstr "Position X"
+
+#: data/ui/gt-player-header-bar.ui:275
+msgid "Y position"
+msgstr "Position Y"
+
+#: data/ui/gt-player-header-bar.ui:315 data/ui/gt-settings-dlg.ui:38
 msgid "Source"
 msgstr "Originale"
 
-#: data/ui/gt-settings-dlg.ui:29
+#: data/ui/gt-player-header-bar.ui:323 data/ui/gt-settings-dlg.ui:39
 msgid "High"
 msgstr "Élevée"
 
-#: data/ui/gt-settings-dlg.ui:30
+#: data/ui/gt-player-header-bar.ui:331 data/ui/gt-settings-dlg.ui:40
 msgid "Medium"
 msgstr "Moyenne"
 
-#: data/ui/gt-settings-dlg.ui:31
+#: data/ui/gt-player-header-bar.ui:339 data/ui/gt-settings-dlg.ui:41
 msgid "Low"
 msgstr "Faible"
 
-#: src/gt-win.c:96
+#: data/ui/gt-settings-dlg.ui:14
+msgid "Use dark theme variant"
+msgstr "Utiliser la variante du thème sombre"
+
+#: data/ui/gt-settings-dlg.ui:26
+msgid "Default video quality:"
+msgstr "Qualité vidéo par défaut :"
+
+#: data/ui/gt-win.ui:25 data/ui/gt-win.ui:131
+msgid "Browse"
+msgstr "Naviguer"
+
+#: data/ui/gt-win.ui:35 data/ui/gt-win.ui:141
+msgid "Player"
+msgstr "Lecteur"
+
+#: data/ui/gt-win.ui:107
+msgid "Channels"
+msgstr "Chaînes"
+
+#: data/ui/gt-win.ui:116
+msgid "Favourites"
+msgstr "Favoris"
+
+#: data/ui/gt-win.ui:125
+msgid "Games"
+msgstr "Jeux"
+
+#: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Profitez de Twitch sur votre bureau GNU/Linux"
 
-#: src/gt-win.c:100
+#: src/gt-win.c:97
 msgid "translator-credits"
 msgstr "mr-intrepide <theintrepid95@gmail.com>"
+
+#: src/gt-win.c:176
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Déjà connecté à Twitch, reconnecter ?"
