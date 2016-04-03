@@ -68,7 +68,7 @@
                     <child>
                       <object class="GtkButton" id="info_bar_yes_button">
                         <property name="visible">False</property>
-                        <property name="label">Yes</property>
+                        <property name="label" translatable="yes">Yes</property>
                       </object>
                       <packing>
                         <property name="pack-type">start</property>

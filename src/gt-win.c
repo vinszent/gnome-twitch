@@ -97,7 +97,7 @@ show_about_cb(GSimpleAction* action,
                  "translator-credits", _("translator-credits"),
                  NULL);
 
-    gtk_about_dialog_add_credit_section(GTK_ABOUT_DIALOG(about_dlg), "Contributors", contributors);
+    gtk_about_dialog_add_credit_section(GTK_ABOUT_DIALOG(about_dlg), _("Contributors"), contributors);
     gtk_window_set_transient_for(GTK_WINDOW(about_dlg), GTK_WINDOW(self));
 
     gtk_dialog_run(GTK_DIALOG(about_dlg));
