@@ -126,3 +126,11 @@ gt_favourites_view_init(GtFavouritesView* self)
                            priv->search_bar, "search-mode-enabled",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 }
+
+gboolean
+gt_favourites_view_handle_event(GtFavouritesView* self, GdkEvent* event)
+{
+    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+
+    return gtk_search_bar_handle_event(GTK_SEARCH_BAR(priv->search_bar), event);
+}

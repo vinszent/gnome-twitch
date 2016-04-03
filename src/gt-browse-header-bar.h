@@ -16,6 +16,8 @@ struct _GtBrowseHeaderBar
 
 GtBrowseHeaderBar* gt_browse_header_bar_new(void);
 void gt_browse_header_bar_stop_search(GtBrowseHeaderBar* self);
+void gt_browse_header_bar_toggle_search(GtBrowseHeaderBar* self);
+gboolean gt_browse_header_bar_handle_event(GtBrowseHeaderBar* self, GdkEvent* event);
 
 G_END_DECLS
 
