@@ -1,5 +1,6 @@
 #include "gt-twitch-login-dlg.h"
 #include <webkit2/webkit2.h>
+#include <glib/gi18n.h>
 
 typedef struct
 {
@@ -23,6 +24,7 @@ gt_twitch_login_dlg_new(GtkWindow* parent)
     return g_object_new(GT_TYPE_TWITCH_LOGIN_DLG,
                         "transient-for", parent,
                         "use-header-bar", 1,
+                        "title", _("Login to Twitch"),
                         NULL);
 }
 
