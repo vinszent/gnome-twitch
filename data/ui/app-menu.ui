@@ -15,6 +15,7 @@
       <item>
         <attribute name="label" translatable="yes">Quit</attribute>
         <attribute name="action">app.quit</attribute>
+        <attribute name="accel">&lt;Ctrl&gt;Q</attribute>
       </item>
     </section>
   </menu>

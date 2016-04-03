@@ -19,6 +19,7 @@ struct _GtChannelsView
 GtChannelsView* gt_channels_view_new(void);
 void gt_channels_view_refresh(GtChannelsView* self);
 void gt_channels_view_show_type(GtChannelsView* self, GtChannelsContainerType type);
+gboolean gt_channels_view_handle_event(GtChannelsView* self, GdkEvent* event);
 
 G_END_DECLS
 

@@ -245,3 +245,20 @@ gt_browse_header_bar_init(GtBrowseHeaderBar* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 }
+
+void
+gt_browse_header_bar_stop_search(GtBrowseHeaderBar* self)
+{
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->search_button), FALSE);
+}
+
+void
+gt_browse_header_bar_toggle_search(GtBrowseHeaderBar* self)
+{
+    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
+    gboolean active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(priv->search_button));
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->search_button), !active);
+}
