@@ -242,4 +242,4 @@ msgstr "Contributeurs"
 
 #: src/gt-win.c:176
 msgid "Already logged into Twitch, refresh login?"
-msgstr "Déjà connecté à Twitch, reconnecté ?"
+msgstr "Déjà connecté à Twitch, reconnecter ?"
