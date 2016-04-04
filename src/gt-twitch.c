@@ -3,7 +3,7 @@
 #include "gt-game.h"
 #include "utils.h"
 #include <libsoup/soup.h>
-#include <glib/gprintf.h>
+#include <glib/gstdio.h>
 #include <glib.h>
 #include <json-glib/json-glib.h>
 #include <string.h>
@@ -319,6 +319,12 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 static void
 parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 {
+    gchar* id;
+    gchar* filename;
+    GStatBuf file_stat;
+    GDateTime* now;
+    int ret;
+
     json_reader_read_member(reader, "_id");
     data->id = json_reader_get_int_value(reader);
     json_reader_end_member(reader);
@@ -327,12 +333,36 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    json_reader_read_member(reader, "box");
+    id = g_strdup_printf("%ld", data->id);
+    filename = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", id, NULL);
+    ret = g_stat(filename, &file_stat);
+    now = g_date_time_new_now_utc();
 
-    json_reader_read_member(reader, "large");
-    data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-    json_reader_end_member(reader);
+    if (ret)
+        g_info("{GtTwitch} Cache miss for game '%s'", data->name);
+    else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800)
+        g_info("{GtTwitch} Stale cache for game '%s'", data->name);
+    else
+    {
+        g_info("{GtTwitch} Cache hit for game '%s'", data->name);
+        data->preview = gdk_pixbuf_new_from_file(filename, NULL);
+    }
+
+    if (!data->preview)
+    {
+        json_reader_read_member(reader, "box");
+        json_reader_read_member(reader, "large");
+
+        data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
+        gdk_pixbuf_save(data->preview, filename, "jpeg", NULL, NULL);
+
+        json_reader_end_member(reader);
+        json_reader_end_member(reader);
+    }
+
+    g_free(id);
+    g_free(filename);
+    g_date_time_unref(now);
 }
 
 GtTwitchStreamAccessToken*
