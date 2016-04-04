@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: gnome-twitch 0.2.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-04-03 20:55+0200\n"
-"PO-Revision-Date: 2016-04-03 22:36+0200\n"
+"PO-Revision-Date: 2016-04-04 10:58+0200\n"
 "Language-Team: mr-intrepide <theintrepid95@gmail.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -39,7 +39,7 @@ msgstr "Qualité du flux"
 
 #: data/ui/gt-player-header-bar.ui:213
 msgid "Dock chat"
-msgstr "Fixer le chat"
+msgstr "Attacher le chat"
 
 #: data/ui/gt-player-header-bar.ui:219
 msgid "Dark theme"
@@ -167,19 +167,19 @@ msgstr "%ldm"
 
 #: src/gt-channels-container-favourite.c:229
 msgid "No channels favourited"
-msgstr "Aucune chaînes favorites"
+msgstr "Aucune chaîne favorite"
 
 #: src/gt-channels-container-favourite.c:230
 msgid "Favourite channels that you like for them to show up here"
-msgstr "Les chaînes favorites que vous aimées sont affichées ici"
+msgstr "Les chaînes favorites que vous aimez sont affichées ici"
 
 #: src/gt-channels-container-search.c:183
 msgid "No channels found"
-msgstr "Aucune chaînes trouvées"
+msgstr "Aucune chaîne trouvée"
 
 #: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
 msgid "Try a different search"
-msgstr "Essayer un recherche différente"
+msgstr "Essayer une recherche différente"
 
 #: src/gt-channels-container-search.c:185
 msgid "Searching channels"
@@ -191,7 +191,7 @@ msgstr "Chargement des chaînes"
 
 #: src/gt-games-container-search.c:202
 msgid "No games found"
-msgstr "Aucun jeux trouvés"
+msgstr "Aucun jeu trouvé"
 
 #: src/gt-games-container-search.c:204
 msgid "Searching games"
