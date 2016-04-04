@@ -340,7 +340,7 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 
     if (ret)
         g_info("{GtTwitch} Cache miss for game '%s'", data->name);
-    else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800)
+    else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800 + g_random_int_range(0, 604800))
         g_info("{GtTwitch} Stale cache for game '%s'", data->name);
     else
     {

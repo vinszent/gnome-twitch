@@ -239,7 +239,7 @@ update_preview(GtChannel* self)
 
             if (ret)
                 g_info("{GtChannel} Cache miss for channel '%s'", priv->name);
-            else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800)
+            else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800 + g_random_int_range(0, 604800))
                 g_info("{GtChannel} Stale cache for channel '%s'", priv->name);
             else
             {
