@@ -1,7 +1,6 @@
 #include "gt-channel.h"
 #include "gt-app.h"
 #include "utils.h"
-#include <glib/gstdio.h>
 #include <json-glib/json-glib.h>
 
 #define N_JSON_PROPS 2
@@ -217,10 +216,6 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    GStatBuf file_stat;
-    GDateTime* now = NULL;
-    int ret;
-
     g_clear_object(&priv->preview);
 
     g_cancellable_reset(priv->cancel);
@@ -234,12 +229,9 @@ update_preview(GtChannel* self)
     {
         if (priv->video_banner_url)
         {
-            ret = g_stat(priv->cache_filename, &file_stat);
-            now = g_date_time_new_now_utc();
-
-            if (ret)
+            if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
                 g_info("{GtChannel} Cache miss for channel '%s'", priv->name);
-            else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800 + g_random_int_range(0, 604800))
+            else if (utils_timestamp_now() - utils_timestamp_file(priv->cache_filename) > 604800 + g_random_int_range(0, 604800))
                 g_info("{GtChannel} Stale cache for channel '%s'", priv->name);
             else
             {
@@ -269,9 +261,6 @@ update_preview(GtChannel* self)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
         }
     }
-
-    if (now)
-        g_date_time_unref(now);
 }
 
 static void

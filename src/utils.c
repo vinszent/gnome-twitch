@@ -1,4 +1,6 @@
 #include "utils.h"
+#include <glib/gstdio.h>
+#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,6 +30,33 @@ utils_container_clear(GtkContainer* cont)
     {
         gtk_container_remove(cont, GTK_WIDGET(l->data));
     }
+}
+
+gint64
+utils_timestamp_file(const gchar* filename)
+{
+    int ret;
+    GStatBuf file_stat;
+
+    ret = g_stat(filename, &file_stat);
+
+    if (ret)
+        return 0;
+
+    return file_stat.st_mtim.tv_sec;
+}
+
+gint64
+utils_timestamp_now(void)
+{
+    gint64 timestamp;
+    GDateTime* now;
+
+    now = g_date_time_new_now_utc();
+    timestamp = g_date_time_to_unix(now);
+    g_date_time_unref(now);
+
+    return timestamp;
 }
 
 void

@@ -3,7 +3,7 @@
 #include "gt-game.h"
 #include "utils.h"
 #include <libsoup/soup.h>
-#include <glib/gstdio.h>
+#include <glib/gprintf.h>
 #include <glib.h>
 #include <json-glib/json-glib.h>
 #include <string.h>
@@ -321,9 +321,6 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 {
     gchar* id;
     gchar* filename;
-    GStatBuf file_stat;
-    GDateTime* now;
-    int ret;
 
     json_reader_read_member(reader, "_id");
     data->id = json_reader_get_int_value(reader);
@@ -335,12 +332,10 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 
     id = g_strdup_printf("%ld", data->id);
     filename = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", id, NULL);
-    ret = g_stat(filename, &file_stat);
-    now = g_date_time_new_now_utc();
 
-    if (ret)
+    if (!g_file_test(filename, G_FILE_TEST_EXISTS))
         g_info("{GtTwitch} Cache miss for game '%s'", data->name);
-    else if (g_date_time_to_unix(now) - file_stat.st_mtim.tv_sec > 604800 + g_random_int_range(0, 604800))
+    else if (utils_timestamp_now() - utils_timestamp_file(filename) > 604800 + g_random_int_range(0, 604800))
         g_info("{GtTwitch} Stale cache for game '%s'", data->name);
     else
     {
@@ -362,7 +357,6 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 
     g_free(id);
     g_free(filename);
-    g_date_time_unref(now);
 }
 
 GtTwitchStreamAccessToken*
