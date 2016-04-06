@@ -27,8 +27,8 @@ ninja install
 ```
 
 ### Distro packages
-* [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch/)
-* [Arch linux (git)](https://aur4.archlinux.org/packages/gnome-twitch-git/)
+* [Arch linux](https://aur.archlinux.org/packages/gnome-twitch/)
+* [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian] (https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
 * [Ubuntu (PPA)](https://launchpad.net/~ippytraxx/+archive/ubuntu/gnome-twitch/) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
@@ -37,4 +37,3 @@ ninja install
 ## Screenshots
 ![](/data/screenshots/scrot_player.png?raw=true)
 ![](/data/screenshots/scrot_streams.png?raw=true)
-![](/data/screenshots/scrot_games.png?raw=true)

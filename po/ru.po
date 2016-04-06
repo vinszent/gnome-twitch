@@ -1,37 +1,24 @@
-# Translation of gnome-twitch to Russian.
-# Copyright (C) 2015 Sunderland93 <samoilov.lex@gmail.com>
+# Translation of gnome-twitch to German.
+# Copyright (C) 2015 Philipp Fent <philipp@fent.de>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2015-10-10 22:42+0200\n"
-"PO-Revision-Date: 2015-10-12 15:04+0900\n"
+"POT-Creation-Date: 2015-10-09 22:42+0200\n"
+"PO-Revision-Date: 2016-04-05 13:42+0900\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.6.10\n"
 "Last-Translator: Sunderland93 <samoilov.lex@gmail.com>\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: ru\n"
-
-#: data/ui/gt-win.ui:55
-msgid "Channels"
-msgstr "Каналы"
-
-#: data/ui/gt-win.ui:64
-msgid "Favourites"
-msgstr "Избранное"
-
-#: data/ui/gt-win.ui:73
-msgid "Games"
-msgstr "Игры"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
 msgid "Settings"
-msgstr "Параметры"
+msgstr "Настройки"
 
 #: data/ui/app-menu.ui:12
 msgid "About"
@@ -41,30 +28,217 @@ msgstr "О программе"
 msgid "Quit"
 msgstr "Выход"
 
-#: data/ui/gt-settings-dlg.ui:17
-msgid "Default video quality: "
-msgstr "Качество видео: "
+#: data/ui/gt-player-header-bar.ui:174 data/ui/gt-player-header-bar.ui:198
+msgid "Edit chat"
+msgstr "Редактировать чат"
 
-#: data/ui/gt-settings-dlg.ui:28
+#: data/ui/gt-player-header-bar.ui:181 data/ui/gt-player-header-bar.ui:338
+msgid "Stream quality"
+msgstr "Качество стрима"
+
+#: data/ui/gt-player-header-bar.ui:213
+msgid "Dock chat"
+msgstr "Док-чат"
+
+#: data/ui/gt-player-header-bar.ui:219
+msgid "Dark theme"
+msgstr "Тёмная тема"
+
+#: data/ui/gt-player-header-bar.ui:228
+msgid "Opacity"
+msgstr "Прозрачность"
+
+#: data/ui/gt-player-header-bar.ui:247
+msgid "Width"
+msgstr "Ширина"
+
+#: data/ui/gt-player-header-bar.ui:266
+msgid "Height"
+msgstr "Высота"
+
+#: data/ui/gt-player-header-bar.ui:285
+msgid "X position"
+msgstr "Позиция X"
+
+#: data/ui/gt-player-header-bar.ui:306
+msgid "Y position"
+msgstr "Позиция Y"
+
+#: data/ui/gt-player-header-bar.ui:346 data/ui/gt-settings-dlg.ui:38
 msgid "Source"
 msgstr "Источник"
 
-#: data/ui/gt-settings-dlg.ui:29
+#: data/ui/gt-player-header-bar.ui:354 data/ui/gt-settings-dlg.ui:39
 msgid "High"
 msgstr "Высокое"
 
-#: data/ui/gt-settings-dlg.ui:30
+#: data/ui/gt-player-header-bar.ui:362 data/ui/gt-settings-dlg.ui:40
 msgid "Medium"
 msgstr "Среднее"
 
-#: data/ui/gt-settings-dlg.ui:31
+#: data/ui/gt-player-header-bar.ui:370 data/ui/gt-settings-dlg.ui:41
 msgid "Low"
 msgstr "Низкое"
 
-#: src/gt-win.c:96
+#: data/ui/gt-player-header-bar.ui:378
+msgid "Mobile"
+msgstr "Мобильное"
+
+#: data/ui/gt-settings-dlg.ui:14
+msgid "Use dark theme variant"
+msgstr "Использовать тёмный вариант темы"
+
+#: data/ui/gt-settings-dlg.ui:26
+msgid "Default video quality:"
+msgstr "Стандартное качество видео"
+
+#: data/ui/gt-chat.ui:44
+msgid "Send a message"
+msgstr "Отправить сообщение"
+
+#: data/ui/gt-chat.ui:70
+msgid "Connecting to chat"
+msgstr "Присоединиться к чату"
+
+#: data/ui/gt-chat.ui:104
+msgid "Not logged into Twitch!"
+msgstr "Не вошли в Twitch!"
+
+#: data/ui/gt-chat.ui:110
+msgid "Click to login"
+msgstr "Нажмите чтобы войти"
+
+#: data/ui/gt-chat.ui:136
+msgid "Click to reconnect"
+msgstr "Нажмите для переподключения"
+
+#: data/ui/gt-win.ui:25 data/ui/gt-win.ui:131
+msgid "Browse"
+msgstr "Обзор"
+
+#: data/ui/gt-win.ui:35 data/ui/gt-win.ui:141
+msgid "Player"
+msgstr "Плеер"
+
+#: data/ui/gt-win.ui:71
+msgid "Yes"
+msgstr "Да"
+
+#: data/ui/gt-win.ui:107
+msgid "Channels"
+msgstr "Каналы"
+
+#: data/ui/gt-win.ui:116
+msgid "Favourites"
+msgstr "Избранное"
+
+#: data/ui/gt-win.ui:125
+msgid "Games"
+msgstr "Игры"
+
+#: src/gt-app.c:175
+msgid "Refresh login"
+msgstr "Перелогиниться"
+
+#: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
+msgid "Login to Twitch"
+msgstr "Войти в Twitch"
+
+#: src/gt-channels-container-child.c:102
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1fk"
+
+#: src/gt-channels-container-child.c:104
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#: src/gt-channels-container-child.c:131
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1fh"
+
+#: src/gt-channels-container-child.c:133
+#, c-format
+msgid "%ldm"
+msgstr "%ld min."
+
+#: src/gt-channels-container-favourite.c:229
+msgid "No channels favourited"
+msgstr "Нет избранных каналов"
+
+#: src/gt-channels-container-favourite.c:230
+msgid "Favourite channels that you like for them to show up here"
+msgstr "Избранные каналы, которые вы хотели бы видеть здесь"
+
+#: src/gt-channels-container-search.c:183
+msgid "No channels found"
+msgstr "Каналы не найдены"
+
+#: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
+msgid "Try a different search"
+msgstr "Попробуйте другой поиск"
+
+#: src/gt-channels-container-search.c:185
+msgid "Searching channels"
+msgstr "Поиск каналов"
+
+#: src/gt-channels-container-game.c:174 src/gt-channels-container-top.c:155
+msgid "Loading channels"
+msgstr "Загрузка каналов"
+
+#: src/gt-games-container-search.c:202
+msgid "No games found"
+msgstr "Игры не найдены"
+
+#: src/gt-games-container-search.c:204
+msgid "Searching games"
+msgstr "Поиск игр"
+
+#: src/gt-games-container-top.c:161
+msgid "Loading games"
+msgstr "Загрузка игр"
+
+#: src/gt-favourites-manager.c:63
+#, c-format
+msgid "Channel %s is now online"
+msgstr "Канал %s сейчас онлайн"
+
+#: src/gt-favourites-manager.c:64
+#, c-format
+msgid "Streaming %s"
+msgstr "Стриминг %s"
+
+#: src/gt-game.c:111
+msgid "Untitled broadcast"
+msgstr "Трансляция без названия"
+
+#: src/gt-player-clutter.c:295
+msgid "Loading stream"
+msgstr "Загрузка стрима"
+
+#: src/gt-player-clutter.c:410
+#, c-format
+msgid "Buffered %d%%"
+msgstr "Буферизация %d%%"
+
+#: src/gt-twitch-login-dlg.c:114
+msgid "Successfully logged in to Twitch!"
+msgstr "Успешно вошли в Twitch!"
+
+#: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Наслаждайтесь Twitch в вашем GNU/Linux"
 
-#: src/gt-win.c:100
+#: src/gt-win.c:97
 msgid "translator-credits"
-msgstr "Sunderland93 <samoilov.lex@gmail.com>"
+msgstr "Aleksey Samoilov <samoilov.lex@gmail.com>"
+
+#: src/gt-win.c:100
+msgid "Contributors"
+msgstr "Авторы"
+
+#: src/gt-win.c:176
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Уже вошли в Twitch, хотите перелогиниться?"

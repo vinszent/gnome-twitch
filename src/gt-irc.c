@@ -407,13 +407,13 @@ parse_line(GtIrc* self, gchar* line)
                     emp->end = atoi(strsep(&i, "-"));
                     emp->id = id;
 
-                    if (!g_hash_table_contains(priv->emote_table, &id))
+                    if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
                     {
-                        g_hash_table_insert(priv->emote_table, &id,
+                        g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
                                             gt_twitch_download_emote(main_app->twitch, id));
                     }
 
-                    emp->pixbuf = g_hash_table_lookup(priv->emote_table, &id);
+                    emp->pixbuf = g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id));
                     g_object_ref(emp->pixbuf);
 
                     msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
@@ -680,7 +680,7 @@ gt_irc_init(GtIrc* self)
     priv->connected = FALSE;
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
-    priv->emote_table = g_hash_table_new(g_int_hash, g_int_equal);
+    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
