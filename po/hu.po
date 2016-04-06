@@ -1,7 +1,6 @@
 # Hungarian translation of the gnome-twitch package.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the gnome-twitch package.
-# Gergő Rubint <rubintgergo@gmail.com>, 2016.
+# Copyright (C) Gergő Rubint <rubintgergo@gmail.com>, 2016.
 #
 msgid ""
 msgstr ""
