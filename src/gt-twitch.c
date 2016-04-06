@@ -348,7 +348,7 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
         json_reader_read_member(reader, "box");
         json_reader_read_member(reader, "large");
 
-        data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
+        data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader), 0);
         gdk_pixbuf_save(data->preview, filename, "jpeg", NULL, NULL);
 
         json_reader_end_member(reader);
@@ -1129,7 +1129,7 @@ gt_twitch_game_raw_data_free(GtGameRawData* data)
 }
 
 GdkPixbuf*
-gt_twitch_download_picture(GtTwitch* self, const gchar* url)
+gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
@@ -1138,7 +1138,10 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url)
     if (!url || strlen(url) < 1)
         return NULL;
 
-    return utils_download_picture(priv->soup, url);
+    if (timestamp)
+        return utils_download_picture_if_newer(priv->soup, url, timestamp);
+    else
+        return utils_download_picture(priv->soup, url);
 }
 
 static void
@@ -1153,7 +1156,7 @@ download_picture_async_cb(GTask* task,
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_download_picture(data->twitch, data->str_1);
+    ret = gt_twitch_download_picture(data->twitch, data->str_1, data->int_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
 }
@@ -1161,6 +1164,7 @@ download_picture_async_cb(GTask* task,
 void
 gt_twitch_download_picture_async(GtTwitch* self,
                                  const gchar* url,
+                                 gint64 timestamp,
                                  GCancellable* cancel,
                                  GAsyncReadyCallback cb,
                                  gpointer udata)
@@ -1174,6 +1178,7 @@ gt_twitch_download_picture_async(GtTwitch* self,
     data = generic_task_data_new();
     data->twitch = self;
     data->str_1 = g_strdup(url);
+    data->int_1 = timestamp;
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
@@ -1430,7 +1435,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
         json_reader_end_member(reader);
 
         json_reader_read_member(reader, "image");
-        panel->image = gt_twitch_download_picture(self, json_reader_get_string_value(reader));
+        panel->image = gt_twitch_download_picture(self, json_reader_get_string_value(reader), 0);
         json_reader_end_member(reader);
 
         if (json_reader_read_member(reader, "description"))

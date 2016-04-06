@@ -222,8 +222,8 @@ update_preview(GtChannel* self)
 
     if (priv->online)
     {
-        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, priv->cancel, 
-                                         (GAsyncReadyCallback) download_picture_cb, self); 
+        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, 0, priv->cancel,
+                                         (GAsyncReadyCallback) download_picture_cb, self);
     }
     else
     {
@@ -240,7 +240,7 @@ update_preview(GtChannel* self)
             }
 
             if (!priv->preview)
-                gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, priv->cancel,
+                gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, 0, priv->cancel,
                                                  (GAsyncReadyCallback) download_picture_cb, self);
             else
             {

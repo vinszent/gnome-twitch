@@ -123,8 +123,8 @@ void                    gt_twitch_channel_raw_data_async(GtTwitch* self, const g
 void                    gt_twitch_channel_raw_data_free(GtChannelRawData* data);
 GtGameRawData*          gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
 void                    gt_twitch_game_raw_data_free(GtGameRawData* data);
-GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url);
-void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GdkPixbuf*              gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp);
+void                    gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, gint64 timestamp, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*              gt_twitch_download_emote(GtTwitch* self, gint id);
 GtChatBadges*     gt_chat_badges(GtTwitch* self, const gchar* chan);
 void                    gt_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
