@@ -233,7 +233,7 @@ msgstr "Desfrute o Twitch no seu ambiente de trabalho GNU/Linux"
 
 #: src/gt-win.c:97
 msgid "translator-credits"
-msgstr "créditos-tradutor"
+msgstr "Bruno Guerreiro <american.jesus.pt@gmail.com>"
 
 #: src/gt-win.c:100
 msgid "Contributors"
