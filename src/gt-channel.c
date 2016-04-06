@@ -275,6 +275,7 @@ finalize(GObject* object)
     g_free(priv->display_name);
     g_free(priv->game);
     g_free(priv->status);
+    g_free(priv->cache_filename);
 
     if (priv->stream_started_time)
         g_date_time_unref(priv->stream_started_time);
