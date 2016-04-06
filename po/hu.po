@@ -1,32 +1,20 @@
-# Translation of gnome-twitch to Hungarian.
-# Copyright (C) 2015 Gergő Rubint <gergo@rubint.me>
+# Hungarian translation of the gnome-twitch package.
 # This file is distributed under the same license as the gnome-twitch package.
+# Copyright (C) Gergő Rubint <rubintgergo@gmail.com>, 2016.
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.1.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2015-10-09 22:42+0200\n"
-"PO-Revision-Date: 2015-10-27 00:16+0100\n"
+"Project-Id-Version: gnome-twitch\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-04-06 19:58+0200\n"
+"PO-Revision-Date: 2016-04-06 23:17+0200\n"
+"Last-Translator: Gergő Rubint <rubintgergo@gmail.com>\n"
 "Language-Team: \n"
+"Language: hu\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Emacs PO mode, version 2.23\n"
-"Last-Translator: Gergő Rubint <gergo@rubint.me>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: hu\n"
-
-#: data/ui/gt-win.ui:55
-msgid "Channels"
-msgstr "Csatornák"
-
-#: data/ui/gt-win.ui:64
-msgid "Favourites"
-msgstr "Kedvencek"
-
-#: data/ui/gt-win.ui:73
-msgid "Games"
-msgstr "Játékok"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
 msgid "Settings"
@@ -40,30 +28,217 @@ msgstr "Névjegy"
 msgid "Quit"
 msgstr "Kilépés"
 
-#: data/ui/gt-settings-dlg.ui:17
-msgid "Default video quality: "
-msgstr "Alapértelmezett Videó Minőség: "
+#: data/ui/gt-player-header-bar.ui:174 data/ui/gt-player-header-bar.ui:198
+msgid "Edit chat"
+msgstr "Csevegés szerkesztése"
 
-#: data/ui/gt-settings-dlg.ui:28
+#: data/ui/gt-player-header-bar.ui:181 data/ui/gt-player-header-bar.ui:338
+msgid "Stream quality"
+msgstr "Közvetítés minősége"
+
+#: data/ui/gt-player-header-bar.ui:213
+msgid "Dock chat"
+msgstr "Csevegés leválasztása"
+
+#: data/ui/gt-player-header-bar.ui:219
+msgid "Dark theme"
+msgstr "Sötét téma"
+
+#: data/ui/gt-player-header-bar.ui:228
+msgid "Opacity"
+msgstr "Átlátszatlanság"
+
+#: data/ui/gt-player-header-bar.ui:247
+msgid "Width"
+msgstr "Szélesség"
+
+#: data/ui/gt-player-header-bar.ui:266
+msgid "Height"
+msgstr "Magasság"
+
+#: data/ui/gt-player-header-bar.ui:285
+msgid "X position"
+msgstr "X koordináta"
+
+#: data/ui/gt-player-header-bar.ui:306
+msgid "Y position"
+msgstr "Y koordináta"
+
+#: data/ui/gt-player-header-bar.ui:346 data/ui/gt-settings-dlg.ui:38
 msgid "Source"
 msgstr "Forrás"
 
-#: data/ui/gt-settings-dlg.ui:29
+#: data/ui/gt-player-header-bar.ui:354 data/ui/gt-settings-dlg.ui:39
 msgid "High"
 msgstr "Magas"
 
-#: data/ui/gt-settings-dlg.ui:30
+#: data/ui/gt-player-header-bar.ui:362 data/ui/gt-settings-dlg.ui:40
 msgid "Medium"
 msgstr "Közepes"
 
-#: data/ui/gt-settings-dlg.ui:31
+#: data/ui/gt-player-header-bar.ui:370 data/ui/gt-settings-dlg.ui:41
 msgid "Low"
 msgstr "Alacsony"
 
-#: src/gt-win.c:96
+#: data/ui/gt-player-header-bar.ui:378
+msgid "Mobile"
+msgstr "Telefon"
+
+#: data/ui/gt-settings-dlg.ui:14
+msgid "Use dark theme variant"
+msgstr "Sötét téma használata"
+
+#: data/ui/gt-settings-dlg.ui:26
+msgid "Default video quality:"
+msgstr "Alapértelmezett videó minőség"
+
+#: data/ui/gt-chat.ui:44
+msgid "Send a message"
+msgstr "Üzenet küldése"
+
+#: data/ui/gt-chat.ui:70
+msgid "Connecting to chat"
+msgstr "Csatlakozás a beszélgetéshez"
+
+#: data/ui/gt-chat.ui:104
+msgid "Not logged into Twitch!"
+msgstr "Nem vagy bejelentkezve!"
+
+#: data/ui/gt-chat.ui:110
+msgid "Click to login"
+msgstr "Bejelentkezés"
+
+#: data/ui/gt-chat.ui:136
+msgid "Click to reconnect"
+msgstr "Újracsatlakozás"
+
+#: data/ui/gt-win.ui:25 data/ui/gt-win.ui:131
+msgid "Browse"
+msgstr "Böngészés"
+
+#: data/ui/gt-win.ui:35 data/ui/gt-win.ui:141
+msgid "Player"
+msgstr "Lejátszó"
+
+#: data/ui/gt-win.ui:71
+msgid "Yes"
+msgstr "Igen"
+
+#: data/ui/gt-win.ui:107
+msgid "Channels"
+msgstr "Csatornák"
+
+#: data/ui/gt-win.ui:116
+msgid "Favourites"
+msgstr "Kedvencek"
+
+#: data/ui/gt-win.ui:125
+msgid "Games"
+msgstr "Játékok"
+
+#: src/gt-app.c:175
+msgid "Refresh login"
+msgstr "Ismételt bejelentkezés"
+
+#: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
+msgid "Login to Twitch"
+msgstr "Bejelentkezés"
+
+#: src/gt-channels-container-child.c:102
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1fk"
+
+#: src/gt-channels-container-child.c:104
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#: src/gt-channels-container-child.c:131
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1fó"
+
+#: src/gt-channels-container-child.c:133
+#, c-format
+msgid "%ldm"
+msgstr "%ldp"
+
+#: src/gt-channels-container-favourite.c:229
+msgid "No channels favourited"
+msgstr "Egy csatorna sincs a kedvencek között"
+
+#: src/gt-channels-container-favourite.c:230
+msgid "Favourite channels that you like for them to show up here"
+msgstr "Kedveld a kedvenc csatornáidat hogy megjelenjenek itt"
+
+#: src/gt-channels-container-search.c:183
+msgid "No channels found"
+msgstr "Egy csatorna sem található"
+
+#: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
+msgid "Try a different search"
+msgstr "Probálkozz egy másik keresőszóval"
+
+#: src/gt-channels-container-search.c:185
+msgid "Searching channels"
+msgstr "Csatornák keresése"
+
+#: src/gt-channels-container-game.c:174 src/gt-channels-container-top.c:155
+msgid "Loading channels"
+msgstr "Csatornák betöltése"
+
+#: src/gt-games-container-search.c:202
+msgid "No games found"
+msgstr "Egy játék sem található"
+
+#: src/gt-games-container-search.c:204
+msgid "Searching games"
+msgstr "Játékok keresése"
+
+#: src/gt-games-container-top.c:161
+msgid "Loading games"
+msgstr "Játékok betöltése"
+
+#: src/gt-favourites-manager.c:63
+#, c-format
+msgid "Channel %s is now online"
+msgstr "%s elérhetővé vált"
+
+#: src/gt-favourites-manager.c:64
+#, c-format
+msgid "Streaming %s"
+msgstr "%s közvetítése"
+
+#: src/gt-game.c:111
+msgid "Untitled broadcast"
+msgstr "Névtelen kőzvetítés"
+
+#: src/gt-player-clutter.c:295
+msgid "Loading stream"
+msgstr "Kőzvetítés betöltése"
+
+#: src/gt-player-clutter.c:410
+#, c-format
+msgid "Buffered %d%%"
+msgstr "%d%% Pufferelve"
+
+#: src/gt-twitch-login-dlg.c:114
+msgid "Successfully logged in to Twitch!"
+msgstr "Sikeres bejelentkezés"
+
+#: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Élvezd a Twitch-et a GNU/Linux gépeden"
 
-#: src/gt-win.c:100
+#: src/gt-win.c:97
 msgid "translator-credits"
-msgstr "Gergő Rubint <gergo@rubint.me>"
+msgstr "Gergő Rubint <rubintgergo@gmail.com>"
+
+#: src/gt-win.c:100
+msgid "Contributors"
+msgstr "Közreműködők"
+
+#: src/gt-win.c:176
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Már be vagy jelentkezve, újra szeretnél csatlakozni?"
