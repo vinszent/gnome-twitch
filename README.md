@@ -37,4 +37,3 @@ ninja install
 ## Screenshots
 ![](/data/screenshots/scrot_player.png?raw=true)
 ![](/data/screenshots/scrot_streams.png?raw=true)
-![](/data/screenshots/scrot_games.png?raw=true)
