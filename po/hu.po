@@ -38,7 +38,7 @@ msgstr "Közvetítés minősége"
 
 #: data/ui/gt-player-header-bar.ui:213
 msgid "Dock chat"
-msgstr "Csevegés leválasztása"
+msgstr "Csevegés dokkolása"
 
 #: data/ui/gt-player-header-bar.ui:219
 msgid "Dark theme"
