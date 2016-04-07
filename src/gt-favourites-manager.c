@@ -286,5 +286,6 @@ gt_favourites_manager_is_channel_favourited(GtFavouritesManager* self, GtChannel
 void
 gt_favourites_manager_attach_to_channel(GtFavouritesManager* self, GtChannel* chan)
 {
-    g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
+    //TODO: Don't show notifications until #75 is fixed
+//    g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
 }
