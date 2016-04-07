@@ -87,7 +87,7 @@ channel_favourited_cb(GObject* source,
     if (favourited)
     {
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
-        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
+//        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
         g_message("{GtChannel} Favourited '%s' (%p)", gt_channel_get_name(chan), chan);
@@ -99,7 +99,7 @@ channel_favourited_cb(GObject* source,
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
-        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+//        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
 
         g_message("{GtChannel} Unfavourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
@@ -122,7 +122,7 @@ oneshot_updating_cb(GObject* source,
 
     if (!updating)
     {
-        g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
+//        g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_signal_handlers_disconnect_by_func(source, oneshot_updating_cb, self); // Just run once after first update
     }
 }
@@ -286,6 +286,5 @@ gt_favourites_manager_is_channel_favourited(GtFavouritesManager* self, GtChannel
 void
 gt_favourites_manager_attach_to_channel(GtFavouritesManager* self, GtChannel* chan)
 {
-    //TODO: Don't show notifications until #75 is fixed
-//    g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
+    g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
 }
