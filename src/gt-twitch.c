@@ -343,7 +343,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GtTwitchStreamAccessToken* ret;
+    GtTwitchStreamAccessToken* ret = NULL;
     gchar uri[100];
 
     g_sprintf(uri, ACCESS_TOKEN_URI, channel);
@@ -351,7 +351,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
 
     if (!send_message(self, msg))
     {
-        g_error("{GtTwitch} Error getting stream access token for channel '%s'", channel);
+        g_warning("{GtTwitch} Error getting stream access token for channel '%s'", channel);
         goto finish;
     }
 
@@ -430,6 +430,8 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
     GList* ret = NULL;
 
     token = gt_twitch_stream_access_token(self, channel);
+
+    g_return_val_if_fail(token != NULL, NULL);
 
     g_sprintf(uri, STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
