@@ -1,4 +1,4 @@
-project('gnome-twitch', 'c', version : '0.1.0')
+project('gnome-twitch', 'c', version : '0.2.0')
 add_global_arguments('-std=gnu11', language : 'c')
 
 LOCALEDIR = get_option('prefix') + '/' + get_option('localedir')
