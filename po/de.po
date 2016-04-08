@@ -1,9 +1,10 @@
 # Translation of gnome-twitch to German.
 # Copyright (C) 2015 Philipp Fent <philipp@fent.de>
+#               2016 Kordian Bruck <k@bruck.me>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.1.0\n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-09 22:42+0200\n"
 "PO-Revision-Date: 2016-04-04 18:36+0200\n"
@@ -12,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.4\n"
-"Last-Translator: Philipp Fent <philipp@fent.de>\n"
+"Last-Translator: Kordian Bruck <k@bruck.me>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: de\n"
 
