@@ -1,5 +1,5 @@
 Name:           gnome-twitch
-Version:        0.1.0
+Version:        0.2.0
 Release:        1%{?dist}
 Summary:        Enjoy Twitch on your GNU/Linux desktop
 
@@ -23,6 +23,7 @@ BuildRequires: 	pkgconfig(gstreamer-video-1.0)
 BuildRequires: 	pkgconfig(gtk+-3.0) >= 3.16
 BuildRequires: 	pkgconfig(libsoup-2.4)
 BuildRequires: 	pkgconfig(json-glib-1.0)
+BuildRequires:  pkgconfig(webkit2gtk-4.0)
 BuildRequires:  /usr/bin/desktop-file-validate
 
 Requires:       gstreamer1
@@ -41,15 +42,14 @@ Enjoy Twitch on your GNU/Linux desktop
 %setup -q
 
 %build
+rm -rf build
 mkdir build
-meson . build
 cd build
-mesonconf -Dbuildtype=release
+meson --prefix %{_prefix} --buildtype release -Ddo-post-install=false ..
 ninja-build
 
 %install
 cd build
-mesonconf -Dprefix=%{_prefix}
 DESTDIR=%{buildroot} ninja-build install
 %find_lang %{name} --with-gnome
 
@@ -75,13 +75,15 @@ fi
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
-%files -f %{name}.lang
+%files
 %{_bindir}/%{name}
 %{_datadir}/applications/com.%{name}.app.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 %{_datadir}/icons/hicolor/scalable/apps/%{name}.svg
+%{_datadir}/icons/hicolor/scalable/apps/%{name}-symbolic.svg
 %{_datadir}/glib-2.0/schemas/%{name}.gschema.xml
+%{_datadir}/locale/*/LC_MESSAGES/gnome-twitch.mo
 
 %changelog
-* Tue Oct 20 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
+* Fri Apr 8 2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
 - Initial package
