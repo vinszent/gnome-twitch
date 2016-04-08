@@ -1,3 +1,3 @@
-langs = ['de', 'pl', 'pt_PT', 'sv', 'fr', 'ru', 'sr', 'hu']
+langs = ['de', 'pl', 'pt', 'sv', 'fr', 'ru', 'sr', 'hu']
 
 gettext('gnome-twitch', languages : langs)
