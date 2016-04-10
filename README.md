@@ -1,4 +1,6 @@
 # ![](/data/icons/hicolor/48x48/apps/gnome-twitch.png) GNOME Twitch
+
+[![Join the chat at https://gitter.im/Ippytraxx/gnome-twitch](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 
