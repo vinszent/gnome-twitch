@@ -231,6 +231,7 @@ chat_cmd_str_to_enum(const gchar* str_cmd)
     IFCASE(PRIVMSG)
     IFCASE(CAP)
     IFCASE(JOIN)
+    IFCASE(PART)
     IFCASE(PING)
     IFCASE(USERSTATE)
     IFCASE(ROOMSTATE)
@@ -247,9 +248,9 @@ chat_cmd_enum_to_str(GtIrcCommandType num)
 {
     const gchar* ret = NULL;
 
-#define ADDCASE(name)                             \
+#define ADDCASE(name)                            \
     case GT_IRC_COMMAND_##name:                  \
-        ret = CHAT_CMD_STR_##name;                \
+        ret = CHAT_CMD_STR_##name;               \
         break;
 
     switch (num)
@@ -259,6 +260,7 @@ chat_cmd_enum_to_str(GtIrcCommandType num)
         ADDCASE(PRIVMSG);
         ADDCASE(CAP);
         ADDCASE(JOIN);
+        ADDCASE(PART);
         ADDCASE(CHANNEL_MODE);
         ADDCASE(USERSTATE);
         ADDCASE(ROOMSTATE);
@@ -435,6 +437,10 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.join = g_new0(GtIrcCommandJoin, 1);
             msg->cmd.join->channel = g_strdup(strsep(&line, " "));
             break;
+        case GT_IRC_COMMAND_PART:
+            msg->cmd.part = g_new0(GtIrcCommandPart, 1);
+            msg->cmd.part->channel = g_strdup(strsep(&line, " "));
+            break;
         case GT_IRC_COMMAND_CAP:
             msg->cmd.cap = g_new0(GtIrcCommandCap, 1);
             msg->cmd.cap->target = g_strdup(strsep(&line, " "));
@@ -462,7 +468,7 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
             break;
         default:
-            g_warning("{GtIrc} Unhandled irc command '%s'\n", line);
+            g_warning("{GtIrc} Unhandled irc command '%s'", cmd);
             break;
     }
 
@@ -966,6 +972,10 @@ gt_irc_message_free(GtIrcMessage* msg)
         case GT_IRC_COMMAND_JOIN:
             g_free(msg->cmd.join->channel);
             g_free(msg->cmd.join);
+            break;
+        case GT_IRC_COMMAND_PART:
+            g_free(msg->cmd.part->channel);
+            g_free(msg->cmd.part);
             break;
         case GT_IRC_COMMAND_CAP:
             g_free(msg->cmd.cap->parameter);
