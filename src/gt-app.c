@@ -6,7 +6,6 @@
 #include <string.h>
 #include <json-glib/json-glib.h>
 
-#define DATA_DIR g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL)
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
 typedef struct
@@ -180,15 +179,25 @@ oauth_token_set_cb(GObject* src,
 static void
 init_dirs()
 {
-    gchar* fp = DATA_DIR;
+    gchar* fp;
+    int err;
 
-    int err = g_mkdir(fp, 0777);
-
+    fp = g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL);
+    err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-    {
-        g_warning("{GtApp} Error creating data dir");
-    }
+        g_warning("{GtApp} Error creating data directory");
+    g_free(fp);
 
+    fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", NULL);
+    err = g_mkdir_with_parents(fp, 0777);
+    if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
+        g_warning("{GtApp} Error creating channel cache directory");
+    g_free(fp);
+
+    fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
+    err = g_mkdir_with_parents(fp, 0777);
+    if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
+        g_warning("{GtApp} Error creating game cache directory");
     g_free(fp);
 }
 
