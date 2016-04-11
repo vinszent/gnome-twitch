@@ -28,6 +28,7 @@ typedef struct
     gboolean updating;
 
     gchar* cache_filename;
+    gint64 cache_timestamp;
 
     guint update_id;
 
@@ -35,6 +36,7 @@ typedef struct
 } GtChannelPrivate;
 
 static GThreadPool* update_pool;
+static GThreadPool* cache_update_pool;
 
 static void
 json_serializable_iface_init(JsonSerializableIface* iface);
@@ -183,6 +185,30 @@ auto_update_cb(GObject* src,
 }
 
 static void
+cache_update_cb(gpointer data,
+                gpointer udata)
+{
+    if(!GT_IS_CHANNEL(data)) // We were probably unrefed during wait time.
+        return;
+
+    GtChannel* self = GT_CHANNEL(data);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch, priv->video_banner_url,
+                                                priv->cache_timestamp);
+    if (pic)
+    {
+        g_clear_object(&priv->video_banner);
+        priv->video_banner = pic;
+        utils_pixbuf_scale_simple(&priv->video_banner,
+                                  320, 180,
+                                  GDK_INTERP_BILINEAR);
+        gdk_pixbuf_save(priv->video_banner, priv->cache_filename, "jpeg", NULL, NULL);
+        g_info("{GtChannel} Updated cache entry for channel '%s'", priv->name);
+    }
+}
+
+static void
 download_preview_cb(GObject* source,
                     GAsyncResult* res,
                     gpointer udata)
@@ -252,6 +278,7 @@ download_banner(GtChannel* self)
         {
             g_info("{GtChannel} Cache hit for channel '%s'", priv->name);
             priv->video_banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
+            priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
         }
 
         if (!priv->video_banner)
@@ -259,7 +286,7 @@ download_banner(GtChannel* self)
                                              (GAsyncReadyCallback) download_banner_cb, self);
         else
         {
-            // TODO: Update banner (if needed) in the background.
+            g_thread_pool_push(cache_update_pool, self, NULL);
 
             priv->preview = g_object_ref(priv->video_banner);
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
@@ -563,6 +590,7 @@ gt_channel_class_init(GtChannelClass* klass)
                                       props);
 
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
+    cache_update_pool = g_thread_pool_new((GFunc) cache_update_cb, NULL, 1, FALSE, NULL);
 }
 
 
@@ -625,14 +653,8 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 
     if (priv->online != data->online)
         g_object_set(self, "online", data->online, NULL);
-        
-    if (tmp != data->online || data->online)
-        update_preview(self);
-    else
-    {
-        priv->updating = FALSE;
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
-    }
+
+    update_preview(self);
 }
 
 void
