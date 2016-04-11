@@ -183,7 +183,7 @@ auto_update_cb(GObject* src,
 }
 
 static void
-download_picture_cb(GObject* source,
+download_preview_cb(GObject* source,
                     GAsyncResult* res,
                     gpointer udata)
 {
@@ -203,12 +203,82 @@ download_picture_cb(GObject* source,
     utils_pixbuf_scale_simple(&priv->preview,
                               320, 180,
                               GDK_INTERP_BILINEAR);
-    if (!priv->online)
-        gdk_pixbuf_save(priv->preview, priv->cache_filename, "jpeg", NULL, NULL);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
 
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+}
+
+static void
+download_banner_cb(GObject* source,
+                   GAsyncResult* res,
+                   gpointer udata)
+{
+    GError* error = NULL;
+
+    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
+
+    if (error)
+    {
+        g_error_free(error);
+        return;
+    }
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    priv->video_banner = pic;
+    utils_pixbuf_scale_simple(&priv->video_banner,
+                              320, 180,
+                              GDK_INTERP_BILINEAR);
+    gdk_pixbuf_save(priv->video_banner, priv->cache_filename, "jpeg", NULL, NULL);
+
+    priv->preview = g_object_ref(priv->video_banner);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+    priv->updating = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+}
+
+static void
+download_banner(GtChannel* self)
+{
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    if (priv->video_banner_url)
+    {
+        if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
+            g_info("{GtChannel} Cache miss for channel '%s'", priv->name);
+        else
+        {
+            g_info("{GtChannel} Cache hit for channel '%s'", priv->name);
+            priv->video_banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
+        }
+
+        if (!priv->video_banner)
+            gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, 0, priv->cancel,
+                                             (GAsyncReadyCallback) download_banner_cb, self);
+        else
+        {
+            // TODO: Update banner (if needed) in the background.
+
+            priv->preview = g_object_ref(priv->video_banner);
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+            priv->updating = FALSE;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+        }
+    }
+    else
+    {
+        priv->video_banner = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
+        utils_pixbuf_scale_simple(&priv->video_banner,
+                                  320, 180,
+                                  GDK_INTERP_BILINEAR);
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+        priv->updating = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+    }
 }
 
 static void
@@ -223,43 +293,20 @@ update_preview(GtChannel* self)
     if (priv->online)
     {
         gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, 0, priv->cancel,
-                                         (GAsyncReadyCallback) download_picture_cb, self);
+                                         (GAsyncReadyCallback) download_preview_cb, self);
     }
     else
     {
-        if (priv->video_banner_url)
+        if (priv->video_banner)
         {
-            if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
-                g_info("{GtChannel} Cache miss for channel '%s'", priv->name);
-            else if (utils_timestamp_now() - utils_timestamp_file(priv->cache_filename) > 604800 + g_random_int_range(0, 604800))
-                g_info("{GtChannel} Stale cache for channel '%s'", priv->name);
-            else
-            {
-                g_info("{GtChannel} Cache hit for channel '%s'", priv->name);
-                priv->preview = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
-            }
-
-            if (!priv->preview)
-                gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, 0, priv->cancel,
-                                                 (GAsyncReadyCallback) download_picture_cb, self);
-            else
-            {
-                g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
-                priv->updating = FALSE;
-                g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
-            }
-        }
-        else
-        {
-            priv->preview = gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL);
-            utils_pixbuf_scale_simple(&priv->preview,
-                                      320, 180,
-                                      GDK_INTERP_BILINEAR);
+            priv->preview = g_object_ref(priv->video_banner);
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
 
             priv->updating = FALSE;
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
         }
+        else
+            download_banner(self);
     }
 }
 
