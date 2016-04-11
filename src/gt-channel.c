@@ -29,6 +29,7 @@ typedef struct
 
     gchar* cache_filename;
     gint64 cache_timestamp;
+    gint64 preview_timestamp;
 
     guint update_id;
 
@@ -225,11 +226,16 @@ download_preview_cb(GObject* source,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    priv->preview = pic;
-    utils_pixbuf_scale_simple(&priv->preview,
-                              320, 180,
-                              GDK_INTERP_BILINEAR);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+    if (pic)
+    {
+        g_clear_object(&priv->preview);
+        priv->preview_timestamp = utils_timestamp_now();
+        priv->preview = pic;
+        utils_pixbuf_scale_simple(&priv->preview,
+                                  320, 180,
+                                  GDK_INTERP_BILINEAR);
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+    }
 
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -313,17 +319,17 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_clear_object(&priv->preview);
-
     g_cancellable_reset(priv->cancel);
 
     if (priv->online)
     {
-        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, 0, priv->cancel,
-                                         (GAsyncReadyCallback) download_preview_cb, self);
+        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, priv->preview_timestamp,
+                                         priv->cancel, (GAsyncReadyCallback) download_preview_cb, self);
     }
     else
     {
+        g_clear_object(&priv->preview);
+
         if (priv->video_banner)
         {
             priv->preview = g_object_ref(priv->video_banner);
@@ -652,7 +658,10 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
                  NULL);
 
     if (priv->online != data->online)
+    {
+        priv->preview_timestamp = 0;
         g_object_set(self, "online", data->online, NULL);
+    }
 
     update_preview(self);
 }
