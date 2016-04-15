@@ -2,6 +2,7 @@
 #include "gt-app.h"
 #include "gt-twitch.h"
 #include "utils.h"
+#include <glib/gi18n.h>
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_top_parent_class)
 
@@ -14,7 +15,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerTop, gt_channels_container_top, GT_TYPE_CHANNELS_CONTAINER)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -25,7 +26,7 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsContainerTop*
 gt_channels_container_top_new(void)
 {
-    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_TOP, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_TOP,
                         NULL);
 }
 
@@ -59,11 +60,11 @@ get_channels(GtChannelsContainerTop* self)
     g_object_unref(priv->cancel);
     priv->cancel = g_cancellable_new();
 
-    gt_twitch_top_channels_async(main_app->twitch, 
-                                 MAX_QUERY, 
-                                 (priv->page++)*MAX_QUERY, 
-                                 NO_GAME, priv->cancel, 
-                                 (GAsyncReadyCallback) top_channels_cb, 
+    gt_twitch_top_channels_async(main_app->twitch,
+                                 MAX_QUERY,
+                                 (priv->page++)*MAX_QUERY,
+                                 NO_GAME, priv->cancel,
+                                 (GAsyncReadyCallback) top_channels_cb,
                                  self);
 }
 
@@ -150,6 +151,8 @@ gt_channels_container_top_init(GtChannelsContainerTop* self)
 
     priv->page = 0;
     priv->cancel = g_cancellable_new();
+
+    PCLASS->set_loading_info(GT_CHANNELS_CONTAINER(self), _("Loading channels"));
 
     get_channels(self);
 }

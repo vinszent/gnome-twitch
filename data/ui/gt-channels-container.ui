@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtChannelsContainer" parent="GtkBox">
+  <template class="GtChannelsContainer" parent="GtkStack">
     <child>
       <object class="GtkScrolledWindow" id="channels_scroll">
         <property name="visible">True</property>
@@ -27,18 +27,64 @@
                 <property name="reveal-child">False</property>
                 <property name="transition-type">crossfade</property>
                 <child>
-                  <object class="GtkSpinner">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="active">True</property>
-                    <property name="expand">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
                     <property name="valign">center</property>
-                    <property name="height-request">100</property>
+                    <property name="halign">center</property>
+                    <child>
+                      <object class="GtkSpinner">
+                        <property name="visible">True</property>
+                        <property name="active">True</property>
+                        <property name="expand">True</property>
+                        <property name="height-request">48</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="loading_label">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
             </child>
           </object>
-        </child> 
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="empty_box">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="spacing">7</property>
+        <style>
+          <class name="empty-games-box"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="empty_image">
+            <property name="visible">True</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="empty_title_label">
+            <property name="visible">True</property>
+            <style>
+              <class name="empty-title"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="empty_subtitle_label">
+            <property name="visible">True</property>
+            <style>
+              <class name="empty-subtitle"/>
+            </style>
+          </object>
+        </child>
       </object>
     </child>
   </template>

@@ -2,6 +2,8 @@
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 
+[![Gitter](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 ## Install
 ### Dependencies
 * meson >= 0.26.0 (install only)
@@ -27,14 +29,12 @@ ninja install
 ```
 
 ### Distro packages
-* [Arch linux](https://aur4.archlinux.org/packages/gnome-twitch/)
-* [Arch linux (git)](https://aur4.archlinux.org/packages/gnome-twitch-git/)
+* [Arch linux](https://aur.archlinux.org/packages/gnome-twitch/)
+* [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian] (https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
-* [Ubuntu (PPA)](https://launchpad.net/~ippytraxx/+archive/ubuntu/gnome-twitch/) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
-* [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (Same requirements as the PPA)
+* [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
 
 ## Screenshots
 ![](/data/screenshots/scrot_player.png?raw=true)
 ![](/data/screenshots/scrot_streams.png?raw=true)
-![](/data/screenshots/scrot_games.png?raw=true)

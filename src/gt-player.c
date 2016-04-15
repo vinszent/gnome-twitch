@@ -9,6 +9,8 @@ typedef struct
     GSimpleActionGroup* action_group;
 
     GtTwitchStreamQuality cur_quality;
+
+    GtChatViewSettings* cur_settings;
 } GtPlayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -21,8 +23,12 @@ enum
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
+    PROP_CHAT_WIDTH,
+    PROP_CHAT_HEIGHT,
     PROP_CHAT_X,
     PROP_CHAT_Y,
+    PROP_CHAT_DARK_THEME,
+    PROP_CHAT_OPACITY,
     NUM_PROPS
 };
 
@@ -47,7 +53,7 @@ set_property(GObject* obj,
     GtPlayer* self = GT_PLAYER(obj);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (prop <= PROP_CHAT_VISIBLE)
+    if (prop <= PROP_CHAT_OPACITY)
         g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -62,7 +68,7 @@ get_property(GObject* obj,
     GtPlayer* self = GT_PLAYER(obj);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (prop <= PROP_CHAT_VISIBLE)
+    if (prop <= PROP_CHAT_OPACITY)
         g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -129,32 +135,6 @@ set_quality_action_cb(GSimpleAction* action,
 }
 
 static void
-show_chat_action_cb(GSimpleAction* action,
-                    GVariant* arg,
-                    gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    g_object_set(self, "chat-visible", g_variant_get_boolean(arg), NULL);
-
-    g_simple_action_set_state(action, arg);
-}
-
-static void
-dock_chat_action_cb(GSimpleAction* action,
-                    GVariant* arg,
-                    gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    g_object_set(self, "chat-docked", g_variant_get_boolean(arg), NULL);
-
-    g_simple_action_set_state(action, arg);
-}
-
-static void
 gt_player_class_init(GtPlayerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
@@ -183,22 +163,42 @@ gt_player_class_init(GtPlayerClass* klass)
                                                     "Chat Visible",
                                                     "Whether chat visible",
                                                     TRUE,
-                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                                    G_PARAM_READWRITE);
     props[PROP_CHAT_DOCKED] = g_param_spec_boolean("chat-docked",
                                                    "Chat Docked",
                                                    "Whether chat docked",
                                                    TRUE,
-                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                                   G_PARAM_READWRITE);
+    props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
+                                                 "Chat Width",
+                                                 "Current chat width",
+                                                 0, 1.0, 0.2,
+                                                 G_PARAM_READWRITE);
+    props[PROP_CHAT_HEIGHT] = g_param_spec_double("chat-height",
+                                                  "Chat Height",
+                                                  "Current chat height",
+                                                  0, 1.0, 1.0,
+                                                  G_PARAM_READWRITE);
     props[PROP_CHAT_X] = g_param_spec_double("chat-x",
                                              "Chat X",
                                              "Current chat x",
                                              0, 1.0, 0.2,
-                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                             G_PARAM_READWRITE);
     props[PROP_CHAT_Y] = g_param_spec_double("chat-y",
                                              "Chat Y",
                                              "Current chat y",
                                              0, 1.0, 0.2,
-                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                             G_PARAM_READWRITE);
+    props[PROP_CHAT_DARK_THEME] = g_param_spec_boolean("chat-dark-theme",
+                                                       "Chat Dark Theme",
+                                                       "Whether chat dark theme",
+                                                       TRUE,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_CHAT_OPACITY] = g_param_spec_double("chat-opacity",
+                                                   "Chat Opacity",
+                                                   "Current chat opacity",
+                                                   0, 1.0, 1.0,
+                                                   G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
@@ -207,9 +207,30 @@ static GActionEntry actions[] =
 {
     //TODO: Make these GPropertyAction?
     {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
-    {"show_chat", NULL, NULL, "true", show_chat_action_cb},
-    {"dock_chat", NULL, NULL, "true", dock_chat_action_cb},
 };
+
+static void
+chat_settings_changed_cb(GObject* source,
+                         GParamSpec* pspec,
+                         gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (!priv->cur_settings)
+        return;
+
+    g_object_get(G_OBJECT(self),
+                 "chat-docked", &priv->cur_settings->docked,
+                 "chat-visible", &priv->cur_settings->visible,
+                 "chat-width", &priv->cur_settings->width,
+                 "chat-height", &priv->cur_settings->height,
+                 "chat-x", &priv->cur_settings->x_pos,
+                 "chat-y", &priv->cur_settings->y_pos,
+                 "chat-dark-theme", &priv->cur_settings->dark_theme,
+                 "chat-opacity", &priv->cur_settings->opacity,
+                 NULL);
+}
 
 static void
 gt_player_init(GtPlayer* self)
@@ -219,7 +240,23 @@ gt_player_init(GtPlayer* self)
     priv->action_group = g_simple_action_group_new();
     g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
                                     G_N_ELEMENTS(actions), self);
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
+                            G_ACTION(g_property_action_new("show_chat", G_OBJECT(self), "chat-visible")));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
+                            G_ACTION(g_property_action_new("dock_chat", G_OBJECT(self), "chat-docked")));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
+                            G_ACTION(g_property_action_new("dark_theme_chat", G_OBJECT(self), "chat-dark-theme")));
+
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
+
+    g_signal_connect(self, "notify::chat-docked", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-visible", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-width", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-height", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-x", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-y", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-dark-theme", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::chat-opacity", G_CALLBACK(chat_settings_changed_cb), self);
 }
 
 void
@@ -258,6 +295,29 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
     g_action_change_state(quality_action, default_quality);
 
+    priv->cur_settings = g_hash_table_lookup(main_app->chat_settings_table, name);
+    if (!priv->cur_settings)
+    {
+        priv->cur_settings = gt_chat_view_settings_new();
+        g_hash_table_insert(main_app->chat_settings_table, g_strdup(name), priv->cur_settings);
+    }
+
+    g_signal_handlers_block_by_func(self, chat_settings_changed_cb, self);
+    g_object_set(G_OBJECT(self),
+                 "chat-docked", priv->cur_settings->docked,
+                 "chat-width", priv->cur_settings->width,
+                 "chat-height", priv->cur_settings->height,
+                 "chat-dark-theme", priv->cur_settings->dark_theme,
+                 NULL);
+    g_object_set(G_OBJECT(self), // These props need to be set after
+                 "chat-x", priv->cur_settings->x_pos,
+                 "chat-y", priv->cur_settings->y_pos,
+                 "chat-visible", priv->cur_settings->visible,
+                 "chat-opacity", priv->cur_settings->opacity,
+                 NULL);
+    g_signal_handlers_unblock_by_func(self, chat_settings_changed_cb, self);
+
+
     gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
 
     g_free(name);
@@ -288,10 +348,4 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
 
     g_free(name);
     g_object_unref(chan);
-}
-
-GtkWidget*
-gt_player_get_chat_view(GtPlayer* self)
-{
-    return GT_PLAYER_GET_CLASS(self)->get_chat_view(self);
 }

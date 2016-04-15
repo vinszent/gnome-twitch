@@ -3,13 +3,18 @@
 #include "gt-twitch.h"
 #include "utils.h"
 #include <string.h>
+#include <glib/gi18n.h>
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
+
+#define FILTER_TIMEOUT_MS 500
 
 typedef struct
 {
     gchar* query;
     gint page;
+
+    gint filter_timeout_id;
 
     GCancellable* cancel;
 } GtGamesContainerSearchPrivate;
@@ -42,13 +47,16 @@ search_games_cb(GObject* source,
 
     GList* new = g_task_propagate_pointer(G_TASK(res), &err);
 
+    PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
+
+    if (!err || err->code != 19)
+    {
+            PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
+            PCLASS->check_empty(GT_GAMES_CONTAINER(self));
+    }
+
     if (err)
         g_error_free(err);
-    else
-        PCLASS->append_games(GT_GAMES_CONTAINER(self), new);
-
-    if (g_cancellable_is_cancelled(priv->cancel))
-        PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), FALSE);
 }
 
 static void
@@ -57,9 +65,10 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
     if (!query || strlen(query) == 0)
+    {
+        PCLASS->check_empty(GT_GAMES_CONTAINER(self));
         return;
-
-    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query != NULL);
+    }
 
     g_cancellable_cancel(priv->cancel);
     g_object_unref(priv->cancel);
@@ -74,11 +83,28 @@ get_games(GtGamesContainerSearch* self, const gchar* query)
                                  self);
 }
 
+static gboolean
+filter_timeout_cb(gpointer udata)
+{
+    GtGamesContainerSearch* self = GT_GAMES_CONTAINER_SEARCH(udata);
+    GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
+
+    get_games(self, priv->query);
+    priv->filter_timeout_id = -1;
+
+    return G_SOURCE_REMOVE;
+}
+
 static void
 filter(GtGamesContainer* container, const gchar* query)
 {
     GtGamesContainerSearch* self = GT_GAMES_CONTAINER_SEARCH(container);
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
+
+    if (priv->filter_timeout_id > 0)
+        g_source_remove(priv->filter_timeout_id);
+
+    PCLASS->show_load_spinner(GT_GAMES_CONTAINER(self), query && strlen(query) > 0);
 
     priv->page = 0;
     g_free(priv->query);
@@ -86,7 +112,7 @@ filter(GtGamesContainer* container, const gchar* query)
 
     utils_container_clear(GTK_CONTAINER(PCLASS->get_games_flow(container)));
 
-    get_games(self, query);
+    priv->filter_timeout_id = g_timeout_add(FILTER_TIMEOUT_MS, filter_timeout_cb, self);
 }
 
 static void
@@ -171,6 +197,15 @@ gt_games_container_search_init(GtGamesContainerSearch* self)
 {
     GtGamesContainerSearchPrivate* priv = gt_games_container_search_get_instance_private(self);
 
+    PCLASS->set_empty_info(GT_GAMES_CONTAINER(self),
+                           "edit-find-symbolic",
+                           _("No games found"),
+                           _("Try a different search"));
+    PCLASS->set_loading_info(GT_GAMES_CONTAINER(self), _("Searching games"));
+
+    PCLASS->check_empty(GT_GAMES_CONTAINER(self));
+
     priv->page = 0;
+    priv->filter_timeout_id = -1;
     priv->cancel = g_cancellable_new();
 }

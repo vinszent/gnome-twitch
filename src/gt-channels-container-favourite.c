@@ -1,5 +1,6 @@
 #include "gt-channels-container-favourite.h"
 #include "gt-app.h"
+#include <glib/gi18n.h>
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_favourite_parent_class)
 
@@ -10,7 +11,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerFavourite, gt_channels_container_favourite, GT_TYPE_CHANNELS_CONTAINER)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -21,7 +22,7 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsContainerFavourite*
 gt_channels_container_favourite_new(void)
 {
-    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_FAVOURITE, 
+    return g_object_new(GT_TYPE_CHANNELS_CONTAINER_FAVOURITE,
                         NULL);
 }
 
@@ -53,7 +54,7 @@ static gboolean
 filter_favourites_by_name(GtkFlowBoxChild* _child,
                           gpointer udata)
 {
-    GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child); 
+    GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
     GtChannelsContainerFavouritePrivate* priv = gt_channels_container_favourite_get_instance_private(self);
     GtChannel* chan;
@@ -61,7 +62,7 @@ filter_favourites_by_name(GtkFlowBoxChild* _child,
     gboolean ret = FALSE;
 
     g_object_get(child, "channel", &chan, NULL);
-    g_object_get(chan, "name", &name, NULL); 
+    g_object_get(chan, "name", &name, NULL);
 
     if (!priv->search_query)
         ret = TRUE;
@@ -81,8 +82,8 @@ sort_favourites_by_name_and_online(GtkFlowBoxChild* _child1,
 {
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
     GtChannelsContainerFavouritePrivate* priv = gt_channels_container_favourite_get_instance_private(self);
-    GtChannelsContainerChild* child1 = GT_CHANNELS_CONTAINER_CHILD(_child1); 
-    GtChannelsContainerChild* child2 = GT_CHANNELS_CONTAINER_CHILD(_child2); 
+    GtChannelsContainerChild* child1 = GT_CHANNELS_CONTAINER_CHILD(_child1);
+    GtChannelsContainerChild* child2 = GT_CHANNELS_CONTAINER_CHILD(_child2);
     GtChannel* chan1;
     GtChannel* chan2;
     gboolean online1;
@@ -93,14 +94,14 @@ sort_favourites_by_name_and_online(GtkFlowBoxChild* _child1,
 
     g_object_get(child1, "channel", &chan1, NULL);
     g_object_get(child2, "channel", &chan2, NULL);
-    g_object_get(chan1, 
-                 "online", &online1, 
+    g_object_get(chan1,
+                 "online", &online1,
                  "name", &name1,
-                 NULL); 
-    g_object_get(chan2, 
-                 "online", &online2, 
+                 NULL);
+    g_object_get(chan2,
+                 "online", &online2,
                  "name", &name2,
-                 NULL); 
+                 NULL);
 
     if(online1 && !online2)
         ret = -1;
@@ -140,6 +141,8 @@ channel_favourited_cb(GtFavouritesManager* mgr,
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
 
     PCLASS->append_channel(GT_CHANNELS_CONTAINER(self), chan);
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 }
 
 static void
@@ -150,6 +153,8 @@ channel_unfavourited_cb(GtFavouritesManager* mgr,
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
 
     PCLASS->remove_channel(GT_CHANNELS_CONTAINER(self), chan);
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 }
 
 static void
@@ -219,7 +224,14 @@ gt_channels_container_favourite_init(GtChannelsContainerFavourite* self)
                                (GtkFlowBoxSortFunc) sort_favourites_by_name_and_online,
                                self, NULL);
 
+    PCLASS->set_empty_info(GT_CHANNELS_CONTAINER(self),
+                           "emblem-favorite-symbolic",
+                           _("No channels favourited"),
+                           _("Favourite channels that you like for them to show up here"));
+
     PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), main_app->fav_mgr->favourite_channels);
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 
     for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
         g_signal_connect(G_OBJECT(l->data), "notify::updating", G_CALLBACK(channel_updating_cb), self);

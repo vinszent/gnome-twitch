@@ -1,34 +1,21 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# Translation of gnome-twitch to Serbian.
+# Copyright (C) 2015-2016 Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>
+# This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-15 19:21+0200\n"
-"PO-Revision-Date: 2015-10-15 19:27+0200\n"
+"PO-Revision-Date: 2016-04-06 19:27+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.5\n"
-"Last-Translator: Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 1.8.7.1\n"
+"Last-Translator: Марко М. Костић <marko.m.kostic@gmail.com>\n"
+"Plural-Forms: nplurals=4; plural=n==1? 3 : n%10==1 && n%100!=11 ? 0 : n"
+"%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "Language: sr\n"
-
-#: data/ui/gt-win.ui:55
-msgid "Channels"
-msgstr "Канали"
-
-#: data/ui/gt-win.ui:64
-msgid "Favourites"
-msgstr "Омиљено"
-
-#: data/ui/gt-win.ui:73
-msgid "Games"
-msgstr "Игре"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
 msgid "Settings"
@@ -42,30 +29,217 @@ msgstr "О програму"
 msgid "Quit"
 msgstr "Изађи"
 
-#: data/ui/gt-settings-dlg.ui:17
-msgid "Default video quality: "
-msgstr "Подразумевани квалитет снимка: "
+#: data/ui/gt-player-header-bar.ui:174 data/ui/gt-player-header-bar.ui:198
+msgid "Edit chat"
+msgstr "Уреди ћаскање"
 
-#: data/ui/gt-settings-dlg.ui:28
+#: data/ui/gt-player-header-bar.ui:181 data/ui/gt-player-header-bar.ui:338
+msgid "Stream quality"
+msgstr "Квалитет тока"
+
+#: data/ui/gt-player-header-bar.ui:213
+msgid "Dock chat"
+msgstr "Ћаскање у доку"
+
+#: data/ui/gt-player-header-bar.ui:219
+msgid "Dark theme"
+msgstr "Тамна тема"
+
+#: data/ui/gt-player-header-bar.ui:228
+msgid "Opacity"
+msgstr "Непровидност"
+
+#: data/ui/gt-player-header-bar.ui:247
+msgid "Width"
+msgstr "Ширина"
+
+#: data/ui/gt-player-header-bar.ui:266
+msgid "Height"
+msgstr "Висина"
+
+#: data/ui/gt-player-header-bar.ui:285
+msgid "X position"
+msgstr "Водоравни положај"
+
+#: data/ui/gt-player-header-bar.ui:306
+msgid "Y position"
+msgstr "Усправни положај"
+
+#: data/ui/gt-player-header-bar.ui:346 data/ui/gt-settings-dlg.ui:38
 msgid "Source"
-msgstr "Изворни"
+msgstr "Извор"
 
-#: data/ui/gt-settings-dlg.ui:29
+#: data/ui/gt-player-header-bar.ui:354 data/ui/gt-settings-dlg.ui:39
 msgid "High"
 msgstr "Висок"
 
-#: data/ui/gt-settings-dlg.ui:30
+#: data/ui/gt-player-header-bar.ui:362 data/ui/gt-settings-dlg.ui:40
 msgid "Medium"
 msgstr "Средње"
 
-#: data/ui/gt-settings-dlg.ui:31
+#: data/ui/gt-player-header-bar.ui:370 data/ui/gt-settings-dlg.ui:41
 msgid "Low"
-msgstr "Низак"
+msgstr "Скоро празна"
 
-#: src/gt-win.c:96
+#: data/ui/gt-player-header-bar.ui:378
+msgid "Mobile"
+msgstr "Мобилни"
+
+#: data/ui/gt-settings-dlg.ui:14
+msgid "Use dark theme variant"
+msgstr "Користи тамну варијанту теме"
+
+#: data/ui/gt-settings-dlg.ui:26
+msgid "Default video quality:"
+msgstr "Подразумевани квалитет видеа:"
+
+#: data/ui/gt-chat.ui:44
+msgid "Send a message"
+msgstr "Пошаљи поруку"
+
+#: data/ui/gt-chat.ui:70
+msgid "Connecting to chat"
+msgstr "Повезујем се на ћаскање"
+
+#: data/ui/gt-chat.ui:104
+msgid "Not logged into Twitch!"
+msgstr "Нисте пријављени на Твич!"
+
+#: data/ui/gt-chat.ui:110
+msgid "Click to login"
+msgstr "Кликните да бисте се пријавили"
+
+#: data/ui/gt-chat.ui:136
+msgid "Click to reconnect"
+msgstr "Кликните да бисте се поново повезали"
+
+#: data/ui/gt-win.ui:25 data/ui/gt-win.ui:131
+msgid "Browse"
+msgstr "Прегледај"
+
+#: data/ui/gt-win.ui:35 data/ui/gt-win.ui:141
+msgid "Player"
+msgstr "Играч"
+
+#: data/ui/gt-win.ui:71
+msgid "Yes"
+msgstr "Да"
+
+#: data/ui/gt-win.ui:107
+msgid "Channels"
+msgstr "Канали"
+
+#: data/ui/gt-win.ui:116
+msgid "Favourites"
+msgstr "Омиљено"
+
+#: data/ui/gt-win.ui:125
+msgid "Games"
+msgstr "Игре"
+
+#: src/gt-app.c:175
+msgid "Refresh login"
+msgstr "Освежи пријаву"
+
+#: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
+msgid "Login to Twitch"
+msgstr "Пријави се на Твич"
+
+#: src/gt-channels-container-child.c:102
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1fk"
+
+#: src/gt-channels-container-child.c:104
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#: src/gt-channels-container-child.c:131
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1fh"
+
+#: src/gt-channels-container-child.c:133
+#, c-format
+msgid "%ldm"
+msgstr "%ldm"
+
+#: src/gt-channels-container-favourite.c:229
+msgid "No channels favourited"
+msgstr "Нема омиљених канала"
+
+#: src/gt-channels-container-favourite.c:230
+msgid "Favourite channels that you like for them to show up here"
+msgstr "Омиљени канали ће се појавити овде"
+
+#: src/gt-channels-container-search.c:183
+msgid "No channels found"
+msgstr "Нисам пронашао ниједан канал"
+
+#: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
+msgid "Try a different search"
+msgstr "Покушајте другачију претрагу"
+
+#: src/gt-channels-container-search.c:185
+msgid "Searching channels"
+msgstr "Претражујем канале"
+
+#: src/gt-channels-container-game.c:174 src/gt-channels-container-top.c:155
+msgid "Loading channels"
+msgstr "Учитавам канале"
+
+#: src/gt-games-container-search.c:202
+msgid "No games found"
+msgstr "Ниједна игра није нађена"
+
+#: src/gt-games-container-search.c:204
+msgid "Searching games"
+msgstr "Претражујем игре"
+
+#: src/gt-games-container-top.c:161
+msgid "Loading games"
+msgstr "Учитавам игре"
+
+#: src/gt-favourites-manager.c:63
+#, c-format
+msgid "Channel %s is now online"
+msgstr "Канал „%s“ је сада на мрежи"
+
+#: src/gt-favourites-manager.c:64
+#, c-format
+msgid "Streaming %s"
+msgstr "Емитујем %s"
+
+#: src/gt-game.c:111
+msgid "Untitled broadcast"
+msgstr "Неименовано емитовање"
+
+#: src/gt-player-clutter.c:295
+msgid "Loading stream"
+msgstr "Учитавам ток"
+
+#: src/gt-player-clutter.c:410
+#, c-format
+msgid "Buffered %d%%"
+msgstr "Учитано %d%%"
+
+#: src/gt-twitch-login-dlg.c:114
+msgid "Successfully logged in to Twitch!"
+msgstr "Пријава на Твич је успела!"
+
+#: src/gt-win.c:93
 msgid "Enjoy Twitch on your GNU/Linux desktop"
-msgstr "Уживајте у услузи Twitch на вашем ГНУ/Линукс рачунару"
+msgstr "Уживајте у гледању Твича на вашем ГНУ/Линукс уређају"
+
+#: src/gt-win.c:97
+msgid "translator-credits"
+msgstr "Марко М. Костић <marko.m.kostic@gmail.com>"
 
 #: src/gt-win.c:100
-msgid "translator-credits"
-msgstr "Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>"
+msgid "Contributors"
+msgstr "Доприносиоци"
+
+#: src/gt-win.c:176
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Већ сте пријављени на Твич. Освежити пријаву?"

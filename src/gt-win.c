@@ -13,7 +13,8 @@
 #include "gt-favourites-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
-#include "gt-twitch-chat-view.h"
+#include "gt-twitch-channel-info-dlg.h"
+#include "gt-chat.h"
 #include "gt-enums.h"
 #include "utils.h"
 #include "config.h"
@@ -42,6 +43,8 @@ typedef struct
     GtSettingsDlg* settings_dlg;
 
     gboolean fullscreen;
+
+    GtChannel* open_channel;
 } GtWinPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
@@ -52,9 +55,6 @@ enum
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
     PROP_FULLSCREEN,
-    PROP_SHOWING_CHANNELS, //TODO: Get rid of these "showing" properties
-    PROP_SHOWING_FAVOURITES,
-    PROP_SHOWING_GAMES_VIEW,
     PROP_VISIBLE_VIEW,
     NUM_PROPS
 };
@@ -97,7 +97,7 @@ show_about_cb(GSimpleAction* action,
                  "translator-credits", _("translator-credits"),
                  NULL);
 
-    gtk_about_dialog_add_credit_section(GTK_ABOUT_DIALOG(about_dlg), "Contributors", contributors);
+    gtk_about_dialog_add_credit_section(GTK_ABOUT_DIALOG(about_dlg), _("Contributors"), contributors);
     gtk_window_set_transient_for(GTK_WINDOW(about_dlg), GTK_WINDOW(self));
 
     gtk_dialog_run(GTK_DIALOG(about_dlg));
@@ -132,7 +132,7 @@ refresh_login_cb(GtkInfoBar* info_bar,
     switch (res)
     {
         case GTK_RESPONSE_YES:
-            gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(self)));
+            gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(GTK_WINDOW(self))));
             break;
     }
 
@@ -181,11 +181,31 @@ show_twitch_login_cb(GSimpleAction* action,
     }
     else
     {
-        GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(self);
+        GtTwitchLoginDlg* dlg = gt_twitch_login_dlg_new(GTK_WINDOW(self));
 
         gtk_window_present(GTK_WINDOW(dlg));
     }
 }
+
+static void
+show_channel_info_cb(GSimpleAction* action,
+                     GVariant* arg,
+                     gpointer udata)
+{
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GtTwitchChannelInfoDlg* dlg = gt_twitch_channel_info_dlg_new(GTK_WINDOW(self));
+    const gchar* chan;
+
+    chan = gt_channel_get_name(priv->open_channel);
+
+    g_message("{GtWin} Showing channel info for '%s'", chan);
+
+    gtk_window_present(GTK_WINDOW(dlg));
+
+    gt_twitch_channel_info_dlg_load_channel(dlg, chan);
+}
+
 
 static void
 refresh_view_cb(GSimpleAction* action,
@@ -222,25 +242,49 @@ key_press_cb(GtkWidget* widget,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
     gboolean playing;
+    GAction *action;
 
     g_object_get(self->player, "playing", &playing, NULL);
 
-    if (evt->keyval == GDK_KEY_space)
+    if (MAIN_VISIBLE_CHILD == self->player)
     {
-        if (MAIN_VISIBLE_CHILD == self->player)
+        if (evt->keyval == GDK_KEY_Escape)
         {
-            if (playing)
-                gt_player_stop(GT_PLAYER(self->player));
-            else
-                gt_player_play(GT_PLAYER(self->player));
-        }
-    }
-    else if (evt->keyval == GDK_KEY_Escape)
-    {
-        if (MAIN_VISIBLE_CHILD == self->player)
             if (priv->fullscreen)
                 gtk_window_unfullscreen(GTK_WINDOW(self));
+            else
+            {
+                action = g_action_map_lookup_action(G_ACTION_MAP(self), "close_player");
+                g_action_activate(action, NULL);
+            }
+        }
+        else if (evt->keyval == GDK_KEY_f)
+        {
+            if (priv->fullscreen)
+                gtk_window_unfullscreen(GTK_WINDOW(self));
+            else
+                gtk_window_fullscreen(GTK_WINDOW(self));
+        }
+    }
+    else
+    {
+        if (evt->keyval == GDK_KEY_Escape)
+            gt_browse_header_bar_stop_search(GT_BROWSE_HEADER_BAR(priv->browse_header_bar));
+        else if (evt->keyval == GDK_KEY_f && (evt->state & modifiers) == GDK_CONTROL_MASK)
+            gt_browse_header_bar_toggle_search(GT_BROWSE_HEADER_BAR(priv->browse_header_bar));
+        else
+        {
+            GtkWidget* view = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
+
+            if (view == priv->channels_view)
+                gt_channels_view_handle_event(GT_CHANNELS_VIEW(priv->channels_view), (GdkEvent*) evt);
+            else if (view == priv->games_view)
+                gt_games_view_handle_event(GT_GAMES_VIEW(priv->games_view), (GdkEvent*) evt);
+            else if (view == priv->favourites_view)
+                gt_favourites_view_handle_event(GT_FAVOURITES_VIEW(priv->favourites_view), (GdkEvent* )evt);
+        }
     }
 
     return FALSE;
@@ -287,6 +331,7 @@ static GActionEntry win_actions[] =
     {"show_about", show_about_cb, NULL, NULL, NULL},
     {"show_settings", show_settings_cb, NULL, NULL, NULL},
     {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
+    {"show_channel_info", show_channel_info_cb, NULL, NULL, NULL},
     {"close_player", close_player_cb, NULL, NULL, NULL},
 };
 
@@ -339,15 +384,6 @@ get_property (GObject*    obj,
         case PROP_FULLSCREEN:
             g_value_set_boolean(val, priv->fullscreen);
             break;
-        case PROP_SHOWING_CHANNELS:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view);
-            break;
-        case PROP_SHOWING_FAVOURITES:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->favourites_view);
-            break;
-        case PROP_SHOWING_GAMES_VIEW:
-            g_value_set_boolean(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view);
-            break;
         case PROP_VISIBLE_VIEW:
             g_value_set_object(val, gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)));
             break;
@@ -399,21 +435,6 @@ gt_win_class_init(GtWinClass* klass)
                                                   "Whether window is fullscreen",
                                                   FALSE,
                                                   G_PARAM_READABLE);
-    props[PROP_SHOWING_CHANNELS] = g_param_spec_boolean("showing-channels",
-                                                        "Showing Channels",
-                                                        "Whether showing channels",
-                                                        FALSE,
-                                                        G_PARAM_READABLE);
-    props[PROP_SHOWING_FAVOURITES] = g_param_spec_boolean("showing-favourites",
-                                                          "Showing Favourites",
-                                                          "Whether showing favourites",
-                                                          FALSE,
-                                                          G_PARAM_READABLE);
-    props[PROP_SHOWING_GAMES_VIEW] = g_param_spec_boolean("showing-games-view",
-                                                          "Showing Games View",
-                                                          "Whether showing games view",
-                                                          FALSE,
-                                                          G_PARAM_READABLE);
     props[PROP_VISIBLE_VIEW] = g_param_spec_object("visible-view",
                                                    "Visible View",
                                                    "Visible View",
@@ -455,7 +476,7 @@ gt_win_init(GtWin* self)
     GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
     GT_TYPE_FAVOURITES_VIEW;
-    GT_TYPE_TWITCH_CHAT_VIEW;
+    GT_TYPE_CHAT;
 
 //    self->open_channel = NULL;
 
@@ -464,6 +485,8 @@ gt_win_init(GtWin* self)
                                 g_settings_get_int(main_app->settings, "window-height"));
 
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    gtk_window_set_default_icon_name("gnome-twitch");
 
 //    g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
 
@@ -496,6 +519,10 @@ void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    g_clear_object(&priv->open_channel);
+    g_object_ref(chan);
+    priv->open_channel = chan;
 
     gt_player_open_channel(GT_PLAYER(self->player), chan);
 

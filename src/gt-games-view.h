@@ -18,6 +18,7 @@ struct _GtGamesView
 GtGamesView* gt_games_view_new(void);
 void gt_games_view_refresh(GtGamesView* self);
 void gt_games_view_show_type(GtGamesView* self, gint type);
+gboolean gt_games_view_handle_event(GtGamesView* self, GdkEvent* event);
 
 G_END_DECLS
 

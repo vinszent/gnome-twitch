@@ -1,5 +1,6 @@
 #include "gt-twitch-login-dlg.h"
 #include <webkit2/webkit2.h>
+#include <glib/gi18n.h>
 
 typedef struct
 {
@@ -18,11 +19,12 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 GtTwitchLoginDlg*
-gt_twitch_login_dlg_new(GtWin* win)
+gt_twitch_login_dlg_new(GtkWindow* parent)
 {
     return g_object_new(GT_TYPE_TWITCH_LOGIN_DLG,
-                        "transient-for", win,
+                        "transient-for", parent,
                         "use-header-bar", 1,
+                        "title", _("Login to Twitch"),
                         NULL);
 }
 
@@ -109,7 +111,7 @@ uri_changed_cb(GObject* source,
         g_message("{GtTwitchLoginDlg} Successfully got OAuth token '%s'", token);
 
         gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
-                                 "Successfully logged in to Twitch!");
+                                 _("Successfully logged in to Twitch!"));
 
         gtk_widget_destroy(GTK_WIDGET(self));
         g_free(token);
@@ -133,7 +135,7 @@ submit_form_cb(WebKitWebView* web_view,
 {
     GHashTable* text_fields = webkit_form_submission_request_get_text_fields(request);
 
-    gchar* user_name = g_hash_table_lookup(text_fields, "login");
+    gchar* user_name = g_hash_table_lookup(text_fields, "username");
 
     g_message("{GtTwitchLoginDlg} Got username '%s' from form", user_name);
 

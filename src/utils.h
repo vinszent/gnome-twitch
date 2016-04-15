@@ -11,8 +11,13 @@
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
 void utils_container_clear(GtkContainer* cont);
+gint64 utils_timestamp_file(const gchar* filename);
+gint64 utils_timestamp_now(void);
 void utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterpType interp);
 GdkPixbuf* utils_download_picture(SoupSession* soup, const gchar* url);
-gchar* utils_search_key_value_strv(gchar** strv, const gchar* key);
+GdkPixbuf* utils_download_picture_if_newer(SoupSession* soup, const gchar* url, gint64 timestamp);
+const gchar* utils_search_key_value_strv(gchar** strv, const gchar* key);
+void utils_connect_mouse_hover(GtkWidget* widget);
+void utils_connect_link(GtkWidget* widget, const gchar* link);
 
 #endif

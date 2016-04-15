@@ -1,5 +1,7 @@
 #!/bin/sh
 
-glib-compile-schemas /usr/share/glib-2.0/schemas
+PREFIX=${MESON_INSTALL_PREFIX:-/usr}
+
+glib-compile-schemas "$PREFIX/share/glib-2.0/schemas"
 update-desktop-database -q
-gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor
+gtk-update-icon-cache -q -t -f "$PREFIX/share/icons/hicolor"

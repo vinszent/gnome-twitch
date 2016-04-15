@@ -4,6 +4,7 @@
 #include <glib/gi18n.h>
 #include <stdlib.h>
 #include <math.h>
+#include <locale.h>
 #include "gt-app.h"
 #include "config.h"
 
@@ -12,6 +13,7 @@
 #endif
 
 GtApp* main_app;
+gchar* ORIGINAL_LOCALE;
 
 static gint LOG_LEVEL = 2;
 
@@ -65,7 +67,7 @@ gt_log(const gchar* domain,
     date = g_date_time_new_now_utc();
     time_fmt = g_date_time_format(date, "%H:%M:%S");
 
-    g_print("[%s] %s - %s : \"%s\"\n", time_fmt, domain, level, msg);
+    g_print("[%s] %s - %s : \"%s\"\n", time_fmt, domain ? domain : "GNOME-Twitch", level, msg);
 
     g_free(time_fmt);
     g_date_time_unref(date);
@@ -80,20 +82,26 @@ int main(int argc, char** argv)
     g_option_context_add_main_entries(opt_ctxt, cli_options, "gnome-twitch");
     if (!g_option_context_parse(opt_ctxt, &argc, &argv, &err))
     {
-	g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
-	exit(1);
+        g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
+        exit(EXIT_FAILURE);
     }
 
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif
-    gtk_clutter_init(NULL, NULL);
+    if (gtk_clutter_init(NULL, NULL) != CLUTTER_INIT_SUCCESS)
+    {
+        g_critical("Could not initialize GtkClutter");
+        exit(EXIT_FAILURE);
+    }
 
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
     bind_textdomain_codeset("gnome-twitch", "UTF-8");
     textdomain("gnome-twitch");
 
     g_log_set_default_handler((GLogFunc) gt_log, NULL);
+
+    ORIGINAL_LOCALE = g_strdup(setlocale(LC_NUMERIC, NULL));
 
     main_app = gt_app_new();
 

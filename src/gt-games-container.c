@@ -5,13 +5,19 @@
 
 typedef struct
 {
+    GtkWidget* games_scroll;
     GtkWidget* games_flow;
     GtkWidget* load_revealer;
+    GtkWidget* loading_label;
+    GtkWidget* empty_box;
+    GtkWidget* empty_image;
+    GtkWidget* empty_title_label;
+    GtkWidget* empty_subtitle_label;
 } GtGamesContainerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainer, gt_games_container, GTK_TYPE_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainer, gt_games_container, GTK_TYPE_STACK)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -20,7 +26,7 @@ enum
 enum
 {
     SIG_GAME_ACTIVATED,
-    
+
     NUM_SIGS
 };
 
@@ -31,14 +37,46 @@ static guint sigs[NUM_SIGS];
 GtGamesContainer*
 gt_games_container_new(void)
 {
-    return g_object_new(GT_TYPE_GAMES_CONTAINER, 
+    return g_object_new(GT_TYPE_GAMES_CONTAINER,
                         NULL);
+}
+
+static void
+check_empty(GtGamesContainer* self)
+{
+    GtGamesContainerPrivate* priv = gt_games_container_get_instance_private(self);
+
+    if (g_list_length(gtk_container_get_children(GTK_CONTAINER(priv->games_flow))) == 0)
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->games_scroll);
+}
+
+static void
+set_empty_info(GtGamesContainer* self, const gchar* image_icon,
+               const gchar* title, const gchar* subtitle)
+{
+    GtGamesContainerPrivate* priv = gt_games_container_get_instance_private(self);
+
+    gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), image_icon, GTK_ICON_SIZE_DIALOG);
+    gtk_label_set_label(GTK_LABEL(priv->empty_title_label), title);
+    gtk_label_set_label(GTK_LABEL(priv->empty_subtitle_label), subtitle);
+}
+
+static void
+set_loading_info(GtGamesContainer* self, const gchar* title)
+{
+    GtGamesContainerPrivate* priv = gt_games_container_get_instance_private(self);
+
+    gtk_label_set_label(GTK_LABEL(priv->loading_label), title);
 }
 
 static void
 show_load_spinner(GtGamesContainer* self, gboolean show)
 {
     GtGamesContainerPrivate* priv = gt_games_container_get_instance_private(self);
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->games_scroll);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->load_revealer), show);
 }
@@ -149,6 +187,9 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
+    klass->check_empty = check_empty;
+    klass->set_empty_info = set_empty_info;
+    klass->set_loading_info = set_loading_info;
     klass->show_load_spinner = show_load_spinner;
     klass->append_games = append_games;
     klass->get_games_flow = get_games_flow;
@@ -163,8 +204,14 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-games-container.ui");
 
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, games_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, games_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, load_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_title_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, empty_subtitle_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, loading_label);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), edge_reached_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), child_activated_cb);

@@ -22,28 +22,28 @@
     border-style: none;
 }
 
-.gt-channels-container-child .overlay-box .favourite-button:hover GtkImage
+.gt-channels-container-child .overlay-box .favourite-button:hover image
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-channels-container-child .overlay-box .favourite-button GtkImage
+.gt-channels-container-child .overlay-box .favourite-button image
 {
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-channels-container-child .overlay-box .favourite-button:checked GtkImage
+.gt-channels-container-child .overlay-box .favourite-button:checked image
 {
     color: gold;
 }
 
-.gt-channels-container-child-offline GtkImage
+.gt-channels-container-child-offline image
 {
-    -gtk-image-effect: dim;
+    -gtk-icon-effect: dim;
 }
 
-.gt-channels-container-child-offline .label
+.gt-channels-container-child-offline label
 {
     color: alpha(currentColor,0.55);
 }
@@ -55,47 +55,62 @@
     opacity: 0.8;
 }
 
-.player-clutter .buffer-box GtkProgressBar
+.player-clutter .buffer-box progressbar
 {
     color: white;
 }
 
-.gt-twitch-chat-view GtkTextView
+.gt-chat textview,
+.gt-chat textview text
 {
     background-color: transparent;
 }
 
-.gt-twitch-chat-view GtkEntry
+.gt-chat entry
 {
     background-color: transparent;
     background-image: none;
 }
 
-.gt-twitch-chat-view GtkTextView.light-theme
+.gt-chat textview.light-theme text
 {
     color: rgba(50, 50, 62, 1.0);
 }
 
-.gt-twitch-chat-view GtkTextView.dark-theme
+.gt-chat textview.dark-theme text
 {
     color: rgba(255, 255, 255, 1.0);
 }
 
-.gt-twitch-chat-view GtkTextView:selected,
-.gt-twitch-chat-view GtkEntry:selected
+.gt-chat textview:selected,
+.gt-chat textview:selected
 {
     color: @selected_fg_color;
     background-color: @selected_bg_color;
 }
 
-.gt-twitch-chat-view GtkEntry.light-theme
+.gt-chat entry.light-theme
 {
     color: rgba(0, 0, 0, 1);
     border-color: rgba(204, 204, 204, 1.0);
 }
 
-.gt-twitch-chat-view GtkEntry.dark-theme
+.gt-chat entry.dark-theme
 {
     color: rgba(255, 255, 255, 1.0);
     border-color: rgba(81, 81, 85, 1.0);
+}
+
+.empty-channels-box .empty-title,
+.empty-games-box .empty-title
+{
+    font-weight: bold;
+    font-size: large;
+}
+
+.empty-channels-box .empty-subtitle,
+.empty-games-box .empty-subtitle
+{
+    font-weight: lighter;
+    font-size: small;
 }

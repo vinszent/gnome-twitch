@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="gnome-twitch">
+  <template class="GtTwitchChannelInfoDlg" parent="GtkDialog">
+    <property name="modal">True</property>
+    <property name="default-width">1024</property>
+    <property name="default-height">720</property>
+    <property name="title">Channel info</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="visible">True</property>
+            <property name="expand">True</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">7</property>
+                <child>
+                  <object class="GtkBox" id="panel_box_1">
+                    <property name="visible">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="panel_box_2">
+                    <property name="visible">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="panel_box_3">
+                    <property name="visible">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

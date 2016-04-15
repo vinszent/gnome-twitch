@@ -4,7 +4,7 @@
 #include <gtk/gtk.h>
 #include "gt-twitch.h"
 #include "gt-favourites-manager.h"
-#include "gt-twitch-chat-client.h"
+#include "gt-irc.h"
 
 G_BEGIN_DECLS
 
@@ -19,14 +19,34 @@ struct _GtApp
     GtTwitch* twitch;
     GtFavouritesManager* fav_mgr;
     GSettings* settings;
+
+    GHashTable* chat_settings_table; //TODO: Move this into GtChannelsManager when it's done
 };
+
+//TODO: Move this into GtChannelsManager when it's done
+typedef struct
+{
+    gchar* name;
+    gboolean visible;
+    gboolean docked;
+    gboolean dark_theme;
+    gdouble opacity;
+    gdouble width;
+    gdouble height;
+    gdouble x_pos;
+    gdouble y_pos;
+} GtChatViewSettings;
+
+GtChatViewSettings* gt_chat_view_settings_new();
 
 GtApp* gt_app_new(void);
 
 extern GtApp* main_app;
+extern gchar* ORIGINAL_LOCALE;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);
+gboolean gt_app_credentials_valid(GtApp* self);
 
 G_END_DECLS
 

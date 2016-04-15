@@ -1,5 +1,6 @@
 #include "gt-game.h"
 #include "utils.h"
+#include <glib/gi18n.h>
 
 typedef struct
 {
@@ -17,7 +18,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGame, gt_game, G_TYPE_OBJECT)
 
-enum 
+enum
 {
     PROP_0,
     PROP_ID,
@@ -34,7 +35,7 @@ static GParamSpec* props[NUM_PROPS];
 GtGame*
 gt_game_new(const gchar* name, gint64 id)
 {
-    return g_object_new(GT_TYPE_GAME, 
+    return g_object_new(GT_TYPE_GAME,
                         "name", name,
                         "id", id,
                         NULL);
@@ -107,7 +108,7 @@ set_property(GObject*      obj,
             g_free(priv->name);
             priv->name = g_value_dup_string(val);
             if (!priv->name)
-                priv->name = "Untitled broadcast";
+                priv->name = _("Untitled broadcast");
             break;
         case PROP_PREVIEW:
             g_clear_object(&priv->preview);
@@ -181,7 +182,7 @@ gt_game_init(GtGame* self)
 {
 }
 
-void 
+void
 gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data)
 {
     g_object_set(self,
