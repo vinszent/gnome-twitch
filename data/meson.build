@@ -8,7 +8,6 @@ desktop_file_target = custom_target('appdata-file',
    install_dir : 'share/appdata'
  )
 
-#install_data('com.gnome-twitch.app.appdata.xml', install_dir : 'share/appdata')
 install_data('com.gnome-twitch.app.desktop', install_dir : 'share/applications')
 install_data('icons/hicolor/16x16/apps/gnome-twitch.png', install_dir : 'share')
 install_data('icons/hicolor/22x22/apps/gnome-twitch.png', install_dir : 'share')
