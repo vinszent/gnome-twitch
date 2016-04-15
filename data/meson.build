@@ -1,6 +1,6 @@
 msgfmt = find_program('msgfmt')
 
-desktop_file_target = custom_target('appdata-file',
+appdata_file_target = custom_target('appdata-file',
    output : 'com.gnome-twitch.app.appdata.xml',
    input : 'com.gnome-twitch.app.appdata.xml.in',
    command : [msgfmt, '--xml', '--template', '@INPUT@', '-d', '../po', '-o', '@OUTPUT@'],
