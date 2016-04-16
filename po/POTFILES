@@ -1,3 +1,4 @@
+data/com.gnome-twitch.app.appdata.xml.in
 data/ui/app-menu.ui
 data/ui/gt-player-header-bar.ui
 data/ui/gt-settings-dlg.ui

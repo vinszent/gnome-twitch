@@ -1,19 +1,20 @@
 # Translation of gnome-twitch to German.
 # Copyright (C) 2015 Philipp Fent <philipp@fent.de>
 #               2016 Kordian Bruck <k@bruck.me>
+#               2016 Tim Dengel <tim.dengel.debian@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.2.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2015-10-09 22:42+0200\n"
-"PO-Revision-Date: 2016-04-04 18:36+0200\n"
+"POT-Creation-Date: 2016-04-15 17:09+0200\n"
+"PO-Revision-Date: 2016-04-15 17:24+0200\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.4\n"
-"Last-Translator: Kordian Bruck <k@bruck.me>\n"
+"X-Generator: Poedit 1.8.7.1\n"
+"Last-Translator: Tim Dengel <tim.dengel.debian@gmail.com>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: de\n"
 
@@ -228,7 +229,7 @@ msgstr "Zwischenspeichern %d%%"
 msgid "Successfully logged in to Twitch!"
 msgstr "Erfolgreich angemeldet!"
 
-#: src/gt-win.c:93
+#: src/gt-win.c:93 data/com.gnome-twitch.app.appdata.xml.in:7
 msgid "Enjoy Twitch on your GNU/Linux desktop"
 msgstr "Genieße Twitch auf deinem GNU/Linux Computer"
 
@@ -236,7 +237,8 @@ msgstr "Genieße Twitch auf deinem GNU/Linux Computer"
 msgid "translator-credits"
 msgstr ""
 "Philipp Fent <philipp@fent.de>\n"
-"Kordian Bruck <k@bruck.me>"
+"Kordian Bruck <k@bruck.me>\n"
+"Tim Dengel <tim.dengel.debian@gmail.com>"
 
 #: src/gt-win.c:100
 msgid "Contributors"
@@ -245,3 +247,49 @@ msgstr "Mitwirkende"
 #: src/gt-win.c:176
 msgid "Already logged into Twitch, refresh login?"
 msgstr "Bereits bei Twitch angemeldet, neu laden?"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:6
+msgid "GNOME Twitch"
+msgstr "GNOME Twitch"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:10
+msgid ""
+"GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your "
+"favourite streams without the hassle of flash or the web."
+msgstr ""
+"GNOME Twitch App zum Schauen von Twitch auf deinem GNU/Linux Computer. "
+"Genieße deine Lieblingsstreams ohne irgendwelche Schwierigkeiten mit Flash "
+"oder dem Web."
+
+#: data/com.gnome-twitch.app.appdata.xml.in:14
+msgid "Notable Features:"
+msgstr "Nennenswerte Merkmale:"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:16
+msgid "Watch your favourite streams natively with fully accelerated video"
+msgstr ""
+"Schau deine Liebslingsstreams nativ mit voll hardwarebeschleunigtem Video"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:17
+msgid "Built in chat which can even be overlayed over the video"
+msgstr "Integrierter Chat, der auch über das Video gelegt werden kann"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:18
+msgid ""
+"Easy favourites/follows management and receive notifications when they are "
+"online"
+msgstr ""
+"Einfache Favoriten/Follow-Verwaltung mit Benachrichtigungen, wenn sie "
+"online sind"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:24
+msgid "Player with overlayed chat"
+msgstr "Videoplayer mit Chat"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:28
+msgid "Browsing through channels"
+msgstr "Kanäle durchsuchen"
+
+#: data/com.gnome-twitch.app.appdata.xml.in:32
+msgid "Browsing through games"
+msgstr "Spiele durchsuchen"
