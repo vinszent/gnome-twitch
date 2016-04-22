@@ -54,7 +54,7 @@ set_property(GObject* obj,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (prop <= PROP_CHAT_OPACITY)
-        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+        g_warning("{GtPlayer} Property '%s' not overridden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
@@ -69,7 +69,7 @@ get_property(GObject* obj,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (prop <= PROP_CHAT_OPACITY)
-        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+        g_warning("{GtPlayer} Property '%s' not overridden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
