@@ -45,6 +45,25 @@ static GThreadPool* update_pool;
 
 static GParamSpec* props[NUM_PROPS];
 
+static inline void
+set_preview(GtGame* self, GdkPixbuf* pic, gboolean save)
+{
+    GtGamePrivate* priv = gt_game_get_instance_private(self);
+
+    g_clear_object(&priv->preview);
+    priv->preview = pic;
+
+    if (save)
+        gdk_pixbuf_save(priv->preview, priv->preview_filename,
+                        "jpeg", NULL, NULL);
+
+    utils_pixbuf_scale_simple(&priv->preview,
+                              200, 270,
+                              GDK_INTERP_BILINEAR);
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+}
+
 static void
 update_func(gpointer data, gpointer udata)
 {
@@ -57,7 +76,7 @@ update_func(gpointer data, gpointer udata)
 
     if (pic)
     {
-        g_object_set(self, "preview", pic, NULL);
+        set_preview(self, pic, TRUE);
         g_info("{GtGame} Updated preview for game '%s'", priv->name);
     }
 }
@@ -79,7 +98,7 @@ download_preview_cb(GObject* source,
         return;
     }
 
-    g_object_set(self, "preview", pic, NULL);
+    set_preview(self, pic, TRUE);
 
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -93,9 +112,7 @@ update_preview(GtGame* self)
     if (g_file_test(priv->preview_filename, G_FILE_TEST_EXISTS))
     {
         priv->preview_timestamp = utils_timestamp_file(priv->preview_filename);
-        GdkPixbuf* pic = gdk_pixbuf_new_from_file(priv->preview_filename, NULL);
-        g_object_set(self, "preview", pic, NULL);
-        g_object_unref(pic);
+        set_preview(self, gdk_pixbuf_new_from_file(priv->preview_filename, NULL), FALSE);
     }
 
     if (!priv->preview)
@@ -161,7 +178,6 @@ get_property (GObject*    obj,
         case PROP_NAME:
             g_value_set_string(val, priv->name);
             break;
-
         case PROP_UPDATING:
             g_value_set_boolean(val, priv->updating);
             break;
@@ -208,15 +224,6 @@ set_property(GObject*      obj,
         case PROP_PREVIEW_URL:
             g_free(priv->preview_url);
             priv->preview_url = g_value_dup_string(val);
-            break;
-        case PROP_PREVIEW:
-            g_clear_object(&priv->preview);
-            priv->preview = g_value_dup_object(val);
-            gdk_pixbuf_save(priv->preview, priv->preview_filename,
-                            "jpeg", NULL, NULL);
-            utils_pixbuf_scale_simple(&priv->preview,
-                                      200, 270,
-                                      GDK_INTERP_BILINEAR);
             break;
         case PROP_LOGO:
             g_clear_object(&priv->logo);
@@ -267,7 +274,7 @@ gt_game_class_init(GtGameClass* klass)
                                               "Preview",
                                               "Preview of game",
                                               GDK_TYPE_PIXBUF,
-                                              G_PARAM_READWRITE);
+                                              G_PARAM_READABLE);
     props[PROP_LOGO] = g_param_spec_object("logo",
                                            "Logo",
                                            "Logo of game",
