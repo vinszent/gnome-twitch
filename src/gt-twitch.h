@@ -66,7 +66,7 @@ typedef struct _GtGameRawData
 {
     gint64 id;
     gchar* name;
-    GdkPixbuf* preview;
+    gchar* preview_url;
     GdkPixbuf* logo;
     gint64 viewers;
     gint64 channels;

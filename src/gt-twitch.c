@@ -42,8 +42,6 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-static GThreadPool* cache_update_pool;
-
 typedef struct
 {
     GtTwitch* twitch;
@@ -59,10 +57,6 @@ typedef struct
     gboolean bool_1;
     gboolean bool_2;
     gboolean bool_3;
-
-    gpointer* gobject_ptr_1;
-    gpointer* gobject_ptr_2;
-    gpointer* gobject_ptr_3;
 } GenericTaskData;
 
 static GenericTaskData*
@@ -77,29 +71,7 @@ generic_task_data_free(GenericTaskData* data)
     g_free(data->str_1);
     g_free(data->str_2);
     g_free(data->str_3);
-    g_clear_object(&data->gobject_ptr_1);
-    g_clear_object(&data->gobject_ptr_2);
-    g_clear_object(&data->gobject_ptr_3);
     g_free(data);
-}
-
-static void
-cache_update_cb(gpointer data, gpointer user_data)
-{
-    GenericTaskData* task_data = data;
-
-    GdkPixbuf* pic = gt_twitch_download_picture(task_data->twitch, task_data->str_1, task_data->int_1);
-    if (pic)
-    {
-        gdk_pixbuf_save(pic, task_data->str_2, "jpeg", NULL, NULL);
-        g_info("{GtTwitch} Updated cache entry for game '%s'", task_data->str_3);
-
-        if (GT_IS_GAME(task_data->gobject_ptr_1))
-            g_object_set(task_data->gobject_ptr_1, "preview", pic, NULL);
-    }
-
-    g_clear_object(&pic);
-    generic_task_data_free(task_data);
 }
 
 static GtTwitchStreamAccessToken*
@@ -182,8 +154,6 @@ gt_twitch_class_init(GtTwitchClass* klass)
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
-
-    cache_update_pool = g_thread_pool_new((GFunc) cache_update_cb, NULL, 1, FALSE, NULL);
 }
 
 static void
@@ -351,12 +321,8 @@ parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
 }
 
 static void
-parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data, GenericTaskData* cache_update_data)
+parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 {
-    gchar* id;
-    gchar* filename;
-    gint64 cache_timestamp;
-
     json_reader_read_member(reader, "_id");
     data->id = json_reader_get_int_value(reader);
     json_reader_end_member(reader);
@@ -365,41 +331,13 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data, GenericTaskD
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    id = g_strdup_printf("%ld", data->id);
-    filename = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", id, NULL);
-
-    if (!g_file_test(filename, G_FILE_TEST_EXISTS))
-        g_info("{GtTwitch} Cache miss for game '%s'", data->name);
-    else
-    {
-        g_info("{GtTwitch} Cache hit for game '%s'", data->name);
-        data->preview = gdk_pixbuf_new_from_file(filename, NULL);
-        cache_timestamp = utils_timestamp_file(filename);
-    }
-
     json_reader_read_member(reader, "box");
     json_reader_read_member(reader, "large");
 
-    if (!data->preview)
-    {
-        data->preview = gt_twitch_download_picture(self, json_reader_get_string_value(reader), 0);
-        gdk_pixbuf_save(data->preview, filename, "jpeg", NULL, NULL);
-    }
-    else if (cache_update_data)
-    {
-        cache_update_data->bool_1 = TRUE;
-        cache_update_data->twitch = self;
-        cache_update_data->str_1 = g_strdup(json_reader_get_string_value(reader));
-        cache_update_data->str_2 = g_strdup(filename);
-        cache_update_data->str_3 = g_strdup(data->name);
-        cache_update_data->int_1 = cache_timestamp;
-    }
+    data->preview_url = g_strdup(json_reader_get_string_value(reader));
 
     json_reader_end_member(reader);
     json_reader_end_member(reader);
-
-    g_free(id);
-    g_free(filename);
 }
 
 GtTwitchStreamAccessToken*
@@ -670,24 +608,15 @@ gt_twitch_top_games(GtTwitch* self,
     {
         GtGame* game;
         GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
-        GenericTaskData* cache_update_data = generic_task_data_new();
 
         json_reader_read_element(reader, i);
 
         json_reader_read_member(reader, "game");
 
-        parse_game(self, reader, data, cache_update_data);
+        parse_game(self, reader, data);
         game = gt_game_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(game));
         gt_game_update_from_raw_data(game, data);
-
-        if (cache_update_data->bool_1)
-        {
-            cache_update_data->gobject_ptr_1 = g_object_ref(game);
-            g_thread_pool_push(cache_update_pool, cache_update_data, NULL);
-        }
-        else
-            generic_task_data_free(cache_update_data);
 
         json_reader_end_member(reader);
 
@@ -896,22 +825,13 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
     {
         GtGame* game;
         GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
-        GenericTaskData* cache_update_data = generic_task_data_new();
 
         json_reader_read_element(reader, i);
 
-        parse_game(self, reader, data, cache_update_data);
+        parse_game(self, reader, data);
         game = gt_game_new(data->name, data->id);
         g_object_force_floating(G_OBJECT(game));
         gt_game_update_from_raw_data(game, data);
-
-        if (cache_update_data->bool_1)
-        {
-            cache_update_data->gobject_ptr_1 = g_object_ref(game);
-            g_thread_pool_push(cache_update_pool, cache_update_data, NULL);
-        }
-        else
-            generic_task_data_free(cache_update_data);
 
         json_reader_end_element(reader);
 
@@ -1187,7 +1107,7 @@ void
 gt_twitch_game_raw_data_free(GtGameRawData* data)
 {
     g_free(data->name);
-    g_object_unref(data->preview);
+    g_free(data->preview_url);
     g_free(data);
 }
 
