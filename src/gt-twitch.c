@@ -1,6 +1,7 @@
 #include "gt-twitch.h"
 #include "gt-channel.h"
 #include "gt-game.h"
+#include "gt-app.h"
 #include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
@@ -10,19 +11,21 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define ACCESS_TOKEN_URI    "http://api.twitch.tv/api/channels/%s/access_token"
-#define STREAM_PLAYLIST_URI "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&p=%d"
-#define TOP_CHANNELS_URI    "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
-#define TOP_GAMES_URI       "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
-#define SEARCH_CHANNELS_URI "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
-#define SEARCH_GAMES_URI    "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
-#define STREAMS_URI         "https://api.twitch.tv/kraken/streams/%s"
-#define CHANNELS_URI        "https://api.twitch.tv/kraken/channels/%s"
-#define CHAT_BADGES_URI     "https://api.twitch.tv/kraken/chat/%s/badges/"
-#define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
-#define CHANNEL_INFO_URI    "http://api.twitch.tv/api/channels/%s/panels"
-#define CHAT_SERVERS_URI    "https://api.twitch.tv/api/channels/%s/chat_properties"
-#define FOLLOWS_URI         "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
+#define ACCESS_TOKEN_URI     "http://api.twitch.tv/api/channels/%s/access_token"
+#define STREAM_PLAYLIST_URI  "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&p=%d"
+#define TOP_CHANNELS_URI     "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
+#define TOP_GAMES_URI        "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
+#define SEARCH_CHANNELS_URI  "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
+#define SEARCH_GAMES_URI     "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
+#define STREAMS_URI          "https://api.twitch.tv/kraken/streams/%s"
+#define CHANNELS_URI         "https://api.twitch.tv/kraken/channels/%s"
+#define CHAT_BADGES_URI      "https://api.twitch.tv/kraken/chat/%s/badges/"
+#define TWITCH_EMOTE_URI     "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
+#define CHANNEL_INFO_URI     "http://api.twitch.tv/api/channels/%s/panels"
+#define CHAT_SERVERS_URI     "https://api.twitch.tv/api/channels/%s/chat_properties"
+#define FOLLOWS_URI          "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
+#define FOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -176,7 +179,7 @@ send_message(GtTwitch* self, SoupMessage* msg)
 
     g_free(uri);
 
-    return msg->status_code == SOUP_STATUS_OK;
+    return msg->status_code == SOUP_STATUS_OK || msg->status_code == SOUP_STATUS_NO_CONTENT;
 }
 
 static GDateTime*
@@ -1666,7 +1669,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
     GList* ret = NULL;
     gint64 total;
 
-    uri = g_strdup_printf(FOLLOWS_URI, user_name, 50, 0);
+    uri = g_strdup_printf(FOLLOWS_URI, user_name, 99, 0);
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
     if (!send_message(self, msg))
@@ -1728,8 +1731,8 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
 
     if (total > 50)
     {
-        for (gint j = 50; j < total; j += 50)
-            ret = g_list_concat(ret, gt_twitch_follows(self, user_name, 50, j));
+        for (gint j = 99; j < total; j += 99)
+            ret = g_list_concat(ret, gt_twitch_follows(self, user_name, 99, j));
     }
 
     json_reader_end_member(reader);
@@ -1786,4 +1789,61 @@ gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
     g_task_run_in_thread(task, follows_all_async_cb);
 
     g_object_unref(task);
+}
+
+gboolean
+gt_twitch_follow_channel(GtTwitch* self,
+                         const gchar* chan_name)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    gboolean ret = TRUE;
+
+    uri = g_strdup_printf(FOLLOW_CHANNEL_URI,
+                          gt_app_get_user_name(main_app),
+                          chan_name,
+                          gt_app_get_oauth_token(main_app));
+    msg = soup_message_new(SOUP_METHOD_PUT, uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error sending message to follow channel '%s'", chan_name);
+
+
+        ret = FALSE;
+    }
+
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+}
+
+gboolean
+gt_twitch_unfollow_channel(GtTwitch* self,
+                           const gchar* chan_name)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    gboolean ret = TRUE;
+
+    uri = g_strdup_printf(UNFOLLOW_CHANNEL_URI,
+                          gt_app_get_user_name(main_app),
+                          chan_name,
+                          gt_app_get_oauth_token(main_app));
+    msg = soup_message_new(SOUP_METHOD_DELETE, uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error sending message to unfollow channel '%s'", chan_name);
+
+        ret = FALSE;
+    }
+
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
 }
