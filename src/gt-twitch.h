@@ -135,6 +135,10 @@ GList*                  gt_twitch_channel_info(GtTwitch* self, const gchar* chan
 void                    gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
 void                    gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                  gt_twitch_chat_servers(GtTwitch* self, const gchar* chan);
+GList*                  gt_twitch_follows(GtTwitch* self, const gchar* user_name, gint limit, gint offset);
+void                    gt_twitch_follows_async(GtTwitch* self, const gchar* user_name, gint limit, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList*                  gt_twitch_follows_all(GtTwitch* self, const gchar* user_name);
+void                    gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 
 
 G_END_DECLS

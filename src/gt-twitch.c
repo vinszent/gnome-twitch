@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
+#include <glib/gi18n.h>
 #include <glib.h>
 #include <json-glib/json-glib.h>
 #include <string.h>
@@ -272,7 +273,10 @@ parse_channel(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "status");
-    data->status = g_strdup(json_reader_get_string_value(reader));
+    if (json_reader_get_null_value(reader))
+        data->status = g_strdup(_("Untitled broadcast"));
+    else
+        data->status = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "video_banner");
@@ -1521,4 +1525,265 @@ finish:
     g_object_unref(msg);
 
     return ret;
+}
+
+GList*
+gt_twitch_follows(GtTwitch* self, const gchar* user_name,
+                  gint limit, gint offset)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GList* ret = NULL;
+
+    uri = g_strdup_printf(FOLLOWS_URI, user_name, limit, offset);
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error sending message to get follows");
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "follows");
+
+    gint max = json_reader_count_elements(reader);
+
+    for (gint i = 0; i < max; i++)
+    {
+        GtChannel* channel;
+        GtChannelRawData* raw = g_new0(GtChannelRawData, 1);;
+        gboolean live;
+
+        json_reader_read_element(reader, i);
+
+        json_reader_read_member(reader, "live");
+
+        if (json_reader_get_null_value(reader))
+        {
+            json_reader_end_member(reader);
+            json_reader_read_member(reader, "channel");
+            parse_channel(self, reader, raw);
+            raw->online = FALSE;
+        }
+        else
+        {
+            json_reader_end_member(reader);
+            json_reader_read_member(reader, "stream");
+            parse_stream(self, reader, raw);
+            raw->online = TRUE;
+        }
+
+        json_reader_end_member(reader);
+
+        channel = gt_channel_new(raw->name, raw->id);
+        g_object_force_floating(G_OBJECT(channel));
+        gt_channel_update_from_raw_data(channel, raw);
+
+        json_reader_end_element(reader);
+
+        ret = g_list_append(ret, channel);
+
+        gt_twitch_channel_raw_data_free(raw);
+    }
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_object_unref(msg);
+    g_free(uri);
+
+    return ret;
+}
+
+static void
+follows_async_cb(GTask* task,
+                 gpointer source,
+                 gpointer task_data,
+                 GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    GList* ret;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_follows(data->twitch, data->str_1, data->int_1, data->int_2);
+
+    if (!ret)
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
+                                "Error getting follows");
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+}
+
+void
+gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
+                        gint limit, gint offset,
+                        GCancellable* cancel,
+                        GAsyncReadyCallback cb,
+                        gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->int_1 = limit;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(user_name);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, follows_async_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GList* ret = NULL;
+    gint64 total;
+
+    uri = g_strdup_printf(FOLLOWS_URI, user_name, 50, 0);
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        g_warning("{GtTwitch} Error sending message to get follows");
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "_total");
+    total = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "follows");
+
+    gint max = json_reader_count_elements(reader);
+
+    for (gint i = 0; i < max; i++)
+    {
+        GtChannel* channel;
+        GtChannelRawData* raw = g_new0(GtChannelRawData, 1);;
+        gboolean live;
+
+        json_reader_read_element(reader, i);
+
+        json_reader_read_member(reader, "live");
+
+        if (json_reader_get_null_value(reader))
+        {
+            json_reader_end_member(reader);
+            json_reader_read_member(reader, "channel");
+            parse_channel(self, reader, raw);
+            raw->online = FALSE;
+        }
+        else
+        {
+            json_reader_end_member(reader);
+            json_reader_read_member(reader, "stream");
+            parse_stream(self, reader, raw);
+            raw->online = TRUE;
+        }
+
+        json_reader_end_member(reader);
+
+        channel = gt_channel_new(raw->name, raw->id);
+        g_object_force_floating(G_OBJECT(channel));
+        gt_channel_update_from_raw_data(channel, raw);
+
+        json_reader_end_element(reader);
+
+        ret = g_list_append(ret, channel);
+
+        gt_twitch_channel_raw_data_free(raw);
+    }
+
+    if (total > 50)
+    {
+        for (gint j = 50; j < total; j += 50)
+            ret = g_list_concat(ret, gt_twitch_follows(self, user_name, 50, j));
+    }
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_object_unref(msg);
+    g_free(uri);
+
+    return ret;
+}
+
+static void
+follows_all_async_cb(GTask* task,
+                     gpointer source,
+                     gpointer task_data,
+                     GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    GList* ret;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_follows_all(data->twitch, data->str_1);
+
+    if (!ret)
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
+                                "Error getting follows all");
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+}
+
+void
+gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
+                            GCancellable* cancel,
+                            GAsyncReadyCallback cb,
+                            gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(user_name);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, follows_all_async_cb);
+
+    g_object_unref(task);
 }
