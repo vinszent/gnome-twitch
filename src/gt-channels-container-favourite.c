@@ -158,6 +158,20 @@ channel_unfavourited_cb(GtFavouritesManager* mgr,
 }
 
 static void
+loaded_favourites_cb(GtFavouritesManager* mgr,
+                     gpointer udata)
+{
+    GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
+
+    PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), main_app->fav_mgr->favourite_channels);
+
+    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
+
+    for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
+        g_signal_connect(G_OBJECT(l->data), "notify::updating", G_CALLBACK(channel_updating_cb), self);
+}
+
+static void
 finalize(GObject* object)
 {
     GtChannelsContainerFavourite* self = (GtChannelsContainerFavourite*) object;
@@ -229,13 +243,11 @@ gt_channels_container_favourite_init(GtChannelsContainerFavourite* self)
                            _("No channels favourited"),
                            _("Favourite channels that you like for them to show up here"));
 
-    PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), main_app->fav_mgr->favourite_channels);
-
-    PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
-
-    for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
-        g_signal_connect(G_OBJECT(l->data), "notify::updating", G_CALLBACK(channel_updating_cb), self);
-
     g_signal_connect(main_app->fav_mgr, "channel-favourited", G_CALLBACK(channel_favourited_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfavourited", G_CALLBACK(channel_unfavourited_cb), self);
+
+    if (gt_app_credentials_valid(main_app))
+        g_signal_connect(main_app->fav_mgr, "loaded-favourites", G_CALLBACK(loaded_favourites_cb), self);
+    else
+        loaded_favourites_cb(main_app->fav_mgr, self);
 }
