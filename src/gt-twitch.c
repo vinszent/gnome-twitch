@@ -21,11 +21,11 @@
 #define TWITCH_EMOTE_URI    "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 #define CHANNEL_INFO_URI    "http://api.twitch.tv/api/channels/%s/panels"
 #define CHAT_SERVERS_URI    "https://api.twitch.tv/api/channels/%s/chat_properties"
+#define FOLLOWS_URI         "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
-#define GT_TWITCH_ERROR_TOP_CHANNELS gt_spawn_twitch_top_channels_error_quark()
-#define GT_TWITCH_ERROR_SEARCH_CHANNELS gt_spawn_twitch_search_channels_error_quark()
+#define GT_TWITCH_ERROR gt_spawn_twitch_error_quark()
 
 typedef struct
 {
@@ -89,15 +89,9 @@ gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token)
 }
 
 static GQuark
-gt_spawn_twitch_top_channels_error_quark()
+gt_spawn_twitch_error_quark()
 {
-    return g_quark_from_static_string("gt-twitch-top-channels-error");
-}
-
-static GQuark
-gt_spawn_twitch_search_channels_error_quark()
-{
-    return g_quark_from_static_string("gt-twitch-search-channels-error");
+    return g_quark_from_static_string("gt-twitch-error-quark");
 }
 
 GtTwitch*
@@ -662,7 +656,7 @@ top_channels_async_cb(GTask* task,
 
     if (!ret)
     {
-        g_task_return_new_error(task, GT_TWITCH_ERROR_TOP_CHANNELS, GT_TWITCH_TOP_CHANNELS_ERROR_CODE,
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_TOP_CHANNELS,
                                 "Error getting top channels");
     }
     else
@@ -866,7 +860,7 @@ search_channels_async_cb(GTask* task,
 
     if (!ret)
     {
-        g_task_return_new_error(task, GT_TWITCH_ERROR_SEARCH_CHANNELS, GT_TWITCH_SEARCH_CHANNELS_ERROR_CODE,
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SEARCH_CHANNELS,
                                 "Error searching channels");
     }
     else
