@@ -23,6 +23,7 @@ enum
 {
     SIG_CHANNEL_FAVOURITED,
     SIG_CHANNEL_UNFAVOURITED,
+    SIG_LOADED_FAVOURITES,
     NUM_SIGS
 };
 
@@ -90,6 +91,9 @@ channel_favourited_cb(GObject* source,
 //        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
+        if (gt_app_credentials_valid(main_app))
+            gt_twitch_follow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
+
         g_message("{GtChannel} Favourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
         g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
@@ -99,7 +103,12 @@ channel_favourited_cb(GObject* source,
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
+        g_assert_nonnull(found);
+
 //        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+
+        if (gt_app_credentials_valid(main_app))
+            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
 
         g_message("{GtChannel} Unfavourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
@@ -133,7 +142,7 @@ shutdown_cb(GApplication* app,
 {
     GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
 
-    gt_favourites_manager_save(self);
+//    gt_favourites_manager_save(self);
 }
 
 static void
@@ -200,6 +209,11 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
                                                 g_cclosure_marshal_VOID__OBJECT,
                                                 G_TYPE_NONE,
                                                 1, GT_TYPE_CHANNEL);
+    sigs[SIG_LOADED_FAVOURITES] = g_signal_new("loaded-favourites",
+                                               GT_TYPE_FAVOURITES_MANAGER,
+                                               G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                                               0, NULL, NULL, NULL,
+                                               G_TYPE_NONE, 0, NULL);
 }
 
 static void
@@ -208,8 +222,53 @@ gt_favourites_manager_init(GtFavouritesManager* self)
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
 }
 
+static void
+follows_all_cb(GObject* source,
+               GAsyncResult* res,
+               gpointer udata)
+{
+    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GError* error = NULL;
+    GList* list = g_task_propagate_pointer(G_TASK(res), &error);
+
+    if (error)
+    {
+        g_error_free(error);
+        return;
+    }
+
+    if (list)
+    {
+        for (GList* l = list; l != NULL; l = l->next)
+        {
+            GtChannel* chan = l->data;
+
+           g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
+           g_object_set(chan,
+                        "auto-update", TRUE,
+                        "favourited", TRUE,
+                        NULL);
+           g_object_ref_sink(chan);
+           g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+        }
+
+        self->favourite_channels = list;
+    }
+
+    g_signal_emit(self, sigs[SIG_LOADED_FAVOURITES], 0);
+}
+
 void
-gt_favourites_manager_load(GtFavouritesManager* self)
+gt_favourites_manager_load_from_twitch(GtFavouritesManager* self)
+{
+    gt_twitch_follows_all_async(main_app->twitch,
+                                gt_app_get_user_name(main_app),
+                                NULL, follows_all_cb, self);
+}
+
+void
+gt_favourites_manager_load_from_file(GtFavouritesManager* self)
 {
     GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
     JsonParser* parse = json_parser_new();
@@ -241,12 +300,14 @@ gt_favourites_manager_load(GtFavouritesManager* self)
                      "auto-update", TRUE,
                      "favourited", TRUE,
                      NULL);
+        gt_channel_update(chan);
         g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
 
         g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
 
 finish:
+
     g_object_unref(parse);
     g_free(fp);
 }
