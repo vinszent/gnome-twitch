@@ -170,21 +170,6 @@ update_cb(gpointer data,
     g_idle_add((GSourceFunc) update_set_cb, self); //Needs to be run on main thread.
 }
 
-static gboolean
-update(GtChannel* self)
-{
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-
-    g_info("{GtChannel} Initiating update '%s'", priv->name);
-
-    priv->updating = TRUE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
-
-    g_thread_pool_push(update_pool, self, NULL);
-
-    return TRUE;
-}
-
 static void
 auto_update_cb(GObject* src,
                GParamSpec* pspec,
@@ -713,4 +698,19 @@ gt_channel_get_name(GtChannel* self)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     return priv->name;
+}
+
+gboolean
+gt_channel_update(GtChannel* self)
+{
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_info("{GtChannel} Initiating update '%s'", priv->name);
+
+    priv->updating = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
+    g_thread_pool_push(update_pool, self, NULL);
+
+    return TRUE;
 }
