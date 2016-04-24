@@ -851,9 +851,9 @@ gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     GList* servers = NULL;
-    int pos = 0;
+    gint pos = 0;
     gchar host[20];
-    int port;
+    gint port;
 
     g_return_if_fail(!priv->connected);
 
