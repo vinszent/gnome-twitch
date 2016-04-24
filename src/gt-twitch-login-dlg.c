@@ -154,7 +154,7 @@ gt_twitch_login_dlg_init(GtTwitchLoginDlg* self)
     g_signal_connect(priv->web_view, "notify::uri", G_CALLBACK(uri_changed_cb), self);
     g_signal_connect(priv->web_view, "submit-form", G_CALLBACK(submit_form_cb), self);
 
-    const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login");
+    const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login+user_follows_edit");
 
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(priv->web_view), uri);
 }
