@@ -179,11 +179,9 @@ auto_update_cb(GObject* src,
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     if (priv->auto_update)
-        priv->update_id = g_timeout_add(120e3, (GSourceFunc) update, self); //TODO: Add this as a setting
+        priv->update_id = g_timeout_add_seconds(120, (GSourceFunc) gt_channel_update, self); //TODO: Add this as a setting
     else
         g_source_remove(priv->update_id);
-
-    update(self);
 }
 
 static void
@@ -267,23 +265,25 @@ download_banner(GtChannel* self)
 
     if (priv->video_banner_url)
     {
+        GdkPixbuf* banner = NULL;
+
         if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
             g_info("{GtChannel} Cache miss for channel '%s'", priv->name);
         else
         {
             g_info("{GtChannel} Cache hit for channel '%s'", priv->name);
-            priv->video_banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
+            banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
             priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
         }
 
-        if (!priv->video_banner)
+        if (!banner)
             gt_twitch_download_picture_async(main_app->twitch, priv->video_banner_url, 0, priv->cancel,
                                              download_banner_cb, self);
         else
         {
             g_thread_pool_push(cache_update_pool, self, NULL);
 
-            set_banner(self, priv->video_banner, FALSE, TRUE);
+            set_banner(self, banner, FALSE, TRUE);
 
             priv->updating = FALSE;
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -593,6 +593,9 @@ gt_channel_init(GtChannel* self)
     priv->updating = FALSE;
     priv->cancel = g_cancellable_new();
 
+    priv->stream_started_time = NULL;
+    priv->viewers = 0;
+
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
     g_signal_connect(main_app->fav_mgr, "channel-favourited", G_CALLBACK(channel_favourited_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfavourited", G_CALLBACK(channel_unfavourited_cb), self);
@@ -624,7 +627,6 @@ void
 gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    gboolean tmp = priv->online;
 
     if (!data) // TODO: Need to log error?
         return;
