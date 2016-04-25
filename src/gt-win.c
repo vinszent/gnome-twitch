@@ -39,10 +39,16 @@ typedef struct
     GtkWidget* info_label;
     GtkWidget* info_bar;
     GtkWidget* info_bar_yes_button;
+    GtkWidget* info_bar_no_button;
+    GtkWidget* info_bar_ok_button;
+    GCallback info_bar_cb;
+    gpointer info_bar_udata;
+    gboolean info_bar_queued;
 
     GtSettingsDlg* settings_dlg;
 
     gboolean fullscreen;
+
 
     GtChannel* open_channel;
 } GtWinPrivate;
@@ -135,10 +141,6 @@ refresh_login_cb(GtkInfoBar* info_bar,
             gtk_window_present(GTK_WINDOW(gt_twitch_login_dlg_new(GTK_WINDOW(self))));
             break;
     }
-
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
-    gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
-    g_signal_handlers_disconnect_by_func(info_bar, refresh_login_cb, udata);
 }
 
 static void
@@ -149,8 +151,18 @@ close_info_bar_cb(GtkInfoBar* bar,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (res == GTK_RESPONSE_CLOSE)
+    if (!priv->info_bar_queued)
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
+    priv->info_bar_queued = FALSE;
+
+    if (priv->info_bar_cb)
+    {
+        g_signal_handlers_disconnect_by_func(priv->info_bar,
+                                             priv->info_bar_cb,
+                                             priv->info_bar_udata);
+        priv->info_bar_cb = NULL;
+        priv->info_bar_udata = NULL;
+    }
 }
 
 
@@ -172,12 +184,8 @@ show_twitch_login_cb(GSimpleAction* action,
     if (oauth_token && user_name &&
         strlen(oauth_token) > 0 && strlen(user_name) > 0)
     {
-        gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
-        gtk_label_set_text(GTK_LABEL(priv->info_label), _("Already logged into Twitch, refresh login?"));
-        gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
-
-        g_signal_connect(priv->info_bar, "response", G_CALLBACK(refresh_login_cb), self);
+        gt_win_ask_question(self, _("Already logged into Twitch, refresh login?"),
+                            G_CALLBACK(refresh_login_cb), self);
     }
     else
     {
@@ -461,6 +469,8 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_yes_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_no_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
 }
 
 static void
@@ -502,7 +512,7 @@ gt_win_init(GtWin* self)
     g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
     g_signal_connect_after(self, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
-    g_signal_connect(priv->info_bar, "response", G_CALLBACK(close_info_bar_cb), self);
+    g_signal_connect_after(priv->info_bar, "response", G_CALLBACK(close_info_bar_cb), self);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     win_actions,
@@ -595,7 +605,31 @@ gt_win_show_info_message(GtWin* self, const gchar* msg)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
+    priv->info_bar_queued = gtk_revealer_get_child_revealed(GTK_REVEALER(priv->info_revealer));
+
+    gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
+    gtk_widget_set_visible(priv->info_bar_no_button, FALSE);
+    gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
+    gtk_label_set_markup(GTK_LABEL(priv->info_label), msg);
     gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_INFO);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
+}
+
+void
+gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    priv->info_bar_queued = gtk_revealer_get_child_revealed(GTK_REVEALER(priv->info_revealer));
+    priv->info_bar_cb = cb;
+    priv->info_bar_udata = udata;
+
+    g_signal_connect(priv->info_bar, "response", G_CALLBACK(cb), udata);
+
+    gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+    gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
+    gtk_widget_set_visible(priv->info_bar_no_button, TRUE);
+    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
+    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
 }
