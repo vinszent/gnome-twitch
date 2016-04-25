@@ -162,6 +162,9 @@ loaded_favourites_cb(GtFavouritesManager* mgr,
                      gpointer udata)
 {
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
+    GtChannelsContainerFavouritePrivate* priv = gt_channels_container_favourite_get_instance_private(self);
+
+    PCLASS->clear_channels(GT_CHANNELS_CONTAINER(self));
 
     PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), main_app->fav_mgr->favourite_channels);
 
