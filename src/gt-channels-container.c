@@ -119,6 +119,14 @@ remove_channel(GtChannelsContainer* self, GtChannel* chan)
     }
 }
 
+static void
+clear_channels(GtChannelsContainer* self)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    utils_container_clear(GTK_CONTAINER(priv->channels_flow));
+}
+
 static GtkFlowBox*
 get_channels_flow(GtChannelsContainer* self)
 {
@@ -226,6 +234,7 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
     klass->append_channels = append_channels;
     klass->remove_channel = remove_channel;
     klass->get_channels_flow = get_channels_flow;
+    klass->clear_channels = clear_channels;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-channels-container.ui");
