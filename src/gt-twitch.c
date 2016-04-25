@@ -972,7 +972,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get raw channel data");
+        g_warning("{GtTwitch} Error sending message to get raw channel data for channel '%s'", name);
         goto finish;
     }
 
@@ -1719,7 +1719,6 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
         json_reader_end_member(reader);
 
         channel = gt_channel_new(raw->name, raw->id);
-        g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, raw);
 
         json_reader_end_element(reader);
@@ -1729,7 +1728,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
         gt_twitch_channel_raw_data_free(raw);
     }
 
-    if (total > 50)
+    if (total > 99)
     {
         for (gint j = 99; j < total; j += 99)
             ret = g_list_concat(ret, gt_twitch_follows(self, user_name, 99, j));
@@ -1809,7 +1808,6 @@ gt_twitch_follow_channel(GtTwitch* self,
     if (!send_message(self, msg))
     {
         g_warning("{GtTwitch} Error sending message to follow channel '%s'", chan_name);
-
 
         ret = FALSE;
     }
