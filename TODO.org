@@ -17,6 +17,7 @@
 ** TODO Refactor GtTwitchLoginDlg into GtLoginDlg
 ** TODO Use etag + head requests on normal API requests as well
 * Minor milestones
+** TODO Add loading spinner to login dialogue
 ** TODO Add GNOME style "Undo action" notifications
 ** TODO Add a ability to transfer local favourites to Twitch follows when logging in for first time
 ** TODO Allow user to logout/erase credentials
