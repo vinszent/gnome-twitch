@@ -17,7 +17,9 @@ typedef enum _GtTwitchError
     GT_TWITCH_ERROR_TOP_CHANNELS,
     GT_TWITCH_ERROR_SEARCH_CHANNELS,
     GT_TWITCH_ERROR_FOLLOWS,
-    GT_TWITCH_ERROR_FOLLOWS_ALL
+    GT_TWITCH_ERROR_FOLLOWS_ALL,
+    GT_TWITCH_ERROR_FOLLOW_CHANNEL,
+    GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
 } GtTwitchError;
 
 typedef enum _GtTwitchStreamQuality
@@ -141,6 +143,8 @@ GList*                     gt_twitch_follows_all(GtTwitch* self, const gchar* us
 void                       gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 gboolean                   gt_twitch_follow_channel(GtTwitch* self, const gchar* chan_name);
 gboolean                   gt_twitch_unfollow_channel(GtTwitch* self, const gchar* chan_name);
+void                       gt_twitch_follow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
+void                       gt_twitch_unfollow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
 
 G_END_DECLS
 

@@ -1820,6 +1820,47 @@ gt_twitch_follow_channel(GtTwitch* self,
     return ret;
 }
 
+static void
+follow_channel_async_cb(GTask* task,
+                        gpointer source,
+                        gpointer task_data,
+                        GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    gboolean ret;
+
+    ret = gt_twitch_follow_channel(data->twitch, data->str_1);
+
+    if (!ret)
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL,
+                                "Error following channel '%s'", data->str_1);
+    else
+        g_task_return_boolean(task, ret);
+}
+
+// Not cancellable; hard to guarantee that channel is not followed
+void
+gt_twitch_follow_channel_async(GtTwitch* self,
+                               const gchar* chan_name,
+                               GAsyncReadyCallback cb,
+                               gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(chan_name);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, follow_channel_async_cb);
+
+    g_object_unref(task);
+}
+
 gboolean
 gt_twitch_unfollow_channel(GtTwitch* self,
                            const gchar* chan_name)
@@ -1846,4 +1887,44 @@ gt_twitch_unfollow_channel(GtTwitch* self,
     g_object_unref(msg);
 
     return ret;
+}
+static void
+unfollow_channel_async_cb(GTask* task,
+                          gpointer source,
+                          gpointer task_data,
+                          GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    gboolean ret;
+
+    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1);
+
+    if (!ret)
+        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
+                                "Error unfollowing channel '%s'", data->str_1);
+    else
+        g_task_return_boolean(task, ret);
+}
+
+// Not cancellable; hard to guarantee that channel is not unfollowed
+void
+gt_twitch_unfollow_channel_async(GtTwitch* self,
+                               const gchar* chan_name,
+                               GAsyncReadyCallback cb,
+                               gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(chan_name);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, unfollow_channel_async_cb);
+
+    g_object_unref(task);
 }
