@@ -47,10 +47,11 @@
             <child>
               <object class="GtkInfoBar" id="info_bar">
                 <property name="visible">True</property>
-                <property name="show-close-button">True</property>
+                <!-- <property name="show-close-button">True</property> -->
                 <action-widgets>
                   <action-widget response="GTK_RESPONSE_YES">info_bar_yes_button</action-widget>
-                  <action-widget response="GTK_RESPONSE_CLOSE">info_bar_close_button</action-widget>
+                  <action-widget response="GTK_RESPONSE_NO">info_bar_no_button</action-widget>
+                  <action-widget response="GTK_RESPONSE_OK">info_bar_ok_button</action-widget>
                 </action-widgets>
                 <child internal-child="content_area">
                   <object class="GtkBox">
@@ -75,12 +76,21 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="info_bar_close_button">
+                      <object class="GtkButton" id="info_bar_no_button">
                         <property name="visible">False</property>
-                        <property name="label">Close</property>
+                        <property name="label" translatable="yes">No</property>
                       </object>
                       <packing>
-                        <property name="pack-type">end</property>
+                        <property name="pack-type">start</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="info_bar_ok_button">
+                        <property name="visible">False</property>
+                        <property name="label" translatable="yes">OK</property>
+                      </object>
+                      <packing>
+                        <property name="pack-type">start</property>
                       </packing>
                     </child>
                   </object>

@@ -1,8 +1,10 @@
 #include "gt-favourites-manager.h"
 #include "gt-app.h"
+#include "gt-win.h"
 #include <json-glib/json-glib.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+#include <glib/gstdio.h>
 
 #define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
 
@@ -93,6 +95,7 @@ channel_favourited_cb(GObject* source,
 
         if (gt_app_credentials_valid(main_app))
             gt_twitch_follow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
+//            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
 
         g_message("{GtChannel} Favourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
@@ -108,7 +111,8 @@ channel_favourited_cb(GObject* source,
 //        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
 
         if (gt_app_credentials_valid(main_app))
-            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
+            gt_twitch_unfollow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
+//            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
 
         g_message("{GtChannel} Unfavourited '%s' (%p)", gt_channel_get_name(chan), chan);
 
@@ -223,6 +227,66 @@ gt_favourites_manager_init(GtFavouritesManager* self)
 }
 
 static void
+move_local_favourites_cb(GtkInfoBar* bar,
+                         gint res,
+                         gpointer udata)
+{
+    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    gchar* fp = FAV_CHANNELS_FILE;
+    gchar* new_fp = g_strconcat(fp, ".bak", NULL);
+
+    if (res == GTK_RESPONSE_YES)
+    {
+        JsonParser* parse = json_parser_new();
+        JsonNode* root;
+        JsonArray* jarr;
+        gchar* fp = FAV_CHANNELS_FILE;
+        GError* err = NULL;
+
+        gt_channel_free_list(self->favourite_channels);
+        self->favourite_channels = NULL;
+        g_signal_emit(self, sigs[SIG_LOADED_FAVOURITES], 0); //TODO: Add a LOADING_FAVOURITES signal
+
+        json_parser_load_from_file(parse, fp, &err);
+
+        if (err)
+        {
+            g_warning("{GtFavouritesManager} Error move local favourite channels to twitch '%s'", err->message);
+            return;
+        }
+
+        root = json_parser_get_root(parse);
+        jarr = json_node_get_array(root);
+
+        for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
+        {
+            GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
+            //TODO: Error handling
+            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL);
+            g_object_unref(chan);
+        }
+
+        g_object_unref(parse);
+        g_free(fp);
+
+        gt_favourites_manager_load_from_twitch(self);
+
+    }
+
+    g_rename(fp, new_fp);
+
+    gchar* path = g_markup_escape_text(new_fp, -1);
+    gchar* msg = g_strdup_printf(_("Your local favourites have been backed up to <span style=\"italic\">\%s</span>"),
+                                 path);
+    gt_win_show_info_message(GT_WIN_ACTIVE, msg);
+
+    g_free(path);
+    g_free(msg);
+    g_free(fp);
+    g_free(new_fp);
+}
+
+static void
 follows_all_cb(GObject* source,
                GAsyncResult* res,
                gpointer udata)
@@ -231,6 +295,7 @@ follows_all_cb(GObject* source,
     GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
     GError* error = NULL;
     GList* list = g_task_propagate_pointer(G_TASK(res), &error);
+    gchar* fp = FAV_CHANNELS_FILE;
 
     if (error)
     {
@@ -244,19 +309,26 @@ follows_all_cb(GObject* source,
         {
             GtChannel* chan = l->data;
 
-           g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
-           g_object_set(chan,
-                        "auto-update", TRUE,
-                        "favourited", TRUE,
-                        NULL);
-           g_object_ref_sink(chan);
-           g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+            g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
+            g_object_set(chan,
+                         "auto-update", TRUE,
+                         "favourited", TRUE,
+                         NULL);
+            g_object_ref_sink(chan);
+            g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
         }
 
         self->favourite_channels = list;
     }
 
+    if (g_file_test(fp, G_FILE_TEST_EXISTS))
+        gt_win_ask_question(GT_WIN_ACTIVE,
+                            _("GNOME Twitch has detected local favourites, would you like to move them to Twitch?"),
+                            G_CALLBACK(move_local_favourites_cb), self);
+
     g_signal_emit(self, sigs[SIG_LOADED_FAVOURITES], 0);
+
+    g_free(fp);
 }
 
 void
