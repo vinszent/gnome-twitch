@@ -696,8 +696,8 @@ gt_irc_init(GtIrc* self)
 
 void
 gt_irc_connect(GtIrc* self,
-                              const gchar* host, int port,
-                              const gchar* oauth_token, const gchar* nick)
+               const gchar* host, int port,
+               const gchar* oauth_token, const gchar* nick)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
@@ -706,9 +706,6 @@ gt_irc_connect(GtIrc* self,
     GError* err = NULL;
     ChatThreadData* recv_data;
     ChatThreadData* send_data;
-
-    g_assert_nonnull(oauth_token);
-    g_assert_nonnull(nick);
 
     g_message("{GtIrc} Connecting");
 
@@ -757,10 +754,20 @@ gt_irc_connect(GtIrc* self,
     priv->worker_thread_send = g_thread_new("gnome-twitch-chat-worker-send",
                                        (GThreadFunc) read_lines, send_data);
 
-    send_raw_printf(priv->ostream_recv, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
-    send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, nick);
-    send_raw_printf(priv->ostream_send, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
-    send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, nick);
+    if (utils_str_empty(oauth_token))
+    {
+        gchar* _nick = g_strdup_printf("justinfan%d", g_random_int_range(1, 9999999));
+        send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, _nick);
+        send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, _nick);
+        g_free(_nick);
+    }
+    else
+    {
+        send_raw_printf(priv->ostream_recv, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+        send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, nick);
+        send_raw_printf(priv->ostream_send, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+        send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, nick);
+    }
 
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/tags");
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/membership");
@@ -864,8 +871,8 @@ gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
     sscanf((gchar*) g_list_nth(servers, pos)->data, "%[^:]:%d", host, &port);
 
     gt_irc_connect(self, host, port,
-                                  gt_app_get_oauth_token(main_app),
-                                  gt_app_get_user_name(main_app));
+                   gt_app_get_oauth_token(main_app),
+                   gt_app_get_user_name(main_app));
 
     gt_irc_join(self, chan);
 
