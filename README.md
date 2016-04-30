@@ -8,7 +8,7 @@ the hassle of flash or the web.
 ### Dependencies
 * meson >= 0.31.0 (install only)
 * ninja (install only)
-* gtk+-3.0 >= 3.16
+* gtk+-3.0 >= 3.20
 * libsoup
 * json-glib
 * gstreamer-1.0
@@ -19,6 +19,9 @@ the hassle of flash or the web.
 * clutter-gst
 * clutter-gtk
 * webkit2gtk
+
+_Note: If you undo commit c4b49557dfed8465f273f2b5490002607baa5182 then gtk+-3.0 >= 3.16 can be used_
+_Note: If you undo commit 6382b8b918306306da0c014cedb8f314ecd66a93 then meson => 0.26.0 can be used_
 
 ### From source
 ```
@@ -31,7 +34,7 @@ ninja install
 ### Distro packages
 * [Arch linux](https://aur.archlinux.org/packages/gnome-twitch/)
 * [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
-* [Debian] (https://tracker.debian.org/pkg/gnome-twitch/)
+* [Debian (courtesy of @dengelt)] (https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
 * [Ubuntu (courtesy of @Sunderland93)](https://launchpad.net/~samoilov-lex/+archive/ubuntu/gnome-twitch) (Same requirements as above)
