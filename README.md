@@ -2,7 +2,7 @@
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 
-[![Gitter](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0)))
 
 ## Install
 ### Dependencies
