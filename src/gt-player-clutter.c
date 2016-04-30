@@ -406,7 +406,7 @@ buffer_fill_cb(GObject* source,
 
     if (percent < 1.0)
     {
-        gchar* text = g_strdup_printf(text, _("Buffered %d%%"),
+        gchar* text = g_strdup_printf(_("Buffered %d%%"),
                                       (gint) (percent * 100));
 
         gtk_label_set_text(GTK_LABEL(priv->buffer_label), text);
