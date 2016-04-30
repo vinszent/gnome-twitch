@@ -21,6 +21,7 @@ the hassle of flash or the web.
 * webkit2gtk
 
 _Note: If you undo commit c4b49557dfed8465f273f2b5490002607baa5182 then gtk+-3.0 >= 3.16 can be used_
+
 _Note: If you undo commit 6382b8b918306306da0c014cedb8f314ecd66a93 then meson => 0.26.0 can be used_
 
 ### From source
