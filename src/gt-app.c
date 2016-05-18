@@ -19,6 +19,8 @@ typedef struct
     GMenuModel* app_menu;
 } GtAppPrivate;
 
+gint LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
 enum
@@ -37,6 +39,36 @@ enum
 };
 
 static guint sigs[NUM_SIGS];
+
+static gboolean
+set_log_level(const gchar* name,
+              const gchar* arg,
+              gpointer data,
+              GError** err)
+{
+    if (g_strcmp0(arg, "error") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_ERROR;
+    else if (g_strcmp0(arg, "critical") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_CRITICAL;
+    else if (g_strcmp0(arg, "warning") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_WARNING;
+    else if (g_strcmp0(arg, "message") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+    else if (g_strcmp0(arg, "info") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_INFO;
+    else if (g_strcmp0(arg, "debug") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_DEBUG;
+    else
+        g_warning("{GtApp} Invalid logging level"); //TODO: Use g_set_error and return false
+
+    return TRUE;
+}
+
+static GOptionEntry
+cli_options[] =
+{
+    {"log-level", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, set_log_level, "Set logging level", "level"},
+};
 
 GtApp*
 gt_app_new(void)
@@ -407,6 +439,8 @@ static void
 gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
 

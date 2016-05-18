@@ -38,11 +38,11 @@ typedef struct
 } GtChatViewSettings;
 
 GtChatViewSettings* gt_chat_view_settings_new();
-
 GtApp* gt_app_new(void);
 
 extern GtApp* main_app;
 extern gchar* ORIGINAL_LOCALE;
+extern gint LOG_LEVEL;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);
