@@ -67,6 +67,8 @@
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
+                            <property name="wrap">True</property>
+                            <property name="wrap-mode">word</property>
                             <property name="label" translatable="yes">Connecting to chat</property>
                           </object>
                         </child>
