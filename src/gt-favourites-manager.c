@@ -76,6 +76,17 @@ channel_online_cb(GObject* source,
 }
 
 static void
+logged_in_cb(GObject* source,
+             GParamSpec* pspec,
+             gpointer udata)
+{
+    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+
+    if (gt_app_credentials_valid(main_app))
+        gt_favourites_manager_load_from_twitch(self);
+}
+
+static void
 channel_favourited_cb(GObject* source,
                       GParamSpec* pspec,
                       gpointer udata)
@@ -277,18 +288,10 @@ move_local_favourites_cb(GtkInfoBar* bar,
         g_free(fp);
 
         gt_favourites_manager_load_from_twitch(self);
-
     }
 
     g_rename(fp, new_fp);
 
-    gchar* path = g_markup_escape_text(new_fp, -1);
-    gchar* msg = g_strdup_printf(_("Your local favourites have been backed up to <span style=\"italic\">\%s</span>"),
-                                 path);
-    gt_win_show_info_message(GT_WIN_ACTIVE, msg);
-
-    g_free(path);
-    g_free(msg);
     g_free(fp);
     g_free(new_fp);
 }
@@ -322,6 +325,7 @@ follows_all_cb(GObject* source,
                          "favourited", TRUE,
                          NULL);
             g_object_ref_sink(chan);
+            g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
             g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
         }
 
@@ -397,6 +401,10 @@ void
 gt_favourites_manager_save(GtFavouritesManager* self)
 {
     GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+
+    if (g_list_length(self->favourite_channels) == 0)
+        return;
+
     JsonArray* jarr = json_array_new();
     JsonGenerator* gen = json_generator_new();
     JsonNode* final = json_node_new(JSON_NODE_ARRAY);
@@ -416,6 +424,7 @@ gt_favourites_manager_save(GtFavouritesManager* self)
 
     json_node_free(final);
     g_object_unref(gen);
+
     g_free(fp);
 }
 
