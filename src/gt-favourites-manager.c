@@ -25,7 +25,8 @@ enum
 {
     SIG_CHANNEL_FAVOURITED,
     SIG_CHANNEL_UNFAVOURITED,
-    SIG_LOADED_FAVOURITES,
+    SIG_STARTED_LOADING_FAVOURITES,
+    SIG_FINISHED_LOADING_FAVOURITES,
     NUM_SIGS
 };
 
@@ -213,17 +214,23 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
                                                 g_cclosure_marshal_VOID__OBJECT,
                                                 G_TYPE_NONE,
                                                 1, GT_TYPE_CHANNEL);
-    sigs[SIG_LOADED_FAVOURITES] = g_signal_new("loaded-favourites",
-                                               GT_TYPE_FAVOURITES_MANAGER,
-                                               G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-                                               0, NULL, NULL, NULL,
-                                               G_TYPE_NONE, 0, NULL);
+    sigs[SIG_STARTED_LOADING_FAVOURITES] = g_signal_new("started-loading-favourites",
+                                                        GT_TYPE_FAVOURITES_MANAGER,
+                                                        G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                                                        0, NULL, NULL, NULL,
+                                                        G_TYPE_NONE, 0, NULL);
+    sigs[SIG_FINISHED_LOADING_FAVOURITES] = g_signal_new("finished-loading-favourites",
+                                                        GT_TYPE_FAVOURITES_MANAGER,
+                                                        G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                                                        0, NULL, NULL, NULL,
+                                                        G_TYPE_NONE, 0, NULL);
 }
 
 static void
 gt_favourites_manager_init(GtFavouritesManager* self)
 {
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
+    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
 }
 
 static void
@@ -245,7 +252,7 @@ move_local_favourites_cb(GtkInfoBar* bar,
 
         gt_channel_free_list(self->favourite_channels);
         self->favourite_channels = NULL;
-        g_signal_emit(self, sigs[SIG_LOADED_FAVOURITES], 0); //TODO: Add a LOADING_FAVOURITES signal
+        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0); //TODO: Add a LOADING_FAVOURITES signal
 
         json_parser_load_from_file(parse, fp, &err);
 
@@ -326,7 +333,7 @@ follows_all_cb(GObject* source,
                             _("GNOME Twitch has detected local favourites, would you like to move them to Twitch?"),
                             G_CALLBACK(move_local_favourites_cb), self);
 
-    g_signal_emit(self, sigs[SIG_LOADED_FAVOURITES], 0);
+    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
 
     g_free(fp);
 }
@@ -334,6 +341,8 @@ follows_all_cb(GObject* source,
 void
 gt_favourites_manager_load_from_twitch(GtFavouritesManager* self)
 {
+    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FAVOURITES], 0);
+
     gt_twitch_follows_all_async(main_app->twitch,
                                 gt_app_get_user_name(main_app),
                                 NULL, follows_all_cb, self);
