@@ -1,7 +1,7 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
 .\" (C) Copyright 2015-2016 Tim Dengel <tim.dengel.debian@gmail.com>,
 .\"
-.TH GNOME-TWITCH 1 "April 08, 2016"
+.TH GNOME-TWITCH 1 "2016-05-25"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -32,13 +32,15 @@ At the moment you can
 .br
 * view streams,
 .br
-* use the chat with a Twitch account,
+* use the chat with or without a Twitch account,
 .br
-* change the video quality and
+* change the video quality,
 .br
-* mark streams as favorites for faster access.
+* mark streams as favorites for faster access and
 .br
-More features like recording streams, VODs (Video-On-Demand), other player backends and integration of Twitch account features like following streams are planned.
+* turn local favorites into streams you follow on your account.
+.br
+More features like recording streams, VODs (Video-On-Demand), other player backends and integration of more Twitch account features are planned.
 .PP
 .SH OPTIONS
 This program follows the usual GNU command line syntax, with long
@@ -52,14 +54,18 @@ Show summary of options.
 Set logging level. 
 .br 
 .I Level
-can be one of the following numbers:
+can be one of the following strings:
 .br
-0 (Critical) 
+.RS
+* error
 .br
-1 (Warning) 
+* critical
 .br
-2 (Message)
+* warning
 .br
-3 (Info)
+* message
 .br
-4 (Debug)
+* info
+.br
+* debug
+.RE
