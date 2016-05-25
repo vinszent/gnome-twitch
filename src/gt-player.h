@@ -24,6 +24,7 @@ void gt_player_close_channel(GtPlayer* self);
 void gt_player_play(GtPlayer* self);
 void gt_player_stop(GtPlayer* self);
 void gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality q);
+void gt_player_toggle_muted(GtPlayer* self);
 
 G_END_DECLS
 

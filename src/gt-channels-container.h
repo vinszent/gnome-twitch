@@ -29,6 +29,7 @@ struct _GtChannelsContainerClass
     void (*append_channel) (GtChannelsContainer* self, GtChannel* chan);
     void (*append_channels) (GtChannelsContainer* self, GList* channels);
     void (*remove_channel) (GtChannelsContainer* self, GtChannel* chan);
+    void (*clear_channels) (GtChannelsContainer* self);
     GtkFlowBox* (*get_channels_flow) (GtChannelsContainer* self);
 
     void (*bottom_edge_reached) (GtChannelsContainer* self);

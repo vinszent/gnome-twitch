@@ -19,5 +19,6 @@ GdkPixbuf* utils_download_picture_if_newer(SoupSession* soup, const gchar* url, 
 const gchar* utils_search_key_value_strv(gchar** strv, const gchar* key);
 void utils_connect_mouse_hover(GtkWidget* widget);
 void utils_connect_link(GtkWidget* widget, const gchar* link);
+gboolean utils_str_empty(const gchar* str);
 
 #endif

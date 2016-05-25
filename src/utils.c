@@ -223,3 +223,9 @@ utils_connect_link(GtkWidget* widget, const gchar* link)
     utils_connect_mouse_hover(widget);
     g_signal_connect(widget, "button-press-event", G_CALLBACK(utils_mouse_clicked_link_cb), tmp);
 }
+
+gboolean
+utils_str_empty(const gchar* str)
+{
+    return !(str && strlen(str) > 0);
+}

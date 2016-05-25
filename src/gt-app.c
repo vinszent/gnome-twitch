@@ -19,6 +19,8 @@ typedef struct
     GMenuModel* app_menu;
 } GtAppPrivate;
 
+gint LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
 enum
@@ -37,6 +39,36 @@ enum
 };
 
 static guint sigs[NUM_SIGS];
+
+static gboolean
+set_log_level(const gchar* name,
+              const gchar* arg,
+              gpointer data,
+              GError** err)
+{
+    if (g_strcmp0(arg, "error") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_ERROR;
+    else if (g_strcmp0(arg, "critical") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_CRITICAL;
+    else if (g_strcmp0(arg, "warning") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_WARNING;
+    else if (g_strcmp0(arg, "message") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+    else if (g_strcmp0(arg, "info") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_INFO;
+    else if (g_strcmp0(arg, "debug") == 0)
+        LOG_LEVEL = G_LOG_LEVEL_DEBUG;
+    else
+        g_warning("{GtApp} Invalid logging level"); //TODO: Use g_set_error and return false
+
+    return TRUE;
+}
+
+static GOptionEntry
+cli_options[] =
+{
+    {"log-level", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, set_log_level, "Set logging level", "level"},
+};
 
 GtApp*
 gt_app_new(void)
@@ -176,7 +208,7 @@ oauth_token_set_cb(GObject* src,
     }
 }
 
-static void
+static inline void
 init_dirs()
 {
     gchar* fp;
@@ -222,32 +254,12 @@ static GActionEntry app_actions[] =
 static void
 activate(GApplication* app)
 {
-    g_message("{%s} Activate", "GtApp");
 
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
-    GtkBuilder* menu_bld;
 
-    init_dirs();
+    g_message("{%s} Activate", "GtApp");
 
-    g_action_map_add_action_entries(G_ACTION_MAP(self),
-                                    app_actions,
-                                    G_N_ELEMENTS(app_actions),
-                                    self);
-
-    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
-    priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
-    g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
-
-    gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
-    g_object_unref(menu_bld);
-
-    g_settings_bind(self->settings, "user-name",
-                    self, "user-name",
-                    G_SETTINGS_BIND_DEFAULT);
-    g_settings_bind(self->settings, "oauth-token",
-                    self, "oauth-token",
-                    G_SETTINGS_BIND_DEFAULT);
 
     priv->win = gt_win_new(self);
 
@@ -267,15 +279,41 @@ gt_app_prefer_dark_theme_changed_cb(GSettings* settings,
                  NULL);
 }
 
+//Only called once
 static void
 startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
     GtkSettings* gtk_settings = gtk_settings_get_default();
+    GtkBuilder* menu_bld;
 
-    self->fav_mgr = gt_favourites_manager_new();
-    gt_favourites_manager_load(self->fav_mgr);
+    g_message("{GtApp} Startup");
+
+    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
+
+    init_dirs();
+
+    g_action_map_add_action_entries(G_ACTION_MAP(self),
+                                    app_actions,
+                                    G_N_ELEMENTS(app_actions),
+                                    self);
+
+    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
+    priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
+    g_object_ref(priv->app_menu);
+    g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
+
+    gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
+
+    g_object_unref(menu_bld);
+
+    g_settings_bind(self->settings, "user-name",
+                    self, "user-name",
+                    G_SETTINGS_BIND_DEFAULT);
+    g_settings_bind(self->settings, "oauth-token",
+                    self, "oauth-token",
+                    G_SETTINGS_BIND_DEFAULT);
 
     gt_app_prefer_dark_theme_changed_cb(self->settings,
                                         "prefer-dark-theme",
@@ -285,17 +323,29 @@ startup(GApplication* app)
                      G_CALLBACK(gt_app_prefer_dark_theme_changed_cb),
                      gtk_settings);
 
-    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
+    self->fav_mgr = gt_favourites_manager_new();
+
+    //TODO: Add a setting to allow user to use local favourites even when logged in
+    if (gt_app_credentials_valid(self))
+        gt_favourites_manager_load_from_twitch(self->fav_mgr);
+    else
+        gt_favourites_manager_load_from_file(self->fav_mgr);
+
 }
 
 static void
 shutdown(GApplication* app)
 {
+
     GtApp* self = GT_APP(app);
 
     g_message("{GtApp} Shutting down");
 
     save_chat_settings(self);
+
+    //TODO: Add a setting to allow user to use local favourites even when logged in
+    if (!gt_app_credentials_valid(self))
+        gt_favourites_manager_save(self->fav_mgr);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
 }
@@ -304,10 +354,10 @@ shutdown(GApplication* app)
 static void
 finalize(GObject* object)
 {
-    g_message("{GtApp} Finalise");
-
     GtApp* self = (GtApp*) object;
     GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    g_message("{GtApp} Finalise");
 
     G_OBJECT_CLASS(gt_app_parent_class)->finalize(object);
 }
@@ -390,6 +440,8 @@ gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
+    g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
+
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
 
     priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
@@ -398,12 +450,8 @@ gt_app_init(GtApp* self)
     self->settings = g_settings_new("com.gnome-twitch.app");
 
     load_chat_settings(self);
-    //  self->chat = gt_irc_new();
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
-
-    /* g_signal_connect(self, "activate", G_CALLBACK(activate), NULL); */
-    /* g_signal_connect(self, "startup", G_CALLBACK(startup), NULL); */
 }
 
 const gchar*

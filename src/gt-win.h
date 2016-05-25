@@ -8,6 +8,7 @@
 #include "gt-channels-view.h"
 
 #define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(w)))
+#define GT_WIN_ACTIVE GT_WIN(gtk_application_get_active_window(GTK_APPLICATION(main_app)))
 
 G_BEGIN_DECLS
 
@@ -36,6 +37,7 @@ GtGamesView* gt_win_get_games_view(GtWin* self);
 GtChannelsView* gt_win_get_channels_view(GtWin* self);
 gboolean gt_win_get_fullscreen(GtWin* self);
 void gt_win_show_info_message(GtWin* self, const gchar* msg);
+void gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata);
 
 G_END_DECLS
 

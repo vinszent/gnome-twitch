@@ -15,8 +15,6 @@
 GtApp* main_app;
 gchar* ORIGINAL_LOCALE;
 
-static gint LOG_LEVEL = 2;
-
 static GOptionEntry cli_options[] =
 {
     {"log-level", 'l', 0, G_OPTION_ARG_INT, &LOG_LEVEL, "Set logging level", "Level"},
@@ -33,7 +31,7 @@ gt_log(const gchar* domain,
     GDateTime* date = NULL;
     gchar* time_fmt = NULL;
 
-    if (_level > 8*pow(2, LOG_LEVEL))
+    if (_level > LOG_LEVEL)
         return;
 
     switch (_level)
@@ -71,21 +69,11 @@ gt_log(const gchar* domain,
 
     g_free(time_fmt);
     g_date_time_unref(date);
+
 }
 
 int main(int argc, char** argv)
 {
-    GError* err = NULL;
-    GOptionContext* opt_ctxt;
-
-    opt_ctxt = g_option_context_new(NULL);
-    g_option_context_add_main_entries(opt_ctxt, cli_options, "gnome-twitch");
-    if (!g_option_context_parse(opt_ctxt, &argc, &argv, &err))
-    {
-        g_critical("Could not parse CLI options code '%d' message '%s'", err->code, err->message);
-        exit(EXIT_FAILURE);
-    }
-
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif

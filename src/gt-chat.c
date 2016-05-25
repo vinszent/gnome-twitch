@@ -228,7 +228,7 @@ chat_badges_cb(GObject* source,
     priv->chat_badges = badges;
 
     gt_irc_connect_and_join_async(priv->chat, priv->cur_chan,
-                                                 NULL, NULL, NULL);
+                                  NULL, NULL, NULL);
 }
 
 static gboolean
@@ -285,25 +285,16 @@ credentials_set_cb(GObject* source,
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    if (!gt_app_credentials_valid(main_app))
+    GtChannel* open_chan = NULL;
+
+    g_object_get(GT_WIN_TOPLEVEL(self)->player, "open-channel", &open_chan, NULL);
+
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
+
+    if (open_chan)
     {
-        gt_chat_disconnect(self);
-
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
-    }
-    else
-    {
-        GtChannel* open_chan = NULL;
-
-        g_object_get(GT_WIN_TOPLEVEL(self)->player, "open-channel", &open_chan, NULL);
-
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "chatview");
-
-        if (open_chan)
-        {
-            gt_chat_connect(self, gt_channel_get_name(open_chan));
-            g_object_unref(open_chan);
-        }
+        gt_chat_connect(self, gt_channel_get_name(open_chan));
+        g_object_unref(open_chan);
     }
 }
 
@@ -367,10 +358,22 @@ connected_cb(GObject* source,
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    if (gt_irc_is_logged_in(priv->chat))
-            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), FALSE);
-    else
-            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer), TRUE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer),
+                                  gt_irc_is_logged_in(priv->chat));
+
+}
+
+static void
+after_connected_cb(GObject* source,
+                   GParamSpec* pspec,
+                   gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+
+
+    gtk_widget_set_sensitive(priv->chat_entry,
+                             gt_app_credentials_valid(main_app));
 }
 
 static void
@@ -502,6 +505,7 @@ gt_chat_init(GtChat* self)
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
     g_signal_connect(priv->chat, "error-encountered", G_CALLBACK(error_encountered_cb), self);
     g_signal_connect(priv->chat, "notify::logged-in", G_CALLBACK(connected_cb), self);
+    g_signal_connect_after(priv->chat, "notify::logged-in", G_CALLBACK(after_connected_cb), self);
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
     g_signal_connect(priv->chat_scroll, "scroll-child", G_CALLBACK(scrolled), NULL);
 
@@ -521,12 +525,6 @@ void
 gt_chat_connect(GtChat* self, const gchar* chan)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
-
-    if (!gt_app_credentials_valid(main_app))
-    {
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack), "loginview");
-        return;
-    }
 
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
