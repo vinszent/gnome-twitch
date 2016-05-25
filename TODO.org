@@ -1,4 +1,6 @@
 * Bugs
+** DONE If loading follows from Twitch, need to go and re-emit favourited signal
+   CLOSED: [2016-05-21 Sat 19:09]
 ** TODO If stream is closed before chat is connected then it still connects after.
 ** DONE Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
@@ -7,6 +9,10 @@
 ** TODO Sometimes fetching followed streams occurs after top channels are fetched so we need to retroactively notify channels that they are followed.
    - Possibly by getting the TopChannels container to listen for the loaded-favourites signal
 * Technical milestones
+** TODO Possibly refactor 'favourites' to 'follows'
+   Will need to differentiate between a local follow and a actual Twitch follow
+** TODO Only save local favourites when list is populated.
+** TODO Need to save prev_volume for player in settings or set a default volume.
 ** TODO Convert g_printf_strdup to g_sprintf with stack strings where applicable.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.

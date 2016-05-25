@@ -267,9 +267,9 @@ activate(GApplication* app)
 }
 
 static void
-gt_app_prefer_dark_theme_changed_cb(GSettings *settings,
+gt_app_prefer_dark_theme_changed_cb(GSettings* settings,
                                     const char* key,
-                                    GtkSettings *gtk_settings)
+                                    GtkSettings* gtk_settings)
 {
     gboolean prefer_dark_theme = g_settings_get_boolean(settings, key);
 
