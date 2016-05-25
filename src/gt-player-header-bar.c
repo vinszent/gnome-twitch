@@ -103,6 +103,23 @@ player_fullscreen_button_cb(GtPlayerHeaderBar* self,
         gtk_window_fullscreen(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))));
 }
 
+static gboolean
+mute_volume_cb(GtkWidget* button,
+               GdkEventButton* evt,
+               gpointer udata)
+{
+    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
+    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+
+    if (evt->button == 3)
+    {
+        gt_player_toggle_muted(priv->player);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static void
 player_channel_set_cb(GObject* source,
                       GParamSpec* spec,
@@ -348,6 +365,7 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
     g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
     g_signal_connect(self, "notify::player", G_CALLBACK(player_set_cb), self);
+    g_signal_connect(priv->volume_button, "button-press-event", G_CALLBACK(mute_volume_cb), self);
 
     g_object_bind_property(self, "channel-name", priv->name_label, "label", G_BINDING_DEFAULT);
     g_object_bind_property(self, "channel-status", priv->status_label, "label", G_BINDING_DEFAULT);

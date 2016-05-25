@@ -19,6 +19,7 @@ enum
 {
     PROP_0,
     PROP_VOLUME,
+    PROP_MUTED,
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
@@ -54,7 +55,7 @@ set_property(GObject* obj,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (prop <= PROP_CHAT_OPACITY)
-        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+        g_warning("{GtPlayer} Property '%s' not overridden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
@@ -69,7 +70,7 @@ get_property(GObject* obj,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (prop <= PROP_CHAT_OPACITY)
-        g_warning("{GtPlayer} Property '%s' not overriden", pspec->name);
+        g_warning("{GtPlayer} Property '%s' not overridden", pspec->name);
     else
         G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 }
@@ -147,6 +148,11 @@ gt_player_class_init(GtPlayerClass* klass)
                                              "Volume",
                                              "Current volume",
                                              0, 1.0, 0.3,
+                                             G_PARAM_READWRITE);
+    props[PROP_MUTED] = g_param_spec_boolean("muted",
+                                             "Muted",
+                                             "Whether muted",
+                                             FALSE,
                                              G_PARAM_READWRITE);
     props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel",
                                                    "Open Channel",
@@ -348,4 +354,13 @@ gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
 
     g_free(name);
     g_object_unref(chan);
+}
+
+void
+gt_player_toggle_muted(GtPlayer* self)
+{
+    gboolean muted;
+
+    g_object_get(self, "muted", &muted, NULL);
+    g_object_set(self, "muted", !muted, NULL);
 }

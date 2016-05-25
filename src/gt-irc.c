@@ -231,6 +231,7 @@ chat_cmd_str_to_enum(const gchar* str_cmd)
     IFCASE(PRIVMSG)
     IFCASE(CAP)
     IFCASE(JOIN)
+    IFCASE(PART)
     IFCASE(PING)
     IFCASE(USERSTATE)
     IFCASE(ROOMSTATE)
@@ -247,9 +248,9 @@ chat_cmd_enum_to_str(GtIrcCommandType num)
 {
     const gchar* ret = NULL;
 
-#define ADDCASE(name)                             \
+#define ADDCASE(name)                            \
     case GT_IRC_COMMAND_##name:                  \
-        ret = CHAT_CMD_STR_##name;                \
+        ret = CHAT_CMD_STR_##name;               \
         break;
 
     switch (num)
@@ -259,6 +260,7 @@ chat_cmd_enum_to_str(GtIrcCommandType num)
         ADDCASE(PRIVMSG);
         ADDCASE(CAP);
         ADDCASE(JOIN);
+        ADDCASE(PART);
         ADDCASE(CHANNEL_MODE);
         ADDCASE(USERSTATE);
         ADDCASE(ROOMSTATE);
@@ -435,6 +437,10 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.join = g_new0(GtIrcCommandJoin, 1);
             msg->cmd.join->channel = g_strdup(strsep(&line, " "));
             break;
+        case GT_IRC_COMMAND_PART:
+            msg->cmd.part = g_new0(GtIrcCommandPart, 1);
+            msg->cmd.part->channel = g_strdup(strsep(&line, " "));
+            break;
         case GT_IRC_COMMAND_CAP:
             msg->cmd.cap = g_new0(GtIrcCommandCap, 1);
             msg->cmd.cap->target = g_strdup(strsep(&line, " "));
@@ -462,7 +468,7 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
             break;
         default:
-            g_warning("{GtIrc} Unhandled irc command '%s'\n", line);
+            g_warning("{GtIrc} Unhandled irc command '%s'", cmd);
             break;
     }
 
@@ -690,8 +696,8 @@ gt_irc_init(GtIrc* self)
 
 void
 gt_irc_connect(GtIrc* self,
-                              const gchar* host, int port,
-                              const gchar* oauth_token, const gchar* nick)
+               const gchar* host, int port,
+               const gchar* oauth_token, const gchar* nick)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
@@ -700,9 +706,6 @@ gt_irc_connect(GtIrc* self,
     GError* err = NULL;
     ChatThreadData* recv_data;
     ChatThreadData* send_data;
-
-    g_assert_nonnull(oauth_token);
-    g_assert_nonnull(nick);
 
     g_message("{GtIrc} Connecting");
 
@@ -751,10 +754,20 @@ gt_irc_connect(GtIrc* self,
     priv->worker_thread_send = g_thread_new("gnome-twitch-chat-worker-send",
                                        (GThreadFunc) read_lines, send_data);
 
-    send_raw_printf(priv->ostream_recv, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
-    send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, nick);
-    send_raw_printf(priv->ostream_send, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
-    send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, nick);
+    if (utils_str_empty(oauth_token))
+    {
+        gchar* _nick = g_strdup_printf("justinfan%d", g_random_int_range(1, 9999999));
+        send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, _nick);
+        send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, _nick);
+        g_free(_nick);
+    }
+    else
+    {
+        send_raw_printf(priv->ostream_recv, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+        send_cmd(priv->ostream_recv, CHAT_CMD_STR_NICK, nick);
+        send_raw_printf(priv->ostream_send, "%s%s%s", CHAT_CMD_STR_PASS_OAUTH, oauth_token, CR_LF);
+        send_cmd(priv->ostream_send, CHAT_CMD_STR_NICK, nick);
+    }
 
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/tags");
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_CAP_REQ, ":twitch.tv/membership");
@@ -845,9 +858,9 @@ gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     GList* servers = NULL;
-    int pos = 0;
+    gint pos = 0;
     gchar host[20];
-    int port;
+    gint port;
 
     g_return_if_fail(!priv->connected);
 
@@ -858,8 +871,8 @@ gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
     sscanf((gchar*) g_list_nth(servers, pos)->data, "%[^:]:%d", host, &port);
 
     gt_irc_connect(self, host, port,
-                                  gt_app_get_oauth_token(main_app),
-                                  gt_app_get_user_name(main_app));
+                   gt_app_get_oauth_token(main_app),
+                   gt_app_get_user_name(main_app));
 
     gt_irc_join(self, chan);
 
@@ -966,6 +979,10 @@ gt_irc_message_free(GtIrcMessage* msg)
         case GT_IRC_COMMAND_JOIN:
             g_free(msg->cmd.join->channel);
             g_free(msg->cmd.join);
+            break;
+        case GT_IRC_COMMAND_PART:
+            g_free(msg->cmd.part->channel);
+            g_free(msg->cmd.part);
             break;
         case GT_IRC_COMMAND_CAP:
             g_free(msg->cmd.cap->parameter);

@@ -18,6 +18,7 @@ typedef enum
     GT_IRC_COMMAND_CHANNEL_MODE,
     GT_IRC_COMMAND_CAP,
     GT_IRC_COMMAND_JOIN,
+    GT_IRC_COMMAND_PART,
     GT_IRC_COMMAND_USERSTATE,
     GT_IRC_COMMAND_ROOMSTATE,
     GT_IRC_COMMAND_CLEARCHAT,
@@ -78,6 +79,11 @@ typedef struct
     gchar* channel;
 } GtIrcCommandJoin;
 
+typedef struct
+{
+    gchar* channel;
+} GtIrcCommandPart;
+
 typedef enum
 {
     GT_CHAT_CAP_SUB_COMMAND_ACK,
@@ -137,6 +143,7 @@ typedef struct
         GtIrcCommandPrivmsg* privmsg;
         GtIrcCommandPing* ping;
         GtIrcCommandJoin* join;
+        GtIrcCommandPart* part;
         GtIrcCommandCap* cap;
         GtIrcCommandReply* reply;
         GtIrcCommandChannelMode* chan_mode;

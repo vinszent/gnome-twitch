@@ -36,6 +36,9 @@ typedef struct
     ClutterActor* chat_actor;
 
     gdouble volume;
+    gboolean muted;
+    gdouble prev_volume;
+
     GtChannel* open_channel;
     gboolean playing;
 
@@ -62,6 +65,7 @@ enum
 {
     PROP_0,
     PROP_VOLUME,
+    PROP_MUTED,
     PROP_OPEN_CHANNEL,
     PROP_PLAYING,
     PROP_CHAT_WIDTH,
@@ -406,10 +410,11 @@ buffer_fill_cb(GObject* source,
 
     if (percent < 1.0)
     {
-        gchar text[20];
-        g_sprintf(text, _("Buffered %d%%"), (gint) (percent * 100));
+        gchar* text = g_strdup_printf(_("Buffered %d%%"),
+                                      (gint) (percent * 100));
 
         gtk_label_set_text(GTK_LABEL(priv->buffer_label), text);
+        g_free(text);
         clutter_actor_show(priv->buffer_actor);
     }
     else
@@ -489,6 +494,9 @@ get_property (GObject*    obj,
         case PROP_VOLUME:
             g_value_set_double(val, priv->volume);
             break;
+        case PROP_MUTED:
+            g_value_set_boolean(val, priv->muted);
+            break;
         case PROP_OPEN_CHANNEL:
             g_value_set_object(val, priv->open_channel);
             break;
@@ -536,7 +544,14 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_VOLUME:
+            priv->prev_volume = priv->volume;
             priv->volume = g_value_get_double(val);
+            priv->muted = priv->volume > 0.0 ? FALSE : TRUE;
+            break;
+        case PROP_MUTED:
+            priv->muted = g_value_get_boolean(val);
+            g_object_set(self, "volume",
+                         priv->muted ? 0.0 : priv->prev_volume, NULL);
             break;
         case PROP_OPEN_CHANNEL:
             g_clear_object(&priv->open_channel);
@@ -592,6 +607,11 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
                                              "Volume",
                                              "Volume of player",
                                              0.0, 1.0, 0.3,
+                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_MUTED] = g_param_spec_boolean("muted",
+                                             "Muted",
+                                             "Whether muted",
+                                             FALSE,
                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel",
                                                    "Open Channel",
@@ -655,6 +675,7 @@ gt_player_clutter_class_init(GtPlayerClutterClass* klass)
     g_object_class_override_property(object_class, PROP_CHAT_HEIGHT, "chat-height");
     g_object_class_override_property(object_class, PROP_CHAT_DARK_THEME, "chat-dark-theme");
     g_object_class_override_property(object_class, PROP_CHAT_OPACITY, "chat-opacity");
+    g_object_class_override_property(object_class, PROP_MUTED, "muted");
 }
 
 static void
@@ -678,6 +699,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
     priv->chat_actor = gtk_clutter_actor_new_with_contents(priv->chat_view);
     priv->docked_layour_actor = clutter_actor_new();
     priv->playing = FALSE;
+    priv->muted = FALSE;
 
     g_object_ref_sink(G_OBJECT(priv->chat_actor));
 

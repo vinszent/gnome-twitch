@@ -1,10 +1,18 @@
 * Bugs
+** DONE If loading follows from Twitch, need to go and re-emit favourited signal
+   CLOSED: [2016-05-21 Sat 19:09]
 ** TODO If stream is closed before chat is connected then it still connects after.
 ** DONE Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
    - Not sure how much can be done from our side if it's a internal leak.
 ** DONE UI seems to randomly freeze when loading a stream sometimes.
+** TODO Sometimes fetching followed streams occurs after top channels are fetched so we need to retroactively notify channels that they are followed.
+   - Possibly by getting the TopChannels container to listen for the loaded-favourites signal
 * Technical milestones
+** TODO Possibly refactor 'favourites' to 'follows'
+   Will need to differentiate between a local follow and a actual Twitch follow
+** TODO Only save local favourites when list is populated.
+** TODO Need to save prev_volume for player in settings or set a default volume.
 ** TODO Convert g_printf_strdup to g_sprintf with stack strings where applicable.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
@@ -13,16 +21,23 @@
 ** DONE gt_twitch_chat_client object should be owned by gt_twitch_chat_view and not by globally gt_app
 ** TODO Refactor GtTwitchChannelInfoDlg into GtChannelInfoDlg
 ** TODO Refactor GtTwitchLoginDlg into GtLoginDlg
+** TODO Use etag + head requests on normal API requests as well
 * Minor milestones
+** TODO Add loading spinner to login dialogue
+** TODO Add GNOME style "Undo action" notifications
+** TODO Add a ability to transfer local favourites to Twitch follows when logging in for first time
+** TODO Allow user to logout/erase credentials
 ** TODO Do proper CLI handling with built GtkApplication
 ** TODO Create a better offline image
-** TODO Add labels to load spinners for views
+** DONE Add labels to load spinners for views
+   CLOSED: [2016-04-24 Sun 17:38]
 ** TODO Replace emotes with their original text when replacing
    - Use GObject data on tag?
 ** TODO Automatically set opacity to 1.0 when docked
    - Use secondary icon for GtkEntry
 ** TODO Add setting to dock chat on left or right
-** TODO Stop chat thread on shutdown
+** DONE Stop chat thread on shutdown
+   CLOSED: [2016-04-24 Sun 17:38]
 ** TODO GtGamesContainerChildren should have the same updating pattern as GtChannelsContainerChildren
    - Not possible?
 ** DONE Twitch emotes in chat
@@ -63,9 +78,11 @@
    - Use GMarkupParser and parse the html_description
 * Major milestones
 ** TODO Followed streams
+** TODO Channel feeds
 ** TODO VODS
 ** TODO Screenshotting streams
 ** TODO Recording streams
 ** TODO Different player backends
    - MPV, use GtkGLArea
+   - GtkGst from gst-plugins-bad
    - Maybe VLC if people are interested

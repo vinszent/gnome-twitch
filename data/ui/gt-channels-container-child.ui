@@ -143,6 +143,9 @@
         <child>
           <object class="GtkLabel" id="name_label">
             <property name="visible">True</property>
+            <property name="hexpand">True</property>
+            <property name="max-width-chars">1</property>
+            <property name="ellipsize">middle</property>
             <attributes>
               <attribute name="size" value="13000"/>
             </attributes>
@@ -151,6 +154,9 @@
         <child>
           <object class="GtkLabel" id="game_label">
             <property name="visible">True</property>
+            <property name="hexpand">True</property>
+            <property name="max-width-chars">1</property>
+            <property name="ellipsize">middle</property>
             <attributes>
               <attribute name="size" value="10000"/>
             </attributes>

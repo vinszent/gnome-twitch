@@ -1,11 +1,10 @@
-# Hungarian translation of the gnome-twitch package.
+# Translation of gnome-twitch to Hungarian.
+# Copyright (C) 2015-2016 Gergő Rubint <rubintgergo@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-# Copyright (C) Gergő Rubint <rubintgergo@gmail.com>, 2016.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-04-06 19:58+0200\n"
 "PO-Revision-Date: 2016-04-06 23:17+0200\n"
 "Last-Translator: Gergő Rubint <rubintgergo@gmail.com>\n"

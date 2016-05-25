@@ -7,7 +7,7 @@
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
 
-#define FILTER_TIMEOUT_MS 500
+#define FILTER_TIMEOUT_MS 1000
 
 typedef struct
 {

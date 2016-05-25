@@ -169,6 +169,24 @@ finalize(GObject* object)
 }
 
 static void
+realise_cb(GtkWidget* widget,
+           gpointer udata)
+{
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(widget);
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
+
+    g_object_bind_property(priv->channel, "online",
+                           priv->viewers_label, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "online",
+                           priv->play_image, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "online",
+                           priv->bottom_box, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+}
+
+static void
 get_property (GObject*    obj,
               guint       prop,
               GValue*     val,
@@ -225,15 +243,6 @@ constructed(GObject* obj)
     g_object_bind_property(priv->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "online",
-                           priv->viewers_label, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "online",
-                           priv->play_image, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "online",
-                           priv->bottom_box, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property_full(priv->channel, "viewers",
                                 priv->viewers_label, "label",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
@@ -251,6 +260,8 @@ constructed(GObject* obj)
                                 NULL, NULL, NULL);
 
     g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self);
+
+    online_cb(NULL, NULL, self);
 
     G_OBJECT_CLASS(gt_channels_container_child_parent_class)->constructed(obj);
 }
@@ -298,6 +309,8 @@ static void
 gt_channels_container_child_init(GtChannelsContainerChild* self)
 {
     GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
+
+    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 }

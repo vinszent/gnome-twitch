@@ -67,6 +67,8 @@
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
+                            <property name="wrap">True</property>
+                            <property name="wrap-mode">word</property>
                             <property name="label" translatable="yes">Connecting to chat</property>
                           </object>
                         </child>
@@ -88,32 +90,6 @@
           </object>
           <packing>
             <property name="name">chatview</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="orientation">vertical</property>
-            <property name="valign">center</property>
-            <property name="halign">center</property>
-            <property name="expand">True</property>
-            <property name="spacing">7</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Not logged into Twitch!</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Click to login</property>
-                <property name="action-name">win.show_twitch_login</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="name">loginview</property>
           </packing>
         </child>
         <child>
