@@ -53,6 +53,7 @@
                   <item id="high" translatable="yes">High</item>
                   <item id="medium" translatable="yes">Medium</item>
                   <item id="low" translatable="yes">Low</item>
+                  <item id="mobile" translatable="yes">Mobile</item>
                 </items>
               </object>
               <packing>
