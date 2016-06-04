@@ -6,25 +6,17 @@
     <property name="title" translatable="yes">Settings</property>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="visible">True</property>
         <property name="margin">10</property>
-        <child>
-          <object class="GtkCheckButton" id="prefer_dark_theme_button">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">Use dark theme variant</property>
-          </object>
-        </child>
         <child>
           <object class="GtkGrid">
             <property name="visible">True</property>
-            <property name="margin">10</property>
-            <property name="column-spacing">6</property>
+            <property name="column-spacing">15</property>
             <property name="row-spacing">6</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Default video quality:</property>
-                <property name="halign">end</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Use dark theme</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -32,8 +24,30 @@
               </packing>
             </child>
             <child>
+              <object class="GtkSwitch" id="prefer_dark_theme_button">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Default video quality:</property>
+                <property name="halign">start</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkComboBoxText" id="quality_combo">
                 <property name="visible">True</property>
+                <property name="halign">end</property>
                 <items>
                   <item id="source" translatable="yes">Source</item>
                   <item id="high" translatable="yes">High</item>
@@ -43,7 +57,7 @@
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
           </object>
