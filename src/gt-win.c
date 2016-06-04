@@ -24,6 +24,13 @@
 
 typedef struct
 {
+    gchar* msg;
+    GCallback cb;
+    gpointer udata;
+} QueuedInfoData;
+
+typedef struct
+{
     GtkWidget* main_stack;
     GtkWidget* channels_view;
     GtkWidget* games_view;
@@ -41,9 +48,8 @@ typedef struct
     GtkWidget* info_bar_yes_button;
     GtkWidget* info_bar_no_button;
     GtkWidget* info_bar_ok_button;
-    GCallback info_bar_cb;
-    gpointer info_bar_udata;
-    gboolean info_bar_queued;
+    QueuedInfoData* cur_info_data;
+    GQueue* info_queue;
 
     GtSettingsDlg* settings_dlg;
 
@@ -144,6 +150,46 @@ refresh_login_cb(GtkInfoBar* info_bar,
 }
 
 static void
+show_info_bar(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    QueuedInfoData* data = g_queue_pop_head(priv->info_queue);
+
+    if (data)
+    {
+        if (data->cb)
+        {
+            g_signal_connect(priv->info_bar, "response", G_CALLBACK(data->cb), data->udata);
+
+            gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+            gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
+            gtk_widget_set_visible(priv->info_bar_no_button, TRUE);
+            gtk_label_set_text(GTK_LABEL(priv->info_label), data->msg);
+            gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
+        }
+        else
+        {
+
+            gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
+            gtk_widget_set_visible(priv->info_bar_no_button, FALSE);
+            gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
+            gtk_label_set_markup(GTK_LABEL(priv->info_label), data->msg);
+            gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_INFO);
+        }
+
+        priv->cur_info_data = data;
+
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
+    }
+    else
+    {
+        priv->cur_info_data = NULL;
+
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
+    }
+}
+
+static void
 close_info_bar_cb(GtkInfoBar* bar,
                   gint res,
                   gpointer udata)
@@ -151,18 +197,20 @@ close_info_bar_cb(GtkInfoBar* bar,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (!priv->info_bar_queued)
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), FALSE);
-    priv->info_bar_queued = FALSE;
-
-    if (priv->info_bar_cb)
+    if (priv->cur_info_data)
     {
-        g_signal_handlers_disconnect_by_func(priv->info_bar,
-                                             priv->info_bar_cb,
-                                             priv->info_bar_udata);
-        priv->info_bar_cb = NULL;
-        priv->info_bar_udata = NULL;
+        if (priv->cur_info_data->cb)
+        {
+            g_signal_handlers_disconnect_by_func(priv->info_bar,
+                                                 priv->cur_info_data->cb,
+                                                 priv->cur_info_data->udata);
+        }
+
+        g_free(priv->cur_info_data->msg);
+        g_free(priv->cur_info_data);
     }
+
+    show_info_bar(self);
 }
 
 
@@ -490,6 +538,9 @@ gt_win_init(GtWin* self)
 
 //    self->open_channel = NULL;
 
+    priv->cur_info_data = NULL;
+    priv->info_queue = g_queue_new();
+
     gtk_window_set_default_size(GTK_WINDOW(self),
                                 g_settings_get_int(main_app->settings, "window-width"),
                                 g_settings_get_int(main_app->settings, "window-height"));
@@ -604,32 +655,28 @@ void
 gt_win_show_info_message(GtWin* self, const gchar* msg)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    QueuedInfoData* data = g_new0(QueuedInfoData, 1);
 
-    priv->info_bar_queued = gtk_revealer_get_child_revealed(GTK_REVEALER(priv->info_revealer));
+    data->msg = g_strdup(msg);
 
-    gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
-    gtk_widget_set_visible(priv->info_bar_no_button, FALSE);
-    gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
-    gtk_label_set_markup(GTK_LABEL(priv->info_label), msg);
-    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_INFO);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
+    g_queue_push_tail(priv->info_queue, data);
+
+    if (!gtk_revealer_get_reveal_child(GTK_REVEALER(priv->info_revealer)))
+        show_info_bar(self);
 }
 
 void
 gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    QueuedInfoData* data = g_new(QueuedInfoData, 1);
 
-    priv->info_bar_queued = gtk_revealer_get_child_revealed(GTK_REVEALER(priv->info_revealer));
-    priv->info_bar_cb = cb;
-    priv->info_bar_udata = udata;
+    data->msg = g_strdup(msg);
+    data->cb = cb;
+    data->udata = udata;
 
-    g_signal_connect(priv->info_bar, "response", G_CALLBACK(cb), udata);
+    g_queue_push_tail(priv->info_queue, data);
 
-    gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
-    gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
-    gtk_widget_set_visible(priv->info_bar_no_button, TRUE);
-    gtk_label_set_text(GTK_LABEL(priv->info_label), msg);
-    gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->info_revealer), TRUE);
+    if (!gtk_revealer_get_reveal_child(GTK_REVEALER(priv->info_revealer)))
+        show_info_bar(self);
 }
