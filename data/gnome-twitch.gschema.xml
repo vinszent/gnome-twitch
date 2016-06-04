@@ -5,6 +5,7 @@
     <value nick="high" value='1'/>
     <value nick="medium" value='2'/>
     <value nick="low" value='3'/>
+    <value nick="mobile" value='4'/>
   </enum>
   <schema path="/com/gnome-twitch/app/" id="com.gnome-twitch.app">
     <key name="prefer-dark-theme" type="b">
