@@ -270,11 +270,20 @@ refresh_view_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GtkWidget* visible_child = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
 
-    if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->channels_view)
+    if (visible_child == priv->channels_view)
         gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
-    else if (gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack)) == priv->games_view)
+    else if (visible_child == priv->games_view)
         gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
+    else if (visible_child == priv->favourites_view)
+    {
+        //TODO: Quick hack, turn this into a proper refresh function
+        if (gt_app_credentials_valid(main_app))
+            gt_favourites_manager_load_from_twitch(main_app->fav_mgr);
+        else
+            gt_favourites_manager_load_from_file(main_app->fav_mgr);
+    }
 }
 
 static void

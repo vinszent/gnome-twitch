@@ -253,19 +253,20 @@ move_local_favourites_cb(GtkInfoBar* bar,
     gchar* fp = FAV_CHANNELS_FILE;
     gchar* new_fp = g_strconcat(fp, ".bak", NULL);
 
+    g_rename(fp, new_fp);
+
     if (res == GTK_RESPONSE_YES)
     {
         JsonParser* parse = json_parser_new();
         JsonNode* root;
         JsonArray* jarr;
-        gchar* fp = FAV_CHANNELS_FILE;
         GError* err = NULL;
 
         gt_channel_free_list(self->favourite_channels);
         self->favourite_channels = NULL;
         g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0); //TODO: Add a LOADING_FAVOURITES signal
 
-        json_parser_load_from_file(parse, fp, &err);
+        json_parser_load_from_file(parse, new_fp, &err);
 
         if (err)
         {
@@ -285,12 +286,9 @@ move_local_favourites_cb(GtkInfoBar* bar,
         }
 
         g_object_unref(parse);
-        g_free(fp);
 
         gt_favourites_manager_load_from_twitch(self);
     }
-
-    g_rename(fp, new_fp);
 
     g_free(fp);
     g_free(new_fp);
@@ -324,18 +322,21 @@ follows_all_cb(GObject* source,
                          "auto-update", TRUE,
                          "favourited", TRUE,
                          NULL);
-            g_object_ref_sink(chan);
+            g_object_ref_sink(G_OBJECT(chan));
             g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
             g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
         }
 
+        gt_channel_free_list(self->favourite_channels);
         self->favourite_channels = list;
     }
 
     if (g_file_test(fp, G_FILE_TEST_EXISTS))
+    {
         gt_win_ask_question(GT_WIN_ACTIVE,
                             _("GNOME Twitch has detected local favourites, would you like to move them to Twitch?"),
                             G_CALLBACK(move_local_favourites_cb), self);
+    }
 
     g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
 
@@ -415,6 +416,7 @@ gt_favourites_manager_save(GtFavouritesManager* self)
         JsonNode* node = json_gobject_serialize(l->data);
         json_array_add_element(jarr, node);
     }
+
 
     final = json_node_init_array(final, jarr);
     json_array_unref(jarr);

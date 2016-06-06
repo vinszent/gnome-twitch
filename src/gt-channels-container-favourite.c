@@ -164,6 +164,10 @@ started_loading_favourites_cb(GtFavouritesManager* mgr,
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
     GtChannelsContainerFavouritePrivate* priv = gt_channels_container_favourite_get_instance_private(self);
 
+    g_signal_handlers_block_by_func(main_app->fav_mgr, channel_favourited_cb, self);
+
+    PCLASS->clear_channels(GT_CHANNELS_CONTAINER(self));
+
     PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), TRUE);
 }
 
@@ -174,16 +178,16 @@ finished_loading_favourites_cb(GtFavouritesManager* mgr,
     GtChannelsContainerFavourite* self = GT_CHANNELS_CONTAINER_FAVOURITE(udata);
     GtChannelsContainerFavouritePrivate* priv = gt_channels_container_favourite_get_instance_private(self);
 
-    PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), FALSE);
-
-    PCLASS->clear_channels(GT_CHANNELS_CONTAINER(self));
-
     PCLASS->append_channels(GT_CHANNELS_CONTAINER(self), main_app->fav_mgr->favourite_channels);
 
     PCLASS->check_empty(GT_CHANNELS_CONTAINER(self));
 
     for (GList* l = main_app->fav_mgr->favourite_channels; l != NULL; l = l->next)
         g_signal_connect(G_OBJECT(l->data), "notify::updating", G_CALLBACK(channel_updating_cb), self);
+
+    g_signal_handlers_unblock_by_func(main_app->fav_mgr, channel_favourited_cb, self);
+
+    PCLASS->show_load_spinner(GT_CHANNELS_CONTAINER(self), FALSE);
 }
 
 static void
@@ -253,8 +257,6 @@ gt_channels_container_favourite_init(GtChannelsContainerFavourite* self)
                                (GtkFlowBoxSortFunc) sort_favourites_by_name_and_online,
                                self, NULL);
 
-    //TODO: Change 'favourite' to 'follo' when logged in
-
     PCLASS->set_empty_info(GT_CHANNELS_CONTAINER(self),
                            "emblem-favorite-symbolic",
                            _("No channels favourited"),
@@ -270,6 +272,8 @@ gt_channels_container_favourite_init(GtChannelsContainerFavourite* self)
                      G_CALLBACK(finished_loading_favourites_cb), self);
     g_signal_connect(main_app->fav_mgr, "started-loading-favourites",
                      G_CALLBACK(started_loading_favourites_cb), self);
+
+    started_loading_favourites_cb(main_app->fav_mgr, self);
 
     if (!gt_app_credentials_valid(main_app))
         finished_loading_favourites_cb(main_app->fav_mgr, self);
