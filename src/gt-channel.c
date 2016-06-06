@@ -17,7 +17,6 @@ typedef struct
     gchar* video_banner_url;
 
     GdkPixbuf* preview;
-    GdkPixbuf* video_banner;
 
     gint64 viewers;
     GDateTime* stream_started_time;
@@ -34,6 +33,7 @@ typedef struct
     guint update_id;
 
     GCancellable* cancel;
+    GCancellable* cache_cancel;
 } GtChannelPrivate;
 
 static GThreadPool* update_pool;
@@ -78,26 +78,21 @@ gt_channel_new(const gchar* name, gint64 id)
 }
 
 static inline void
-set_banner(GtChannel* self, GdkPixbuf* banner, gboolean save, gboolean set_preview)
+set_banner(GtChannel* self, GdkPixbuf* banner, gboolean save)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_clear_object(&priv->video_banner);
-    priv->video_banner = banner;
+    priv->preview = banner;
 
     if (save)
-        gdk_pixbuf_save(priv->video_banner, priv->cache_filename,
+        gdk_pixbuf_save(priv->preview, priv->cache_filename,
                         "jpeg", NULL, NULL);
 
-    utils_pixbuf_scale_simple(&priv->video_banner,
+    utils_pixbuf_scale_simple(&priv->preview,
                               320, 180,
                               GDK_INTERP_BILINEAR);
 
-    if (set_preview)
-    {
-        priv->preview = priv->video_banner;
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
-    }
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
 }
 
 static void
@@ -188,19 +183,27 @@ static void
 cache_update_cb(gpointer data,
                 gpointer udata)
 {
-    if(!GT_IS_CHANNEL(data)) // We were probably unrefed during wait time.
-        return;
+    GCancellable* cancel = G_CANCELLABLE(data);
 
-    GtChannel* self = GT_CHANNEL(data);
+    if (g_cancellable_is_cancelled(cancel))
+    {
+        g_debug("{GtChannel} Unrefed while waiting to update cache");
+        g_clear_object(&cancel);
+        return;
+    }
+
+    GtChannel* self = GT_CHANNEL(g_object_get_data(G_OBJECT(cancel), "chan"));
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch, priv->video_banner_url,
                                                 priv->cache_timestamp);
     if (pic)
     {
-        set_banner(self, pic, TRUE, FALSE);
+        set_banner(self, pic, TRUE);
         g_info("{GtChannel} Updated cache entry for channel '%s'", priv->name);
     }
+
+    g_clear_object(&cancel);
 }
 
 static void
@@ -252,7 +255,7 @@ download_banner_cb(GObject* source,
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    set_banner(self, pic, TRUE, TRUE);
+    set_banner(self, pic, TRUE);
 
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -281,9 +284,13 @@ download_banner(GtChannel* self)
                                              download_banner_cb, self);
         else
         {
-            g_thread_pool_push(cache_update_pool, self, NULL);
+            g_clear_object(&priv->cache_cancel);
+            priv->cache_cancel = g_cancellable_new();
+            g_object_ref(G_OBJECT(priv->cache_cancel));
+            g_object_set_data(G_OBJECT(priv->cache_cancel), "chan", self);
+            g_thread_pool_push(cache_update_pool, priv->cache_cancel, NULL);
 
-            set_banner(self, banner, FALSE, TRUE);
+            set_banner(self, banner, FALSE);
 
             priv->updating = FALSE;
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -292,7 +299,7 @@ download_banner(GtChannel* self)
     else
     {
         set_banner(self, gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL),
-                   FALSE, TRUE);
+                   FALSE);
 
         priv->updating = FALSE;
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -304,28 +311,15 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_cancellable_reset(priv->cancel);
+    g_cancellable_cancel(priv->cancel);
+    g_clear_object(&priv->cancel);
+    priv->cancel = g_cancellable_new();
 
     if (priv->online)
-    {
         gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, priv->preview_timestamp,
                                          priv->cancel, download_preview_cb, self);
-    }
     else
-    {
-        g_clear_object(&priv->preview);
-
-        if (priv->video_banner)
-        {
-            priv->preview = g_object_ref(priv->video_banner);
-            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
-
-            priv->updating = FALSE;
-            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
-        }
-        else
-            download_banner(self);
-    }
+        download_banner(self);
 }
 
 static void
@@ -335,6 +329,7 @@ finalize(GObject* object)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     g_cancellable_cancel(priv->cancel);
+    g_cancellable_cancel(priv->cache_cancel);
 
     g_free(priv->name);
     g_free(priv->display_name);
@@ -346,7 +341,8 @@ finalize(GObject* object)
         g_date_time_unref(priv->stream_started_time);
 
     g_clear_object(&priv->preview);
-    g_clear_object(&priv->video_banner);
+    g_clear_object(&priv->cancel);
+    g_clear_object(&priv->cache_cancel);
 
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
