@@ -58,6 +58,8 @@ typedef struct
     gdouble prev_scroll_upper;
     gboolean chat_sticky;
     gboolean force_sticky;
+
+    GRegex* url_regex;
 } GtChatPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChat, gt_chat, GTK_TYPE_BOX)
@@ -158,6 +160,32 @@ irc_source_cb(GtIrcMessage* msg,
         gtk_text_buffer_insert_with_tags(priv->chat_buffer, &iter, sender, -1, colour_tag, NULL);
         gtk_text_buffer_insert(priv->chat_buffer, &iter, ": ", -1);
 
+        GMatchInfo* match_info = NULL;
+        glong match_offset_start = -1;
+        glong match_offset_end = -1;
+        GtkTextTag* url_tag = NULL;
+        gboolean done_matching = FALSE;
+
+#define UPDATE_URL_OFFSETS_AND_TAG()                                    \
+        if (!done_matching)                                             \
+        {                                                               \
+            gchar* match_string = g_match_info_fetch(match_info, 0); \
+            gint match_start = -1;                                      \
+            gint match_end = -1;                                        \
+            g_match_info_fetch_pos(match_info, 0, &match_start, &match_end); \
+            match_offset_start = g_utf8_pointer_to_offset(privmsg->msg, privmsg->msg + match_start); \
+            match_offset_end = g_utf8_pointer_to_offset(privmsg->msg, privmsg->msg + match_end); \
+            done_matching = !g_match_info_next(match_info, NULL);       \
+            url_tag = gtk_text_buffer_create_tag(priv->chat_buffer, NULL, \
+                                                 "foreground", "blue",  \
+                                                 "underline", PANGO_UNDERLINE_SINGLE, \
+                                                 NULL);                 \
+            g_object_set_data(G_OBJECT(url_tag), "url", match_string);  \
+        }                                                               \
+
+        if (g_regex_match(priv->url_regex, privmsg->msg, 0, &match_info))
+            UPDATE_URL_OFFSETS_AND_TAG();
+
         gchar* c = g_utf8_offset_to_pointer(privmsg->msg, 0);
         gchar* d = g_utf8_offset_to_pointer(privmsg->msg, 1);
         GList* l = privmsg->emotes;
@@ -174,9 +202,20 @@ irc_source_cb(GtIrcMessage* msg,
                 l = l->next;
                 i = emote->end;
             }
+            else if (i >= match_offset_start && i < match_offset_end)
+            {
+                gtk_text_buffer_insert_with_tags(priv->chat_buffer, &iter, c, (d - c)*sizeof(gchar),
+                                                 url_tag, NULL);
+
+                if (i + 1 == match_offset_end)
+                    UPDATE_URL_OFFSETS_AND_TAG();
+            }
             else
                 gtk_text_buffer_insert(priv->chat_buffer, &iter, c, (d - c)*sizeof(gchar));
+
         }
+
+#undef UPDATE_URL_OFFSETS
 
         gtk_text_buffer_insert(priv->chat_buffer, &iter, "\n", 1);
 
@@ -240,6 +279,33 @@ key_press_cb(GtkWidget* widget,
 
     if (evt->keyval == GDK_KEY_Return)
         send_msg_from_entry(self);
+
+    return FALSE;
+}
+
+static gboolean
+chat_view_button_press_cb(GtkWidget* widget,
+                          GdkEventButton* evt,
+                          gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+    gint x, y;
+    GtkTextIter iter;
+    GSList* tags;
+
+    gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(priv->chat_view), GTK_TEXT_WINDOW_TEXT,
+                                          evt->x, evt->y, &x, &y);
+    gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(priv->chat_view), &iter, x, y);
+    tags = gtk_text_iter_get_tags(&iter);
+
+    for (GSList* l = tags; l != NULL; l = l->next)
+    {
+        gchar* url = g_object_get_data(G_OBJECT(l->data), "url");
+
+        if (url)
+            gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL);
+    }
 
     return FALSE;
 }
@@ -501,6 +567,9 @@ gt_chat_init(GtChat* self)
     priv->prev_scroll_val = 0;
     priv->prev_scroll_upper = 0;
 
+    priv->url_regex = g_regex_new("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)",
+                                  G_REGEX_OPTIMIZE, 0, NULL);
+
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
     g_signal_connect(priv->chat, "error-encountered", G_CALLBACK(error_encountered_cb), self);
@@ -508,6 +577,7 @@ gt_chat_init(GtChat* self)
     g_signal_connect_after(priv->chat, "notify::logged-in", G_CALLBACK(after_connected_cb), self);
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
     g_signal_connect(priv->chat_scroll, "scroll-child", G_CALLBACK(scrolled), NULL);
+    g_signal_connect(priv->chat_view, "button-press-event", G_CALLBACK(chat_view_button_press_cb), self);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
