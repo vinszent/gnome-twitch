@@ -102,6 +102,7 @@ load_chat_settings(GtApp* self)
     JsonParser* parse = json_parser_new();
     JsonNode* root = NULL;
     JsonArray* array = NULL;
+    GList* ele = NULL;
     GError* err = NULL;
 
     g_message("{GtApp} Loading chat settings");
@@ -119,8 +120,9 @@ load_chat_settings(GtApp* self)
 
     root = json_parser_get_root(parse);
     array = json_node_get_array(root);
+    ele = json_array_get_elements(array);
 
-    for (GList* l = json_array_get_elements(array); l != NULL; l = l->next)
+    for (GList* l = ele; l != NULL; l = l->next)
     {
         JsonNode* node = l->data;
         JsonObject* chan = json_node_get_object(node);
@@ -139,6 +141,8 @@ load_chat_settings(GtApp* self)
 
         g_hash_table_insert(self->chat_settings_table, g_strdup(name), settings);
     }
+
+    g_list_free(ele);
 
 finish:
     g_object_unref(parse);
@@ -330,7 +334,6 @@ startup(GApplication* app)
         gt_favourites_manager_load_from_twitch(self->fav_mgr);
     else
         gt_favourites_manager_load_from_file(self->fav_mgr);
-
 }
 
 static void
