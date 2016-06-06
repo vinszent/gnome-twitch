@@ -179,7 +179,7 @@ send_message(GtTwitch* self, SoupMessage* msg)
 
     g_free(uri);
 
-    return msg->status_code == SOUP_STATUS_OK || msg->status_code == SOUP_STATUS_NO_CONTENT;
+    return SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
 }
 
 static GDateTime*
@@ -1719,6 +1719,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
         json_reader_end_member(reader);
 
         channel = gt_channel_new(raw->name, raw->id);
+        g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, raw);
 
         json_reader_end_element(reader);
