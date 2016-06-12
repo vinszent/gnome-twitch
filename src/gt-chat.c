@@ -172,7 +172,7 @@ irc_source_cb(GtIrcMessage* msg,
 #define UPDATE_URL_OFFSETS_AND_TAG()                                    \
         if (!done_matching)                                             \
         {                                                               \
-            gchar* match_string = g_match_info_fetch(match_info, 0); \
+            gchar* match_string = g_match_info_fetch(match_info, 0);    \
             gint match_start = -1;                                      \
             gint match_end = -1;                                        \
             g_match_info_fetch_pos(match_info, 0, &match_start, &match_end); \
@@ -217,6 +217,8 @@ irc_source_cb(GtIrcMessage* msg,
                 gtk_text_buffer_insert(priv->chat_buffer, &iter, c, (d - c)*sizeof(gchar));
 
         }
+
+        g_match_info_free(match_info);
 
 #undef UPDATE_URL_OFFSETS
 
