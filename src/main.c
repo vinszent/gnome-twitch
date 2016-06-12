@@ -15,12 +15,6 @@
 GtApp* main_app;
 gchar* ORIGINAL_LOCALE;
 
-static GOptionEntry cli_options[] =
-{
-    {"log-level", 'l', 0, G_OPTION_ARG_INT, &LOG_LEVEL, "Set logging level", "Level"},
-    {NULL},
-};
-
 static void
 gt_log(const gchar* domain,
        GLogLevelFlags _level,
