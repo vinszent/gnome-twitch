@@ -307,7 +307,50 @@ chat_view_button_press_cb(GtkWidget* widget,
             gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL);
     }
 
+    g_slist_free(tags);
+
     return FALSE;
+}
+
+static gboolean
+chat_view_motion_cb(GtkWidget* widget,
+                    GdkEventMotion* evt,
+                    gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+    gint x, y;
+    GtkTextIter iter;
+    GSList* tags = NULL;
+    GdkCursor* cursor = NULL;
+
+    gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(widget),
+                                          GTK_TEXT_WINDOW_WIDGET,
+                                          evt->x, evt->y,
+                                          &x, &y);
+
+    gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(widget),
+                                       &iter, x, y);
+
+    tags = gtk_text_iter_get_tags(&iter);
+
+    for (GSList* l = tags; l != NULL; l = l->next)
+    {
+        if (g_object_get_data(G_OBJECT(l->data), "url"))
+        {
+            cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_HAND2);
+            break;
+        }
+    }
+
+    if (!cursor) cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_XTERM);
+
+    gdk_window_set_cursor(evt->window, cursor);
+
+    g_object_unref(cursor);
+
+
+    return GDK_EVENT_PROPAGATE;
 }
 
 static void
@@ -578,6 +621,7 @@ gt_chat_init(GtChat* self)
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
     g_signal_connect(priv->chat_scroll, "scroll-child", G_CALLBACK(scrolled), NULL);
     g_signal_connect(priv->chat_view, "button-press-event", G_CALLBACK(chat_view_button_press_cb), self);
+    g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_view_motion_cb), self);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
