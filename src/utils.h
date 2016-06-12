@@ -20,5 +20,6 @@ const gchar* utils_search_key_value_strv(gchar** strv, const gchar* key);
 void utils_connect_mouse_hover(GtkWidget* widget);
 void utils_connect_link(GtkWidget* widget, const gchar* link);
 gboolean utils_str_empty(const gchar* str);
+void utils_signal_connect_oneshot(gpointer instance, const gchar* signal, GCallback cb, gpointer udata);
 
 #endif
