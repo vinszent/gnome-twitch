@@ -653,7 +653,7 @@ gt_win_get_games_view(GtWin* self)
 }
 
 gboolean
-gt_win_get_fullscreen(GtWin* self)
+gt_win_is_fullscreen(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 

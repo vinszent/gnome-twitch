@@ -35,7 +35,7 @@ void gt_win_refresh_view(GtWin* self);
 void gt_win_show_favourites(GtWin* self);
 GtGamesView* gt_win_get_games_view(GtWin* self);
 GtChannelsView* gt_win_get_channels_view(GtWin* self);
-gboolean gt_win_get_fullscreen(GtWin* self);
+gboolean gt_win_is_fullscreen(GtWin* self);
 void gt_win_show_info_message(GtWin* self, const gchar* msg);
 void gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata);
 

@@ -317,7 +317,7 @@ fullscreen_cb(GObject* source,
     GtPlayerClutter* self = GT_PLAYER_CLUTTER(udata);
     GtPlayerClutterPrivate* priv = gt_player_clutter_get_instance_private(self);
 
-    if (!gt_win_get_fullscreen(priv->win))
+    if (!gt_win_is_fullscreen(priv->win))
         hide_fullscreen_bar(self);
 }
 
@@ -370,7 +370,7 @@ clutter_stage_event_cb(ClutterStage* stage,
             clutter_stage_show_cursor(stage);
             schedule_cursor_hiding(self);
 
-            if (gt_win_get_fullscreen(priv->win) && ((ClutterMotionEvent*) event)->y < 50)
+            if (gt_win_is_fullscreen(priv->win) && ((ClutterMotionEvent*) event)->y < 50)
                 show_fullscreen_bar(self);
             else
                 hide_fullscreen_bar(self);
@@ -444,7 +444,7 @@ button_press_cb(GtkWidget* widget,
 
     if (evt->type == GDK_2BUTTON_PRESS)
     {
-        if (gt_win_get_fullscreen(win))
+        if (gt_win_is_fullscreen(win))
             gtk_window_unfullscreen(GTK_WINDOW(win));
         else
             gtk_window_fullscreen(GTK_WINDOW(win));
