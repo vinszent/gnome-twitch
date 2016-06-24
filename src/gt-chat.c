@@ -8,6 +8,9 @@
 #include <glib/gprintf.h>
 #include <locale.h>
 
+//TODO: Add emoticon popover
+//TODO: Replace copied text pixbufs with emoticon text
+
 #define CHAT_DARK_THEME_CSS_CLASS "dark-theme"
 #define CHAT_LIGHT_THEME_CSS_CLASS "light-theme"
 #define CHAT_DARK_THEME_CSS ".gt-chat { background-color: rgba(25, 25, 31, %.2f); }"

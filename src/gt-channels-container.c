@@ -110,8 +110,8 @@ remove_channel(GtChannelsContainer* self, GtChannel* chan)
 
         if (!gt_channel_compare(chan, _chan))
         {
-            g_object_unref(_chan);
             gtk_container_remove(GTK_CONTAINER(priv->channels_flow), GTK_WIDGET(child));
+            g_object_unref(_chan);
             break;
         }
 
