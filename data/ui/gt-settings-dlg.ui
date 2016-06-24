@@ -2,63 +2,88 @@
 <interface>
   <template class="GtSettingsDlg" parent="GtkDialog">
     <property name="modal">True</property>
-    <property name="resizable">False</property>
-    <property name="title" translatable="yes">Settings</property>
+    <property name="resizable">True</property>
+    <property name="default-width">512</property>
+    <property name="default-height">437</property>
+    <child internal-child="action_area" type="titlebar">
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="margin">10</property>
         <child>
-          <object class="GtkGrid">
+          <object class="GtkStack" id="settings_stack">
             <property name="visible">True</property>
-            <property name="column-spacing">15</property>
-            <property name="row-spacing">6</property>
+            <property name="transition-type">slide-left-right</property>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkGrid">
                 <property name="visible">True</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Use dark theme</property>
+                <property name="column-spacing">15</property>
+                <property name="row-spacing">6</property>
+                <property name="expand">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Use dark theme</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="prefer_dark_theme_button">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Default video quality:</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="quality_combo">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <items>
+                      <item id="source" translatable="yes">Source</item>
+                      <item id="high" translatable="yes">High</item>
+                      <item id="medium" translatable="yes">Medium</item>
+                      <item id="low" translatable="yes">Low</item>
+                      <item id="mobile" translatable="yes">Mobile</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
+                <property name="name">general</property>
+                <property name="title">General</property>
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="prefer_dark_theme_button">
+              <object class="PeasGtkPluginManager" id="plugin_view">
                 <property name="visible">True</property>
-                <property name="halign">end</property>
               </object>
               <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Default video quality:</property>
-                <property name="halign">start</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="quality_combo">
-                <property name="visible">True</property>
-                <property name="halign">end</property>
-                <items>
-                  <item id="source" translatable="yes">Source</item>
-                  <item id="high" translatable="yes">High</item>
-                  <item id="medium" translatable="yes">Medium</item>
-                  <item id="low" translatable="yes">Low</item>
-                  <item id="mobile" translatable="yes">Mobile</item>
-                </items>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
+                <property name="name">plugins</property>
+                <property name="title">Plugins</property>
               </packing>
             </child>
           </object>
@@ -66,4 +91,8 @@
       </object>
     </child>
   </template>
+  <object class="GtkStackSwitcher" id="settings_switcher">
+    <property name="visible">True</property>
+    <property name="stack">settings_stack</property>
+  </object>
 </interface>
