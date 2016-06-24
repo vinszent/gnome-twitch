@@ -1,6 +1,4 @@
 #include <gtk/gtk.h>
-#include <clutter-gst/clutter-gst.h>
-#include <clutter-gtk/clutter-gtk.h>
 #include <glib/gi18n.h>
 #include <stdlib.h>
 #include <math.h>
@@ -71,11 +69,6 @@ int main(int argc, char** argv)
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif
-    if (gtk_clutter_init(NULL, NULL) != CLUTTER_INIT_SUCCESS)
-    {
-        g_critical("Could not initialize GtkClutter");
-        exit(EXIT_FAILURE);
-    }
 
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
     bind_textdomain_codeset("gnome-twitch", "UTF-8");
