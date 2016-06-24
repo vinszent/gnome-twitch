@@ -2,5 +2,6 @@
 #define _CONFIG_H
 
 #define GT_LOCALE_DIR "@LOCALE_DIR@"
+#define GT_LIB_DIR "@LIB_DIR@"
 
 #endif
