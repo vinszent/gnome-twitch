@@ -101,6 +101,12 @@
     border-color: rgba(81, 81, 85, 1.0);
 }
 
+.empty-link-button
+{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
 .empty-channels-box .empty-title,
 .empty-games-box .empty-title
 {
