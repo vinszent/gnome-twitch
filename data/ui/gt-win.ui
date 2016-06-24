@@ -28,7 +28,6 @@
         <child>
           <object class="GtPlayerHeaderBar" id="player_header_bar">
             <property name="visible">True</property>
-            <property name="player">player</property>
           </object>
           <packing>
             <property name="name">player</property>
@@ -142,7 +141,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtPlayerClutter" id="player">
+              <object class="GtPlayer" id="player">
                 <property name="visible">True</property>
                 <property name="expand">True</property>
               </object>
