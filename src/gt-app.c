@@ -1,10 +1,12 @@
 #include "gt-app.h"
 #include "gt-win.h"
+#include "config.h"
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <errno.h>
 #include <string.h>
 #include <json-glib/json-glib.h>
+#include <stdlib.h>
 
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
@@ -262,8 +264,9 @@ activate(GApplication* app)
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    g_message("{%s} Activate", "GtApp");
+    G_APPLICATION_CLASS(gt_app_parent_class)->activate(app);
 
+    g_message("{%s} Activate", "GtApp");
 
     priv->win = gt_win_new(self);
 
@@ -289,8 +292,12 @@ startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
-    GtkSettings* gtk_settings = gtk_settings_get_default();
+    GtkSettings* gtk_settings;
     GtkBuilder* menu_bld;
+
+    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
+
+    gtk_settings = gtk_settings_get_default();
 
     g_message("{GtApp} Startup");
 
@@ -445,14 +452,34 @@ gt_app_init(GtApp* self)
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
+    self->twitch = gt_twitch_new();
+    self->settings = g_settings_new("com.gnome-twitch.app");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
+    self->plugins_engine = peas_engine_get_default();
+
+    gchar* plugin_dir = g_build_filename(GT_LIB_DIR,
+                                         "gnome-twitch",
+                                         "plugins",
+                                         "player-backends",
+                                         NULL);
+    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL);
+    g_free(plugin_dir);
+
+    plugin_dir = g_build_filename(g_get_user_data_dir(),
+                                  "gnome-twitch",
+                                  "plugins",
+                                  "player-backends",
+                                  NULL);
+    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL);
+    g_free(plugin_dir);
 
     priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
 
-    self->twitch = gt_twitch_new();
-    self->settings = g_settings_new("com.gnome-twitch.app");
-
     load_chat_settings(self);
+
+    g_settings_bind(self->settings, "loaded-plugins",
+                    self->plugins_engine, "loaded-plugins",
+                    G_SETTINGS_BIND_DEFAULT);
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
 }
