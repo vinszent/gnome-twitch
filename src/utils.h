@@ -7,6 +7,7 @@
 #define REMOVE_STYLE_CLASS(w, n) gtk_style_context_remove_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)
 #define ADD_STYLE_CLASS(w, n) gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)
 #define UROUND(x) ((guint) ((x) + 0.5))
+#define PRINT_BOOL(b) b ? "true" : "false"
 
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
