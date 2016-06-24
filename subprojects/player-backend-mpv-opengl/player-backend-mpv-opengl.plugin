@@ -1,0 +1,8 @@
+[Plugin]
+Name = MPV OpenGL player backend
+Module = player-backend-mpv-opengl
+Description = MPV player backend using OpenGL for rendering
+Authors = Vincent Szolnoky <ippytraxx@installgentoo.com>
+Website = https://github.com/Ippytraxx/gnome-twitch
+License =  GPL3
+Loader = C
