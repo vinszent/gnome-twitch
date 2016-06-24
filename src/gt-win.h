@@ -21,7 +21,6 @@ struct _GtWin
     GtkApplicationWindow parent_instance;
 
     GtkWidget* player;
-    //   GtChannel* open_channel;
 };
 
 GtWin* gt_win_new(GtApp* app);

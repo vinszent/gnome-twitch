@@ -4,8 +4,6 @@
 #include <glib/gi18n.h>
 #include "gt-twitch.h"
 #include "gt-player.h"
-#include "gt-player-clutter.h"
-//#include "gt-player-mpv.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
@@ -41,6 +39,7 @@ typedef struct
     GtkWidget* browse_header_bar;
     GtkWidget* browse_stack_switcher;
     GtkWidget* chat_view;
+    GtkWidget* player;
 
     GtkWidget* info_revealer;
     GtkWidget* info_label;
@@ -128,6 +127,18 @@ show_settings_cb(GSimpleAction* action,
     {
         priv->settings_dlg = gt_settings_dlg_new(self);
         g_object_add_weak_pointer(G_OBJECT(priv->settings_dlg), (gpointer *) &priv->settings_dlg);
+    }
+
+    if (par)
+    {
+        GEnumClass* eclass = g_type_class_ref(GT_TYPE_SETTINGS_DLG_VIEW);
+        GEnumValue* eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(par, NULL));
+
+        gt_settings_dlg_set_view(priv->settings_dlg, eval->value);
+
+        g_simple_action_set_state(action, par);
+
+        g_type_class_unref(eclass);
     }
 
     gtk_window_present(GTK_WINDOW(priv->settings_dlg));
@@ -394,7 +405,8 @@ static GActionEntry win_actions[] =
     {"refresh_view", refresh_view_cb, NULL, NULL, NULL},
     {"show_view_default", show_view_default_cb, NULL, NULL, NULL},
     {"show_about", show_about_cb, NULL, NULL, NULL},
-    {"show_settings", show_settings_cb, NULL, NULL, NULL},
+    {"show_settings", show_settings_cb, NULL, NULL},
+    {"show_settings_with_view", NULL, "s", "'general'", show_settings_cb},
     {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
     {"show_channel_info", show_channel_info_cb, NULL, NULL, NULL},
     {"close_player", close_player_cb, NULL, NULL, NULL},
@@ -536,8 +548,6 @@ gt_win_init(GtWin* self)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
-    GT_TYPE_PLAYER_CLUTTER;
-//    GT_TYPE_PLAYER_MPV;
     GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
@@ -545,7 +555,9 @@ gt_win_init(GtWin* self)
     GT_TYPE_FAVOURITES_VIEW;
     GT_TYPE_CHAT;
 
-//    self->open_channel = NULL;
+    gtk_widget_init_template(GTK_WIDGET(self));
+
+    g_object_set(priv->player_header_bar, "player", self->player, NULL);
 
     priv->cur_info_data = NULL;
     priv->info_queue = g_queue_new();
@@ -554,11 +566,7 @@ gt_win_init(GtWin* self)
                                 g_settings_get_int(main_app->settings, "window-width"),
                                 g_settings_get_int(main_app->settings, "window-height"));
 
-    gtk_widget_init_template(GTK_WIDGET(self));
-
     gtk_window_set_default_icon_name("gnome-twitch");
-
-//    g_object_set(self, "application", main_app, NULL); // Another hack because GTK is bugged and resets the app menu when using custom widgets
 
     g_object_bind_property(priv->browse_stack, "visible-child",
                            self, "visible-view",
