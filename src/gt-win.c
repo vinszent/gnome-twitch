@@ -47,15 +47,13 @@ typedef struct
     GtkWidget* info_bar_yes_button;
     GtkWidget* info_bar_no_button;
     GtkWidget* info_bar_ok_button;
+
     QueuedInfoData* cur_info_data;
     GQueue* info_queue;
 
     GtSettingsDlg* settings_dlg;
 
     gboolean fullscreen;
-
-
-    GtChannel* open_channel;
 } GtWinPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
@@ -65,8 +63,8 @@ enum
     PROP_0,
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
-    PROP_FULLSCREEN,
     PROP_VISIBLE_VIEW,
+    PROP_FULLSCREEN,
     NUM_PROPS
 };
 
@@ -262,15 +260,20 @@ show_channel_info_cb(GSimpleAction* action,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     GtTwitchChannelInfoDlg* dlg = gt_twitch_channel_info_dlg_new(GTK_WINDOW(self));
-    const gchar* chan;
+    GtChannel* channel;
+    const gchar* name;
 
-    chan = gt_channel_get_name(priv->open_channel);
+    g_object_get(self->player, "channel", &channel, NULL);
 
-    g_message("{GtWin} Showing channel info for '%s'", chan);
+    name = gt_channel_get_name(channel);
+
+    g_message("{GtWin} Showing channel info for '%s'", name);
 
     gtk_window_present(GTK_WINDOW(dlg));
 
-    gt_twitch_channel_info_dlg_load_channel(dlg, chan);
+    gt_twitch_channel_info_dlg_load_channel(dlg, name);
+
+    g_object_unref(channel);
 }
 
 
@@ -324,12 +327,12 @@ key_press_cb(GtkWidget* widget,
 
     g_object_get(self->player, "playing", &playing, NULL);
 
-    if (MAIN_VISIBLE_CHILD == self->player)
+    if (MAIN_VISIBLE_CHILD == GTK_WIDGET(self->player))
     {
         if (evt->keyval == GDK_KEY_Escape)
         {
             if (priv->fullscreen)
-                gtk_window_unfullscreen(GTK_WINDOW(self));
+                g_object_set(self, "fullscreen", FALSE, NULL);
             else
             {
                 action = g_action_map_lookup_action(G_ACTION_MAP(self), "close_player");
@@ -338,10 +341,7 @@ key_press_cb(GtkWidget* widget,
         }
         else if (evt->keyval == GDK_KEY_f)
         {
-            if (priv->fullscreen)
-                gtk_window_unfullscreen(GTK_WINDOW(self));
-            else
-                gtk_window_fullscreen(GTK_WINDOW(self));
+            g_object_set(self, "fullscreen", !priv->fullscreen, NULL);
         }
     }
     else
@@ -398,6 +398,17 @@ close_player_cb(GSimpleAction* action,
                                      "browse");
     gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
                                      "browse");
+}
+
+static void
+update_fullscreen(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (priv->fullscreen)
+        gtk_window_fullscreen(GTK_WINDOW(self));
+    else
+        gtk_window_unfullscreen(GTK_WINDOW(self));
 }
 
 static GActionEntry win_actions[] =
@@ -483,6 +494,10 @@ set_property(GObject*      obj,
         case PROP_VISIBLE_VIEW:
             // Do nothing
             break;
+        case PROP_FULLSCREEN:
+            priv->fullscreen = g_value_get_boolean(val);
+            update_fullscreen(self);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -507,16 +522,16 @@ gt_win_class_init(GtWinClass* klass)
                                                  "Games View",
                                                  GT_TYPE_GAMES_VIEW,
                                                  G_PARAM_READABLE);
-    props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
-                                                  "Fullscreen",
-                                                  "Whether window is fullscreen",
-                                                  FALSE,
-                                                  G_PARAM_READABLE);
     props[PROP_VISIBLE_VIEW] = g_param_spec_object("visible-view",
                                                    "Visible View",
                                                    "Visible View",
                                                    GTK_TYPE_WIDGET,
                                                    G_PARAM_READWRITE);
+    props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
+                                                  "Fullscreen",
+                                                  "Whether window is fullscreen",
+                                                  FALSE,
+                                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -575,9 +590,9 @@ gt_win_init(GtWin* self)
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
     gtk_css_provider_load_from_resource(css, "/com/gnome-twitch/gnome-twitch-style.css");
-    gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css),
+                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-    g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_cb), self);
     g_signal_connect_after(self, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
     g_signal_connect_after(priv->info_bar, "response", G_CALLBACK(close_info_bar_cb), self);
@@ -586,6 +601,8 @@ gt_win_init(GtWin* self)
                                     win_actions,
                                     G_N_ELEMENTS(win_actions),
                                     self);
+    g_action_map_add_action(G_ACTION_MAP(self),
+                            G_ACTION(g_property_action_new("toggle_fullscreen", G_OBJECT(self), "fullscreen")));
 
     GtkWindowGroup* window_group = gtk_window_group_new();
     gtk_window_group_add_window(window_group, GTK_WINDOW(self));
@@ -597,10 +614,6 @@ void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    g_clear_object(&priv->open_channel);
-    g_object_ref(chan);
-    priv->open_channel = chan;
 
     gt_player_open_channel(GT_PLAYER(self->player), chan);
 
