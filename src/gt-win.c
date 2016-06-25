@@ -557,7 +557,7 @@ gt_win_init(GtWin* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    g_object_set(priv->player_header_bar, "player", self->player, NULL);
+    gtk_widget_realize(priv->player_header_bar);
 
     priv->cur_info_data = NULL;
     priv->info_queue = g_queue_new();
