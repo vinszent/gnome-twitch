@@ -82,15 +82,6 @@ chat_visible_cb(GObject* source,
         gtk_button_set_image(GTK_BUTTON(priv->show_chat_button), priv->show_chat_image);
 }
 
-static void
-player_fullscreen_button_cb(GtPlayerHeaderBar* self,
-                            GtkButton* button)
-{
-    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
-
-    gt_win_toggle_fullscreen(GT_WIN_TOPLEVEL(self));
-}
-
 static gboolean
 mute_volume_cb(GtkWidget* button,
                GdkEventButton* evt,
@@ -241,6 +232,8 @@ realise_cb(GtkWidget* widget,
     g_signal_connect(win->player, "notify::chat-visible", G_CALLBACK(chat_visible_cb), self);
     g_signal_connect(win->player, "notify::channel", G_CALLBACK(player_channel_set_cb), self);
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
+
+    player_channel_set_cb(NULL, NULL, self);
 }
 
 static void
@@ -273,7 +266,6 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_separator);
-    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
 }
 
 static void
