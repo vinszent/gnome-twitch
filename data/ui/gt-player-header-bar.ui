@@ -39,7 +39,6 @@
         <property name="spacing">7</property>
         <child>
           <object class="GtkButton" id="back_button">
-            <property name="visible" bind-source="GtPlayerHeaderBar" bind-property="fullscreen" bind-flags="G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN"/>
             <property name="action-name">win.close_player</property>
             <style>
               <class name="image-button"/>
@@ -53,9 +52,8 @@
           </object>
         </child>
         <child>
-          <object class="GtkSeparator" id="seperator_1">
+          <object class="GtkSeparator" id="back_separator">
             <property name="orientation">vertical</property>
-            <property name="visible" bind-source="GtPlayerHeaderBar" bind-property="fullscreen" bind-flags="G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN"/>
             <style>
               <class name="header-bar-separator"/>
             </style>
@@ -117,7 +115,7 @@
           <object class="GtkButton" id="fullscreen_button">
             <property name="visible">True</property>
             <property name="image">fullscreen_image</property>
-            <signal name="clicked" handler="player_fullscreen_button_cb" object="GtPlayerHeaderBar"/>
+            <property name="action-name">win.toggle_fullscreen</property>
           </object>
         </child>
         <child>

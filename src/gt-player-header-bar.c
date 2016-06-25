@@ -1,20 +1,20 @@
 #include "gt-player-header-bar.h"
 #include "gt-player.h"
 #include "gt-win.h"
+#include "utils.h"
 
 typedef struct
 {
     GtkWidget* status_label;
     GtkWidget* name_label;
     GtkWidget* title_button;
-
     GtkWidget* fullscreen_button;
-
     GtkWidget* show_chat_image;
     GtkWidget* hide_chat_image;
     GtkWidget* fullscreen_image;
     GtkWidget* unfullscreen_image;
-
+    GtkWidget* back_button;
+    GtkWidget* back_separator;
     GtkWidget* volume_button;
 
     GMenu* hamburger_menu;
@@ -54,10 +54,11 @@ fullscreen_cb(GtkWidget* widget,
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
 
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(self), !priv->fullscreen);
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(self), !gt_win_is_fullscreen(win));
 
-    if (priv->fullscreen)
+    if (gt_win_is_fullscreen(win))
         gtk_button_set_image(GTK_BUTTON(priv->fullscreen_button), priv->unfullscreen_image);
     else
         gtk_button_set_image(GTK_BUTTON(priv->fullscreen_button), priv->fullscreen_image);
@@ -70,9 +71,10 @@ chat_visible_cb(GObject* source,
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
     gboolean visible;
 
-    g_object_get(priv->player, "chat-visible", &visible, NULL);
+    g_object_get(win->player, "chat-visible", &visible, NULL);
 
     if (visible)
         gtk_button_set_image(GTK_BUTTON(priv->show_chat_button), priv->hide_chat_image);
@@ -86,10 +88,7 @@ player_fullscreen_button_cb(GtPlayerHeaderBar* self,
 {
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
 
-    if (priv->fullscreen)
-        gtk_window_unfullscreen(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))));
-    else
-        gtk_window_fullscreen(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(button))));
+    gt_win_toggle_fullscreen(GT_WIN_TOPLEVEL(self));
 }
 
 static gboolean
@@ -99,10 +98,11 @@ mute_volume_cb(GtkWidget* button,
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
 
     if (evt->button == 3)
     {
-        gt_player_toggle_muted(priv->player);
+        gt_player_toggle_muted(win->player);
         return TRUE;
     }
 
@@ -116,11 +116,12 @@ player_channel_set_cb(GObject* source,
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
     gchar* name;
     gchar* status;
     GtChannel* chan;
 
-    g_object_get(priv->player, "open-channel", &chan, NULL);
+    g_object_get(win->player, "channel", &chan, NULL);
 
     if (chan)
     {
@@ -129,10 +130,8 @@ player_channel_set_cb(GObject* source,
                      "status", &status,
                      NULL);
 
-        g_object_set(self,
-                     "channel-name", name,
-                     "channel-status", status,
-                     NULL);
+        gtk_label_set_label(GTK_LABEL(priv->status_label), status);
+        gtk_label_set_label(GTK_LABEL(priv->name_label), name);
 
         g_object_unref(chan);
         g_free(name);
@@ -272,6 +271,8 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, edit_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, dock_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_separator);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), player_fullscreen_button_cb);
 }
 
