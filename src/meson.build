@@ -9,7 +9,7 @@ conf_data.set('LOCALE_DIR', LOCALE_DIR)
 conf_data.set('LIB_DIR', LIB_DIR)
 configure_file(input : 'config.h.in', output : 'config.h', configuration : conf_data)
 
-deps_gt = [dependency('gtk+-3.0', version : '>=3.16'),
+deps_gt = [dependency('gtk+-3.0', version : '>=3.20'),
            dependency('libsoup-2.4'),
            dependency('json-glib-1.0'),
            dependency('webkit2gtk-4.0'),
