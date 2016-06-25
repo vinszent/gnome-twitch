@@ -7,7 +7,7 @@
 #include "gt-games-view.h"
 #include "gt-channels-view.h"
 
-#define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_toplevel(GTK_WIDGET(w)))
+#define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_ancestor(GTK_WIDGET(w), GTK_TYPE_WINDOW))
 #define GT_WIN_ACTIVE GT_WIN(gtk_application_get_active_window(GTK_APPLICATION(main_app)))
 
 G_BEGIN_DECLS
