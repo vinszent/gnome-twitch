@@ -24,10 +24,10 @@ if WITH_PLAYER_MPV_OPENGL
    subproject('player-backend-mpv-opengl')
 endif
 if WITH_PLAYER_GSTREAMER_CAIRO
-   subdir('player-backend-gstreamer-cairo')
+   subproject('player-backend-gstreamer-cairo')
 endif
 if WITH_PLAYER_GSTREAMER_OPENGL
-   subdir('player-backend-gstreamer-opengl')
+   subproject('player-backend-gstreamer-opengl')
 endif
 
 subdir('include')
