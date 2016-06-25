@@ -669,6 +669,14 @@ gt_win_is_fullscreen(GtWin* self)
 }
 
 void
+gt_win_toggle_fullscreen(GtWin* self)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    g_object_set(self, "fullscreen", !priv->fullscreen, NULL);
+}
+
+void
 gt_win_show_info_message(GtWin* self, const gchar* msg)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
