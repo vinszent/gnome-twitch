@@ -23,6 +23,7 @@ typedef struct
     GtkWidget* docking_pane;
     GtkWidget* chat_view;
     GtkWidget* fullscreen_bar_revealer;
+    GtkWidget* fullscreen_bar;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -41,7 +42,6 @@ typedef struct
     gboolean chat_docked;
     gboolean chat_visible;
     gboolean chat_dark_theme;
-
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -154,7 +154,6 @@ update_docked(GtPlayer* self)
         update_chat_pos(self);
 
         g_object_set(priv->chat_view, "opacity", 1.0, NULL);
-
 
         gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->chat_view);
         gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, FALSE, FALSE);
@@ -367,7 +366,9 @@ realise_cb(GtkWidget* widget,
     gtk_widget_insert_action_group(GTK_WIDGET(win), "player",
                                    G_ACTION_GROUP(priv->action_group));
 
-    g_signal_connect(GT_WIN_TOPLEVEL(self), "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
+    gtk_widget_realize(priv->fullscreen_bar);
+
+    g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 
 static void
@@ -545,6 +546,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, empty_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, docking_pane);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_overlay);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
 }
 
