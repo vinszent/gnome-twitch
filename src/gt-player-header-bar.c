@@ -152,55 +152,6 @@ chat_pos_upper_transformer(GBinding* binding,
 }
 
 static void
-player_set_cb(GObject* source,
-              GParamSpec* pspec,
-              gpointer udata)
-{
-    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
-    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
-
-
-    if (priv->player)
-    {
-        g_object_bind_property(priv->player, "volume",
-                               priv->volume_button, "value",
-                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->chat_view_width_adjustment, "value",
-                               priv->player, "chat-width",
-                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->chat_view_height_adjustment, "value",
-                               priv->player, "chat-height",
-                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->chat_view_x_adjustment, "value",
-                               priv->player, "chat-x",
-                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(priv->chat_view_y_adjustment, "value",
-                               priv->player, "chat-y",
-                               G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-        g_object_bind_property_full(priv->player, "chat-width",
-                                    priv->chat_view_x_adjustment, "upper",
-                                    G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                    (GBindingTransformFunc) chat_pos_upper_transformer,
-                                    NULL, NULL, NULL);
-        g_object_bind_property_full(priv->player, "chat-height",
-                                    priv->chat_view_y_adjustment, "upper",
-                                    G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                    (GBindingTransformFunc) chat_pos_upper_transformer,
-                                    NULL, NULL, NULL);
-        g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
-                               priv->player, "chat-opacity",
-                               G_BINDING_BIDIRECTIONAL);
-        g_object_bind_property(priv->player, "chat-visible",
-                               priv->edit_chat_button, "visible",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-
-        /* g_signal_connect(priv->player, "notify::playing", G_CALLBACK(playing_cb), self); */
-        g_signal_connect(priv->player, "notify::chat-visible", G_CALLBACK(chat_visible_cb), self);
-        g_signal_connect(priv->player, "notify::open-channel", G_CALLBACK(player_channel_set_cb), self);
-    }
-}
-
-static void
 finalize(GObject* object)
 {
     GtPlayerHeaderBar* self = (GtPlayerHeaderBar*) object;
@@ -242,16 +193,55 @@ set_property(GObject*      obj,
 }
 
 static void
-realize(GtkWidget* widget,
-         gpointer udata)
+realise_cb(GtkWidget* widget,
+           GtkWidget* prev_toplvl,
+           gpointer udata)
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(widget);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
     GtWin* win = GT_WIN_TOPLEVEL(self);
 
     g_object_bind_property(win, "fullscreen",
-                           self, "fullscreen",
-                           G_BINDING_SYNC_CREATE);
+                           priv->back_button, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
+    g_object_bind_property(win, "fullscreen",
+                           priv->back_separator, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
+    g_object_bind_property(win->player, "volume",
+                           priv->volume_button, "value",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->chat_view_width_adjustment, "value",
+                           win->player, "chat-width",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->chat_view_height_adjustment, "value",
+                           win->player, "chat-height",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->chat_view_x_adjustment, "value",
+                           win->player, "chat-x",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->chat_view_y_adjustment, "value",
+                           win->player, "chat-y",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+    g_object_bind_property_full(win->player, "chat-width",
+                                priv->chat_view_x_adjustment, "upper",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) chat_pos_upper_transformer,
+                                NULL, NULL, NULL);
+    g_object_bind_property_full(win->player, "chat-height",
+                                priv->chat_view_y_adjustment, "upper",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
+                                (GBindingTransformFunc) chat_pos_upper_transformer,
+                                NULL, NULL, NULL);
+    g_object_bind_property(priv->chat_view_opacity_adjustment, "value",
+                           win->player, "chat-opacity",
+                           G_BINDING_BIDIRECTIONAL);
+    g_object_bind_property(win->player, "chat-visible",
+                           priv->edit_chat_button, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
+    g_signal_connect(win->player, "notify::chat-visible", G_CALLBACK(chat_visible_cb), self);
+    g_signal_connect(win->player, "notify::channel", G_CALLBACK(player_channel_set_cb), self);
+    g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 
 static void
@@ -294,7 +284,7 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
 
     gtk_style_context_remove_class(gtk_widget_get_style_context(priv->volume_button), GTK_STYLE_CLASS_FLAT);
 
-    g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
+    utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realise_cb), NULL);
     g_signal_connect(priv->volume_button, "button-press-event", G_CALLBACK(mute_volume_cb), self);
 //    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(self), priv->title_button);
 }
