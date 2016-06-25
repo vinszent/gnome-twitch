@@ -6,6 +6,7 @@
 #include "gt-channel.h"
 #include "gt-games-view.h"
 #include "gt-channels-view.h"
+#include "gt-player.h"
 
 #define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_ancestor(GTK_WIDGET(w), GTK_TYPE_WINDOW))
 #define GT_WIN_ACTIVE GT_WIN(gtk_application_get_active_window(GTK_APPLICATION(main_app)))
@@ -20,7 +21,7 @@ struct _GtWin
 {
     GtkApplicationWindow parent_instance;
 
-    GtkWidget* player;
+    GtPlayer* player;
 };
 
 GtWin* gt_win_new(GtApp* app);
