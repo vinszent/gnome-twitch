@@ -4,11 +4,6 @@
 
 typedef struct
 {
-    GtPlayer* player;
-
-    gchar* channel_name;
-    gchar* channel_status;
-
     GtkWidget* status_label;
     GtkWidget* name_label;
     GtkWidget* title_button;
@@ -33,8 +28,6 @@ typedef struct
     GtkAdjustment* chat_view_height_adjustment;
     GtkAdjustment* chat_view_x_adjustment;
     GtkAdjustment* chat_view_y_adjustment;
-
-    gboolean fullscreen;
 } GtPlayerHeaderBarPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerHeaderBar, gt_player_header_bar, GTK_TYPE_HEADER_BAR)
@@ -42,10 +35,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtPlayerHeaderBar, gt_player_header_bar, GTK_TYPE_HEA
 enum
 {
     PROP_0,
-    PROP_PLAYER,
-    PROP_CHANNEL_NAME,
-    PROP_CHANNEL_STATUS,
-    PROP_FULLSCREEN,
     NUM_PROPS
 };
 
@@ -231,18 +220,6 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_CHANNEL_NAME:
-            g_value_set_string(val, priv->channel_name);
-            break;
-        case PROP_CHANNEL_STATUS:
-            g_value_set_string(val, priv->channel_status);
-            break;
-        case PROP_PLAYER:
-            g_value_set_object(val, priv->player);
-            break;
-        case PROP_FULLSCREEN:
-            g_value_set_boolean(val, priv->fullscreen);
-            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -259,26 +236,6 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_CHANNEL_NAME:
-            if (priv->channel_name)
-                g_free(priv->channel_name);
-            priv->channel_name = g_value_dup_string(val);
-            gtk_header_bar_set_subtitle(GTK_HEADER_BAR(self), priv->channel_name);
-            break;
-        case PROP_CHANNEL_STATUS:
-            if (priv->channel_status)
-                g_free(priv->channel_status);
-            priv->channel_status = g_value_dup_string(val);
-            gtk_header_bar_set_title(GTK_HEADER_BAR(self), priv->channel_status);
-            break;
-        case PROP_PLAYER:
-            if (priv->player)
-                g_object_unref(priv->player);
-            priv->player = g_value_dup_object(val);
-            break;
-        case PROP_FULLSCREEN:
-            priv->fullscreen = g_value_get_boolean(val);
-            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -305,31 +262,6 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
-
-    props[PROP_PLAYER] = g_param_spec_object("player",
-                                             "Player",
-                                             "Associated player",
-                                             GT_TYPE_PLAYER,
-                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-    props[PROP_CHANNEL_NAME] = g_param_spec_string("channel-name",
-                                                   "Channel name",
-                                                   "Name of channel",
-                                                   NULL,
-                                                   G_PARAM_READWRITE);
-    props[PROP_CHANNEL_STATUS] = g_param_spec_string("channel-status",
-                                                     "Channel status",
-                                                     "Staus of channel",
-                                                     NULL,
-                                                     G_PARAM_READWRITE);
-    props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
-                                                  "Fullscreen",
-                                                  "Whether in fullscreen",
-                                                  FALSE,
-                                                  G_PARAM_READWRITE);
-
-    g_object_class_install_properties(object_class,
-                                      NUM_PROPS,
-                                      props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/gnome-twitch/ui/gt-player-header-bar.ui");
@@ -363,12 +295,6 @@ gt_player_header_bar_init(GtPlayerHeaderBar* self)
     gtk_style_context_remove_class(gtk_widget_get_style_context(priv->volume_button), GTK_STYLE_CLASS_FLAT);
 
     g_signal_connect(self, "realize", G_CALLBACK(realize), NULL);
-    g_signal_connect(self, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
-    g_signal_connect(self, "notify::player", G_CALLBACK(player_set_cb), self);
     g_signal_connect(priv->volume_button, "button-press-event", G_CALLBACK(mute_volume_cb), self);
-
-    g_object_bind_property(self, "channel-name", priv->name_label, "label", G_BINDING_DEFAULT);
-    g_object_bind_property(self, "channel-status", priv->status_label, "label", G_BINDING_DEFAULT);
-
 //    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(self), priv->title_button);
 }
