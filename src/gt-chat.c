@@ -38,7 +38,7 @@ typedef struct
     GtkWidget* error_label;
     GtkWidget* chat_view;
     GtkWidget* chat_scroll;
-    GtkAdjustment* chat_adjustment;
+    GtkWidget* chat_scroll_vbar;
     GtkWidget* chat_entry;
     GtkTextBuffer* chat_buffer;
     GtkTextTagTable* tag_table;
@@ -57,13 +57,7 @@ typedef struct
     GtIrc* chat;
     gchar* cur_chan;
 
-    gdouble prev_scroll_val;
-    gdouble prev_scroll_upper;
     gboolean chat_sticky;
-    gboolean force_sticky;
-
-    GdkRectangle* prev_alloc;
-    GdkRectangle* cur_alloc;
 
     GRegex* url_regex;
 } GtChatPrivate;
@@ -229,23 +223,9 @@ irc_source_cb(GtIrcMessage* msg,
 
         gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &iter);
 
-        gdouble cur_val = gtk_adjustment_get_value(priv->chat_adjustment);
-        gdouble cur_upper = gtk_adjustment_get_upper(priv->chat_adjustment);
-
-
         // Scrolling upwards causes the pos to be further from the bottom than the natural size increment
-        if (priv->force_sticky || (priv->chat_sticky && cur_val > priv->prev_scroll_val - cur_upper + priv->prev_scroll_upper - 5))
-        {
+        if (priv->chat_sticky)
             gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
-            priv->force_sticky = FALSE;
-        }
-        else
-            priv->chat_sticky = FALSE;
-
-
-        priv->prev_scroll_val = cur_val;
-        priv->prev_scroll_upper = cur_upper;
-
     }
 
     gt_irc_message_free(msg);
@@ -438,7 +418,7 @@ edge_reached_cb(GtkScrolledWindow* scroll,
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     if (pos == GTK_POS_BOTTOM)
-        priv->force_sticky = priv->chat_sticky = TRUE;
+        priv->chat_sticky = TRUE;
 }
 
 static void
@@ -451,8 +431,6 @@ anchored_cb(GtkWidget* widget,
     GtWin* win = GT_WIN_TOPLEVEL(self);
 
     g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(credentials_set_cb), self);
-
-    gtk_widget_get_allocation(GTK_WIDGET(self), priv->cur_alloc);
 }
 
 static void
@@ -493,20 +471,23 @@ after_connected_cb(GObject* source,
                              gt_app_credentials_valid(main_app));
 }
 
-static void
-resize_cb(GtkWidget* widget,
-          GdkRectangle* alloc,
-          gpointer udata)
+static gboolean
+chat_scrolled_cb(GtkWidget* widget,
+                 GdkEvent* evt,
+                 gpointer udata)
 {
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    g_free(priv->prev_alloc);
-    priv->prev_alloc = priv->cur_alloc;
-    priv->cur_alloc = g_memdup(alloc, sizeof(GdkRectangle));
+    if (widget == priv->chat_scroll && evt->type == GDK_SCROLL)
+    {
+        if (((GdkEventScroll*) evt)->delta_y < 0.0)
+            priv->chat_sticky = FALSE;
+    }
+    else if (widget == priv->chat_scroll_vbar && evt->type == GDK_BUTTON_PRESS)
+        priv->chat_sticky = FALSE;
 
-    if (!gdk_rectangle_equal(priv->prev_alloc, priv->cur_alloc))
-        priv->force_sticky = priv->chat_sticky;
+    return GDK_EVENT_PROPAGATE;
 }
 
 static void
@@ -601,25 +582,18 @@ gt_chat_class_init(GtChatClass* klass)
 }
 
 static void
-scrolled()
-{
-    g_print("Scrolled\n");
-}
-
-static void
 gt_chat_init(GtChat* self)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    priv->chat_adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll));
-
     priv->chat_css_provider = gtk_css_provider_new();
     gtk_style_context_add_provider(gtk_widget_get_style_context(GTK_WIDGET(self)),
                                    GTK_STYLE_PROVIDER(priv->chat_css_provider),
                                    GTK_STYLE_PROVIDER_PRIORITY_USER);
 
+    priv->chat_scroll_vbar = gtk_scrolled_window_get_vscrollbar(GTK_SCROLLED_WINDOW(priv->chat_scroll));
     priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -631,10 +605,6 @@ gt_chat_init(GtChat* self)
 
     priv->joined_channel = FALSE;
     priv->chat_sticky = TRUE;
-    priv->prev_scroll_val = 0;
-    priv->prev_scroll_upper = 0;
-    priv->prev_alloc = NULL;
-    priv->cur_alloc = g_new(GdkRectangle, 1);
 
     priv->url_regex = g_regex_new("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)",
                                   G_REGEX_OPTIMIZE, 0, NULL);
@@ -645,10 +615,10 @@ gt_chat_init(GtChat* self)
     g_signal_connect(priv->chat, "notify::logged-in", G_CALLBACK(connected_cb), self);
     g_signal_connect_after(priv->chat, "notify::logged-in", G_CALLBACK(after_connected_cb), self);
     g_signal_connect(priv->chat_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
-    g_signal_connect(priv->chat_scroll, "scroll-child", G_CALLBACK(scrolled), NULL);
     g_signal_connect(priv->chat_view, "button-press-event", G_CALLBACK(chat_view_button_press_cb), self);
     g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_view_motion_cb), self);
-    g_signal_connect(priv->chat_view, "size-allocate", G_CALLBACK(resize_cb), self);
+    g_signal_connect(priv->chat_scroll, "scroll-event", G_CALLBACK(chat_scrolled_cb), self);
+    g_signal_connect(priv->chat_scroll_vbar, "button-press-event", G_CALLBACK(chat_scrolled_cb), self);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
@@ -669,7 +639,6 @@ gt_chat_connect(GtChat* self, const gchar* chan)
 
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
-    priv->force_sticky = TRUE;
 
     g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
     priv->cur_chan = g_strdup(chan);
