@@ -10,6 +10,7 @@
         <child>
           <object class="GtkPaned" id="docking_pane">
             <property name="visible">True</property>
+            <property name="position-set">True</property>
             <child>
               <object class="GtkOverlay" id="player_overlay">
                 <property name="visible">True</property>
