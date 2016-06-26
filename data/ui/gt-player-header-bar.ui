@@ -245,6 +245,7 @@
             <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Width</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
             <style>
               <class name="separator"/>
             </style>
@@ -256,6 +257,7 @@
             <property name="orientation">horizontal</property>
             <property name="adjustment">chat_view_width_adjustment</property>
             <property name="draw-value">False</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
           </object>
         </child>
         <child>
