@@ -41,7 +41,6 @@ typedef struct
     gdouble chat_height;
     gdouble chat_x;
     gdouble chat_y;
-
     gboolean chat_docked;
     gboolean chat_visible;
     gboolean chat_dark_theme;
@@ -225,15 +224,15 @@ buffer_fill_cb(GObject* source,
 }
 
 static void
-fullscreen_bar_revealed_cb(GObject* source,
-                           GParamSpec* pspec,
-                           gpointer udata)
+revealer_revealed_cb(GObject* source,
+                     GParamSpec* pspec,
+                     gpointer udata)
 {
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->fullscreen_bar_revealer)))
-        gtk_widget_set_visible(priv->fullscreen_bar_revealer, FALSE);
+    if (!gtk_revealer_get_child_revealed(GTK_REVEALER(source)))
+        gtk_widget_set_visible(GTK_WIDGET(source), FALSE);
 }
 
 static void
@@ -637,7 +636,8 @@ gt_player_init(GtPlayer* self)
                             G_ACTION(g_property_action_new("dark_theme_chat", G_OBJECT(self), "chat-dark-theme")));
 
     utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realise_cb), self);
-    g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(fullscreen_bar_revealed_cb), self);
+    g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
+    g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(self, "motion-notify-event", G_CALLBACK(motion_cb), self);
     g_signal_connect(self, "notify::chat-docked", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(self, "notify::chat-visible", G_CALLBACK(chat_settings_changed_cb), self);
@@ -702,6 +702,8 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     }
 
     gtk_label_set_label(GTK_LABEL(priv->buffer_label), _("Loading stream"));
+
+    gtk_widget_set_visible(priv->buffer_revealer, TRUE);
 
     if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
