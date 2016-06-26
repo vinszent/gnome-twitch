@@ -736,17 +736,17 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     }
 
     g_signal_handlers_block_by_func(self, chat_settings_changed_cb, self);
+    g_object_set(G_OBJECT(self), // These props need to be set before
+                 "chat-x", priv->chat_settings->x_pos,
+                 "chat-y", priv->chat_settings->y_pos,
+                 "chat-visible", priv->chat_settings->visible,
+                 "chat-opacity", priv->chat_settings->opacity,
+                 NULL);
     g_object_set(G_OBJECT(self),
                  "chat-docked", priv->chat_settings->docked,
                  "chat-width", priv->chat_settings->width,
                  "chat-height", priv->chat_settings->height,
                  "chat-dark-theme", priv->chat_settings->dark_theme,
-                 NULL);
-    g_object_set(G_OBJECT(self), // These props need to be set after
-                 "chat-x", priv->chat_settings->x_pos,
-                 "chat-y", priv->chat_settings->y_pos,
-                 "chat-visible", priv->chat_settings->visible,
-                 "chat-opacity", priv->chat_settings->opacity,
                  NULL);
     g_signal_handlers_unblock_by_func(self, chat_settings_changed_cb, self);
 
