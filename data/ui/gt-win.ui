@@ -7,6 +7,8 @@
     <child type="titlebar">
       <object class="GtkStack" id="header_stack">
         <property name="visible">True</property>
+        <property name="transition-type">crossfade</property>
+        <property name="transition-duration">300</property>
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
@@ -101,7 +103,8 @@
         <child>
           <object class="GtkStack" id="main_stack">
             <property name="visible">True</property>
-            <property name="transition-type">over-right-left</property>
+            <!-- <property name="transition-type">over-right-left</property> -->
+            <property name="transition-type">crossfade</property>
             <property name="transition-duration">300</property>
               <child>
               <object class="GtkStack" id="browse_stack">
