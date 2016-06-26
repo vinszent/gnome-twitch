@@ -471,8 +471,10 @@ plugin_loaded_cb(PeasEngine* engine,
                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
         gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->empty_box);
-        gtk_container_add(GTK_CONTAINER(priv->player_overlay),
-                          gt_player_backend_get_widget(priv->backend));
+
+        GtkWidget* widget = gt_player_backend_get_widget(priv->backend);
+        gtk_widget_add_events(widget, GDK_POINTER_MOTION_MASK);
+        gtk_container_add(GTK_CONTAINER(priv->player_overlay), widget);
         gtk_widget_show_all(priv->player_overlay);
     }
 }
