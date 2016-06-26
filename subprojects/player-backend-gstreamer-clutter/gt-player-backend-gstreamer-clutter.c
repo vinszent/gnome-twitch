@@ -17,6 +17,7 @@ typedef struct
     gdouble volume;
     gdouble muted;
     gboolean playing;
+    gdouble buffer_fill;
 } GtPlayerBackendGstreamerClutterPrivate;
 
 static void gt_player_backend_iface_init(GtPlayerBackendInterface* iface);
@@ -32,6 +33,7 @@ enum
     PROP_PLAYING,
     PROP_MUTED,
     PROP_URI,
+    PROP_BUFFER_FILL,
     NUM_PROPS
 };
 
@@ -113,6 +115,9 @@ get_property(GObject* obj,
         case PROP_URI:
             g_value_set_string(val, priv->uri);
             break;
+        case PROP_BUFFER_FILL:
+            g_value_set_double(val, priv->buffer_fill);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -142,6 +147,9 @@ set_property(GObject* obj,
         case PROP_URI:
             g_free(priv->uri);
             priv->uri = g_value_dup_string(val);
+            break;
+        case PROP_BUFFER_FILL:
+            priv->buffer_fill = g_value_get_double(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -189,11 +197,17 @@ gt_player_backend_gstreamer_clutter_class_init(GtPlayerBackendGstreamerClutterCl
                                           "Current uri",
                                           "",
                                           G_PARAM_READWRITE);
+    props[PROP_BUFFER_FILL] = g_param_spec_double("buffer-fill",
+                                                     "Buffer fill",
+                                                     "Current buffer fill",
+                                                     0, 1.0, 0,
+                                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_override_property(obj_class, PROP_VOLUME, "volume");
     g_object_class_override_property(obj_class, PROP_MUTED, "muted");
     g_object_class_override_property(obj_class, PROP_PLAYING, "playing");
     g_object_class_override_property(obj_class, PROP_URI, "uri");
+    g_object_class_override_property(obj_class, PROP_BUFFER_FILL, "buffer-fill");
 
     if (!init)
     {
@@ -235,8 +249,11 @@ gt_player_backend_gstreamer_clutter_init(GtPlayerBackendGstreamerClutter* self)
     g_object_bind_property(self, "uri",
                            priv->player, "uri",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->player, "buffer-fill",
+                           self, "buffer-fill",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    g_signal_connect(priv->widget, "size-allocate", G_CALLBACK(size_allocate_cb), self);
+    g_signal_connect(priv->widget, "size-allocate", G_CALLBACK(size_allocate_cb), self); //TODO: Change this into a configure signal
 
 }
 

@@ -6,6 +6,7 @@ typedef struct
 {
     GstElement* playbin;
     GstElement* video_sink;
+    GstBus* bus;
 
     GtkWidget* widget;
 
@@ -14,6 +15,7 @@ typedef struct
     gdouble volume;
     gdouble muted;
     gboolean playing;
+    gdouble buffer_fill;
 } GtPlayerBackendGstreamerCairoPrivate;
 
 static void gt_player_backend_iface_init(GtPlayerBackendInterface* iface);
@@ -29,10 +31,33 @@ enum
     PROP_PLAYING,
     PROP_MUTED,
     PROP_URI,
+    PROP_BUFFER_FILL,
     NUM_PROPS
 };
 
 static GParamSpec* props[NUM_PROPS];
+
+static gboolean
+gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
+{
+    GtPlayerBackendGstreamerCairo* self = GT_PLAYER_BACKEND_GSTREAMER_CAIRO(udata);
+    GtPlayerBackendGstreamerCairoPrivate* priv = gt_player_backend_gstreamer_cairo_get_instance_private(self);
+
+    switch (GST_MESSAGE_TYPE(msg))
+    {
+        case GST_MESSAGE_BUFFERING:
+        {
+            gint perc;
+            gst_message_parse_buffering(msg, &perc);
+            g_object_set(self, "buffer-fill", (gdouble) perc/100.0, NULL);
+            break;
+        }
+        default:
+            break;
+    }
+
+    return G_SOURCE_CONTINUE;
+}
 
 static void
 play(GtPlayerBackendGstreamerCairo* self)
@@ -102,6 +127,9 @@ get_property(GObject* obj,
         case PROP_URI:
             g_value_set_string(val, priv->uri);
             break;
+        case PROP_BUFFER_FILL:
+            g_value_set_double(val, priv->buffer_fill);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -131,6 +159,9 @@ set_property(GObject* obj,
         case PROP_URI:
             g_free(priv->uri);
             priv->uri = g_value_dup_string(val);
+            break;
+        case PROP_BUFFER_FILL:
+            priv->buffer_fill = g_value_get_double(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -179,11 +210,17 @@ gt_player_backend_gstreamer_cairo_class_init(GtPlayerBackendGstreamerCairoClass*
                                           "Current uri",
                                           "",
                                           G_PARAM_READWRITE);
+    props[PROP_BUFFER_FILL] = g_param_spec_double("buffer-fill",
+                                                     "Buffer Fill",
+                                                     "Current buffer fill",
+                                                     0, 1.0, 0,
+                                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_override_property(obj_class, PROP_VOLUME, "volume");
     g_object_class_override_property(obj_class, PROP_MUTED, "muted");
     g_object_class_override_property(obj_class, PROP_PLAYING, "playing");
     g_object_class_override_property(obj_class, PROP_URI, "uri");
+    g_object_class_override_property(obj_class, PROP_BUFFER_FILL, "buffer-fill");
 
     if (!gst_is_initialized())
         gst_init(NULL, NULL);
@@ -198,6 +235,9 @@ gt_player_backend_gstreamer_cairo_init(GtPlayerBackendGstreamerCairo* self)
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
     priv->video_sink = gst_element_factory_make("gtksink", NULL);
+    priv->bus = gst_element_get_bus(priv->playbin);
+
+    gst_bus_add_watch(priv->bus, (GstBusFunc) gst_message_cb, self);
 
     g_object_get(priv->video_sink, "widget", &priv->widget, NULL);
     g_object_set(priv->playbin, "video-sink", priv->video_sink, NULL);

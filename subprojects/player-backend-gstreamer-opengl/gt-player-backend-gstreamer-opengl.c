@@ -8,6 +8,7 @@ typedef struct
     GstElement* upload;
     GstElement* video_sink;
     GstElement* video_bin;
+    GstBus* bus;
     GstPad* pad;
     GstPad* ghost_pad;
 
@@ -18,6 +19,7 @@ typedef struct
     gdouble volume;
     gdouble muted;
     gboolean playing;
+    gdouble buffer_fill;
 } GtPlayerBackendGstreamerOpenGLPrivate;
 
 static void gt_player_backend_iface_init(GtPlayerBackendInterface* iface);
@@ -33,10 +35,33 @@ enum
     PROP_PLAYING,
     PROP_MUTED,
     PROP_URI,
+    PROP_BUFFER_FILL,
     NUM_PROPS
 };
 
 static GParamSpec* props[NUM_PROPS];
+
+static gboolean
+gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
+{
+    GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(udata);
+    GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
+
+    switch (GST_MESSAGE_TYPE(msg))
+    {
+        case GST_MESSAGE_BUFFERING:
+        {
+            gint perc;
+            gst_message_parse_buffering(msg, &perc);
+            g_object_set(self, "buffer-fill", (gdouble) perc/100.0, NULL);
+            break;
+        }
+        default:
+            break;
+    }
+
+    return G_SOURCE_CONTINUE;
+}
 
 static void
 play(GtPlayerBackendGstreamerOpenGL* self)
@@ -108,6 +133,9 @@ get_property(GObject* obj,
         case PROP_URI:
             g_value_set_string(val, priv->uri);
             break;
+        case PROP_BUFFER_FILL:
+            g_value_set_double(val, priv->buffer_fill);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -137,6 +165,9 @@ set_property(GObject* obj,
         case PROP_URI:
             g_free(priv->uri);
             priv->uri = g_value_dup_string(val);
+            break;
+        case PROP_BUFFER_FILL:
+            priv->buffer_fill = g_value_get_double(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -185,11 +216,17 @@ gt_player_backend_gstreamer_opengl_class_init(GtPlayerBackendGstreamerOpenGLClas
                                           "Current uri",
                                           "",
                                           G_PARAM_READWRITE);
+    props[PROP_BUFFER_FILL] = g_param_spec_double("buffer-fill",
+                                                     "Buffer Fill",
+                                                     "Current buffer fill",
+                                                     0, 1.0, 0,
+                                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_override_property(obj_class, PROP_VOLUME, "volume");
     g_object_class_override_property(obj_class, PROP_MUTED, "muted");
     g_object_class_override_property(obj_class, PROP_PLAYING, "playing");
     g_object_class_override_property(obj_class, PROP_URI, "uri");
+    g_object_class_override_property(obj_class, PROP_BUFFER_FILL, "buffer-fill");
 
     if (!gst_is_initialized())
         gst_init(NULL, NULL);
@@ -207,6 +244,9 @@ gt_player_backend_gstreamer_opengl_init(GtPlayerBackendGstreamerOpenGL* self)
     priv->video_bin = gst_bin_new("video_bin");
     priv->upload = gst_element_factory_make("glupload", NULL);
 
+    priv->bus = gst_element_get_bus(priv->playbin);
+
+    gst_bus_add_watch(priv->bus, (GstBusFunc) gst_message_cb, self);
     gst_bin_add_many(GST_BIN(priv->video_bin), priv->upload, priv->video_sink, NULL);
     gst_element_link_many(priv->upload, priv->video_sink, NULL);
 
