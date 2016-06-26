@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtPlayer" parent="GtkBin">
+    <style>
+      <class name="gt-player"/>
+    </style>
     <child>
       <object class="GtkOverlay">
         <property name="visible">True</property>
@@ -10,6 +13,36 @@
             <child>
               <object class="GtkOverlay" id="player_overlay">
                 <property name="visible">True</property>
+                <child type="overlay">
+                  <object class="GtkRevealer" id="buffer_revealer">
+                    <property name="visible">True</property>
+                    <property name="reveal-child">False</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="expand">True</property>
+                    <property name="transition-type">crossfade</property>
+                    <child>
+                      <object class="GtkBox" id="buffer_box">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <property name="name">buffer-box</property>
+                        <child>
+                          <object class="GtkSpinner">
+                            <property name="visible">True</property>
+                            <property name="active">True</property>
+                            <property name="height-request">48</property>
+                            <property name="width-request">48</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="buffer_label">
+                            <property name="visible">True</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
                 <child>
                   <object class="GtkBox" id="empty_box">
                     <property name="visible">True</property>
@@ -96,7 +129,6 @@
                 <child>
                   <object class="GtPlayerHeaderBar" id="fullscreen_bar">
                     <property name="visible">True</property>
-                    <property name="player">GtPlayer</property>
                   </object>
                 </child>
               </object>

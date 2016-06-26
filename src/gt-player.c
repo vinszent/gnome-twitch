@@ -5,8 +5,9 @@
 #include "gt-enums.h"
 #include "gt-chat.h"
 #include "utils.h"
-#include <gnome-twitch/gt-player-backend.h>
+#include "gnome-twitch/gt-player-backend.h"
 #include <libpeas-gtk/peas-gtk.h>
+#include <glib/gi18n.h>
 
 #define FULLSCREEN_BAR_REVEAL_HEIGHT 50
 
@@ -24,6 +25,8 @@ typedef struct
     GtkWidget* chat_view;
     GtkWidget* fullscreen_bar_revealer;
     GtkWidget* fullscreen_bar;
+    GtkWidget* buffer_revealer;
+    GtkWidget* buffer_label;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -192,6 +195,33 @@ motion_cb(GtkWidget* widget,
     }
 
     return GDK_EVENT_PROPAGATE;
+}
+
+static void
+buffer_percent_cb(GObject* source,
+                  GParamSpec* pspec,
+                  gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    gdouble perc;
+
+    g_object_get(priv->backend, "buffer-percent", &perc, NULL);
+
+    if (perc < 1.0)
+    {
+        gchar* text;
+
+        text = g_strdup_printf(_("Buffered %d%%"), (gint) (perc*100.0));
+        gtk_label_set_label(GTK_LABEL(priv->buffer_label), text);
+        g_free(text);
+
+        if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
+    }
+    else
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), FALSE);
+
 }
 
 static void
@@ -420,6 +450,8 @@ plugin_loaded_cb(PeasEngine* engine,
         priv->backend_info = g_boxed_copy(PEAS_TYPE_PLUGIN_INFO,
                                           info);
 
+        g_signal_connect(priv->backend, "notify::buffer-percent", G_CALLBACK(buffer_percent_cb), self);
+
         g_object_bind_property(self, "volume",
                                priv->backend, "volume",
                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
@@ -548,6 +580,8 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_overlay);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
 }
 
 static GActionEntry actions[] =
@@ -666,6 +700,11 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
         g_message("{GtPlayer} Can't open channel, no backend loaded");
         return;
     }
+
+    gtk_label_set_label(GTK_LABEL(priv->buffer_label), _("Loading stream"));
+
+    if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
 
     g_object_set(self, "channel", chan, NULL);
 

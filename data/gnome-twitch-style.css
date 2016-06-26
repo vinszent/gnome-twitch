@@ -48,16 +48,12 @@
     color: alpha(currentColor,0.55);
 }
 
-.player-clutter .buffer-box
+.gt-player #buffer-box
 {
     background-color: black;
     border-radius: 4px;
     opacity: 0.8;
-}
-
-.player-clutter .buffer-box progressbar
-{
-    color: white;
+    padding: 7px;
 }
 
 .gt-chat textview,
