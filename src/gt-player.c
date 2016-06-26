@@ -193,7 +193,7 @@ motion_cb(GtkWidget* widget,
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
     }
 
-    return GDK_EVENT_PROPAGATE;
+    return GDK_EVENT_STOP;
 }
 
 static void
