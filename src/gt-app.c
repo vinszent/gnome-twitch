@@ -93,6 +93,7 @@ gt_chat_view_settings_new()
     ret->height = 1.0;
     ret->x_pos = 0;
     ret->y_pos = 0;
+    ret->docked_handle_pos = 0.75;
 
     return ret;
 }
@@ -140,6 +141,10 @@ load_chat_settings(GtApp* self)
         settings->height = json_object_get_double_member(chan, "height");
         settings->x_pos = json_object_get_double_member(chan, "x-pos");
         settings->y_pos = json_object_get_double_member(chan, "y-pos");
+        if (json_object_has_member(chan, "docked-handle-pos"))
+            settings->docked_handle_pos = json_object_get_double_member(chan, "docked-handle-pos");
+        else
+            settings->docked_handle_pos = 0.75;
 
         g_hash_table_insert(self->chat_settings_table, g_strdup(name), settings);
     }
@@ -179,6 +184,7 @@ save_chat_settings(GtApp* self)
         json_object_set_double_member(obj, "height", settings->height);
         json_object_set_double_member(obj, "x-pos", settings->x_pos);
         json_object_set_double_member(obj, "y-pos", settings->y_pos);
+        json_object_set_double_member(obj, "docked-handle-pos", settings->docked_handle_pos);
 
         json_node_take_object(node, obj);
         json_array_add_element(array, node);

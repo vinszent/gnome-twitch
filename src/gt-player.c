@@ -44,6 +44,7 @@ typedef struct
     gboolean chat_docked;
     gboolean chat_visible;
     gboolean chat_dark_theme;
+    gdouble docked_handle_position;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -63,6 +64,7 @@ enum
     PROP_CHAT_Y,
     PROP_CHAT_DARK_THEME,
     PROP_CHAT_OPACITY,
+    PROP_DOCKED_HANDLE_POSITION,
     NUM_PROPS
 };
 
@@ -175,6 +177,20 @@ update_docked(GtPlayer* self)
     }
 }
 
+static void
+scale_chat_cb(GtkWidget* widget,
+              GtkAllocation* alloc,
+              gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (priv->chat_docked)
+    {
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
+    }
+}
+
 static gboolean
 motion_cb(GtkWidget* widget,
           GdkEventMotion* evt,
@@ -214,6 +230,8 @@ buffer_fill_cb(GObject* source,
         text = g_strdup_printf(_("Buffered %d%%"), (gint) (perc*100.0));
         gtk_label_set_label(GTK_LABEL(priv->buffer_label), text);
         g_free(text);
+
+        gtk_widget_set_visible(priv->buffer_revealer, TRUE);
 
         if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
             gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
@@ -300,6 +318,9 @@ set_property(GObject* obj,
         case PROP_CHAT_DARK_THEME:
             priv->chat_dark_theme = g_value_get_boolean(val);
             break;
+        case PROP_DOCKED_HANDLE_POSITION:
+            priv->docked_handle_position = g_value_get_double(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 
@@ -353,6 +374,9 @@ get_property(GObject* obj,
         case PROP_CHAT_DARK_THEME:
             g_value_set_boolean(val, priv->chat_dark_theme);
             break;
+        case PROP_DOCKED_HANDLE_POSITION:
+            g_value_set_double(val, priv->docked_handle_position);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -398,6 +422,7 @@ realise_cb(GtkWidget* widget,
     //Hack to get the bar connected properly
     gtk_widget_realize(priv->fullscreen_bar);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
 
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
@@ -574,6 +599,11 @@ gt_player_class_init(GtPlayerClass* klass)
                                                    "Current chat opacity",
                                                    0, 1.0, 1.0,
                                                    G_PARAM_READWRITE);
+    props[PROP_DOCKED_HANDLE_POSITION] = g_param_spec_double("docked-handle-position",
+                                                             "Docked Handle Position",
+                                                             "Current docked handle position",
+                                                             0, 1.0, 0,
+                                                             G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 
@@ -613,7 +643,44 @@ chat_settings_changed_cb(GObject* source,
                  "chat-y", &priv->chat_settings->y_pos,
                  "chat-dark-theme", &priv->chat_settings->dark_theme,
                  "chat-opacity", &priv->chat_settings->opacity,
+                 "docked-handle-position", &priv->chat_settings->docked_handle_pos,
                  NULL);
+}
+
+
+//Target -> source
+static gboolean
+handle_position_from(GBinding* binding,
+                     const GValue* from,
+                     GValue* to,
+                     gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    gint width = gtk_widget_get_allocated_width(priv->docking_pane);
+    gint pos = g_value_get_int(from);
+
+    g_value_set_double(to, (gdouble) pos / (gdouble) width);
+
+    return TRUE;
+}
+
+
+//Source -> target
+static gboolean
+handle_position_to(GBinding* binding,
+                   const GValue* from,
+                   GValue* to,
+                   gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    gint width = gtk_widget_get_allocated_width(priv->docking_pane);
+    gdouble mult = g_value_get_double(from);
+
+    g_value_set_int(to, (gint) (width*mult));
+
+    return TRUE;
 }
 
 static void
@@ -627,7 +694,6 @@ gt_player_init(GtPlayer* self)
 
     priv->chat_view = GTK_WIDGET(gt_chat_new());
     g_object_ref(priv->chat_view); //TODO: Unref in finalise
-    gtk_widget_show_all(priv->chat_view);
 
     priv->action_group = g_simple_action_group_new();
     g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
@@ -638,6 +704,12 @@ gt_player_init(GtPlayer* self)
                             G_ACTION(g_property_action_new("dock_chat", G_OBJECT(self), "chat-docked")));
     g_action_map_add_action(G_ACTION_MAP(priv->action_group),
                             G_ACTION(g_property_action_new("dark_theme_chat", G_OBJECT(self), "chat-dark-theme")));
+
+    g_object_bind_property_full(self, "docked-handle-position",
+                                priv->docking_pane, "position",
+                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL,
+                                handle_position_to, handle_position_from,
+                                self, NULL);
 
     utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realise_cb), self);
     g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
@@ -651,6 +723,8 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(self, "notify::chat-y", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(self, "notify::chat-dark-theme", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(self, "notify::chat-opacity", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(self, "notify::docked-handle-position", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
     g_signal_connect_after(main_app->plugins_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->plugins_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
 
@@ -741,6 +815,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
                  "chat-y", priv->chat_settings->y_pos,
                  "chat-visible", priv->chat_settings->visible,
                  "chat-opacity", priv->chat_settings->opacity,
+                 "docked-handle-position", priv->chat_settings->docked_handle_pos,
                  NULL);
     g_object_set(G_OBJECT(self),
                  "chat-docked", priv->chat_settings->docked,

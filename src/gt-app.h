@@ -38,6 +38,7 @@ typedef struct
     gdouble height;
     gdouble x_pos;
     gdouble y_pos;
+    gdouble docked_handle_pos;
 } GtChatViewSettings;
 
 GtChatViewSettings* gt_chat_view_settings_new();
