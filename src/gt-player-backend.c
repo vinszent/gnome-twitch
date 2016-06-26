@@ -9,7 +9,7 @@ enum
     PROP_VOLUME,
     PROP_MUTED,
     PROP_PLAYING,
-    PROP_BUFFER_PERCENT,
+    PROP_BUFFER_FILL,
     NUM_PROPS
 };
 
@@ -43,9 +43,9 @@ gt_player_backend_default_init(GtPlayerBackendInterface* iface)
                                                             NULL,
                                                             G_PARAM_READWRITE));
     g_object_interface_install_property(iface,
-                                        g_param_spec_double("buffer-percent",
-                                                            "buffer-percent",
-                                                            "Current buffer percent",
+                                        g_param_spec_double("buffer-fill",
+                                                            "buffer-fill",
+                                                            "Current buffer fill",
                                                             0, 1.0, 0,
                                                             G_PARAM_READWRITE));
 }

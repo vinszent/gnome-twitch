@@ -198,7 +198,7 @@ motion_cb(GtkWidget* widget,
 }
 
 static void
-buffer_percent_cb(GObject* source,
+buffer_fill_cb(GObject* source,
                   GParamSpec* pspec,
                   gpointer udata)
 {
@@ -206,7 +206,7 @@ buffer_percent_cb(GObject* source,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     gdouble perc;
 
-    g_object_get(priv->backend, "buffer-percent", &perc, NULL);
+    g_object_get(priv->backend, "buffer-fill", &perc, NULL);
 
     if (perc < 1.0)
     {
@@ -450,7 +450,7 @@ plugin_loaded_cb(PeasEngine* engine,
         priv->backend_info = g_boxed_copy(PEAS_TYPE_PLUGIN_INFO,
                                           info);
 
-        g_signal_connect(priv->backend, "notify::buffer-percent", G_CALLBACK(buffer_percent_cb), self);
+        g_signal_connect(priv->backend, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
 
         g_object_bind_property(self, "volume",
                                priv->backend, "volume",
