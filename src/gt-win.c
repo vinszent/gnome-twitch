@@ -570,6 +570,8 @@ gt_win_init(GtWin* self)
     GT_TYPE_FAVOURITES_VIEW;
     GT_TYPE_CHAT;
 
+    gtk_window_set_application(GTK_WINDOW(self), GTK_APPLICATION(main_app));
+
     gtk_widget_init_template(GTK_WIDGET(self));
 
     gtk_widget_realize(priv->player_header_bar);
