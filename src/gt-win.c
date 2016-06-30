@@ -561,6 +561,7 @@ static void
 gt_win_init(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+    GPropertyAction* action;
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
     GT_TYPE_PLAYER_HEADER_BAR;
@@ -573,7 +574,6 @@ gt_win_init(GtWin* self)
     gtk_window_set_application(GTK_WINDOW(self), GTK_APPLICATION(main_app));
 
     gtk_widget_init_template(GTK_WIDGET(self));
-
     gtk_widget_realize(priv->player_header_bar);
 
     priv->cur_info_data = NULL;
@@ -603,8 +603,11 @@ gt_win_init(GtWin* self)
                                     win_actions,
                                     G_N_ELEMENTS(win_actions),
                                     self);
+
+    action = g_property_action_new("toggle_fullscreen", self, "fullscreen");
     g_action_map_add_action(G_ACTION_MAP(self),
-                            G_ACTION(g_property_action_new("toggle_fullscreen", G_OBJECT(self), "fullscreen")));
+                            G_ACTION(action));
+    g_object_unref(action);
 
     GtkWindowGroup* window_group = gtk_window_group_new();
     gtk_window_group_add_window(window_group, GTK_WINDOW(self));
