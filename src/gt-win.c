@@ -450,6 +450,8 @@ finalize(GObject* object)
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     G_OBJECT_CLASS(gt_win_parent_class)->finalize(object);
+
+    g_message("{GtWin} Finalise");
 }
 
 static void
