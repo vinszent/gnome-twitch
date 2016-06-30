@@ -423,26 +423,6 @@ static GActionEntry win_actions[] =
     {"close_player", close_player_cb, NULL, NULL, NULL},
 };
 
-static gboolean
-window_state_cb(GtkWidget* widget,
-                GdkEventWindowState* evt,
-                gpointer udata)
-{
-    GtWin* self = GT_WIN(udata);
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-
-    if (evt->changed_mask & GDK_WINDOW_STATE_FULLSCREEN)
-    {
-        if (evt->new_window_state & GDK_WINDOW_STATE_FULLSCREEN)
-            priv->fullscreen = TRUE;
-        else
-            priv->fullscreen = FALSE;
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FULLSCREEN]);
-    }
-
-    return FALSE;
-}
-
 static void
 finalize(GObject* object)
 {
