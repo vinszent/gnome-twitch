@@ -78,7 +78,22 @@ finalise(GObject* obj)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     G_OBJECT_CLASS(gt_player_parent_class)->finalize(obj);
+
+    //TODO: Unref stuff
+
+    g_message("{GtPlayer} Finalise");
 }
+
+static void
+destroy_cb(GtkWidget* widget,
+           gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    g_object_unref(priv->action_group);
+}
+
 
 static void
 update_chat_size(GtPlayer* self)
@@ -687,6 +702,7 @@ static void
 gt_player_init(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GPropertyAction* action;
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
@@ -698,12 +714,18 @@ gt_player_init(GtPlayer* self)
     priv->action_group = g_simple_action_group_new();
     g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
                                     G_N_ELEMENTS(actions), self);
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
-                            G_ACTION(g_property_action_new("show_chat", G_OBJECT(self), "chat-visible")));
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
-                            G_ACTION(g_property_action_new("dock_chat", G_OBJECT(self), "chat-docked")));
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group),
-                            G_ACTION(g_property_action_new("dark_theme_chat", G_OBJECT(self), "chat-dark-theme")));
+
+    action = g_property_action_new("show_chat", self, "chat-visible");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
+
+    action = g_property_action_new("dock_chat", self, "chat-docked");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
+
+    action = g_property_action_new("dark_theme_cat", self, "chat-dark-theme");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
 
     g_object_bind_property_full(self, "docked-handle-position",
                                 priv->docking_pane, "position",
@@ -727,6 +749,7 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
     g_signal_connect_after(main_app->plugins_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->plugins_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
+    g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
 
     gchar** c;
     gchar** _c;
