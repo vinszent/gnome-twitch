@@ -7,7 +7,6 @@ enum
 {
     PROP_0,
     PROP_VOLUME,
-    PROP_MUTED,
     PROP_PLAYING,
     PROP_BUFFER_FILL,
     NUM_PROPS
@@ -24,12 +23,6 @@ gt_player_backend_default_init(GtPlayerBackendInterface* iface)
                                                             "Current volume",
                                                             0, 1.0, 0.3,
                                                             G_PARAM_READWRITE));
-    g_object_interface_install_property(iface,
-                                        g_param_spec_boolean("muted",
-                                                             "Muted",
-                                                             "Whether muted",
-                                                             FALSE,
-                                                             G_PARAM_READWRITE));
     g_object_interface_install_property(iface,
                                         g_param_spec_boolean("playing",
                                                              "Playing",

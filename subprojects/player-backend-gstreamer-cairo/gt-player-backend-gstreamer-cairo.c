@@ -13,7 +13,6 @@ typedef struct
     gchar* uri;
 
     gdouble volume;
-    gdouble muted;
     gboolean playing;
     gdouble buffer_fill;
 } GtPlayerBackendGstreamerCairoPrivate;
@@ -29,7 +28,6 @@ enum
     PROP_0,
     PROP_VOLUME,
     PROP_PLAYING,
-    PROP_MUTED,
     PROP_URI,
     PROP_BUFFER_FILL,
     NUM_PROPS
@@ -118,9 +116,6 @@ get_property(GObject* obj,
         case PROP_VOLUME:
             g_value_set_double(val, priv->volume);
             break;
-        case PROP_MUTED:
-            g_value_set_boolean(val, priv->muted);
-            break;
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
             break;
@@ -148,9 +143,6 @@ set_property(GObject* obj,
     {
         case PROP_VOLUME:
             priv->volume = g_value_get_double(val);
-            break;
-        case PROP_MUTED:
-            priv->muted = g_value_get_boolean(val);
             break;
         case PROP_PLAYING:
             priv->playing = g_value_get_boolean(val);
@@ -195,11 +187,6 @@ gt_player_backend_gstreamer_cairo_class_init(GtPlayerBackendGstreamerCairoClass*
                                              "Volume of player",
                                              0.0, 1.0, 0.3,
                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-    props[PROP_MUTED] = g_param_spec_boolean("muted",
-                                             "Muted",
-                                             "Whether muted",
-                                             FALSE,
-                                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
     props[PROP_PLAYING] = g_param_spec_boolean("playing",
                                                "Playing",
                                                "Whether playing",
@@ -217,7 +204,6 @@ gt_player_backend_gstreamer_cairo_class_init(GtPlayerBackendGstreamerCairoClass*
                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_override_property(obj_class, PROP_VOLUME, "volume");
-    g_object_class_override_property(obj_class, PROP_MUTED, "muted");
     g_object_class_override_property(obj_class, PROP_PLAYING, "playing");
     g_object_class_override_property(obj_class, PROP_URI, "uri");
     g_object_class_override_property(obj_class, PROP_BUFFER_FILL, "buffer-fill");
@@ -244,10 +230,7 @@ gt_player_backend_gstreamer_cairo_init(GtPlayerBackendGstreamerCairo* self)
 
     g_object_bind_property(self, "volume",
                            priv->playbin, "volume",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(self, "muted",
-                           priv->playbin, "mute",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
     g_object_bind_property(self, "uri",
                            priv->playbin, "uri",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
