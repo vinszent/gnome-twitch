@@ -46,7 +46,11 @@ gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
         case GST_MESSAGE_BUFFERING:
         {
             gint perc;
+
             gst_message_parse_buffering(msg, &perc);
+
+            perc < 100 ? gst_element_set_state(priv->playbin, GST_STATE_PAUSED)
+                : gst_element_set_state(priv->playbin, GST_STATE_PLAYING);
             g_object_set(self, "buffer-fill", (gdouble) perc/100.0, NULL);
             break;
         }
