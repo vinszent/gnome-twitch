@@ -199,18 +199,18 @@ realise_cb(GtkWidget* widget,
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN);
     g_object_bind_property(win->player, "volume",
                            priv->volume_button, "value",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
+    g_object_bind_property(win->player, "chat-width",
+                           priv->chat_view_width_adjustment, "value",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->chat_view_width_adjustment, "value",
-                           win->player, "chat-width",
+    g_object_bind_property(win->player, "chat-height",
+                           priv->chat_view_height_adjustment, "value",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->chat_view_height_adjustment, "value",
-                           win->player, "chat-height",
+    g_object_bind_property(win->player, "chat-x",
+                           priv->chat_view_x_adjustment, "value",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->chat_view_x_adjustment, "value",
-                           win->player, "chat-x",
-                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->chat_view_y_adjustment, "value",
-                           win->player, "chat-y",
+    g_object_bind_property(win->player, "chat-y",
+                           priv->chat_view_y_adjustment, "value",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
     g_object_bind_property_full(win->player, "chat-width",
                                 priv->chat_view_x_adjustment, "upper",
