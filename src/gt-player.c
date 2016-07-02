@@ -34,6 +34,7 @@ typedef struct
     GtChannel* channel;
 
     gdouble volume;
+    gdouble prev_volume;
     gdouble muted;
     gboolean playing;
     gdouble chat_opacity;
@@ -80,6 +81,9 @@ finalise(GObject* obj)
     G_OBJECT_CLASS(gt_player_parent_class)->finalize(obj);
 
     //TODO: Unref stuff
+
+    g_settings_set_double(main_app->settings, "volume",
+                          priv->muted ? priv->prev_volume : priv->volume);
 
     g_message("{GtPlayer} Finalise");
 }
@@ -160,36 +164,28 @@ update_chat_pos(GtPlayer* self)
 }
 
 static void
-update_docked(GtPlayer* self)
+update_muted(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (priv->chat_docked)
+    if (priv->muted)
     {
-        gtk_widget_set_valign(priv->chat_view, GTK_ALIGN_FILL);
-        gtk_widget_set_halign(priv->chat_view, GTK_ALIGN_FILL);
-
-        update_chat_size(self);
-        update_chat_pos(self);
-
-        g_object_set(priv->chat_view, "opacity", 1.0, NULL);
-
-        gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->chat_view);
-        gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, FALSE, FALSE);
+        priv->prev_volume = priv->volume;
+        g_object_set(self, "volume", 0.0, NULL);
     }
     else
     {
-        gtk_widget_set_valign(priv->chat_view, GTK_ALIGN_START);
-        gtk_widget_set_halign(priv->chat_view, GTK_ALIGN_START);
-
-        update_chat_size(self);
-        update_chat_pos(self);
-
-        g_object_set(priv->chat_view, "opacity", priv->chat_opacity, NULL);
-
-        gtk_container_remove(GTK_CONTAINER(priv->docking_pane), priv->chat_view);
-        gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
+        g_object_set(self, "volume", priv->prev_volume, NULL);
     }
+}
+
+static void
+update_volume(GtPlayer* self)
+{
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    priv->muted = !(priv->volume > 0);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_MUTED]);
 }
 
 static void
@@ -293,9 +289,11 @@ set_property(GObject* obj,
     {
         case PROP_VOLUME:
             priv->volume = g_value_get_double(val);
+            update_volume(self);
             break;
         case PROP_MUTED:
             priv->muted = g_value_get_boolean(val);
+            update_muted(self);
             break;
         case PROP_PLAYING:
             priv->playing = g_value_get_boolean(val);
