@@ -98,69 +98,89 @@ destroy_cb(GtkWidget* widget,
     g_object_unref(priv->action_group);
 }
 
-
 static void
-update_chat_size(GtPlayer* self)
+update_docked(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    gboolean exists = priv->chat_view ? TRUE : FALSE;
-    gboolean realised = exists ? gtk_widget_get_realized(priv->chat_view) : FALSE;
-
-    if (!(exists && realised))
-    {
-        g_debug("{GtPlayer} Unable to set chat size, exists=%s, realised=%s",
-                PRINT_BOOL(exists),
-                PRINT_BOOL(realised));
-        return;
-    }
-
     if (priv->chat_docked)
     {
-        gtk_widget_set_size_request(priv->chat_view,
-                                    -1, -1);
+        gdouble width;
+
+        if (gtk_widget_get_parent(priv->chat_view))
+            gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->chat_view);
+
+        gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, TRUE, TRUE);
+
+        width = gtk_widget_get_allocated_width(GTK_WIDGET(self));
+
+        gtk_paned_set_position(GTK_PANED(priv->docking_pane),
+                               priv->docked_handle_position*width);
+
+        g_object_set(priv->chat_view, "opacity", 1.0, NULL);
     }
     else
     {
-        GtkAllocation alloc;
+        if (gtk_widget_get_parent(priv->chat_view))
+            gtk_container_remove(GTK_CONTAINER(priv->docking_pane), priv->chat_view);
 
-        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
+        gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
 
-        gtk_widget_set_size_request(priv->chat_view,
-                                    priv->chat_width*alloc.width,
-                                    priv->chat_height*alloc.height);
-   }
+        g_object_set(priv->chat_view, "opacity", priv->chat_opacity, NULL);
+    }
 }
 
-static void
-update_chat_pos(GtPlayer* self)
+static gboolean
+chat_position_cb(GtkOverlay* overlay,
+                 GtkWidget* widget,
+                 GdkRectangle* alloc,
+                 gpointer udata)
 {
+    GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    gboolean exists = priv->chat_view ? TRUE : FALSE;
-    gboolean realised = exists ? gtk_widget_get_realized(priv->chat_view) : FALSE;
-
-    if (!(exists && realised))
+    if (widget == priv->chat_view)
     {
-        g_debug("{GtPlayer} Unable to set chat position, exists=%s, realised=%s",
-                PRINT_BOOL(exists),
-                PRINT_BOOL(realised));
-        return;
-    }
+        GtkAllocation self_alloc;
+        GtkAllocation chat_alloc;
 
-    if (priv->chat_docked)
-    {
-        gtk_widget_set_margin_start(priv->chat_view, 0.0);
-        gtk_widget_set_margin_top(priv->chat_view, 0.0);
+        gtk_widget_get_allocation(GTK_WIDGET(self), &self_alloc);
+
+        if (self_alloc.x == -1 && self_alloc.y == -1)
+            return FALSE;
+
+        gtk_widget_get_preferred_size(widget, NULL, NULL); //To shut GTK up
+
+        gtk_widget_get_allocation(widget, &chat_alloc);
+
+        // Wait until chat properly allocated space
+        if (chat_alloc.width > 1 && chat_alloc.height > 1)
+        {
+            gdouble dx = 0.0;
+            gdouble dy = 0.0;
+
+            dx = 0.5*(priv->chat_width*self_alloc.width - chat_alloc.width)
+                / (gdouble) self_alloc.width;
+            dy = 0.5*(priv->chat_height*self_alloc.height - chat_alloc.height)
+                / (gdouble) self_alloc.height;
+
+            priv->chat_x -= ABS(dx*0.5) < 1e-3 ? 0.0 : dx*0.5;
+            priv->chat_y -= ABS(dy*0.5) < 1e-3 ? 0.0 : dy*0.5;
+
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_X]);
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_Y]);
+        }
+
+
+        alloc->x = (gint) (priv->chat_x*self_alloc.width);
+        alloc->y = (gint) (priv->chat_y*self_alloc.height);
+        alloc->width = (gint) (priv->chat_width*self_alloc.width);
+        alloc->height = (gint) (priv->chat_height*self_alloc.height);
+
+        return TRUE;
     }
     else
-    {
-        GtkAllocation alloc;
-
-        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
-        gtk_widget_set_margin_start(priv->chat_view, priv->chat_x*alloc.width);
-        gtk_widget_set_margin_top(priv->chat_view, priv->chat_y*alloc.height);
-    }
+        return FALSE;
 }
 
 static void
@@ -198,7 +218,8 @@ scale_chat_cb(GtkWidget* widget,
 
     if (priv->chat_docked)
     {
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
+        g_object_notify_by_pspec(G_OBJECT(self),
+                                 props[PROP_DOCKED_HANDLE_POSITION]);
     }
 }
 
@@ -276,6 +297,25 @@ fullscreen_cb(GObject* source,
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
 }
 
+static gboolean
+win_configure_cb(GtkWidget* widget,
+                 GdkEventConfigure* evt,
+                 gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (priv->chat_docked)
+    {
+        gint width = gtk_widget_get_allocated_width(GTK_WIDGET(self));
+
+        gtk_paned_set_position(GTK_PANED(priv->docking_pane),
+                               (gint) (priv->docked_handle_position*width));
+    }
+
+    return GDK_EVENT_PROPAGATE;
+}
+
 static void
 set_property(GObject* obj,
              guint prop,
@@ -304,11 +344,11 @@ set_property(GObject* obj,
             break;
         case PROP_CHAT_WIDTH:
             priv->chat_width = g_value_get_double(val);
-            update_chat_size(self);
+            gtk_widget_queue_allocate(priv->player_overlay);
             break;
         case PROP_CHAT_HEIGHT:
             priv->chat_height = g_value_get_double(val);
-            update_chat_size(self);
+            gtk_widget_queue_allocate(priv->player_overlay);
             break;
         case PROP_CHAT_DOCKED:
             priv->chat_docked = g_value_get_boolean(val);
@@ -316,11 +356,11 @@ set_property(GObject* obj,
             break;
         case PROP_CHAT_X:
             priv->chat_x = g_value_get_double(val);
-            update_chat_pos(self);
+            gtk_widget_queue_allocate(priv->player_overlay);
             break;
         case PROP_CHAT_Y:
             priv->chat_y = g_value_get_double(val);
-            update_chat_pos(self);
+            gtk_widget_queue_allocate(priv->player_overlay);
             break;
         case PROP_CHAT_OPACITY:
             priv->chat_opacity = g_value_get_double(val);
@@ -433,10 +473,12 @@ realise_cb(GtkWidget* widget,
                                    G_ACTION_GROUP(priv->action_group));
 
     //Hack to get the bar connected properly
+
     gtk_widget_realize(priv->fullscreen_bar);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
 
+    g_signal_connect(win, "configure-event", G_CALLBACK(win_configure_cb), self);
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 
@@ -489,14 +531,12 @@ plugin_loaded_cb(PeasEngine* engine,
         priv->backend_info = g_boxed_copy(PEAS_TYPE_PLUGIN_INFO,
                                           info);
 
-        g_signal_connect(priv->backend, "notify::buffer-fill", G_CALLBACK(buffer_fill_cb), self);
+        g_signal_connect(priv->backend, "notify::buffer-fill",
+                         G_CALLBACK(buffer_fill_cb), self);
 
         g_object_bind_property(self, "volume",
                                priv->backend, "volume",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(self, "muted",
-                               priv->backend, "muted",
-                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
         g_object_bind_property(self, "playing",
                                priv->backend, "playing",
                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
@@ -704,6 +744,10 @@ gt_player_init(GtPlayer* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
+    g_object_set(self, "volume",
+                 g_settings_get_double(main_app->settings, "volume"),
+                 NULL);
+
     g_object_ref(priv->empty_box);
 
     priv->chat_view = GTK_WIDGET(gt_chat_new());
@@ -721,7 +765,7 @@ gt_player_init(GtPlayer* self)
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
     g_object_unref(action);
 
-    action = g_property_action_new("dark_theme_cat", self, "chat-dark-theme");
+    action = g_property_action_new("dark_theme_chat", self, "chat-dark-theme");
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
     g_object_unref(action);
 
@@ -744,6 +788,7 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(self, "notify::chat-dark-theme", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(self, "notify::chat-opacity", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(self, "notify::docked-handle-position", G_CALLBACK(chat_settings_changed_cb), self);
+    g_signal_connect(priv->player_overlay, "get-child-position", G_CALLBACK(chat_position_cb), self);
     utils_signal_connect_oneshot(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
     g_signal_connect_after(main_app->plugins_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->plugins_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
@@ -827,7 +872,8 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     if (!priv->chat_settings)
     {
         priv->chat_settings = gt_chat_view_settings_new();
-        g_hash_table_insert(main_app->chat_settings_table, g_strdup(name), priv->chat_settings);
+        g_hash_table_insert(main_app->chat_settings_table,
+                            g_strdup(name), priv->chat_settings);
     }
 
     g_signal_handlers_block_by_func(self, chat_settings_changed_cb, self);
