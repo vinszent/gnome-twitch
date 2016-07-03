@@ -21,14 +21,14 @@ the hassle of flash or the web.
 * json-glib
 * webkit2gtk
 
-#### Player backend - Gstreamer Cairo & GStreamer OpenGL
+#### Player backend - GStreamer Cairo & GStreamer OpenGL
 * gstreamer-1.0
 * gst-libav
 * gst-plugins-base
 * gst-plugins-good
 * gst-plugins-bad
 
-#### Player backend - Gstreamer Clutter
+#### Player backend - GStreamer Clutter
 Same as above plus:
 
 * clutter-gst-3.0
