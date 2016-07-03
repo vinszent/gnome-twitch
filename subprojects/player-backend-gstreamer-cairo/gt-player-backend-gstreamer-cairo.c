@@ -97,6 +97,7 @@ finalise(GObject* obj)
     G_OBJECT_CLASS(gt_player_backend_gstreamer_cairo_parent_class)->finalize(obj);
 
 //    gst_object_unref(priv->video_sink);
+    stop(self);
     gst_object_unref(priv->playbin);
 
     g_clear_object(&priv->widget);

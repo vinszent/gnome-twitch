@@ -100,6 +100,8 @@ finalise(GObject* obj)
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_opengl_parent_class)->finalize(obj);
 
+    stop(self);
+
     gst_object_unref(priv->playbin);
 //    gst_object_unref(priv->ghost_pad);
 //    gst_object_unref(priv->pad);

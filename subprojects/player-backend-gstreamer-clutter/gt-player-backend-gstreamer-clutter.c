@@ -84,6 +84,8 @@ finalise(GObject* obj)
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_clutter_parent_class)->finalize(obj);
 
+    stop(self);
+
     g_clear_object(&priv->widget);
     g_clear_object(&priv->player);
 
