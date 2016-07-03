@@ -560,6 +560,9 @@ plugin_loaded_cb(PeasEngine* engine,
         gtk_widget_add_events(widget, GDK_POINTER_MOTION_MASK);
         gtk_container_add(GTK_CONTAINER(priv->player_overlay), widget);
         gtk_widget_show_all(priv->player_overlay);
+
+        if (priv->channel)
+            gt_player_open_channel(self, priv->channel);
     }
 }
 
