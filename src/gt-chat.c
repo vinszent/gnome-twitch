@@ -497,6 +497,8 @@ finalise(GObject* obj)
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     G_OBJECT_CLASS(gt_chat_parent_class)->finalize(obj);
+
+    g_object_unref(priv->chat);
 }
 
 static void

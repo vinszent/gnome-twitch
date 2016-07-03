@@ -615,6 +615,10 @@ finalise(GObject* obj)
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
     G_OBJECT_CLASS(gt_irc_parent_class)->finalize(obj);
+
+    gt_irc_disconnect(self);
+
+    //TODO: Free other stuff
 }
 
 static void
