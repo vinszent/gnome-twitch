@@ -82,6 +82,10 @@ finalise(GObject* obj)
 
     //TODO: Unref stuff
 
+    g_object_unref(priv->chat_view);
+    g_object_unref(priv->backend);
+    g_boxed_free(PEAS_TYPE_PLUGIN_INFO, priv->backend_info);
+
     g_settings_set_double(main_app->settings, "volume",
                           priv->muted ? priv->prev_volume : priv->volume);
 
