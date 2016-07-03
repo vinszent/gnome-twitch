@@ -42,10 +42,30 @@ _Note: If you undo commit [c4b4955](https://github.com/Ippytraxx/gnome-twitch/co
 _Note: If you undo commit [6382b8b](https://github.com/Ippytraxx/gnome-twitch/commit/6382b8b918306306da0c014cedb8f314ecd66a93) then meson => 0.26.0 can be used_
 
 ### From source
-```
+
+``` shell
 mkdir build
 cd build
-meson --prefix /usr -Ddo-post-install=true -Dwith-player-gstreamer-cairo=true ..
+meson --prefix /usr --libdir lib -Ddo-post-install=true -Dwith-player-gstreamer-cairo=true ..
+ninja install
+```
+
+### Install extra player backends
+#### Root install
+
+``` shell
+cd subprojects/${gt-player-backend-you-want}
+mkdir build
+cd build
+meson --prefix /usr --libdir lib ..
+sudo ninja install
+```
+#### Local install
+
+Same as the root install but instead change the last two lines to:
+
+``` shell
+meson --prefix ~/.local --libdir share ..
 ninja install
 ```
 
