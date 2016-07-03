@@ -20,17 +20,20 @@ the hassle of flash or the web.
 * libsoup
 * json-glib
 * webkit2gtk
+
 #### Player backend - Gstreamer Cairo & GStreamer OpenGL
 * gstreamer-1.0
 * gst-libav
 * gst-plugins-base
 * gst-plugins-good
 * gst-plugins-bad
+
 #### Player backend - Gstreamer Clutter
 Same as above plus:
 
 * clutter-gst-3.0
 * clutter-gtk-1.0
+
 #### Player backend - MPV OpenGL
 * mpv
 
