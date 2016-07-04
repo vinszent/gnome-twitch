@@ -1,18 +1,6 @@
-
 #include "gnome-twitch/gt-player-backend.h"
 
 G_DEFINE_INTERFACE(GtPlayerBackend, gt_player_backend, G_TYPE_OBJECT)
-
-enum
-{
-    PROP_0,
-    PROP_VOLUME,
-    PROP_PLAYING,
-    PROP_BUFFER_FILL,
-    NUM_PROPS
-};
-
-static GParamSpec* props[NUM_PROPS];
 
 static void
 gt_player_backend_default_init(GtPlayerBackendInterface* iface)
