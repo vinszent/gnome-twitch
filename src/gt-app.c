@@ -466,21 +466,23 @@ gt_app_init(GtApp* self)
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
     self->plugins_engine = peas_engine_get_default();
 
-    gchar* plugin_dir = g_build_filename(GT_LIB_DIR,
-                                         "gnome-twitch",
-                                         "plugins",
-                                         "player-backends",
-                                         NULL);
-    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL);
-    g_free(plugin_dir);
+    gchar* plugin_dir;
 
-    plugin_dir = g_build_filename(g_get_user_data_dir(),
-                                  "gnome-twitch",
-                                  "plugins",
-                                  "player-backends",
-                                  NULL);
-    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL);
-    g_free(plugin_dir);
+#define ADD_PLUGINS_PATH(root, type)                                    \
+    plugin_dir = g_build_filename(root,                                 \
+                                  "gnome-twitch",                       \
+                                  "plugins",                            \
+                                  type,                                 \
+                                  NULL);                                \
+    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL); \
+    g_free(plugin_dir)                                                  \
+
+    ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
+    ADD_PLUGINS_PATH(g_get_user_data_dir(), "player-backends");
+    ADD_PLUGINS_PATH(GT_LIB_DIR, "recorder-backends");
+    ADD_PLUGINS_PATH(g_get_user_data_dir(), "recorder-backends");
+
+#undef ADD_PLUGINS_PATH
 
     priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
 
