@@ -28,6 +28,9 @@
 const char* default_chat_colours[] = {"#FF0000", "#0000FF", "#00FF00", "#B22222", "#FF7F50", "#9ACD32", "#FF4500",
                                       "#2E8B57", "#DAA520", "#D2691E", "#5F9EA0", "#1E90FF", "#FF69B4", "#8A2BE2", "#00FF7F"};
 
+#define MAX_SCROLLBACK 1000 //TODO: Make this a setting
+#define SAVEUP_AMOUNT 100
+
 typedef struct
 {
     gboolean dark_theme;
@@ -42,6 +45,7 @@ typedef struct
     GtkWidget* chat_scroll_vbar;
     GtkWidget* chat_entry;
     GtkTextBuffer* chat_buffer;
+    GtkAdjustment* chat_adjustment;
     GtkTextTagTable* tag_table;
     GHashTable* twitch_emotes;
     GtkWidget* main_stack;
@@ -61,6 +65,8 @@ typedef struct
     gboolean chat_sticky;
 
     GRegex* url_regex;
+
+    GMutex mutex;
 } GtChatPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChat, gt_chat, GTK_TYPE_BOX)
@@ -115,17 +121,20 @@ irc_source_cb(GtIrcMessage* msg,
     GtChat* self = GT_CHAT(udata);
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
     gboolean ret = G_SOURCE_REMOVE;
-    GtkTextIter iter;
 
-    gtk_text_buffer_get_end_iter(priv->chat_buffer, &iter);
+    g_mutex_lock(&priv->mutex);
 
     if (msg->cmd_type == GT_IRC_COMMAND_PRIVMSG)
     {
+        GtkTextIter iter;
         GtIrcCommandPrivmsg* privmsg = msg->cmd.privmsg;
         GtkTextTag* colour_tag;
         const gchar* sender;
 
-        if (!(sender = privmsg->display_name) || strlen(sender) < 1) sender = msg->nick;
+        gtk_text_buffer_get_end_iter(priv->chat_buffer, &iter);
+
+        if (!(sender = privmsg->display_name) || strlen(sender) < 1)
+            sender = msg->nick;
 
         if (!privmsg->colour || strlen(privmsg->colour) < 1)
             privmsg->colour = g_strdup(get_default_chat_colour(msg->nick));
@@ -222,14 +231,17 @@ irc_source_cb(GtIrcMessage* msg,
 
         gtk_text_buffer_insert(priv->chat_buffer, &iter, "\n", 1);
 
+        gtk_text_buffer_get_end_iter(priv->chat_buffer, &iter);
+
         gtk_text_buffer_move_mark(priv->chat_buffer, priv->bottom_mark, &iter);
 
-        // Scrolling upwards causes the pos to be further from the bottom than the natural size increment
         if (priv->chat_sticky)
             gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
     }
 
     gt_irc_message_free(msg);
+
+    g_mutex_unlock(&priv->mutex);
 
     return G_SOURCE_CONTINUE;
 }
@@ -585,11 +597,43 @@ gt_chat_class_init(GtChatClass* klass)
 }
 
 static void
+value_changed(GtkAdjustment* adjustment,
+              gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+
+    gdouble val = gtk_adjustment_get_value(adjustment);
+    gdouble upper = gtk_adjustment_get_upper(adjustment);
+    gdouble page_size = gtk_adjustment_get_page_size(adjustment);
+
+    if (val >= upper - page_size - 5 || val < 1)
+    {
+        gint lc = gtk_text_buffer_get_line_count(priv->chat_buffer);
+
+        if (lc - MAX_SCROLLBACK >= SAVEUP_AMOUNT)
+        {
+            g_mutex_lock(&priv->mutex);
+
+            GtkTextIter start, end;
+
+            gtk_text_buffer_get_iter_at_line(priv->chat_buffer, &start, 0);
+            gtk_text_buffer_get_iter_at_line(priv->chat_buffer, &end, lc - MAX_SCROLLBACK);
+            gtk_text_buffer_delete(priv->chat_buffer, &start, &end);
+
+            g_mutex_unlock(&priv->mutex);
+        }
+    }
+}
+
+static void
 gt_chat_init(GtChat* self)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    g_mutex_init(&priv->mutex);
 
     priv->chat_css_provider = gtk_css_provider_new();
     gtk_style_context_add_provider(gtk_widget_get_style_context(GTK_WIDGET(self)),
@@ -602,6 +646,7 @@ gt_chat_init(GtChat* self)
     priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
     priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
+    priv->chat_adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll));
 
     priv->chat = gt_irc_new();
     priv->cur_chan = NULL;
@@ -622,6 +667,7 @@ gt_chat_init(GtChat* self)
     g_signal_connect(priv->chat_view, "motion-notify-event", G_CALLBACK(chat_view_motion_cb), self);
     g_signal_connect(priv->chat_scroll, "scroll-event", G_CALLBACK(chat_scrolled_cb), self);
     g_signal_connect(priv->chat_scroll_vbar, "button-press-event", G_CALLBACK(chat_scrolled_cb), self);
+    g_signal_connect(priv->chat_adjustment, "value-changed", G_CALLBACK(value_changed), self);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
