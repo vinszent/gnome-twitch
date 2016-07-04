@@ -1,6 +1,8 @@
 #include "gt-player-header-bar.h"
 #include "gt-player.h"
 #include "gt-win.h"
+
+#define TAG "GtPlayerHeaderBar"
 #include "utils.h"
 
 typedef struct

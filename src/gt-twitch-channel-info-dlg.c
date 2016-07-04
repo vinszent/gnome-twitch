@@ -1,10 +1,12 @@
 #include "gt-twitch-channel-info-dlg.h"
 #include "gt-twitch.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
 #include <webkit2/webkit2.h>
+
+#define TAG "GtTwitchChannelInfoDlg"
+#include "utils.h"
 
 #define HTML_PARAGRAPH "p"
 #define HTML_LIST "ul"

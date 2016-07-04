@@ -1,10 +1,12 @@
 #include "gt-irc.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
+
+#define TAG "GtIrc"
+#include "utils.h"
 
 #define CHAT_RPL_STR_WELCOME    "001"
 #define CHAT_RPL_STR_YOURHOST   "002"

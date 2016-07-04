@@ -1,7 +1,9 @@
 #include "gt-channels-container-child.h"
-#include "utils.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+
+#define TAG "GtChannelsContainerChild"
+#include "utils.h"
 
 typedef struct
 {

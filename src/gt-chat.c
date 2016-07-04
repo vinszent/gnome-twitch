@@ -2,12 +2,13 @@
 #include "gt-irc.h"
 #include "gt-app.h"
 #include "gt-win.h"
-#include "utils.h"
 #include <string.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
 #include <locale.h>
 
+#define TAG "GtChat"
+#include "utils.h"
 //TODO: Add emoticon popover
 //TODO: Replace copied text pixbufs with emoticon text
 

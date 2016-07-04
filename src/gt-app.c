@@ -8,6 +8,9 @@
 #include <json-glib/json-glib.h>
 #include <stdlib.h>
 
+#define TAG "GtApp"
+#include "utils.h"
+
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
 typedef struct
@@ -62,7 +65,7 @@ set_log_level(const gchar* name,
     else if (g_strcmp0(arg, "debug") == 0)
         LOG_LEVEL = G_LOG_LEVEL_DEBUG;
     else
-        g_warning("{GtApp} Invalid logging level"); //TODO: Use g_set_error and return false
+        WARNING("Invalid logging level"); //TODO: Use g_set_error and return false
 
     return TRUE;
 }
@@ -304,14 +307,11 @@ startup(GApplication* app)
     GtkSettings* gtk_settings;
     GtkBuilder* menu_bld;
 
-    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
-
-    gtk_settings = gtk_settings_get_default();
-
-    g_message("{GtApp} Startup");
+    MESSAGE("Startup");
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
+    load_chat_settings(self);
     init_dirs();
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),

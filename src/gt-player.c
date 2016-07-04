@@ -4,11 +4,12 @@
 #include "gt-app.h"
 #include "gt-enums.h"
 #include "gt-chat.h"
-#include "utils.h"
 #include "gnome-twitch/gt-player-backend.h"
 #include <libpeas-gtk/peas-gtk.h>
 #include <glib/gi18n.h>
 
+#define TAG "GtPlayer"
+#include "utils.h"
 #define FULLSCREEN_BAR_REVEAL_HEIGHT 50
 
 typedef struct

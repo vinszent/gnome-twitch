@@ -14,9 +14,11 @@
 #include "gt-twitch-channel-info-dlg.h"
 #include "gt-chat.h"
 #include "gt-enums.h"
-#include "utils.h"
 #include "config.h"
 #include "version.h"
+
+#define TAG "GtWin"
+#include "utils.h"
 
 #define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
 

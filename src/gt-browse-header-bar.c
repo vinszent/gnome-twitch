@@ -1,8 +1,10 @@
 #include "gt-browse-header-bar.h"
 #include "gt-win.h"
-#include "utils.h"
 #include "gt-channels-view.h"
 #include "gt-favourites-view.h"
+
+#define TAG "GtBrowseHeaderBar"
+#include "utils.h"
 
 typedef struct
 {

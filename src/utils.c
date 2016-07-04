@@ -1,8 +1,10 @@
-#include "utils.h"
 #include <glib/gstdio.h>
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define TAG "Utils"
+#include "utils.h"
 
 gpointer
 utils_value_ref_sink_object(const GValue* val)
@@ -96,7 +98,7 @@ utils_download_picture(SoupSession* soup, const gchar* url)
 
     if (err)
     {
-        g_warning("{Utils} Error downloading picture code '%d' message '%s'", err->code, err->message);
+        WARNINGF("Error downloading picture, url=%s, code=%d, message=%s", url, err->code, err->message);
         g_error_free(err);
     }
     else

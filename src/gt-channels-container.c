@@ -2,6 +2,8 @@
 #include "gt-channel.h"
 #include "gt-channels-container-child.h"
 #include "gt-win.h"
+
+#define TAG "GtChannelsContainer"
 #include "utils.h"
 
 typedef struct

@@ -1,7 +1,9 @@
 #include "gt-channel.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <json-glib/json-glib.h>
+
+#define TAG "GtChannel"
+#include "utils.h"
 
 #define N_JSON_PROPS 2
 

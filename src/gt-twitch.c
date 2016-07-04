@@ -2,7 +2,6 @@
 #include "gt-channel.h"
 #include "gt-game.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
@@ -10,6 +9,9 @@
 #include <json-glib/json-glib.h>
 #include <string.h>
 #include <stdlib.h>
+
+#define TAG "GtTwitch"
+#include "utils.h"
 
 //TODO: Use https://streams.twitch.tv/kraken/streams/{channel}?stream_type=all instead to get is_playlist info
 //TODO: Use https://tmi.twitch.tv/servers?channel=%s to get chat server info
