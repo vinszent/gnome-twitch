@@ -335,6 +335,8 @@ startup(GApplication* app)
                     self, "oauth-token",
                     G_SETTINGS_BIND_DEFAULT);
 
+    gtk_settings = gtk_settings_get_default();
+
     gt_app_prefer_dark_theme_changed_cb(self->settings,
                                         "prefer-dark-theme",
                                         gtk_settings);
@@ -486,7 +488,6 @@ gt_app_init(GtApp* self)
 
     priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
 
-    load_chat_settings(self);
 
     g_settings_bind(self->settings, "loaded-plugins",
                     self->plugins_engine, "loaded-plugins",
