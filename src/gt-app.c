@@ -22,6 +22,7 @@ typedef struct
 } GtAppPrivate;
 
 gint LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+gboolean NO_FANCY_LOGGING = FALSE;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
@@ -70,6 +71,8 @@ static GOptionEntry
 cli_options[] =
 {
     {"log-level", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, set_log_level, "Set logging level", "level"},
+    {"no-fancy-logging", 0, G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &NO_FANCY_LOGGING, "Don't print pretty log messages", NULL},
+    {NULL}
 };
 
 GtApp*

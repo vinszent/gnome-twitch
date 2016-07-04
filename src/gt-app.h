@@ -47,6 +47,7 @@ GtApp* gt_app_new(void);
 extern GtApp* main_app;
 extern gchar* ORIGINAL_LOCALE;
 extern gint LOG_LEVEL;
+extern gboolean NO_FANCY_LOGGING;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);
