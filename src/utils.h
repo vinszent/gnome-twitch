@@ -17,11 +17,11 @@
 #define WARNING(msg) LOG(G_LOG_LEVEL_WARNING, msg)
 #define WARNINGF(fmt, ...) LOGF(G_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
 #define MESSAGE(msg) LOG(G_LOG_LEVEL_MESSAGE, msg)
-#define MESSAGEF(fmt, ...) LOG(G_LOG_LEVEL_MESSAGE, fmt, __VA_ARGS__)
+#define MESSAGEF(fmt, ...) LOGF(G_LOG_LEVEL_MESSAGE, fmt, __VA_ARGS__)
 #define INFO(msg) LOG(G_LOG_LEVEL_INFO, msg)
-#define INFOF(fmt, ...) LOG(G_LOG_LEVEL_INFO, fmt, __VA_ARGS__)
+#define INFOF(fmt, ...) LOGF(G_LOG_LEVEL_INFO, fmt, __VA_ARGS__)
 #define DEBUG(msg) LOG(G_LOG_LEVEL_DEBUG, msg)
-#define DEBUGF(fmt, ...) LOG(G_LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
+#define DEBUGF(fmt, ...) LOGF(G_LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
 #endif
 
 gpointer utils_value_ref_sink_object(const GValue* val);
