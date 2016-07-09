@@ -13,8 +13,7 @@ the hassle of flash or the web.
 
 ## Install
 ### Dependencies
-#### Core
-* meson >= 0.31.0 (install only)
+* meson >= 0.32.0 (install only)
 * ninja (install only)
 * gtk+-3.0 >= 3.20
 * libsoup
