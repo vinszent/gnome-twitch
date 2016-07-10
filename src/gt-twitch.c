@@ -31,6 +31,8 @@
 #define FOLLOWS_URI          "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
 #define FOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define USER_EMOTICONS_URI   "https://api.twitch.tv/kraken/users/%s/emotes"
+#define EMOTICON_IMAGES_URI  "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -39,6 +41,8 @@
 typedef struct
 {
     SoupSession* soup;
+
+    GHashTable* emote_table;
 } GtTwitchPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
@@ -165,6 +169,7 @@ gt_twitch_init(GtTwitch* self)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     priv->soup = soup_session_new();
+    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 static gboolean
@@ -1180,13 +1185,27 @@ GdkPixbuf*
 gt_twitch_download_emote(GtTwitch* self, gint id)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    gchar url[128];
+    GdkPixbuf* ret = NULL;
 
-    g_sprintf(url, TWITCH_EMOTE_URI, id, 1);
+    if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
+    {
+        gchar* url = NULL;
 
-    g_info("{GtTwitch} Downloading emote from url '%s'", url);
+        url = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
 
-    return utils_download_picture(priv->soup, url);
+        INFOF("Downloading emote form url '%s'", url);
+
+        g_hash_table_insert(priv->emote_table,
+                            GINT_TO_POINTER(id),
+                            utils_download_picture(priv->soup, url));
+
+        g_free(url);
+    }
+
+    ret = GDK_PIXBUF(g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id)));
+    g_object_ref(ret);
+
+    return ret;
 }
 
 static GtChatBadges*
@@ -1212,7 +1231,7 @@ gt_chat_badges_free(GtChatBadges* badges)
 }
 
 GtChatBadges*
-gt_chat_badges(GtTwitch* self, const gchar* chan)
+gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1309,13 +1328,13 @@ chat_badges_async_cb(GTask* task,
 
     data = task_data;
 
-    ret = gt_chat_badges(data->twitch, data->str_1);
+    ret = gt_twitch_chat_badges(data->twitch, data->str_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_badges_free);
 }
 
 void
-gt_chat_badges_async(GtTwitch* self, const gchar* channel,
+gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     GTask* task;
@@ -1929,6 +1948,138 @@ gt_twitch_unfollow_channel_async(GtTwitch* self,
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, unfollow_channel_async_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_emoticons(GtTwitch* self,
+                          const gchar* emotesets,
+                          GError** error)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    GList* ret = NULL;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    gchar** sets;
+
+    uri = g_strdup_printf(EMOTICON_IMAGES_URI,
+                          emotesets);
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        WARNINGF("Error sending message to get emoticon images, "
+                 "server responded with code=%d and str=%s",
+                 msg->status_code, msg->reason_phrase);
+
+        g_set_error(error,
+                    GT_TWITCH_ERROR,
+                    GT_TWITCH_ERROR_EMOTICON_IMAGES,
+                    "Error sending message to get emoticon images, "
+                    "server responded with code=%d and str=%s",
+                    msg->status_code, msg->reason_phrase);
+
+        goto finish;
+    }
+
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    sets = g_strsplit(emotesets, ",", 0);
+
+    json_reader_read_member(reader, "emoticon_sets");
+
+    for (gchar** c = sets; *c != NULL; c++)
+    {
+        json_reader_read_member(reader, *c);
+
+        for (gint i = 0; i < json_reader_count_elements(reader); i++)
+        {
+            GtEmote* emote;
+
+            emote = g_new0(GtEmote, 1);
+
+            json_reader_read_element(reader, i);
+
+            json_reader_read_member(reader, "id");
+            emote->id = json_reader_get_int_value(reader);
+            json_reader_end_member(reader);
+
+            json_reader_read_member(reader, "code");
+            emote->code = g_strdup(json_reader_get_string_value(reader));
+            json_reader_end_member(reader);
+
+            emote->set = atoi(*c);
+
+            emote->pixbuf = gt_twitch_download_emote(self, emote->id);
+
+            ret = g_list_append(ret, emote);
+
+            json_reader_end_element(reader);
+        }
+
+        json_reader_end_member(reader);
+    }
+
+    g_strfreev(sets);
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+}
+
+static void
+emoticon_images_async_cb(GTask* task,
+                         gpointer source,
+                         gpointer task_data,
+                         GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    GList* ret = NULL;
+    GError* error = NULL;
+
+    ret = gt_twitch_emoticons(data->twitch, data->str_1, &error);
+
+    if (error)
+        g_task_return_error(task, error);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_emote_list_free);
+}
+
+void
+gt_twitch_emoticons_async(GtTwitch* self,
+                                const char* emotesets,
+                                GAsyncReadyCallback cb,
+                                GCancellable* cancel,
+                                gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(emotesets);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, emoticon_images_async_cb);
 
     g_object_unref(task);
 }

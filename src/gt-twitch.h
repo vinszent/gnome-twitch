@@ -20,6 +20,7 @@ typedef enum _GtTwitchError
     GT_TWITCH_ERROR_FOLLOWS_ALL,
     GT_TWITCH_ERROR_FOLLOW_CHANNEL,
     GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
+    GT_TWITCH_ERROR_EMOTICON_IMAGES,
 } GtTwitchError;
 
 typedef enum _GtTwitchStreamQuality
@@ -130,8 +131,8 @@ void                       gt_twitch_game_raw_data_free(GtGameRawData* data);
 GdkPixbuf*                 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp);
 void                       gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, gint64 timestamp, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*                 gt_twitch_download_emote(GtTwitch* self, gint id);
-GtChatBadges*              gt_chat_badges(GtTwitch* self, const gchar* chan);
-void                       gt_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GtChatBadges*              gt_twitch_chat_badges(GtTwitch* self, const gchar* chan);
+void                       gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 void                       gt_chat_badges_free(GtChatBadges* badges);
 GList*                     gt_twitch_channel_info(GtTwitch* self, const gchar* chan);
 void                       gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
@@ -145,6 +146,8 @@ gboolean                   gt_twitch_follow_channel(GtTwitch* self, const gchar*
 gboolean                   gt_twitch_unfollow_channel(GtTwitch* self, const gchar* chan_name);
 void                       gt_twitch_follow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
 void                       gt_twitch_unfollow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
+GList*                     gt_twitch_emoticons(GtTwitch* self, const gchar* emotesets, GError** error);
+void                       gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
 
 G_END_DECLS
 

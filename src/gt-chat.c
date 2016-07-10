@@ -9,7 +9,7 @@
 
 #define TAG "GtChat"
 #include "utils.h"
-//TODO: Add emoticon popover
+
 //TODO: Replace copied text pixbufs with emoticon text
 
 #define CHAT_DARK_THEME_CSS_CLASS "dark-theme"
@@ -25,11 +25,23 @@
 #define USER_MODE_TURBO 1 << 6
 #define USER_MODE_SUBSCRIBER 1 << 7
 
-const char* default_chat_colours[] = {"#FF0000", "#0000FF", "#00FF00", "#B22222", "#FF7F50", "#9ACD32", "#FF4500",
-                                      "#2E8B57", "#DAA520", "#D2691E", "#5F9EA0", "#1E90FF", "#FF69B4", "#8A2BE2", "#00FF7F"};
-
 #define MAX_SCROLLBACK 1000 //TODO: Make this a setting
 #define SAVEUP_AMOUNT 100
+
+const char* default_chat_colours[] =
+{
+    "#FF0000", "#0000FF", "#00FF00", "#B22222",
+    "#FF7F50", "#9ACD32", "#FF4500", "#2E8B57",
+    "#DAA520", "#D2691E", "#5F9EA0", "#1E90FF",
+    "#FF69B4", "#8A2BE2", "#00FF7F"
+};
+
+static gchar* emote_replacement_codes[] =
+{
+    NULL, ":-)", ":-(", ":-D", ">(",
+    ":-|", "o_O", "B-)", ":-O", "<3",
+    ":-/", ";-)", ":-P", ";-P", "R-)",
+};
 
 typedef struct
 {
@@ -39,6 +51,9 @@ typedef struct
 
     gboolean joined_channel;
 
+    GtkWidget* emote_popover;
+    GtkWidget* emote_flow;
+
     GtkWidget* error_label;
     GtkWidget* chat_view;
     GtkWidget* chat_scroll;
@@ -47,7 +62,6 @@ typedef struct
     GtkTextBuffer* chat_buffer;
     GtkAdjustment* chat_adjustment;
     GtkTextTagTable* tag_table;
-    GHashTable* twitch_emotes;
     GtkWidget* main_stack;
     GtkWidget* connecting_revealer;
 
@@ -112,6 +126,96 @@ send_msg_from_entry(GtChat* self)
     gt_irc_privmsg(priv->chat, msg);
 
     gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), "");
+}
+
+static void
+emote_activated_cb(GtkFlowBox* box,
+                   GtkFlowBoxChild* child,
+                   gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+    GtkWidget* image = gtk_bin_get_child(GTK_BIN(child));
+    const gchar* code = g_object_get_data(G_OBJECT(image), "code");
+    const gchar* text = gtk_entry_get_text(GTK_ENTRY(priv->chat_entry));
+    gchar* new_text = NULL;
+
+    if (strlen(text) == 0 || text[strlen(text) - 1] == ' ')
+        new_text = g_strdup_printf("%s%s ", text, code);
+    else
+        new_text = g_strdup_printf("%s %s ", text, code);
+
+    gtk_entry_set_text(GTK_ENTRY(priv->chat_entry), new_text);
+
+    g_free(new_text);
+}
+
+static void
+emote_icon_press_cb(GtkEntry* entry,
+                    GtkEntryIconPosition* pos,
+                    GdkEvent* evt,
+                    gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+    GdkRectangle rec;
+
+    gtk_entry_get_icon_area(entry, GTK_ENTRY_ICON_SECONDARY, &rec);
+    gtk_popover_set_pointing_to(GTK_POPOVER(priv->emote_popover), &rec);
+    gtk_widget_show(priv->emote_popover);
+}
+
+static gint
+int_compare(const GtEmote* a, const GtEmote* b)
+{
+    return a->id - b->id;
+}
+
+static void
+emoticons_cb(GObject* source,
+             GAsyncResult* res,
+             gpointer udata)
+{
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+    GError* error = NULL;
+    GList* emoticons = NULL;
+
+    emoticons = g_task_propagate_pointer(G_TASK(res), &error);
+
+    if (error)
+    {
+        //TODO: Show this error to user
+        WARNING("Couldn't get emoticons list");
+        return;
+    }
+
+    utils_container_clear(GTK_CONTAINER(priv->emote_flow));
+
+    emoticons = g_list_sort(emoticons, (GCompareFunc) int_compare);
+
+    for (GList* l = emoticons; l != NULL; l = l->next)
+    {
+        GtEmote* emote = l->data;
+        GtkWidget* image = gtk_image_new_from_pixbuf(emote->pixbuf);
+        gchar* code = NULL;;
+
+        gtk_widget_set_visible(image, TRUE);
+
+        if (emote->id < 15)
+            code = emote_replacement_codes[emote->id];
+        else
+            code = emote->code;
+
+        gtk_widget_set_tooltip_text(image, code);
+
+        g_object_set_data_full(G_OBJECT(image), "code",
+            g_strdup(code), g_free);
+
+        gtk_flow_box_insert(GTK_FLOW_BOX(priv->emote_flow), image, -1);
+    }
+
+    gt_emote_list_free(emoticons);
 }
 
 static gboolean
@@ -238,6 +342,14 @@ irc_source_cb(GtIrcMessage* msg,
         if (priv->chat_sticky)
             gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(priv->chat_view), priv->bottom_mark);
     }
+    else if (msg->cmd_type == GT_IRC_COMMAND_USERSTATE)
+    {
+        const gchar* emote_sets = utils_search_key_value_strv(msg->tags, "emote-sets");
+
+        gt_twitch_emoticons_async(main_app->twitch, emote_sets,
+                                  (GAsyncReadyCallback) emoticons_cb,
+                                  NULL, self);
+    }
 
     gt_irc_message_free(msg);
 
@@ -332,7 +444,7 @@ chat_view_motion_cb(GtkWidget* widget,
                                           &x, &y);
 
     gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(widget),
-                                       &iter, x, y);
+        &iter, x, y);
 
     tags = gtk_text_iter_get_tags(&iter);
 
@@ -579,6 +691,8 @@ gt_chat_class_init(GtChatClass* klass)
     gtk_widget_class_bind_template_child_private(widget_class, GtChat, main_stack);
     gtk_widget_class_bind_template_child_private(widget_class, GtChat, error_label);
     gtk_widget_class_bind_template_child_private(widget_class, GtChat, connecting_revealer);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, emote_popover);
+    gtk_widget_class_bind_template_child_private(widget_class, GtChat, emote_flow);
     gtk_widget_class_bind_template_callback(widget_class, reconnect_cb);
 
     props[PROP_DARK_THEME] = g_param_spec_boolean("dark-theme",
@@ -643,7 +757,6 @@ gt_chat_init(GtChat* self)
     priv->chat_scroll_vbar = gtk_scrolled_window_get_vscrollbar(GTK_SCROLLED_WINDOW(priv->chat_scroll));
     priv->chat_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(priv->chat_view));
     priv->tag_table = gtk_text_buffer_get_tag_table(priv->chat_buffer);
-    priv->twitch_emotes = g_hash_table_new(g_direct_hash, g_direct_equal);
     gtk_text_buffer_get_end_iter(priv->chat_buffer, &priv->bottom_iter);
     priv->bottom_mark = gtk_text_buffer_create_mark(priv->chat_buffer, "end", &priv->bottom_iter, TRUE);
     priv->chat_adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll));
@@ -668,6 +781,8 @@ gt_chat_init(GtChat* self)
     g_signal_connect(priv->chat_scroll, "scroll-event", G_CALLBACK(chat_scrolled_cb), self);
     g_signal_connect(priv->chat_scroll_vbar, "button-press-event", G_CALLBACK(chat_scrolled_cb), self);
     g_signal_connect(priv->chat_adjustment, "value-changed", G_CALLBACK(value_changed), self);
+    g_signal_connect(priv->chat_entry, "icon-press", G_CALLBACK(emote_icon_press_cb), self);
+    g_signal_connect(priv->emote_flow, "child-activated", G_CALLBACK(emote_activated_cb), self);
 
     g_object_bind_property(priv->chat, "logged-in",
                            priv->connecting_revealer, "reveal-child",
@@ -697,7 +812,7 @@ gt_chat_connect(GtChat* self, const gchar* chan)
     g_clear_object(&priv->chat_badges_cancel);
     priv->chat_badges_cancel = g_cancellable_new();
 
-    gt_chat_badges_async(main_app->twitch, chan,
+    gt_twitch_chat_badges_async(main_app->twitch, chan,
                                 priv->chat_badges_cancel,
                                 (GAsyncReadyCallback) chat_badges_cb, self);
 }

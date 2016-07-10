@@ -61,8 +61,6 @@ typedef struct
     gboolean connected;
     gboolean recv_logged_in;
     gboolean send_logged_in;
-
-    GHashTable* emote_table;
 } GtIrcPrivate;
 
 struct _GtTwitchChatSource
@@ -410,15 +408,7 @@ parse_line(GtIrc* self, gchar* line)
                     emp->start = atoi(strsep(&i, "-"));
                     emp->end = atoi(strsep(&i, "-"));
                     emp->id = id;
-
-                    if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
-                    {
-                        g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
-                                            gt_twitch_download_emote(main_app->twitch, id));
-                    }
-
-                    emp->pixbuf = g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id));
-                    g_object_ref(emp->pixbuf);
+                    emp->pixbuf = gt_twitch_download_emote(main_app->twitch, id);
 
                     msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
                 }
@@ -470,7 +460,7 @@ parse_line(GtIrc* self, gchar* line)
             msg->cmd.clearchat->target = g_strdup(strsep(&line, ":"));
             break;
         default:
-            g_warning("{GtIrc} Unhandled irc command '%s'", cmd);
+            WARNINGF("Unhandled IRC command '%s'", cmd);
             break;
     }
 
@@ -692,7 +682,6 @@ gt_irc_init(GtIrc* self)
     priv->connected = FALSE;
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
-    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
@@ -944,13 +933,6 @@ gt_irc_is_logged_in(GtIrc* self)
     return priv->recv_logged_in && priv->send_logged_in;
 }
 
-static void
-gt_emote_free(GtEmote* emote)
-{
-    g_object_unref(emote->pixbuf);
-    g_clear_pointer(&emote, g_free);
-}
-
 void
 gt_irc_message_free(GtIrcMessage* msg)
 {
@@ -1020,4 +1002,17 @@ gt_irc_message_free(GtIrcMessage* msg)
     }
 
     g_free(msg);
+}
+
+void
+gt_emote_free(GtEmote* emote)
+{
+    g_object_unref(emote->pixbuf);
+    g_clear_pointer(&emote, g_free);
+}
+
+void
+gt_emote_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_emote_free);
 }
