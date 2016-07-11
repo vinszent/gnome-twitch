@@ -21,6 +21,7 @@
                     <property name="margin-top">7</property>
                     <property name="margin-right">7</property>
                     <property name="margin-left">7</property>
+                    <property name="hscrollbar-policy">external</property>
                     <child>
                       <object class="GtkTextView" id="chat_view">
                         <property name="visible">True</property>
