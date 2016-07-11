@@ -47,6 +47,8 @@ typedef struct
     gboolean chat_visible;
     gboolean chat_dark_theme;
     gdouble docked_handle_position;
+
+    guint inhibitor_cookie;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -464,6 +466,11 @@ streams_list_cb(GObject* source,
     g_object_set(self, "playing", FALSE, NULL);
     g_object_set(priv->backend, "uri", stream->url, NULL);
     g_object_set(self, "playing", TRUE, NULL);
+
+    priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
+                                                     GTK_WINDOW(GTK_WINDOW(GT_WIN_TOPLEVEL(self))),
+                                                     GTK_APPLICATION_INHIBIT_IDLE,
+                                                     "Playing a stream");
 }
 
 static void
@@ -821,9 +828,12 @@ gt_player_play(GtPlayer* self)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (!priv->backend)
-        g_message("{GtPlayer} Can't play, no backend loaded");
+        MESSAGE("Can't play, no backend loaded");
     else
+    {
+        MESSAGE("Playing");
         g_object_set(priv->backend, "playing", TRUE, NULL);
+    }
 }
 
 void
@@ -832,9 +842,12 @@ gt_player_stop(GtPlayer* self)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (!priv->backend)
-        g_message("{GtPlayer} Can't stop, no backend loaded");
+        MESSAGE("Can't stop, no backend loaded");
     else
+    {
+        MESSAGE("Stopping");
         g_object_set(priv->backend, "playing", FALSE, NULL);
+    }
 }
 
 void
@@ -915,6 +928,12 @@ gt_player_close_channel(GtPlayer* self)
     gt_chat_disconnect(GT_CHAT(priv->chat_view));
 
     gt_player_stop(self);
+
+    if (priv->inhibitor_cookie)
+    {
+        gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
+        priv->inhibitor_cookie = 0;
+    }
 }
 
 void
