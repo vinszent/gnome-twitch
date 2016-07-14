@@ -192,15 +192,17 @@ static void
 send_cmd_printf(GOutputStream* ostream, const gchar* cmd, const gchar* format, ...)
 {
     va_list args;
-    gchar param[512];
+    gchar* param = NULL;
 
     va_start(args, format);
-    g_vsprintf(param, format, args);
+    param = g_strdup_vprintf(format, args);
     va_end(args);
 
     g_info("{GtIrc} Sending command '%s' with parameter '%s'", cmd, param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
+
+    g_free(param);
 }
 
 static gboolean

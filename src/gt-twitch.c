@@ -350,9 +350,10 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
     JsonNode* node;
     JsonReader* reader;
     GtTwitchStreamAccessToken* ret = NULL;
-    gchar uri[100];
+    gchar* uri = NULL;
 
-    g_sprintf(uri, ACCESS_TOKEN_URI, channel);
+    uri = g_strdup_printf(ACCESS_TOKEN_URI, channel);
+
     msg = soup_message_new("GET", uri);
 
     if (!send_message(self, msg))
@@ -380,6 +381,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
     g_object_unref(reader);
     g_object_unref(parser);
 finish:
+    g_free(uri);
     g_object_unref(msg);
 
     return ret;
@@ -431,7 +433,7 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
-    gchar uri[500];
+    gchar* uri = NULL;
     GtTwitchStreamAccessToken* token;
     GList* ret = NULL;
 
@@ -439,7 +441,7 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
 
     g_return_val_if_fail(token != NULL, NULL);
 
-    g_sprintf(uri, STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
+    uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
     msg = soup_message_new("GET", uri);
 
     if (!send_message(self, msg))
@@ -451,6 +453,7 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
     ret = parse_playlist(msg->response_body->data);
 
 finish:
+    g_free(uri);
     g_object_unref(msg);
     gt_twitch_stream_access_token_free(token);
 
@@ -1211,7 +1214,7 @@ gt_chat_badges(GtTwitch* self, const gchar* chan)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
-    gchar uri[100];
+    gchar* uri = NULL;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
@@ -1219,7 +1222,7 @@ gt_chat_badges(GtTwitch* self, const gchar* chan)
 
     g_info("{GtTwitch} Getting chat badges for channel '%s'", chan);
 
-    g_sprintf(uri, CHAT_BADGES_URI, chan);
+    uri = g_strdup_printf(CHAT_BADGES_URI, chan);
 
     msg = soup_message_new("GET", uri);
 
@@ -1285,6 +1288,7 @@ gt_chat_badges(GtTwitch* self, const gchar* chan)
     g_object_unref(reader);
 
 finish:
+    g_free(uri);
     g_object_unref(msg);
 
     return ret;
@@ -1357,7 +1361,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
-    gchar uri[100];
+    gchar* uri = NULL;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
@@ -1365,7 +1369,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 
     g_info("{GtTwitch} Getting channel info for '%s'", chan);
 
-    g_sprintf(uri, CHANNEL_INFO_URI, chan);
+    uri = g_strdup_printf(CHANNEL_INFO_URI, chan);
 
     msg = soup_message_new("GET", uri);
 
@@ -1441,6 +1445,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
     g_object_unref(reader);
 
 finish:
+    g_free(uri);
     g_object_unref(msg);
 
     return ret;
