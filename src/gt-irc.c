@@ -174,16 +174,25 @@ static void
 send_raw_printf(GOutputStream* ostream, const gchar* format, ...)
 {
     va_list args;
+    gchar* param = NULL;
 
     va_start(args, format);
-    g_output_stream_vprintf(ostream, NULL, NULL, NULL, format, args);
+    param = g_strdup_vprintf(format, args);
+    va_end(args);
+
+    DEBUGF("Sending raw command on osteam='%s' with parameter='%s'",
+           (gchar*) g_object_get_data(G_OBJECT(ostream), "type"), param);
+
+    va_start(args, format);
+    g_output_stream_printf(ostream, NULL, NULL, NULL, "%s", param);
     va_end(args);
 }
 
 static void
 send_cmd(GOutputStream* ostream, const gchar* cmd, const gchar* param)
 {
-    g_info("{GtIrc} Sending command '%s' with parameter '%s'", cmd, param);
+    DEBUGF("Sending command='%s' on ostream='%s' with parameter='%s'",
+           cmd, (gchar*) g_object_get_data(G_OBJECT(ostream), "type"), param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 }
@@ -198,7 +207,8 @@ send_cmd_printf(GOutputStream* ostream, const gchar* cmd, const gchar* format, .
     param = g_strdup_vprintf(format, args);
     va_end(args);
 
-    g_info("{GtIrc} Sending command '%s' with parameter '%s'", cmd, param);
+    DEBUGF("Sending command='%s' on ostream='%s' with parameter='%s'",
+           cmd, (gchar*) g_object_get_data(G_OBJECT(ostream), "type"), param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 
@@ -322,7 +332,7 @@ parse_line(GtIrc* self, gchar* line)
     gchar* prefix = NULL;
     GtIrcMessage* msg = g_new0(GtIrcMessage, 1);
 
-//    g_print("%s\n", line);
+    TRACEF("Received line='%s", line);
 
     if (line[0] == '@')
     {
@@ -498,7 +508,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 
                 g_error_free(err);
 
-                g_warning("{GtIrc} Unable to log in on recive socket, server replied '%s'",
+                WARNINGF("Unable to log in on recive socket, server replied with message='%s'",
                           msg->cmd.notice->msg);
 
                 return FALSE;
@@ -536,7 +546,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 
                 g_error_free(err);
 
-                g_warning("{GtIrc} Unable to log in on send socket, server replied '%s'",
+                WARNINGF("Unable to log in on send socket, server replied with message='%s'",
                           msg->cmd.notice->msg);
 
                 return FALSE;
@@ -558,16 +568,13 @@ read_lines(ChatThreadData* data)
     GtIrc* self = GT_IRC(data->self);
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    gchar buf[512];
-    gsize count = 512;
     gsize read = 0;
-    gsize read1 = 0;
     GError* err = NULL;
 
     if (data->istream == priv->istream_recv)
-        g_message("{GtIrc} Running chat worker thread for receive");
+        INFO("Running chat worker thread for receive");
     else if (data->istream == priv->istream_send)
-        g_message("{GtIrc} Running chat worker thread for send");
+        INFO("{GtIrc} Running chat worker thread for send");
 
     for (gchar* line = g_data_input_stream_read_line(data->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(data->istream, &read, NULL, &err))
@@ -578,20 +585,15 @@ read_lines(ChatThreadData* data)
         if (line)
         {
             GtIrcMessage* msg = parse_line(self, line);
-            /* g_print("Nick %s\n", msg->nick); */
-            /* g_print("User %s\n", msg->user); */
-            /* g_print("Host %s\n", msg->host); */
-            /* g_print("Command %s\n", msg->command); */
-            /* g_print("Params %s\n", msg->params); */
 
             if (!handle_message(self, data->ostream, msg))
                 break;
         }
     }
     if (data->istream == priv->istream_recv)
-        g_message("{GtIrc} Stopping chat worker thread for receive");
+        INFO("Stopping chat worker thread for receive");
     else if (data->istream == priv->istream_send)
-        g_message("{GtIrc} Stopping chat worker thread for send");
+        INFO("Stopping chat worker thread for send");
 }
 
 static void
@@ -704,7 +706,8 @@ gt_irc_connect(GtIrc* self,
     ChatThreadData* recv_data;
     ChatThreadData* send_data;
 
-    g_message("{GtIrc} Connecting");
+    MESSAGEF("Connecting with nick='%s', host='%s' and port='%d'",
+             nick, host, port);
 
     addr = g_network_address_new(host, port);
     sock_client = g_socket_client_new();
@@ -730,10 +733,12 @@ gt_irc_connect(GtIrc* self,
     priv->istream_recv = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_recv)));
     g_data_input_stream_set_newline_type(priv->istream_recv, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_recv = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_recv));
+    g_object_set_data_full(G_OBJECT(priv->ostream_recv), "type", "receive", g_free);
 
     priv->istream_send = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_send)));
     g_data_input_stream_set_newline_type(priv->istream_send, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_send = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_send));
+    g_object_set_data_full(G_OBJECT(priv->ostream_send), "type", "send", g_free);
 
     send_data = g_new(ChatThreadData, 2);
     recv_data = send_data + 1;
@@ -790,7 +795,7 @@ gt_irc_disconnect(GtIrc* self)
 
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 
-        g_message("{GtIrc} Disconnecting");
+        MESSAGE("Disconnecting");
 
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
@@ -826,7 +831,7 @@ gt_irc_join(GtIrc* self, const gchar* channel)
 
     priv->cur_chan = chan;
 
-    g_message("{GtIrc} Joining channel '%s'", chan);
+    MESSAGEF("Joining with channel='%s'", chan);
 
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_JOIN, chan);
     send_cmd(priv->ostream_send, CHAT_CMD_STR_JOIN, chan);
@@ -836,12 +841,11 @@ void
 gt_irc_part(GtIrc* self)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
-    gint len;
 
     g_return_if_fail(priv->connected);
     g_return_if_fail(priv->cur_chan != NULL);
 
-    g_message("{GtIrc} Parting channel '%s'", priv->cur_chan);
+    MESSAGEF("Parting with channel='%s'", priv->cur_chan);
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_PART, priv->cur_chan);
     send_cmd(priv->ostream_send, CHAT_CMD_STR_PART, priv->cur_chan);
 

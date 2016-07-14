@@ -92,7 +92,7 @@ finalise(GObject* obj)
     g_settings_set_double(main_app->settings, "volume",
                           priv->muted ? priv->prev_volume : priv->volume);
 
-    g_message("{GtPlayer} Finalise");
+    MESSAGE("{GtPlayer} Finalise");
 }
 
 static void
@@ -527,7 +527,7 @@ plugin_loaded_cb(PeasEngine* engine,
     {
         PeasExtension* ext;
 
-        g_message("{GtPlayer} Loaded player backend '%s'", peas_plugin_info_get_name(info));
+        MESSAGEF("Loaded player backend '%s'", peas_plugin_info_get_name(info));
 
         if (priv->backend_info)
         {
@@ -584,7 +584,7 @@ plugin_unloaded_cb(PeasEngine* engine,
 
     if (peas_engine_provides_extension(engine, info, GT_TYPE_PLAYER_BACKEND))
     {
-        g_message("{GtPlayer} Unloaded player backend '%s'", peas_plugin_info_get_name(info));
+        MESSAGEF("Unloaded player backend '%s'", peas_plugin_info_get_name(info));
 
         gtk_container_remove(GTK_CONTAINER(priv->player_overlay),
                              gt_player_backend_get_widget(priv->backend));
@@ -862,7 +862,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     if (!priv->backend)
     {
-        g_message("{GtPlayer} Can't open channel, no backend loaded");
+        MESSAGE("Can't open channel, no backend loaded");
         return;
     }
 
@@ -884,7 +884,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     default_quality = g_settings_get_value(main_app->settings, "default-quality");
     priv->quality = g_settings_get_enum(main_app->settings, "default-quality");
 
-    g_message("{GtPlayer} Opening stream '%s' with quality '%s'", name, g_variant_get_string(default_quality, NULL));
+    MESSAGEF("Opening stream '%s' with quality '%s'", name, g_variant_get_string(default_quality, NULL));
 
     quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
     g_action_change_state(quality_action, default_quality);

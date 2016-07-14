@@ -176,20 +176,25 @@ static gboolean
 send_message(GtTwitch* self, SoupMessage* msg)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-
+    gboolean ret;
     char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 
-    g_info("{GtTwitch} Sending message to uri '%s'", uri);
+    DEBUGF("Sending message to uri '%s'", uri);
 
     soup_session_send_message(priv->soup, msg);
 
-    g_debug("{GtTwitch} Received code '%d' and response '%s'", msg->status_code, msg->response_body->data);
+    ret = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
 
-    /* g_print("\n\n%s\n\n", msg->response_body->data); */
+    if (ret)
+        TRACEF("Received response from url='%s' with code='%d' and body='%s'",
+               uri, msg->status_code, msg->response_body->data);
+    else
+        WARNINGF("Received unsuccessful response from url='%s' with code='%d' and body='%s'",
+                 uri, msg->status_code, msg->response_body->data);
 
     g_free(uri);
 
-    return SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
+    return ret;
 }
 
 static GDateTime*
@@ -368,7 +373,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting stream access token for channel '%s'", channel);
+        WARNINGF("Error getting stream access token for channel='%s'", channel);
         goto finish;
     }
 
@@ -456,7 +461,7 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get stream uris for channel '%s'", channel);
+        WARNINGF("Error sending message to get stream uris for channel='%s'", channel);
         goto finish;
     }
 
@@ -538,7 +543,6 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    JsonArray* channels;
     GList* ret = NULL;
 
     uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game);
@@ -546,7 +550,7 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get top channels");
+        WARNING("Error sending message to get top channels");
         goto finish;
     }
 
@@ -825,7 +829,7 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to search games");
+        WARNING("Error sending message to search games");
         goto finish;
     }
 
@@ -985,7 +989,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get raw channel data for channel '%s'", name);
+        WARNINGF("Error sending message to get raw channel data for channel='%s'", name);
         goto finish;
     }
 
@@ -1130,7 +1134,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
-    g_info("{GtTwitch} Downloading picture from url '%s'", url);
+    DEBUGF("Downloading picture from url='%s'", url);
 
     if (!url || strlen(url) < 1)
         return NULL;
@@ -1196,7 +1200,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
 
         url = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
 
-        INFOF("Downloading emote form url '%s'", url);
+        DEBUGF("Downloading emote form url='%s'", url);
 
         g_hash_table_insert(priv->emote_table,
                             GINT_TO_POINTER(id),
@@ -1244,7 +1248,7 @@ gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
     JsonReader* reader;
     GtChatBadges* ret = NULL;
 
-    g_info("{GtTwitch} Getting chat badges for channel '%s'", chan);
+    INFOF("Getting chat badges for channel='%s'", chan);
 
     uri = g_strdup_printf(CHAT_BADGES_URI, chan);
 
@@ -1391,7 +1395,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
     JsonReader* reader;
     GList* ret = NULL;
 
-    g_info("{GtTwitch} Getting channel info for '%s'", chan);
+    INFOF("Getting channel info for='%s'", chan);
 
     uri = g_strdup_printf(CHANNEL_INFO_URI, chan);
 
@@ -1399,7 +1403,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting chat badges for channel '%s'", chan);
+        WARNINGF("Error getting chat badges for channel='%s'", chan);
         goto finish;
     }
 
@@ -1576,7 +1580,7 @@ gt_twitch_follows(GtTwitch* self, const gchar* user_name,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get follows");
+        WARNING("{GtTwitch} Error sending message to get follows");
         goto finish;
     }
 
@@ -1703,7 +1707,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get follows");
+        WARNING("Error sending message to get follows");
         goto finish;
     }
 
@@ -1837,7 +1841,7 @@ gt_twitch_follow_channel(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to follow channel '%s'", chan_name);
+        WARNINGF("Error sending message to follow channel '%s'", chan_name);
 
         ret = FALSE;
     }
