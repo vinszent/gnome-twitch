@@ -116,3 +116,14 @@
     font-weight: lighter;
     font-size: small;
 }
+
+#chat-entry.popup-open image
+{
+    transition: 300ms ease-in-out;
+    color: lighter(currentColor);
+}
+
+#chat-entry image
+{
+    transition: 300ms ease-in-out;
+}

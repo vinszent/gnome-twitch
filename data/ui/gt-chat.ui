@@ -48,6 +48,7 @@
                     <property name="margin-right">7</property>
                     <property name="margin-left">7</property>
                     <property name="secondary-icon-name">face-smile-symbolic</property>
+                    <property name="name">chat-entry</property>
                   </object>
                 </child>
               </object>

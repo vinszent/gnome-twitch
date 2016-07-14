@@ -151,6 +151,13 @@ emote_activated_cb(GtkFlowBox* box,
 }
 
 static void
+emote_popup_closed_cb(GtkPopover* popover,
+                      gpointer udata)
+{
+    REMOVE_STYLE_CLASS(udata, "popup-open");
+}
+
+static void
 emote_icon_press_cb(GtkEntry* entry,
                     GtkEntryIconPosition* pos,
                     GdkEvent* evt,
@@ -163,6 +170,9 @@ emote_icon_press_cb(GtkEntry* entry,
     gtk_entry_get_icon_area(entry, GTK_ENTRY_ICON_SECONDARY, &rec);
     gtk_popover_set_pointing_to(GTK_POPOVER(priv->emote_popover), &rec);
     gtk_widget_show(priv->emote_popover);
+    g_signal_connect(priv->emote_popover, "closed", G_CALLBACK(emote_popup_closed_cb), entry);
+
+    ADD_STYLE_CLASS(entry, "popup-open");
 }
 
 static gint
