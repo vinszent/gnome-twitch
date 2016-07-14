@@ -6,6 +6,9 @@
 #include "gt-app.h"
 #include "config.h"
 
+#define TAG "Main"
+#include "utils.h"
+
 #ifdef GDK_WINDOWING_X11
 #include <X11/Xlib.h>
 #endif
@@ -24,7 +27,7 @@ gchar* ORIGINAL_LOCALE;
 
 static void
 gt_log(const gchar* domain,
-       GLogLevelFlags _level,
+       gint _level,
        const gchar* msg,
        gpointer udata)
 {
@@ -33,37 +36,46 @@ gt_log(const gchar* domain,
     gchar* time_fmt = NULL;
     gchar* colour = WHT;
 
-    if (_level > LOG_LEVEL)
+    if ((_level >= 1 << G_LOG_LEVEL_USER_SHIFT //GT levels
+         && _level > LOG_LEVEL) ||
+        (_level < 1 << G_LOG_LEVEL_USER_SHIFT //GLib levels
+         && _level > G_LOG_LEVEL_WARNING))
+    {
         return;
+    }
 
     switch (_level)
     {
         case G_LOG_LEVEL_ERROR:
+        case GT_LOG_LEVEL_ERROR:
             level = "Error";
             colour = RED;
             break;
         case G_LOG_LEVEL_CRITICAL:
+        case GT_LOG_LEVEL_CRITICAL:
             level = "Critical";
-            colour = RED;
+            colour = YEL;
             break;
         case G_LOG_LEVEL_WARNING:
+        case GT_LOG_LEVEL_WARNING:
             level = "Warning";
             colour = MAG;
             break;
-        case G_LOG_LEVEL_MESSAGE:
+        case GT_LOG_LEVEL_MESSAGE:
             level = "Message";
             colour = GRN;
             break;
         case G_LOG_LEVEL_INFO:
+        case GT_LOG_LEVEL_INFO:
             level = "Info";
             colour = CYN;
             break;
-        case G_LOG_LEVEL_DEBUG:
+        case GT_LOG_LEVEL_DEBUG:
             level = "Debug";
             colour = BLU;
             break;
-        case G_LOG_LEVEL_MASK:
-            level = "All";
+        case GT_LOG_LEVEL_TRACE:
+            level = "Trace";
             break;
         default:
             level = "Unknown";

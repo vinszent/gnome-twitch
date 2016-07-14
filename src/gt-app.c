@@ -24,7 +24,7 @@ typedef struct
     GMenuModel* app_menu;
 } GtAppPrivate;
 
-gint LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
 gboolean NO_FANCY_LOGGING = FALSE;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
@@ -53,17 +53,19 @@ set_log_level(const gchar* name,
               GError** err)
 {
     if (g_strcmp0(arg, "error") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_ERROR;
+        LOG_LEVEL = GT_LOG_LEVEL_ERROR;
     else if (g_strcmp0(arg, "critical") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_CRITICAL;
+        LOG_LEVEL = GT_LOG_LEVEL_CRITICAL;
     else if (g_strcmp0(arg, "warning") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_WARNING;
+        LOG_LEVEL = GT_LOG_LEVEL_WARNING;
     else if (g_strcmp0(arg, "message") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+        LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
     else if (g_strcmp0(arg, "info") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_INFO;
+        LOG_LEVEL = GT_LOG_LEVEL_INFO;
     else if (g_strcmp0(arg, "debug") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_DEBUG;
+        LOG_LEVEL = GT_LOG_LEVEL_DEBUG;
+    else if (g_strcmp0(arg, "trace") == 0)
+        LOG_LEVEL = GT_LOG_LEVEL_TRACE;
     else
         WARNING("Invalid logging level"); //TODO: Use g_set_error and return false
 
@@ -114,7 +116,7 @@ load_chat_settings(GtApp* self)
     GList* ele = NULL;
     GError* err = NULL;
 
-    g_message("{GtApp} Loading chat settings");
+    MESSAGE("Loading chat settings");
 
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
         goto finish;
@@ -123,7 +125,7 @@ load_chat_settings(GtApp* self)
 
     if (err)
     {
-        g_warning("{GtApp} Error loading chat settings '%s'", err->message);
+        WARNINGF("Error loading chat settings '%s'", err->message);
         goto finish;
     }
 
@@ -172,7 +174,7 @@ save_chat_settings(GtApp* self)
     GList* keys = g_hash_table_get_keys(self->chat_settings_table);
     GError* err = NULL;
 
-    g_message("{GtApp} Saving chat settings");
+    MESSAGE("{GtApp} Saving chat settings");
 
     for (GList* l = keys; l != NULL; l = l->next)
     {
@@ -202,7 +204,7 @@ save_chat_settings(GtApp* self)
     json_generator_to_file(generator, fp, &err);
 
     if (err)
-        g_warning("{GtApp} Error saving chat settings '%s'", err->message);
+        WARNINGF("Error saving chat settings '%s'", err->message);
 
     json_node_free(root);
     g_object_unref(generator);
@@ -235,19 +237,19 @@ init_dirs()
     fp = g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating data directory");
+        WARNING("Error creating data directory");
     g_free(fp);
 
     fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating channel cache directory");
+        WARNING("Error creating channel cache directory");
     g_free(fp);
 
     fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating game cache directory");
+        WARNING("Error creating game cache directory");
     g_free(fp);
 }
 
@@ -257,7 +259,7 @@ quit_cb(GSimpleAction* action,
         GVariant* par,
         gpointer udata)
 {
-    g_message("{%s} Quitting", "GtApp");
+    MESSAGE("Quitting");
 
     GtApp* self = GT_APP(udata);
 
@@ -278,7 +280,7 @@ activate(GApplication* app)
 
     G_APPLICATION_CLASS(gt_app_parent_class)->activate(app);
 
-    g_message("{%s} Activate", "GtApp");
+    MESSAGE("Activate");
 
     priv->win = gt_win_new(self);
 
@@ -360,7 +362,7 @@ shutdown(GApplication* app)
 
     GtApp* self = GT_APP(app);
 
-    g_message("{GtApp} Shutting down");
+    MESSAGE("{GtApp} Shutting down");
 
     save_chat_settings(self);
 
@@ -378,7 +380,7 @@ finalize(GObject* object)
     GtApp* self = (GtApp*) object;
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    g_message("{GtApp} Finalise");
+    DEBUG("{GtApp} Finalise");
 
     G_OBJECT_CLASS(gt_app_parent_class)->finalize(object);
 }
@@ -481,8 +483,8 @@ gt_app_init(GtApp* self)
 
     ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
     ADD_PLUGINS_PATH(g_get_user_data_dir(), "player-backends");
-    ADD_PLUGINS_PATH(GT_LIB_DIR, "recorder-backends");
-    ADD_PLUGINS_PATH(g_get_user_data_dir(), "recorder-backends");
+//    ADD_PLUGINS_PATH(GT_LIB_DIR, "recorder-backends");
+//    ADD_PLUGINS_PATH(g_get_user_data_dir(), "recorder-backends");
 
 #undef ADD_PLUGINS_PATH
 
