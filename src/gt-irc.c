@@ -733,12 +733,12 @@ gt_irc_connect(GtIrc* self,
     priv->istream_recv = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_recv)));
     g_data_input_stream_set_newline_type(priv->istream_recv, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_recv = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_recv));
-    g_object_set_data_full(G_OBJECT(priv->ostream_recv), "type", "receive", g_free);
+    g_object_set_data(G_OBJECT(priv->ostream_recv), "type", "receive");
 
     priv->istream_send = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_send)));
     g_data_input_stream_set_newline_type(priv->istream_send, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
     priv->ostream_send = g_io_stream_get_output_stream(G_IO_STREAM(priv->irc_conn_send));
-    g_object_set_data_full(G_OBJECT(priv->ostream_send), "type", "send", g_free);
+    g_object_set_data(G_OBJECT(priv->ostream_send), "type", "send");
 
     send_data = g_new(ChatThreadData, 2);
     recv_data = send_data + 1;
