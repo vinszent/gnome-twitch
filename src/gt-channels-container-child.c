@@ -94,19 +94,19 @@ viewers_converter(GBinding* bind,
                   gpointer udata)
 {
     gint64 viewers;
-    gchar label[20];
+    gchar* label = NULL;
 
     if (g_value_get_int64(from) > -1)
     {
         viewers = g_value_get_int64(from);
 
         if (viewers > 1e4)
-            g_sprintf(label, _("%3.1fk"), (gdouble) viewers / 1e3);
+            label = g_strdup_printf(_("%3.1fk"), (gdouble) viewers / 1e3);
         else
-            g_sprintf(label, _("%ld"), viewers);
+            label = g_strdup_printf(_("%ld"), viewers);
     }
 
-    g_value_set_string(to, label);
+    g_value_take_string(to, label);
 
     return TRUE;
 }
@@ -117,7 +117,7 @@ time_converter(GBinding* bind,
                GValue* to,
                gpointer udata)
 {
-    gchar label[100];
+    gchar* label = NULL;
     GDateTime* now_time;
     GDateTime* stream_started_time;
     GTimeSpan dif;
@@ -130,14 +130,14 @@ time_converter(GBinding* bind,
         dif = g_date_time_difference(now_time, stream_started_time);
 
         if (dif > G_TIME_SPAN_HOUR)
-            g_sprintf(label, _("%2.1fh"), (gdouble) dif / G_TIME_SPAN_HOUR);
+            label = g_strdup_printf(_("%2.1fh"), (gdouble) dif / G_TIME_SPAN_HOUR);
         else
-            g_sprintf(label, _("%ldm"), dif / G_TIME_SPAN_MINUTE);
+            label  = g_strdup_printf(_("%ldm"), dif / G_TIME_SPAN_MINUTE);
 
         g_date_time_unref(now_time);
     }
 
-    g_value_set_string(to, label);
+    g_value_take_string(to, label);
 
     return TRUE;
 }

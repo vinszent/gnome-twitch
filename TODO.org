@@ -16,7 +16,6 @@ CLOSED: [2016-06-04 Sat 18:24]
 ** DONE Only save local favourites when list is populated.
 CLOSED: [2016-06-26 Sun 23:10]
 ** TODO Need to save prev_volume for player in settings or set a default volume.
-** TODO Convert g_printf_strdup to g_sprintf with stack strings where applicable.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
 ** DONE Change buffer progress bar to spinner.
