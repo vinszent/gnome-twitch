@@ -3,6 +3,7 @@
 #include "gt-game.h"
 #include "gt-app.h"
 #include "utils.h"
+#include "config.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
@@ -170,6 +171,8 @@ send_message(GtTwitch* self, SoupMessage* msg)
     char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 
     g_info("{GtTwitch} Sending message to uri '%s'", uri);
+
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
 
     soup_session_send_message(priv->soup, msg);
 
