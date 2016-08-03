@@ -27,6 +27,7 @@
 #define FOLLOWS_URI          "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
 #define FOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define OAUTH_INFO_URI       "https://api.twitch.tv/kraken?oauth_token=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -1931,6 +1932,95 @@ gt_twitch_unfollow_channel_async(GtTwitch* self,
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, unfollow_channel_async_cb);
+
+    g_object_unref(task);
+}
+
+gchar*
+gt_twitch_user_name(GtTwitch* self,
+                    GError** error)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    gchar* ret = NULL;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+
+    uri = g_strdup_printf(OAUTH_INFO_URI,
+                          gt_app_get_oauth_token(main_app));
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        //TODO: Use new logging function
+        g_warning("{GtTwitch} Unable to get username");
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_USER_NAME,
+                    "Unable to get username");
+
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "token");
+
+    json_reader_read_member(reader, "user_name");
+    ret = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+
+}
+
+static void
+user_name_async_cb(GTask* task,
+                  gpointer source,
+                  gpointer task_data,
+                  GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    gchar* ret = NULL;
+    GError* error = NULL;
+
+    ret = gt_twitch_user_name(data->twitch, &error);
+
+    if (!ret)
+        g_task_return_error(task, error);
+    else
+        g_task_return_pointer(task, ret, g_free);
+}
+
+void
+gt_twitch_user_name_async(GtTwitch* self,
+                          GAsyncReadyCallback cb,
+                          gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, user_name_async_cb);
 
     g_object_unref(task);
 }
