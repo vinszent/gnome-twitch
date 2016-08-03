@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: gnome-twitch
-Source: https://github.com/Ippytraxx/gnome-twitch
+Source: https://github.com/vinszent/gnome-twitch
 
 Files: *
 	Copyright: 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>

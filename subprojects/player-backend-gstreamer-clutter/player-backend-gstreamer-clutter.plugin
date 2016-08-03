@@ -3,6 +3,6 @@ Name = GStreamer Clutter player backend
 Module = player-backend-gstreamer-clutter
 Description = Gstreamer player backend using Clutter for rendering
 Authors = Vincent Szolnoky <ippytraxx@installgentoo.com>
-Website = https://github.com/Ippytraxx/gnome-twitch
+Website = https://github.com/vinszent/gnome-twitch
 License =  GPL3
 Loader = C

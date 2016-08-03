@@ -2,9 +2,9 @@
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 
-[![Issues in ready](https://badge.waffle.io/Ippytraxx/gnome-twitch.svg?label=ready&title=Ready)](http://waffle.io/Ippytraxx/gnome-twitch) [![Issues in progress](https://badge.waffle.io/Ippytraxx/gnome-twitch.svg?label=in%20progress&title=In%20progress)](http://waffle.io/Ippytraxx/gnome-twitch)
+[![Issues in ready](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=ready&title=Ready)](http://waffle.io/vinszent/gnome-twitch) [![Issues in progress](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=in%20progress&title=In%20progress)](http://waffle.io/vinszent/gnome-twitch)
 
-[![Gitter](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
+[![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/vinszent/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
 
 ## News
 ### Click [here](NEWS.md) for the entire news log
@@ -38,9 +38,9 @@ Same as above plus:
 #### Player backend - MPV OpenGL
 * mpv
 
-_Note: If you undo commit [c4b4955](https://github.com/Ippytraxx/gnome-twitch/commit/c4b49557dfed8465f273f2b5490002607baa5182) then gtk+-3.0 >= 3.16 can be used_
+_Note: If you undo commit [c4b4955](https://github.com/vinszent/gnome-twitch/commit/c4b49557dfed8465f273f2b5490002607baa5182) then gtk+-3.0 >= 3.16 can be used_
 
-_Note: If you undo commit [6382b8b](https://github.com/Ippytraxx/gnome-twitch/commit/6382b8b918306306da0c014cedb8f314ecd66a93) then meson => 0.26.0 can be used_
+_Note: If you undo commit [6382b8b](https://github.com/vinszent/gnome-twitch/commit/6382b8b918306306da0c014cedb8f314ecd66a93) then meson => 0.26.0 can be used_
 
 ### From source
 

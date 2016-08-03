@@ -1,6 +1,6 @@
 # Contributing
 ## Translating
-1. Clone the latest source: `git clone https://github.com/Ippytraxx/gnome-twitch`
+1. Clone the latest source: `git clone https://github.com/vinszent/gnome-twitch`
 2. Change to the clone directory: `cd gnome-twitch`
 3. Setup Meson: `mkdir build && meson . build`
 4. Create a new Gettext template: `cd build && ninja pot`
@@ -10,11 +10,11 @@
 8. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
 
 ## Development
-1. Clone the latest source: `git clone https://github.com/Ippytraxx/gnome-twitch`
+1. Clone the latest source: `git clone https://github.com/vinszent/gnome-twitch`
 2. Change to the clone directory: `cd gnome-twitch`
 3. Setup Meson: `mkdir build && meson . build`
 4. Create a new feature branch and switch to it: `git checkout -b myfeature`
-5. Write code. Feel free to drop the Gitter channel for help! [![Gitter](https://badges.gitter.im/Ippytraxx/gnome-twitch.svg)](https://gitter.im/Ippytraxx/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+5. Write code. Feel free to drop the Gitter channel for help! [![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/vinszent/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 6. Test your code: `cd build && ninja && ./src/gnome-twitch`
 7. Add your changes: `git add -A`
 8. Commit your changes: `git commit -m 'Short message'`
