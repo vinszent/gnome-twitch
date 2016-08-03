@@ -4,7 +4,7 @@ the hassle of flash or the web.
 
 [![Issues in ready](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=ready&title=Ready)](http://waffle.io/vinszent/gnome-twitch) [![Issues in progress](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=in%20progress&title=In%20progress)](http://waffle.io/vinszent/gnome-twitch)
 
-[![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/vinszent/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
+[![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/gnome-twitch/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
 
 ## News
 ### Click [here](NEWS.md) for the entire news log
