@@ -332,7 +332,7 @@ parse_line(GtIrc* self, gchar* line)
     gchar* prefix = NULL;
     GtIrcMessage* msg = g_new0(GtIrcMessage, 1);
 
-    TRACEF("Received line='%s", line);
+    TRACEF("Received line='%s'", line);
 
     if (line[0] == '@')
     {
