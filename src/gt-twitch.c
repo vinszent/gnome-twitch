@@ -2,6 +2,7 @@
 #include "gt-channel.h"
 #include "gt-game.h"
 #include "gt-app.h"
+#include "config.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
@@ -33,6 +34,7 @@
 #define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define USER_EMOTICONS_URI   "https://api.twitch.tv/kraken/users/%s/emotes"
 #define EMOTICON_IMAGES_URI  "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
+#define OAUTH_INFO_URI       "https://api.twitch.tv/kraken?oauth_token=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -180,6 +182,8 @@ send_message(GtTwitch* self, SoupMessage* msg)
     char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 
     DEBUGF("Sending message to uri '%s'", uri);
+
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
 
     soup_session_send_message(priv->soup, msg);
 
@@ -1996,7 +2000,6 @@ gt_twitch_emoticons(GtTwitch* self,
         goto finish;
     }
 
-
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
     node = json_parser_get_root(parser);
@@ -2089,6 +2092,95 @@ gt_twitch_emoticons_async(GtTwitch* self,
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, emoticon_images_async_cb);
+
+    g_object_unref(task);
+}
+
+gchar*
+gt_twitch_user_name(GtTwitch* self,
+                    GError** error)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    gchar* ret = NULL;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+
+    uri = g_strdup_printf(OAUTH_INFO_URI,
+                          gt_app_get_oauth_token(main_app));
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        //TODO: Use new logging function
+        g_warning("{GtTwitch} Unable to get username");
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_USER_NAME,
+                    "Unable to get username");
+
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "token");
+
+    json_reader_read_member(reader, "user_name");
+    ret = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+
+}
+
+static void
+user_name_async_cb(GTask* task,
+                  gpointer source,
+                  gpointer task_data,
+                  GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    gchar* ret = NULL;
+    GError* error = NULL;
+
+    ret = gt_twitch_user_name(data->twitch, &error);
+
+    if (!ret)
+        g_task_return_error(task, error);
+    else
+        g_task_return_pointer(task, ret, g_free);
+}
+
+void
+gt_twitch_user_name_async(GtTwitch* self,
+                          GAsyncReadyCallback cb,
+                          gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, user_name_async_cb);
 
     g_object_unref(task);
 }

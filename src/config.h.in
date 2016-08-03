@@ -3,5 +3,6 @@
 
 #define GT_LOCALE_DIR "@LOCALE_DIR@"
 #define GT_LIB_DIR "@LIB_DIR@"
+#define CLIENT_ID "afjnp6n4ufzott4atb3xpb8l5a31aav"
 
 #endif
