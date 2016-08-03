@@ -1,5 +1,6 @@
 #include "gt-settings-dlg.h"
 #include "gt-enums.h"
+#include <libpeas-gtk/peas-gtk.h>
 
 typedef struct
 {
@@ -108,6 +109,9 @@ static void
 gt_settings_dlg_init(GtSettingsDlg* self)
 {
     GtSettingsDlgPrivate* priv = gt_settings_dlg_get_instance_private(self);
+
+    //So it's not optimised away
+    volatile gpointer type = (gpointer) PEAS_GTK_TYPE_PLUGIN_MANAGER;
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
