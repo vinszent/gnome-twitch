@@ -812,6 +812,9 @@ gt_chat_connect(GtChat* self, const gchar* chan)
 {
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
+    if (gt_irc_is_connected(priv->chat)
+        && STRING_EQUALS(chan, priv->cur_chan)) return;
+
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
 
