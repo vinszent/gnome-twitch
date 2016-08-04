@@ -31,6 +31,8 @@ typedef struct
     gdouble volume;
     gboolean playing;
     gdouble buffer_fill;
+
+    gint mpv_event_cb_id;
 } GtPlayerBackendMpvOpenGLPrivate;
 
 static void gt_player_backend_iface_init(GtPlayerBackendInterface* iface);
@@ -96,13 +98,18 @@ mpv_event_cb(gpointer udata)
         }
     }
 
+    priv->mpv_event_cb_id = 0;
+
     return G_SOURCE_REMOVE;
 }
 
 static void
 mpv_wakeup_cb(gpointer udata)
 {
-    g_idle_add(mpv_event_cb, udata);
+    GtPlayerBackendMpvOpenGL* self = GT_PLAYER_BACKEND_MPV_OPENGL(udata);
+    GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
+
+    priv->mpv_event_cb_id = g_idle_add(mpv_event_cb, udata);
 }
 
 static void
@@ -303,6 +310,7 @@ finalise(GObject* obj)
     GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
 
     g_message("{GtPlayerBackendMpvOpenGL} Finalise");
+    if (priv->mpv_event_cb_id > 0) g_source_remove(priv->mpv_event_cb_id);
 
     mpv_set_wakeup_callback(priv->mpv, NULL, NULL);
     mpv_opengl_cb_set_update_callback(priv->mpv_opengl, NULL, NULL);
