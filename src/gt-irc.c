@@ -4,9 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
+#include "utils.h"
 
 #define TAG "GtIrc"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #define CHAT_RPL_STR_WELCOME    "001"
 #define CHAT_RPL_STR_YOURHOST   "002"

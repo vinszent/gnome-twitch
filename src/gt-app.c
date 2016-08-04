@@ -7,9 +7,10 @@
 #include <string.h>
 #include <json-glib/json-glib.h>
 #include <stdlib.h>
+#include "utils.h"
 
 #define TAG "GtApp"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 

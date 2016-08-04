@@ -5,9 +5,10 @@
 #include <locale.h>
 #include "gt-app.h"
 #include "config.h"
+#include "utils.h"
 
 #define TAG "Main"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #ifdef GDK_WINDOWING_X11
 #include <X11/Xlib.h>

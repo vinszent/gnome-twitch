@@ -3,9 +3,10 @@
 #include "gt-app.h"
 #include <string.h>
 #include <glib/gi18n.h>
+#include "utils.h"
 
 #define TAG "GtChannelsContainerSearch"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_search_parent_class)
 

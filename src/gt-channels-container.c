@@ -2,9 +2,10 @@
 #include "gt-channel.h"
 #include "gt-channels-container-child.h"
 #include "gt-win.h"
+#include "utils.h"
 
 #define TAG "GtChannelsContainer"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 typedef struct
 {

@@ -2,9 +2,10 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
 
 #define TAG "Utils"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 gpointer
 utils_value_ref_sink_object(const GValue* val)

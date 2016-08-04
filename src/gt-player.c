@@ -7,9 +7,11 @@
 #include "gnome-twitch/gt-player-backend.h"
 #include <libpeas-gtk/peas-gtk.h>
 #include <glib/gi18n.h>
+#include "utils.h"
 
 #define TAG "GtPlayer"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
+
 #define FULLSCREEN_BAR_REVEAL_HEIGHT 50
 
 typedef struct
@@ -92,7 +94,7 @@ finalise(GObject* obj)
     g_settings_set_double(main_app->settings, "volume",
                           priv->muted ? priv->prev_volume : priv->volume);
 
-    MESSAGE("{GtPlayer} Finalise");
+    MESSAGE("Finalise");
 }
 
 static void

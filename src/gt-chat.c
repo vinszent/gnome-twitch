@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <glib/gprintf.h>
 #include <locale.h>
+#include "utils.h"
 
 #define TAG "GtChat"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 //TODO: Replace copied text pixbufs with emoticon text
 

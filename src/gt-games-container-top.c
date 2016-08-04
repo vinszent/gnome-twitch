@@ -2,9 +2,10 @@
 #include "gt-app.h"
 #include "gt-twitch.h"
 #include <glib/gi18n.h>
+#include "utils.h"
 
 #define TAG "GtGamesContainerTop"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_top_parent_class)
 

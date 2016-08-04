@@ -16,9 +16,10 @@
 #include "gt-enums.h"
 #include "config.h"
 #include "version.h"
+#include "utils.h"
 
 #define TAG "GtWin"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 #define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
 
