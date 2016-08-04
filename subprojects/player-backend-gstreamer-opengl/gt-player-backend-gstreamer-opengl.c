@@ -2,6 +2,9 @@
 #include "gnome-twitch/gt-player-backend.h"
 #include <gst/gst.h>
 
+#define TAG "GtPlayerBackendGstreamerOpenGL"
+#include "gnome-twitch/gt-log.h"
+
 typedef struct
 {
     GstElement* playbin;
@@ -96,7 +99,7 @@ finalise(GObject* obj)
     GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(obj);
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
-    g_message("{GtPlayerBackendGstreamerOpenGL} Finalise");
+    MESSAGE("Finalise");
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_opengl_parent_class)->finalize(obj);
 
@@ -229,7 +232,7 @@ gt_player_backend_gstreamer_opengl_init(GtPlayerBackendGstreamerOpenGL* self)
 {
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
-    g_message("{GtPlayerBackendGstreamerOpenGL} Init");
+    MESSAGE("{GtPlayerBackendGstreamerOpenGL} Init");
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
     priv->video_sink = gst_element_factory_make("gtkglsink", NULL);

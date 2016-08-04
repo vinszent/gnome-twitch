@@ -3,6 +3,9 @@
 #include <clutter-gst/clutter-gst.h>
 #include <clutter-gtk/clutter-gtk.h>
 
+#define TAG "GtPlayerBackendGstreamerClutter"
+#include "gnome-twitch/gt-log.h"
+
 typedef struct
 {
     ClutterGstPlayback* player;
@@ -80,7 +83,7 @@ finalise(GObject* obj)
     GtPlayerBackendGstreamerClutter* self = GT_PLAYER_BACKEND_GSTREAMER_CLUTTER(obj);
     GtPlayerBackendGstreamerClutterPrivate* priv = gt_player_backend_gstreamer_clutter_get_instance_private(self);
 
-    g_message("{GtPlayerBackendGstreamerClutter} Finalise");
+    MESSAGE("Finalise");
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_clutter_parent_class)->finalize(obj);
 
@@ -211,7 +214,7 @@ gt_player_backend_gstreamer_clutter_init(GtPlayerBackendGstreamerClutter* self)
     GtPlayerBackendGstreamerClutterPrivate* priv = gt_player_backend_gstreamer_clutter_get_instance_private(self);
     static const ClutterColor bg_colour = {0x00, 0x00, 0x00, 0x00};
 
-    g_message("{GtPlayerBackendGstreamerClutter} Init");
+    MESSAGE("Init");
 
     priv->widget = gtk_clutter_embed_new();
     priv->stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(priv->widget));

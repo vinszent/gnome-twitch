@@ -2,6 +2,9 @@
 #include "gnome-twitch/gt-player-backend.h"
 #include <gst/gst.h>
 
+#define TAG "GtPlayerBackendGstreamerCairo"
+#include "gnome-twitch/gt-log.h"
+
 typedef struct
 {
     GstElement* playbin;
@@ -92,7 +95,7 @@ finalise(GObject* obj)
     GtPlayerBackendGstreamerCairo* self = GT_PLAYER_BACKEND_GSTREAMER_CAIRO(obj);
     GtPlayerBackendGstreamerCairoPrivate* priv = gt_player_backend_gstreamer_cairo_get_instance_private(self);
 
-    g_message("{GtPlayerBackendGstreamerCairo} Finalise");
+    MESSAGE("Finalise");
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_cairo_parent_class)->finalize(obj);
 
@@ -222,7 +225,7 @@ gt_player_backend_gstreamer_cairo_init(GtPlayerBackendGstreamerCairo* self)
 {
     GtPlayerBackendGstreamerCairoPrivate* priv = gt_player_backend_gstreamer_cairo_get_instance_private(self);
 
-    g_message("{GtPlayerBackendGstreamerCairo} Init");
+    MESSAGE("Init");
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
     priv->video_sink = gst_element_factory_make("gtksink", NULL);

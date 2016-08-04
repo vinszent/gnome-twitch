@@ -6,6 +6,9 @@
 #include <gdk/gdk.h>
 #include <locale.h>
 
+#define TAG "GtPlayerBackendMpvOpenGL"
+#include "gnome-twitch/gt-log.h"
+
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #include <epoxy/glx.h>
@@ -57,7 +60,7 @@ static inline void
 check_mpv_error(int status)
 {
     if (status < 0)
-        g_error("{GtPlayerMpv} Mpv error %s\n", mpv_error_string(status));
+        ERRORF("Mpv error %s\n", mpv_error_string(status));
 }
 
 static gboolean
@@ -309,7 +312,8 @@ finalise(GObject* obj)
     GtPlayerBackendMpvOpenGL* self = GT_PLAYER_BACKEND_MPV_OPENGL(obj);
     GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
 
-    g_message("{GtPlayerBackendMpvOpenGL} Finalise");
+    MESSAGE("Finalise");
+
     if (priv->mpv_event_cb_id > 0) g_source_remove(priv->mpv_event_cb_id);
 
     mpv_set_wakeup_callback(priv->mpv, NULL, NULL);
@@ -376,7 +380,7 @@ gt_player_backend_mpv_opengl_init(GtPlayerBackendMpvOpenGL* self)
 {
     GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
 
-    g_message("{GtPlayerBackendMpvOpenGL} Init");
+    MESSAGE("Init");
 
     setlocale(LC_NUMERIC, "C");
 
