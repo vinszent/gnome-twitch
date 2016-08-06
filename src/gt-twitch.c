@@ -1696,7 +1696,7 @@ gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
 }
 
 GList*
-gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
+gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1713,6 +1713,10 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
     if (!send_message(self, msg))
     {
         WARNING("Error sending message to get follows");
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL,
+                    "Unable to get Twitch follows");
+
         goto finish;
     }
 
@@ -1793,15 +1797,15 @@ follows_all_async_cb(GTask* task,
 {
     GenericTaskData* data = task_data;
     GList* ret;
+    GError* error = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_follows_all(data->twitch, data->str_1);
+    ret = gt_twitch_follows_all(data->twitch, data->str_1, &error);
 
-    if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
-                                "Error getting follows all");
+    if (error)
+        g_task_return_error(task, error);
     else
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
