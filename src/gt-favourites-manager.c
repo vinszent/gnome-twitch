@@ -242,6 +242,7 @@ gt_favourites_manager_init(GtFavouritesManager* self)
 {
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
     g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
+    g_signal_connect(main_app, "notify::user-name", G_CALLBACK(logged_in_cb), self);
 }
 
 static void
