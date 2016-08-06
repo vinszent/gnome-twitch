@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtPlayerHeaderBar" parent="GtkHeaderBar">
+    <style>
+      <class name="titlebar"/>
+    </style>
     <child type="title">
       <!-- <object class="GtkButton" id="title_button"> -->
       <!--   <property name="visible">True</property> -->

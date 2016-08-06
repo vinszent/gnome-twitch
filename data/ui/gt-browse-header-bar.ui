@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtBrowseHeaderBar" parent="GtkHeaderBar">
+    <style>
+      <class name="titlebar"/>
+    </style>
     <property name="show-close-button">True</property>
     <child>
       <object class="GtkRevealer" id="nav_buttons_revealer">
