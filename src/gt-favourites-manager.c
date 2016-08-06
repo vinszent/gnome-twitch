@@ -246,6 +246,25 @@ gt_favourites_manager_init(GtFavouritesManager* self)
 }
 
 static void
+channel_followed_cb(GObject* source,
+                    GAsyncResult* res,
+                    gpointer udata)
+{
+    GList* l = udata;
+
+    if (GT_IS_CHANNEL(l->data))
+    {
+        gt_twitch_follow_channel_async(main_app->twitch,
+                                       gt_channel_get_name(GT_CHANNEL(l->data)),
+                                       channel_followed_cb, l->next);
+    }
+    else if (GT_IS_FAVOURITES_MANAGER(l->data))
+        gt_favourites_manager_load_from_twitch(GT_FAVOURITES_MANAGER(l->data));
+    else
+        g_assert_not_reached();
+}
+
+static void
 move_local_favourites_cb(GtkInfoBar* bar,
                          gint res,
                          gpointer udata)
@@ -262,34 +281,40 @@ move_local_favourites_cb(GtkInfoBar* bar,
         JsonNode* root;
         JsonArray* jarr;
         GError* err = NULL;
+        GList* l = NULL;
+        GList* channels = NULL;
 
         gt_channel_free_list(self->favourite_channels);
         self->favourite_channels = NULL;
-        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0); //TODO: Add a LOADING_FAVOURITES signal
 
         json_parser_load_from_file(parse, new_fp, &err);
 
         if (err)
         {
-            g_warning("{GtFavouritesManager} Error move local favourite channels to twitch '%s'", err->message);
+            g_warning("{GtFavouritesManager} Error moving local favourite channels to twitch '%s'", err->message);
             return;
         }
 
         root = json_parser_get_root(parse);
         jarr = json_node_get_array(root);
+        l = json_array_get_elements(jarr);
 
-        for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
+        g_assert(g_list_length(l) > 0);
+
+        for (; l != NULL; l = l->next)
         {
-            GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
-            //TODO: Error handling
-            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL);
-            g_object_unref(chan);
+            channels = g_list_append(channels,
+                                     json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
         }
 
-        g_object_unref(parse);
+        channels = g_list_append(channels, self);
+        gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(GT_CHANNEL(channels->data)),
+                                       channel_followed_cb, channels->next);
 
-        gt_favourites_manager_load_from_twitch(self);
+        g_object_unref(parse);
     }
+    else
+        gt_favourites_manager_load_from_twitch(self);
 
     g_free(fp);
     g_free(new_fp);
@@ -312,7 +337,10 @@ follows_all_cb(GObject* source,
         return;
     }
 
-    if (list)
+    gt_channel_free_list(self->favourite_channels);
+    self->favourite_channels = list;
+
+    if (self->favourite_channels)
     {
         for (GList* l = list; l != NULL; l = l->next)
         {
@@ -328,8 +356,6 @@ follows_all_cb(GObject* source,
             g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
         }
 
-        gt_channel_free_list(self->favourite_channels);
-        self->favourite_channels = list;
     }
 
     if (g_file_test(fp, G_FILE_TEST_EXISTS))
@@ -338,8 +364,8 @@ follows_all_cb(GObject* source,
                             _("GNOME Twitch has detected local favourites, would you like to move them to Twitch?"),
                             G_CALLBACK(move_local_favourites_cb), self);
     }
-
-    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
+    else
+        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
 
     g_free(fp);
 }
