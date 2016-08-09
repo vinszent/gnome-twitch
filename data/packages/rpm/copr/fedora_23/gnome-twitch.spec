@@ -1,5 +1,5 @@
 Name:           gnome-twitch
-Version:        0.2.0
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Enjoy Twitch on your GNU/Linux desktop
 
@@ -85,5 +85,8 @@ fi
 %{_datadir}/locale/*/LC_MESSAGES/gnome-twitch.mo
 
 %changelog
+* Sun Aug 7 2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
+- Update to v0.2.1
+
 * Fri Apr 8 2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
 - Initial package
