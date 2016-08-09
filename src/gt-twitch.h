@@ -21,7 +21,7 @@ typedef enum _GtTwitchError
     GT_TWITCH_ERROR_FOLLOW_CHANNEL,
     GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
     GT_TWITCH_ERROR_EMOTICON_IMAGES,
-    GT_TWITCH_ERROR_USER_NAME,
+    GT_TWITCH_ERROR_OAUTH_INFO,
 } GtTwitchError;
 
 typedef enum _GtTwitchStreamQuality
@@ -106,6 +106,12 @@ typedef struct _GtTwitchChannelInfoPanel
     gint64 order;
 } GtTwitchChannelInfoPanel;
 
+typedef struct _GtTwitchOAuthInfo
+{
+    gchar* user_name;
+    GList* scopes;
+} GtTwitchOAuthInfo;
+
 GtTwitch*                  gt_twitch_new(void);
 void                       gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token);
 GtTwitchStreamAccessToken* gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel);
@@ -149,8 +155,9 @@ void                       gt_twitch_follow_channel_async(GtTwitch* self, const 
 void                       gt_twitch_unfollow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_emoticons(GtTwitch* self, const gchar* emotesets, GError** error);
 void                       gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
-gchar*                     gt_twitch_user_name(GtTwitch* self, GError** error);
-void                       gt_twitch_user_name_async(GtTwitch* self, GAsyncReadyCallback cb, gpointer udata);
+void                       gt_twitch_oauth_info_free(GtTwitchOAuthInfo* info);
+GtTwitchOAuthInfo*         gt_twitch_oauth_info(GtTwitch* self, GError** error);
+void                       gt_twitch_oauth_info_async(GtTwitch* self, GAsyncReadyCallback cb, gpointer udata);
 
 G_END_DECLS
 

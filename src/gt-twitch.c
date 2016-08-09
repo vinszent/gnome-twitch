@@ -2101,14 +2101,22 @@ gt_twitch_emoticons_async(GtTwitch* self,
     g_object_unref(task);
 }
 
-gchar*
-gt_twitch_user_name(GtTwitch* self,
-                    GError** error)
+void
+gt_twitch_oauth_info_free(GtTwitchOAuthInfo* info)
+{
+    g_free(info->user_name);
+    g_list_free_full(info->scopes, g_free);
+    g_free(info);
+}
+
+GtTwitchOAuthInfo*
+gt_twitch_oauth_info(GtTwitch* self,
+                     GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
     gchar* uri;
-    gchar* ret = NULL;
+    GtTwitchOAuthInfo* ret = NULL;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
@@ -2119,15 +2127,15 @@ gt_twitch_user_name(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        //TODO: Use new logging function
-        g_warning("{GtTwitch} Unable to get username");
+        WARNING("Unable to get oauth info");
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_USER_NAME,
-                    "Unable to get username");
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_OAUTH_INFO,
+                    "Unable to get oauth info");
 
         goto finish;
     }
 
+    ret = g_new0(GtTwitchOAuthInfo, 1);
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
     node = json_parser_get_root(parser);
@@ -2136,7 +2144,17 @@ gt_twitch_user_name(GtTwitch* self,
     json_reader_read_member(reader, "token");
 
     json_reader_read_member(reader, "user_name");
-    ret = g_strdup(json_reader_get_string_value(reader));
+    ret->user_name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "scopes");
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        json_reader_read_element(reader, i);
+        ret->scopes = g_list_append(ret->scopes,
+                                    g_strdup(json_reader_get_string_value(reader)));
+        json_reader_end_element(reader);
+    }
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
@@ -2159,21 +2177,21 @@ user_name_async_cb(GTask* task,
                   GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
-    gchar* ret = NULL;
+    GtTwitchOAuthInfo* ret;
     GError* error = NULL;
 
-    ret = gt_twitch_user_name(data->twitch, &error);
+    ret = gt_twitch_oauth_info(data->twitch, &error);
 
     if (!ret)
         g_task_return_error(task, error);
     else
-        g_task_return_pointer(task, ret, g_free);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_oauth_info_free);
 }
 
 void
-gt_twitch_user_name_async(GtTwitch* self,
-                          GAsyncReadyCallback cb,
-                          gpointer udata)
+gt_twitch_oauth_info_async(GtTwitch* self,
+                           GAsyncReadyCallback cb,
+                           gpointer udata)
 {
     GTask* task = NULL;
     GenericTaskData* data = NULL;

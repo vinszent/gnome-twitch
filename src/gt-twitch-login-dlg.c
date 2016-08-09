@@ -2,6 +2,9 @@
 #include <webkit2/webkit2.h>
 #include <glib/gi18n.h>
 
+#define TAG "GtTwitchLoginDlg"
+#include "gnome-twitch/gt-log.h"
+
 typedef struct
 {
     GtkWidget* web_view;
@@ -88,14 +91,14 @@ gt_twitch_login_dlg_class_init(GtTwitchLoginDlgClass* klass)
 }
 
 static void
-user_name_cb(GObject* source,
+oauth_info_cb(GObject* source,
              GAsyncResult* res,
              gpointer udata)
 {
     GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(udata);
     GError* error = NULL;
 
-    gchar* user_name = g_task_propagate_pointer(G_TASK(res), &error);
+    GtTwitchOAuthInfo* oauth_info = g_task_propagate_pointer(G_TASK(res), &error);
 
     if (error)
     {
@@ -104,14 +107,14 @@ user_name_cb(GObject* source,
         return; //TODO: Show error to user
     }
 
-    g_message("{GtTwitchLoginDlg} Successfulyy got username=%s", user_name);
+    MESSAGEF("Successfully got username '%s'", oauth_info->user_name);
 
-    g_object_set(main_app, "user-name", user_name, NULL);
+    g_object_set(main_app, "user-name", oauth_info->user_name, NULL);
 
     gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
                              _("Successfully logged in to Twitch!"));
 
-    g_free(user_name);
+    g_free(oauth_info);
     gtk_widget_destroy(GTK_WIDGET(self));
 }
 
@@ -127,7 +130,7 @@ uri_changed_cb(GObject* source,
 
     g_object_get(source, "uri", &url, NULL);
 
-    g_info("{GtTwitchLoginDlg} Redirect url is '%s'", url);
+    INFOF("Redirect url=%s", url);
 
     g_regex_match(priv->token_redirect_regex, url, 0, &match_info);
     if (g_match_info_matches(match_info))
@@ -136,15 +139,15 @@ uri_changed_cb(GObject* source,
 
         g_object_set(main_app, "oauth-token", token, NULL);
 
-        g_message("{GtTwitchLoginDlg} Successfully got OAuth token '%s'", token);
+        MESSAGEF("Successfully got OAuth token '%s'", token);
 
-        gt_twitch_user_name_async(main_app->twitch, user_name_cb, self);
+        gt_twitch_oauth_info_async(main_app->twitch, oauth_info_cb, self);
 
         g_free(token);
 
     }
     else if (g_str_has_prefix(url, "http://localhost/?error=access_denied"))
-        g_message("{GtTwitchLoginDlg} Error logging or login cancelled");
+        WARNING("Error logging in or login cancelled");
 
     g_match_info_unref(match_info);
     g_free(url);
