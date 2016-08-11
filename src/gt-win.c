@@ -50,6 +50,8 @@ typedef struct
     GtkWidget* info_bar_yes_button;
     GtkWidget* info_bar_no_button;
     GtkWidget* info_bar_ok_button;
+    GtkWidget* info_bar_details_button;
+    GtkWidget* info_bar_close_button;
 
     QueuedInfoData* cur_info_data;
     GQueue* info_queue;
@@ -162,6 +164,35 @@ refresh_login_cb(GtkInfoBar* info_bar,
 }
 
 static void
+show_error_dialogue_cb(GtkInfoBar* info_bar,
+                       gint res,
+                       gchar** udata)
+{
+    GtkBuilder* builder = gtk_builder_new_from_resource("/com/gnome-twitch/ui/gt-error-dlg.ui");
+    GtkWidget* dlg = GTK_WIDGET(gtk_builder_get_object(builder, "dlg"));
+    GtkTextView* details_text_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "details_text_view"));
+
+    if (res != GTK_RESPONSE_OK) goto cleanup;
+
+    gtk_text_buffer_set_text(gtk_text_view_get_buffer(details_text_view),
+                             *(udata+1), -1);
+
+    g_object_set(dlg,
+                 "text", _("Something went wrong"),
+                 "secondary-text", *udata,
+                 NULL);
+    g_signal_connect(dlg, "response", G_CALLBACK(gtk_widget_destroy), NULL);
+
+
+    gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(GT_WIN_ACTIVE));
+    gtk_widget_show(dlg);
+
+cleanup:
+    g_strfreev(udata);
+}
+
+
+static void
 show_info_bar(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
@@ -171,20 +202,39 @@ show_info_bar(GtWin* self)
     {
         if (data->cb)
         {
-            g_signal_connect(priv->info_bar, "response", G_CALLBACK(data->cb), data->udata);
+            if (data->cb == G_CALLBACK(show_error_dialogue_cb))
+            {
+                gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+                gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
+                gtk_widget_set_visible(priv->info_bar_no_button, FALSE);
+                gtk_widget_set_visible(priv->info_bar_details_button, TRUE);
+                gtk_widget_set_visible(priv->info_bar_close_button, TRUE);
+                gtk_label_set_markup(GTK_LABEL(priv->info_label), data->msg);
+                gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_ERROR);
 
-            gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
-            gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
-            gtk_widget_set_visible(priv->info_bar_no_button, TRUE);
-            gtk_label_set_text(GTK_LABEL(priv->info_label), data->msg);
-            gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
+                g_signal_connect(priv->info_bar, "response", G_CALLBACK(data->cb), data->udata);
+            }
+            else
+            {
+
+                g_signal_connect(priv->info_bar, "response", G_CALLBACK(data->cb), data->udata);
+
+                gtk_widget_set_visible(priv->info_bar_ok_button, FALSE);
+                gtk_widget_set_visible(priv->info_bar_yes_button, TRUE);
+                gtk_widget_set_visible(priv->info_bar_no_button, TRUE);
+                gtk_widget_set_visible(priv->info_bar_details_button, FALSE);
+                gtk_widget_set_visible(priv->info_bar_close_button, FALSE);
+                gtk_label_set_markup(GTK_LABEL(priv->info_label), data->msg);
+                gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_QUESTION);
+            }
         }
         else
         {
-
             gtk_widget_set_visible(priv->info_bar_yes_button, FALSE);
             gtk_widget_set_visible(priv->info_bar_no_button, FALSE);
             gtk_widget_set_visible(priv->info_bar_ok_button, TRUE);
+            gtk_widget_set_visible(priv->info_bar_details_button, FALSE);
+            gtk_widget_set_visible(priv->info_bar_close_button, FALSE);
             gtk_label_set_markup(GTK_LABEL(priv->info_label), data->msg);
             gtk_info_bar_set_message_type(GTK_INFO_BAR(priv->info_bar), GTK_MESSAGE_INFO);
         }
@@ -540,6 +590,8 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_yes_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_no_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_details_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_close_button);
 }
 
 static void
@@ -691,6 +743,21 @@ gt_win_show_info_message(GtWin* self, const gchar* msg)
 
     if (!gtk_revealer_get_reveal_child(GTK_REVEALER(priv->info_revealer)))
         show_info_bar(self);
+}
+
+void
+gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details)
+{
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+    QueuedInfoData* data = g_new(QueuedInfoData, 1);
+    gchar** udata = g_malloc(sizeof(gchar*)*3);
+    gchar* msg = g_strdup_printf(_("<b>Something went wrong:</b> %s."), secondary);
+
+    *udata = g_strdup(secondary);
+    *(udata+1) = g_strdup(details);
+    *(udata+2) = NULL;
+
+    gt_win_ask_question(self, msg, G_CALLBACK(show_error_dialogue_cb), udata);
 }
 
 void

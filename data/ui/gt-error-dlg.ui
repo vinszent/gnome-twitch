@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="gnome-twitch">
+  <object class="GtkMessageDialog" id="dlg">
+    <property name="modal">True</property>
+    <property name="buttons">close</property>
+    <property name="default-width">490</property>
+    <property name="default-height">295</property>
+    <property name="resizable">False</property>
+    <child internal-child="message_area">
+      <object class="GtkBox">
+        <property name="height-request">100</property>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="visible">True</property>
+            <property name="min-content-height">100</property>
+            <property name="hscrollbar-policy">never</property>
+            <child>
+              <object class="GtkTextView" id="details_text_view">
+                <property name="visible">True</property>
+                <property name="wrap-mode">word</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
