@@ -6,6 +6,9 @@
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 
+#define TAG "GtFavouritesManager"
+#include "gnome-twitch/gt-log.h"
+
 #define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
 
 typedef struct
@@ -101,20 +104,44 @@ channel_favourited_cb(GObject* source,
 
     if (favourited)
     {
+        if (gt_app_credentials_valid(main_app))
+        {
+            GError* error = NULL;
+
+            gt_twitch_follow_channel(main_app->twitch, gt_channel_get_name(chan), &error); //TODO: Error handling
+//            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
+
+            if (error)
+            {
+                gchar* secondary = g_strdup_printf(_("Unable to follow channel '%s' on Twitch, "
+                                                     "try refreshing your login"),
+                                                   gt_channel_get_name(chan));
+
+                gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
+
+                g_signal_handlers_block_by_func(source, channel_favourited_cb, self);
+                gt_channel_toggle_favourited(chan);
+                g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, chan);
+                g_signal_handlers_unblock_by_func(source, channel_favourited_cb, self);
+
+                g_free(secondary);
+                g_error_free(error);
+
+                return;
+            }
+        }
+
         self->favourite_channels = g_list_append(self->favourite_channels, chan);
 //        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
-        if (gt_app_credentials_valid(main_app))
-            gt_twitch_follow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
-//            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
-
-        g_message("{GtChannel} Favourited '%s' (%p)", gt_channel_get_name(chan), chan);
+        MESSAGEF("Favourited channel '%s'", gt_channel_get_name(chan));
 
         g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
     }
     else
     {
+        return;
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
@@ -123,15 +150,30 @@ channel_favourited_cb(GObject* source,
 //        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
 
         if (gt_app_credentials_valid(main_app))
-            gt_twitch_unfollow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
-//            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan)); //TODO: Error handling
+        {
+            GError* error = NULL;
+//            gt_twitch_unfollow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
+            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan), &error);
 
-        g_message("{GtChannel} Unfavourited '%s' (%p)", gt_channel_get_name(chan), chan);
+            if (error)
+            {
+                gchar* secondary = g_strdup_printf(_("Unable to unfollow channel '%s' on Twitch, "
+                                                     "try refreshing your login"),
+                                                   gt_channel_get_name(chan));
 
-        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
+                gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
+
+                g_free(secondary);
+                g_error_free(error);
+            }
+        }
+
+        MESSAGEF("Unfavourited channel '%s'", gt_channel_get_name(chan));
 
         g_clear_object(&found->data);
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
+
+        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
     }
 }
 
@@ -251,6 +293,22 @@ channel_followed_cb(GObject* source,
                     gpointer udata)
 {
     GList* l = udata;
+    GError* error = NULL;
+    gboolean success = g_task_propagate_boolean(G_TASK(res), &error);
+
+    if (error)
+    {
+        GtWin* self = g_list_last(l)->data;
+
+        gt_win_show_error_message(GT_WIN_ACTIVE,
+                                  "Unable to move your favourites to Twitch, try refreshing your login",
+                                  error->message);
+        g_error_free(error);
+
+        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
+
+        return;
+    }
 
     if (GT_IS_CHANNEL(l->data))
     {
@@ -259,7 +317,17 @@ channel_followed_cb(GObject* source,
                                        channel_followed_cb, l->next);
     }
     else if (GT_IS_FAVOURITES_MANAGER(l->data))
+    {
+        gchar* fp = FAV_CHANNELS_FILE;
+        gchar* new_fp = g_strconcat(fp, ".bak", NULL);
+
+        g_rename(fp, new_fp);
+
         gt_favourites_manager_load_from_twitch(GT_FAVOURITES_MANAGER(l->data));
+
+        g_free(fp);
+        g_free(new_fp);
+    }
     else
         g_assert_not_reached();
 }
@@ -270,13 +338,10 @@ move_local_favourites_cb(GtkInfoBar* bar,
                          gpointer udata)
 {
     GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
-    gchar* fp = FAV_CHANNELS_FILE;
-    gchar* new_fp = g_strconcat(fp, ".bak", NULL);
-
-    g_rename(fp, new_fp);
 
     if (res == GTK_RESPONSE_YES)
     {
+        gchar* fp = FAV_CHANNELS_FILE;
         JsonParser* parse = json_parser_new();
         JsonNode* root;
         JsonArray* jarr;
@@ -284,10 +349,7 @@ move_local_favourites_cb(GtkInfoBar* bar,
         GList* l = NULL;
         GList* channels = NULL;
 
-        gt_channel_free_list(self->favourite_channels);
-        self->favourite_channels = NULL;
-
-        json_parser_load_from_file(parse, new_fp, &err);
+        json_parser_load_from_file(parse, fp, &err);
 
         if (err)
         {
@@ -312,12 +374,20 @@ move_local_favourites_cb(GtkInfoBar* bar,
                                        channel_followed_cb, channels->next);
 
         g_object_unref(parse);
+        g_free(fp);
     }
     else
+    {
+        gchar* fp = FAV_CHANNELS_FILE;
+        gchar* new_fp = g_strconcat(fp, ".bak", NULL);
+
+        g_rename(fp, new_fp);
+
         gt_favourites_manager_load_from_twitch(self);
 
-    g_free(fp);
-    g_free(new_fp);
+        g_free(fp);
+        g_free(new_fp);
+    }
 }
 
 static void
@@ -331,8 +401,14 @@ follows_all_cb(GObject* source,
     GList* list = g_task_propagate_pointer(G_TASK(res), &error);
     gchar* fp = FAV_CHANNELS_FILE;
 
+    g_clear_pointer(&self->favourite_channels,
+                    (GDestroyNotify) gt_channel_free_list);
+
     if (error)
     {
+        gt_win_show_error_message(GT_WIN_ACTIVE,
+                                  "An error occurred when trying to get your Twitch follows",
+                                  error->message);
         g_error_free(error);
         return;
     }
@@ -390,6 +466,11 @@ gt_favourites_manager_load_from_file(GtFavouritesManager* self)
     gchar* fp = FAV_CHANNELS_FILE;
     GError* err = NULL;
 
+    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FAVOURITES], 0);
+
+    g_clear_pointer(&self->favourite_channels,
+                    (GDestroyNotify) gt_channel_free_list);
+
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
         goto finish;
 
@@ -420,6 +501,8 @@ gt_favourites_manager_load_from_file(GtFavouritesManager* self)
     }
 
 finish:
+
+    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
 
     g_object_unref(parse);
     g_free(fp);
