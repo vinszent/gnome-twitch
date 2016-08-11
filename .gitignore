@@ -1,4 +1,8 @@
+*~
+*#*
 build
+flatpak
+.flatpak-builder/*
 .SRCINFO
 po/*.mo
 .compdb.json
