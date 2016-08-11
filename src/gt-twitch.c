@@ -191,10 +191,10 @@ send_message(GtTwitch* self, SoupMessage* msg)
     ret = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
 
     if (ret)
-        TRACEF("Received response from url='%s' with code='%d' and body='%s'",
+        TRACEF("Received response from url '%s' with code '%d' and body '%s'",
                uri, msg->status_code, msg->response_body->data);
     else
-        WARNINGF("Received unsuccessful response from url='%s' with code='%d' and body='%s'",
+        WARNINGF("Received unsuccessful response from url '%s' with code '%d' and body '%s'",
                  uri, msg->status_code, msg->response_body->data);
 
     g_free(uri);
@@ -1714,8 +1714,13 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
     {
         WARNING("Error sending message to get follows");
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL,
-                    "Unable to get Twitch follows");
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL, msg_str);
+
+        g_free(msg_str);
 
         goto finish;
     }
@@ -1835,7 +1840,8 @@ gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
 
 gboolean
 gt_twitch_follow_channel(GtTwitch* self,
-                         const gchar* chan_name)
+                         const gchar* chan_name,
+                         GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1851,6 +1857,14 @@ gt_twitch_follow_channel(GtTwitch* self,
     if (!send_message(self, msg))
     {
         WARNINGF("Error sending message to follow channel '%s'", chan_name);
+
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+
+        g_free(msg_str);
 
         ret = FALSE;
     }
@@ -1868,13 +1882,13 @@ follow_channel_async_cb(GTask* task,
                         GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
+    GError* error = NULL;
     gboolean ret;
 
-    ret = gt_twitch_follow_channel(data->twitch, data->str_1);
+    ret = gt_twitch_follow_channel(data->twitch, data->str_1, &error);
 
     if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL,
-                                "Error following channel '%s'", data->str_1);
+        g_task_return_error(task, error);
     else
         g_task_return_boolean(task, ret);
 }
@@ -1904,7 +1918,8 @@ gt_twitch_follow_channel_async(GtTwitch* self,
 
 gboolean
 gt_twitch_unfollow_channel(GtTwitch* self,
-                           const gchar* chan_name)
+                           const gchar* chan_name,
+                           GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1919,7 +1934,15 @@ gt_twitch_unfollow_channel(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to unfollow channel '%s'", chan_name);
+        WARNINGF("Error sending message to unfollow channel '%s'", chan_name);
+
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+
+        g_free(msg_str);
 
         ret = FALSE;
     }
@@ -1936,13 +1959,13 @@ unfollow_channel_async_cb(GTask* task,
                           GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
+    GError* error = NULL;
     gboolean ret;
 
-    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1);
+    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1, &error);
 
     if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
-                                "Error unfollowing channel '%s'", data->str_1);
+        g_task_return_error(task, error);
     else
         g_task_return_boolean(task, ret);
 }

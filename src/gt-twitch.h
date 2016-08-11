@@ -149,8 +149,8 @@ GList*                     gt_twitch_follows(GtTwitch* self, const gchar* user_n
 void                       gt_twitch_follows_async(GtTwitch* self, const gchar* user_name, gint limit, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error);
 void                       gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-gboolean                   gt_twitch_follow_channel(GtTwitch* self, const gchar* chan_name);
-gboolean                   gt_twitch_unfollow_channel(GtTwitch* self, const gchar* chan_name);
+gboolean                   gt_twitch_follow_channel(GtTwitch* self, const gchar* chan_name, GError** error);
+gboolean                   gt_twitch_unfollow_channel(GtTwitch* self, const gchar* chan_name, GError** error);
 void                       gt_twitch_follow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
 void                       gt_twitch_unfollow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_emoticons(GtTwitch* self, const gchar* emotesets, GError** error);
