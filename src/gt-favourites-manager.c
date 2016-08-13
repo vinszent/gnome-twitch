@@ -92,6 +92,23 @@ logged_in_cb(GObject* source,
 static void
 channel_favourited_cb(GObject* source,
                       GParamSpec* pspec,
+                      gpointer udata);
+static gboolean
+toggle_favourited_cb(gpointer udata)
+{
+    GtChannel* chan = GT_CHANNEL(udata);
+    GtFavouritesManager* self = main_app->fav_mgr;
+
+    g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
+    gt_channel_toggle_favourited(chan);
+    g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+
+    return G_SOURCE_REMOVE;
+}
+
+static void
+channel_favourited_cb(GObject* source,
+                      GParamSpec* pspec,
                       gpointer udata)
 {
     GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
@@ -119,10 +136,7 @@ channel_favourited_cb(GObject* source,
 
                 gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
 
-                g_signal_handlers_block_by_func(source, channel_favourited_cb, self);
-                gt_channel_toggle_favourited(chan);
-                g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, chan);
-                g_signal_handlers_unblock_by_func(source, channel_favourited_cb, self);
+                g_idle_add((GSourceFunc) toggle_favourited_cb, chan);
 
                 g_free(secondary);
                 g_error_free(error);
@@ -141,7 +155,6 @@ channel_favourited_cb(GObject* source,
     }
     else
     {
-        return;
         GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
@@ -163,17 +176,21 @@ channel_favourited_cb(GObject* source,
 
                 gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
 
+                g_idle_add((GSourceFunc) toggle_favourited_cb, chan);
+
                 g_free(secondary);
                 g_error_free(error);
+
+                return;
             }
         }
 
         MESSAGEF("Unfavourited channel '%s'", gt_channel_get_name(chan));
 
+        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
+
         g_clear_object(&found->data);
         self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
-
-        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
     }
 }
 
@@ -257,16 +274,16 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
                                                 GT_TYPE_FAVOURITES_MANAGER,
                                                 G_SIGNAL_RUN_LAST,
                                                 0, NULL, NULL,
-                                                g_cclosure_marshal_VOID__OBJECT,
+                                                NULL,
                                                 G_TYPE_NONE,
                                                 1, GT_TYPE_CHANNEL);
     sigs[SIG_CHANNEL_UNFAVOURITED] = g_signal_new("channel-unfavourited",
-                                                GT_TYPE_FAVOURITES_MANAGER,
-                                                G_SIGNAL_RUN_LAST,
-                                                0, NULL, NULL,
-                                                g_cclosure_marshal_VOID__OBJECT,
-                                                G_TYPE_NONE,
-                                                1, GT_TYPE_CHANNEL);
+                                                  GT_TYPE_FAVOURITES_MANAGER,
+                                                  G_SIGNAL_RUN_LAST,
+                                                  0, NULL, NULL,
+                                                  NULL,
+                                                  G_TYPE_NONE,
+                                                  1, GT_TYPE_CHANNEL);
     sigs[SIG_STARTED_LOADING_FAVOURITES] = g_signal_new("started-loading-favourites",
                                                         GT_TYPE_FAVOURITES_MANAGER,
                                                         G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,

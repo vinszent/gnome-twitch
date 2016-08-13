@@ -656,9 +656,7 @@ gt_channel_toggle_favourited(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    priv->favourited = !priv->favourited;
-
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FAVOURITED]);
+    g_object_set(self, "favourited", !priv->favourited, NULL);
 }
 
 void

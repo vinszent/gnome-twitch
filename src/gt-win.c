@@ -183,7 +183,6 @@ show_error_dialogue_cb(GtkInfoBar* info_bar,
                  NULL);
     g_signal_connect(dlg, "response", G_CALLBACK(gtk_widget_destroy), NULL);
 
-
     gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(GT_WIN_ACTIVE));
     gtk_widget_show(dlg);
 

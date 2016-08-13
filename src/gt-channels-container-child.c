@@ -78,19 +78,6 @@ motion_leave_cb(GtkWidget* widget,
 }
 
 static void
-channel_favourited_cb(GObject* source,
-                      GParamSpec* pspec,
-                      gpointer udata)
-{
-    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
-    gboolean fav;
-
-    g_object_get(source, "favourited", &fav, NULL);
-    g_object_set(priv->favourite_button, "active", fav, NULL);
-}
-
-static void
 favourite_button_cb(GtkButton* button,
                     gpointer udata)
 {
@@ -252,9 +239,9 @@ constructed(GObject* obj)
     g_object_bind_property(priv->channel, "game",
                            priv->game_label, "label",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->favourite_button, "active",
-                           priv->channel, "favourited",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(priv->channel, "favourited",
+                           priv->favourite_button, "active",
+                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
@@ -274,8 +261,6 @@ constructed(GObject* obj)
                                 (GBindingTransformFunc) updating_converter,
                                 NULL, NULL, NULL);
 
-    // For some reason the bidirectional binding doesn't work
-    g_signal_connect(priv->channel, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
     g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self);
 
     online_cb(NULL, NULL, self);
