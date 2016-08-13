@@ -300,7 +300,7 @@ static void
 gt_favourites_manager_init(GtFavouritesManager* self)
 {
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
-    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
+//    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
     g_signal_connect(main_app, "notify::user-name", G_CALLBACK(logged_in_cb), self);
 }
 
@@ -430,7 +430,6 @@ follows_all_cb(GObject* source,
         return;
     }
 
-    gt_channel_free_list(self->favourite_channels);
     self->favourite_channels = list;
 
     if (self->favourite_channels)
