@@ -389,6 +389,8 @@ gt_player_backend_mpv_opengl_init(GtPlayerBackendMpvOpenGL* self)
 
     g_object_set(priv->widget, "expand", TRUE, NULL);
 
+    gtk_widget_add_events(priv->widget, GDK_BUTTON_PRESS_MASK);
+
     check_mpv_error(mpv_set_option_string(priv->mpv, "audio-client-name", "GNOME Twitch"));
     check_mpv_error(mpv_set_option_string(priv->mpv, "title", ""));
     check_mpv_error(mpv_set_option_string(priv->mpv, "vo", "opengl-cb"));
