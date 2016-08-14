@@ -8,6 +8,7 @@
 #include <json-glib/json-glib.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "version.h"
 
 #define TAG "GtApp"
 #include "gnome-twitch/gt-log.h"
@@ -27,6 +28,7 @@ typedef struct
 
 gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
 gboolean NO_FANCY_LOGGING = FALSE;
+gboolean VERSION = FALSE;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
@@ -78,6 +80,7 @@ cli_options[] =
 {
     {"log-level", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, set_log_level, "Set logging level", "level"},
     {"no-fancy-logging", 0, G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &NO_FANCY_LOGGING, "Don't print pretty log messages", NULL},
+    {"version", 'v', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &VERSION, "Display version", NULL},
     {NULL}
 };
 
@@ -265,6 +268,20 @@ quit_cb(GSimpleAction* action,
     GtApp* self = GT_APP(udata);
 
     g_application_quit(G_APPLICATION(self));
+}
+
+static gint
+handle_command_line_cb(GApplication* self,
+                       GVariantDict* options,
+                       gpointer udata)
+{
+    if (VERSION)
+    {
+        g_print("GNOME Twitch - Version %s\n", GT_VERSION);
+        return 0;
+    }
+
+    return -1;
 }
 
 static GActionEntry app_actions[] =
@@ -497,6 +514,7 @@ gt_app_init(GtApp* self)
                     G_SETTINGS_BIND_DEFAULT);
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
+    g_signal_connect(self, "handle-local-options", G_CALLBACK(handle_command_line_cb), self);
 }
 
 const gchar*
