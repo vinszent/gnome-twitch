@@ -1,9 +1,15 @@
 #include "gt-twitch-login-dlg.h"
-#include <webkit2/webkit2.h>
+#include "config.h"
 #include <glib/gi18n.h>
 
 #define TAG "GtTwitchLoginDlg"
 #include "gnome-twitch/gt-log.h"
+
+#ifdef USE_DEPRECATED_WEBKIT
+#include <webkit/webkit.h>
+#else
+#include <webkit2/webkit2.h>
+#endif
 
 typedef struct
 {
@@ -118,21 +124,43 @@ oauth_info_cb(GObject* source,
     gtk_widget_destroy(GTK_WIDGET(self));
 }
 
-static void
-uri_changed_cb(GObject* source,
-               GParamSpec* pspec,
-               gpointer udata)
+static gboolean
+#ifdef USE_DEPRECATED_WEBKIT
+redirect_cb(WebKitWebView* web_view,
+            WebKitWebFrame* web_frame,
+            WebKitNetworkRequest* request,
+            WebKitWebNavigationAction* action,
+            WebKitWebPolicyDecision* decision,
+            gpointer udata)
+#else
+redirect_cb(WebKitWebView* web_view,
+            WebKitPolicyDecision* decision,
+            WebKitPolicyDecisionType type,
+            gpointer udata)
+#endif
 {
     GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(udata);
     GtTwitchLoginDlgPrivate* priv = gt_twitch_login_dlg_get_instance_private(self);
-    gchar* url;
     GMatchInfo* match_info = NULL;
+    const gchar* uri = NULL;
 
-    g_object_get(source, "uri", &url, NULL);
+#ifdef USE_DEPRECATED_WEBKIT
+    uri = webkit_network_request_get_uri(request);
+#else
+    if (type == WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION)
+    {
+        WebKitNavigationPolicyDecision* navigation = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
+        WebKitURIRequest* request = webkit_navigation_policy_decision_get_request(navigation);
 
-    INFOF("Redirect url=%s", url);
+        uri = webkit_uri_request_get_uri(request);
+    }
+#endif
 
-    g_regex_match(priv->token_redirect_regex, url, 0, &match_info);
+    if (uri == NULL || strlen(uri) == 0) return;
+
+    INFOF("Redirect uri is '%s'", uri);
+
+    g_regex_match(priv->token_redirect_regex, uri, 0, &match_info);
     if (g_match_info_matches(match_info))
     {
         gchar* token = g_match_info_fetch(match_info, 1);
@@ -146,11 +174,12 @@ uri_changed_cb(GObject* source,
         g_free(token);
 
     }
-    else if (g_str_has_prefix(url, "http://localhost/?error=access_denied"))
+    else if (g_str_has_prefix(uri, "http://localhost/?error=access_denied"))
         WARNING("Error logging in or login cancelled");
 
     g_match_info_unref(match_info);
-    g_free(url);
+
+    return FALSE;
 }
 
 static void
@@ -162,7 +191,11 @@ gt_twitch_login_dlg_init(GtTwitchLoginDlg* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    g_signal_connect(priv->web_view, "notify::uri", G_CALLBACK(uri_changed_cb), self);
+#ifdef USE_DEPRECATED_WEBKIT
+    g_signal_connect(priv->web_view, "navigation-policy-decision-requested", G_CALLBACK(redirect_cb), self);
+#else
+    g_signal_connect(priv->web_view, "decide-policy", G_CALLBACK(redirect_cb), self);
+#endif
 
     const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login+user_follows_edit");
 
