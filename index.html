@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<!-- I suck at this shit -->
+
+<html lang="en">
+  <head>
+    <title>GNOME Twitch</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      window.onload = function() {
+        $('#download-button').on('click', function(e) {
+          $(this).addClass('active');
+          $('.nav-pills .active').removeClass('active');
+        });
+        $('.nav-pills li').on('click', function() {
+          $('#download-button').removeClass('active');
+        });
+      }
+    </script>
+    <body>
+      <div id="top" align="center">
+        <h1 id="header">
+          <img src="img/gnome-twitch.svg" height="100px" width="100px" style="margin-right: 20px;">
+          GNOME Twitch
+        </h1>
+        <div id="main" class="container">
+          <div class="row">
+            <div class="col-md-6">
+              <a id="download-button" class="btn btn-success btn-outline" data-toggle="pill" href="#downloads">
+                <span class="glyphicon glyphicon-download-alt"></span>
+                Get GNOME Twitch!
+              </a>
+            </div>
+            <div class="col-md-6">
+              <ul class="nav nav-pills">
+                <li class="active"><a data-toggle="pill" href="#home">Home</a></li>
+                <li><a data-toggle="pill" href="#news">News</a></li>
+                <li><a data-toggle="pill" href="#community">Get involved</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div id="content" class="tab-content">
+            <div id="home" class="tab-pane fade in active">
+              <div class="container-fluid">
+                <h2 id="home-header">Enjoy Twitch on your GNU/Linux desktop</h2>
+                <div class="row feature-panel">
+                  <div class="col-sm-6 clearfix">
+                    <div class="feature-info pull-left">
+                      <h4><b>Content management</b></h4>
+                      <p>
+                        Easily browse and search channels and games. Keep track of your follows
+                        whether you have a Twitch account or not.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <img class="feature-image" src="img/content_management.png"/>
+                  </div>
+                </div>
+                <div class="row feature-panel">
+                  <div class="col-sm-6">
+                    <img class="feature-image" src="img/player.png"/>
+                  </div>
+                  <div class="col-sm-6 clearfix">
+                    <div class="feature-info pull-right">
+                      <h4><b>Awesome player and chat</b></h4>
+                      <p>
+                        A super fast, hardware-accelerated player, with 4 available backends,
+                        plus a fully integrated native chat, makes for a fantastic viewing experience.
+                        <img src="img/SeemsGood.png">
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="row feature-panel">
+                  <div class="col-sm-6 clearfix">
+                    <div class="feature-info pull-left">
+                      <h4><b>Plus many more!</b></h4>
+                      <p>
+                        GNOME Twitch is packed with cool features and development is constantly
+                        on-going, bringing heaps of new stuff straight to you.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <img class="feature-image" src="img/skew_board.png"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="news" class="tab-pane fade">
+              <div id="news-content" class="tab-content">
+                <div id="news-page-1" class="tab-pane fade in active">
+                  <div class="panel panel-default">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="news-header clearfix">
+                          <h4 class="pull-left">Version 0.2.1 released</h4>
+                          <p class="pull-right text-info">posted 15th August 2016</p>
+                        </div>
+                      </div>
+                      <p>
+                        Kind of an emergency release to add the Client-ID header to all API requests.
+                        Version 0.3.0 is just around the corner with loads of new features!
+                      </p>
+                    </div>
+                  </div>
+                  <div class="panel panel-default">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="news-header clearfix">
+                          <h4 class="pull-left">New landing page</h4>
+                          <p class="pull-right text-info">posted 15th August 2016</p>
+                        </div>
+                      </div>
+                      <p>
+                        New landing page of sorts, with help from my friend
+                        <a href="https://github.com/tofuness">@tofuness</a>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <!-- <div id="news-page-2" class="tab-pane fade"> -->
+                <!-- </div> -->
+              </div>
+              <ul id="news-pagination" class="pagination">
+                <li class="active"><a data-toggle="pill" href="#news-page-1">1</a></li>
+                <!-- <li><a data-toggle="pill" href="#news-page-2">2</a></li> -->
+              </ul>
+            </div>
+            <div id="community" class="tab-pane fade">
+              <div id="community-content" class="panel-group">
+                <div class="panel panel-default clearfix">
+                  <div class="panel-heading">
+                    <h3 class="panel-title">Chat</h3>
+                  </div>
+                  <div class="panel-body">
+                    <div class="row">
+                      <div class="col-sm-10">
+                        <p>
+                          Gitter is where you can find me and other community members to chat with.
+                          Feel free to join and ask questions GNOME Twitch. I'm happy to provide
+                          tech support and development help <img src="img/DatSheffy.png"/>.
+                        </p>
+                      </div>
+                      <div class="col-sm-2">
+                        <a class="btn btn-default pull-right" href="https://gitter.im/gnome-twitch/Lobby">
+                          <img src="img/gitter.png" height="48"/>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h3 class="panel-title">Source code</h3>
+                  </div>
+                  <div class="panel-body">
+                    <div class="row">
+                      <div class="col-sm-10">
+                        <p>
+                          GNOME Twitch is licensed under the GPL v3 and is in constant development.
+                          The source code is available on GitHub, where all development, bug tracking
+                          and documentation is located.
+                        </p>
+                      </div>
+                      <div class="col-sm-2">
+                        <a class="btn btn-default pull-right" href="https://github.com/vinszent/gnome-twitch">
+                          <img src="img/github.png" height="48"/>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h3 class="panel-title">Roadmap</h3>
+                  </div>
+                  <div class="panel-body">
+                    <div class="row">
+                      <div class="col-sm-10">
+                        <p>
+                          All current and future tasks can be found on GNOME Twitch's agile board
+                          at waffle.io.
+                        </p>
+                      </div>
+                      <div class="col-sm-2">
+                        <a class="btn btn-default pull-right" href="http://waffle.io/vinszent/gnome-twitch">
+                          <img src="img/waffleio.png" height="48"/>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="downloads" class="tab-pane fade">
+              <h3>Packages</h3>
+              <p>Current stable version: 0.2.1</p>
+
+              <div class="row">
+                <div class="col-sm-4">
+                  <div class="thumbnail download">
+                    <img src="img/flatpak.png">
+                    <div class="caption">
+                      <h3>FlatPak</h3>
+                      <div class="btn-group">
+                        <a class="btn btn-default">Stable</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="thumbnail download">
+                    <img src="img/archlinux.png">
+                    <div class="caption">
+                      <h3>Arch Linux</h3>
+                      <div class="btn-group">
+                        <a class="btn btn-default">Stable</a>
+                        <a class="btn btn-default">Git</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="thumbnail download">
+                    <img src="img/fedora.png">
+                    <div class="caption">
+                      <h3>Fedora</h3>
+                      <div class="btn-group">
+                        <a class="btn btn-default">Stable</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4">
+                  <div class="thumbnail download">
+                    <img src="img/debian.png">
+                    <div class="caption">
+                      <h3>Debian</h3>
+                      <div class="btn-group">
+                        <a class="btn btn-default">Stable</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="thumbnail download">
+                    <img src="img/ubuntu.png">
+                    <div class="caption">
+                      <h3>Ubuntu</h3>
+                      <div class="btn-group">
+                        <a class="btn btn-default">Stable</a>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                            PPA <span class="caret"></span>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li><a>PPA #1</a></li>
+                            <li><a>PPA #2</a></li>
+                            <li><a>PPA #3</a></li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+  </head>
+</html>
