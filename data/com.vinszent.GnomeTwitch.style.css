@@ -1,0 +1,129 @@
+.gt-channels-container-child .overlay-box,
+.gt-games-container-child .overlay-box
+{
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.gt-channels-container-child .overlay-box .label
+{
+    color: rgba(109, 115, 128, 1);
+}
+
+.gt-channels-container-child .overlay-box .info-image
+{
+    color: rgba(109, 115, 128, 1);
+    padding: 7px;
+}
+
+.gt-channels-container-child .overlay-box .favourite-button
+{
+    background-color: rgba(0, 0, 0, 0);
+    background-image: none;
+    border-style: none;
+}
+
+.gt-channels-container-child .overlay-box .favourite-button:hover image
+{
+    transition: 150ms ease-in-out;
+    color: gold;
+}
+
+.gt-channels-container-child .overlay-box .favourite-button image
+{
+    color: rgba(109, 115, 128, 1);
+}
+
+.gt-channels-container-child .overlay-box .favourite-button:checked image
+{
+    color: gold;
+}
+
+.gt-channels-container-child-offline image
+{
+    -gtk-icon-effect: dim;
+}
+
+.gt-channels-container-child-offline label
+{
+    color: alpha(currentColor,0.55);
+}
+
+.gt-player #buffer-box
+{
+    background-color: black;
+    border-radius: 4px;
+    opacity: 0.8;
+    padding: 7px;
+}
+
+.gt-chat textview,
+.gt-chat textview text
+{
+    background-color: transparent;
+}
+
+.gt-chat entry
+{
+    background-color: transparent;
+    background-image: none;
+}
+
+.gt-chat textview.light-theme text
+{
+    color: rgba(50, 50, 62, 1.0);
+}
+
+.gt-chat textview.dark-theme text
+{
+    color: rgba(255, 255, 255, 1.0);
+}
+
+.gt-chat textview:selected,
+.gt-chat textview:selected
+{
+    color: @selected_fg_color;
+    background-color: @selected_bg_color;
+}
+
+.gt-chat entry.light-theme
+{
+    color: rgba(0, 0, 0, 1);
+    border-color: rgba(204, 204, 204, 1.0);
+}
+
+.gt-chat entry.dark-theme
+{
+    color: rgba(255, 255, 255, 1.0);
+    border-color: rgba(81, 81, 85, 1.0);
+}
+
+.empty-link-button
+{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+.empty-channels-box .empty-title,
+.empty-games-box .empty-title
+{
+    font-weight: bold;
+    font-size: large;
+}
+
+.empty-channels-box .empty-subtitle,
+.empty-games-box .empty-subtitle
+{
+    font-weight: lighter;
+    font-size: small;
+}
+
+#chat-entry.popup-open image
+{
+    transition: 300ms ease-in-out;
+    color: lighter(currentColor);
+}
+
+#chat-entry image
+{
+    transition: 300ms ease-in-out;
+}

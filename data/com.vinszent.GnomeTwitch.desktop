@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=GNOME Twitch
+Exec=gnome-twitch
+Icon=com.vinszent.GnomeTwitch
+Categories=GTK;GNOME;AudioVideo;Player;Video;
+Keywords=stream;video;twitch;live;games;

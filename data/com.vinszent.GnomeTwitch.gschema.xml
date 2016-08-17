@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <enum id="com.vinszent.GnomeTwitch.GtTwitchStreamQuality">
+    <value nick="source" value='0'/>
+    <value nick="high" value='1'/>
+    <value nick="medium" value='2'/>
+    <value nick="low" value='3'/>
+    <value nick="mobile" value='4'/>
+  </enum>
+  <schema path="/com/vinszent/GnomeTwitch" id="com.vinszent.GnomeTwitch">
+    <key name="prefer-dark-theme" type="b">
+      <default>true</default>
+      <summary>Prefer dark theme</summary>
+      <description>Whether to use the dark variant of the theme</description>
+    </key>
+    <key name="default-quality" enum="com.vinszent.GnomeTwitch.GtTwitchStreamQuality">
+      <default>"source"</default>
+      <summary>Default quality</summary>
+      <description>Default quality selected when opening a stream</description>
+    </key>
+    <key name="volume" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.3</default>
+      <summary>Current volume of player</summary>
+    </key>
+    <key name="window-height" type="i">
+      <default>710</default>
+      <summary>Window height</summary>
+      <description>Current window height</description>
+    </key>
+    <key name="window-width" type="i">
+      <default>1050</default>
+      <summary>Window width</summary>
+      <description>Current window width</description>
+    </key>
+    <key name="oauth-token" type="s">
+      <default>''</default>
+      <summary>Twitch OAuth token</summary>
+      <description>
+        OAuth token used to authenticate all requests to the Twitch API.
+        Note that if you want to "logout" then you can just set the OAuth token
+        to an empty string
+      </description>
+    </key>
+    <key name="user-name" type="s">
+      <default>''</default>
+      <summary>Twitch user name</summary>
+      <description>
+        User name that is used in conjuction with the OAuth token
+        to authenticate to the Twitch API. Is also used to login to IRC
+        and other Twitch services.
+      </description>
+    </key>
+    <key name="loaded-plugins" type="as">
+      <default>[]</default>
+      <summary>Loaded plugins</summary>
+      <description>Currently loaded plugins</description>
+    </key>
+  </schema>
+</schemalist>
