@@ -484,7 +484,7 @@ gt_app_init(GtApp* self)
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
     self->twitch = gt_twitch_new();
-    self->settings = g_settings_new("com.gnome-twitch.app");
+    self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
     self->plugins_engine = peas_engine_get_default();
 

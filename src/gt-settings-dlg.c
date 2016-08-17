@@ -120,7 +120,8 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     GtkWidget* header_bar = gtk_dialog_get_header_bar(GTK_DIALOG(self));
     gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), priv->settings_switcher);
 
-    priv->settings = g_settings_new("com.gnome-twitch.app");
+    //TODO: Change this to use main_app->settings
+    priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
 
     g_settings_bind(priv->settings, "prefer-dark-theme",
                     priv->prefer_dark_theme_button, "active",
