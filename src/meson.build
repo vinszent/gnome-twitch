@@ -23,7 +23,7 @@ else
    deps_gt += dependency('webkit2gtk-4.0')
 endif
 
-res = gnome.compile_resources('gt-resources', '../data/gnome-twitch.gresource.xml', source_dir : '../data')
+res = gnome.compile_resources('gt-resources', '../data/com.vinszent.GnomeTwitch.gresource.xml', source_dir : '../data')
 
 src_gt = ['main.c',
          'gt-app.c',

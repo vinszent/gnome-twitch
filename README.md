@@ -1,4 +1,4 @@
-# ![](/data/icons/hicolor/48x48/apps/gnome-twitch.png) GNOME Twitch
+# ![](/data/icons/hicolor/48x48/apps/com.vinszent.GnomeTwitch.png) GNOME Twitch
 GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
 the hassle of flash or the web.
 

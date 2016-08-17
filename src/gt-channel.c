@@ -300,7 +300,7 @@ download_banner(GtChannel* self)
     }
     else
     {
-        set_banner(self, gdk_pixbuf_new_from_resource("/com/gnome-twitch/icons/offline.png", NULL),
+        set_banner(self, gdk_pixbuf_new_from_resource("/com/vinszent/GnomeTwitch/icons/offline.png", NULL),
                    FALSE);
 
         priv->updating = FALSE;

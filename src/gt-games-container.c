@@ -202,7 +202,7 @@ gt_games_container_class_init(GtGamesContainerClass* klass)
                                             G_TYPE_NONE,
                                             1, GT_TYPE_GAME);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-games-container.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-games-container.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, games_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainer, games_flow);

@@ -7,7 +7,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFavouriteChannelsView, gt_favourite_channels_view, GTK_TYPE_BOX)
 
-enum 
+enum
 {
     PROP_0,
     NUM_PROPS
@@ -18,7 +18,7 @@ static GParamSpec* props[NUM_PROPS];
 GtFavouriteChannelsView*
 gt_favourite_channels_view_new(void)
 {
-    return g_object_new(GT_TYPE_FAVOURITE_CHANNELS_VIEW, 
+    return g_object_new(GT_TYPE_FAVOURITE_CHANNELS_VIEW,
                         NULL);
 }
 
@@ -72,7 +72,7 @@ gt_favourite_channels_view_class_init(GtFavouriteChannelsViewClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-favourite-channels-view.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-favourite-channels-view.ui");
 }
 
 static void

@@ -27,7 +27,7 @@ finalise(GObject* obj)
 {
     GtTwitchLoginWin* self = GT_TWITCH_LOGIN_WIN(obj);
     GtTwitchLoginWinPrivate* priv = gt_twitch_login_win_get_instance_private(self);
-    
+
     G_OBJECT_CLASS(gt_twitch_login_win_parent_class)->finalize(obj);
 }
 
@@ -39,7 +39,7 @@ get_property(GObject* obj,
 {
     GtTwitchLoginWin* self = GT_TWITCH_LOGIN_WIN(obj);
     GtTwitchLoginWinPrivate* priv = gt_twitch_login_win_get_instance_private(self);
-    
+
     switch (prop)
     {
     default:
@@ -55,7 +55,7 @@ set_property(GObject* obj,
 {
     GtTwitchLoginWin* self = GT_TWITCH_LOGIN_WIN(obj);
     GtTwitchLoginWinPrivate* priv = gt_twitch_login_win_get_instance_private(self);
-    
+
     switch (prop)
     {
     default:
@@ -68,12 +68,12 @@ gt_twitch_login_win_class_init(GtTwitchLoginWinClass* klass)
 {
     GObjectClass* obj_class = G_OBJECT_CLASS(klass);
     GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
-    
+
     obj_class->finalize = finalise;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(widget_class, "/com/gnome-twitch/ui/gt-twitch-login-dlg.ui");
+    gtk_widget_class_set_template_from_resource(widget_class, "/com/vinszent/GnomeTwitch/ui/gt-twitch-login-dlg.ui");
 }
 
 static void

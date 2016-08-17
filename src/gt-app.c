@@ -339,7 +339,7 @@ startup(GApplication* app)
                                     G_N_ELEMENTS(app_actions),
                                     self);
 
-    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
+    menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
     g_object_ref(priv->app_menu);
     g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);

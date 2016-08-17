@@ -91,7 +91,7 @@ gt_twitch_login_dlg_class_init(GtTwitchLoginDlgClass* klass)
     obj_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(widget_class,
-                                                "/com/gnome-twitch/ui/gt-twitch-login-dlg.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-twitch-login-dlg.ui");
 
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchLoginDlg, web_view);
 }
@@ -156,7 +156,7 @@ redirect_cb(WebKitWebView* web_view,
     }
 #endif
 
-    if (uri == NULL || strlen(uri) == 0) return;
+    if (uri == NULL || strlen(uri) == 0) return FALSE;
 
     INFOF("Redirect uri is '%s'", uri);
 
