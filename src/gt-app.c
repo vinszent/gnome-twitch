@@ -88,7 +88,7 @@ GtApp*
 gt_app_new(void)
 {
     return g_object_new(GT_TYPE_APP,
-                        "application-id", "com.gnome-twitch.app",
+                        "application-id", "com.vinszent.GnomeTwitch",
                         NULL);
 }
 
