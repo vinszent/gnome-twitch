@@ -141,6 +141,7 @@ finalize(GObject* object)
 
     g_free(priv->name);
     g_free(priv->preview_url);
+    g_free(priv->preview_filename);
     g_clear_object(&priv->preview);
     g_clear_object(&priv->logo);
 

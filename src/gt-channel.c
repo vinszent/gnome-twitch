@@ -341,6 +341,8 @@ finalize(GObject* object)
     g_free(priv->game);
     g_free(priv->status);
     g_free(priv->cache_filename);
+    g_free(priv->preview_url);
+    g_free(priv->video_banner_url);
 
     if (priv->stream_started_time)
         g_date_time_unref(priv->stream_started_time);
