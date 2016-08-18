@@ -1,3 +1,13 @@
+msgfmt = find_program('msgfmt')
+
+appdata_file_target = custom_target('appdata-file',
+   output : 'com.gnome-twitch.app.appdata.xml',
+   input : 'com.gnome-twitch.app.appdata.xml.in',
+   command : [msgfmt, '--xml', '--template', '@INPUT@', '-d', '../po', '-o', '@OUTPUT@'],
+   install : true,
+   install_dir : 'share/appdata'
+ )
+
 install_data('com.gnome-twitch.app.desktop', install_dir : 'share/applications')
 install_data('icons/hicolor/16x16/apps/gnome-twitch.png', install_dir : 'share/icons/hicolor/16x16/apps/')
 install_data('icons/hicolor/22x22/apps/gnome-twitch.png', install_dir : 'share/icons/hicolor/22x22/apps')
