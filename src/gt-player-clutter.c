@@ -477,6 +477,8 @@ finalize(GObject* object)
 
     unschedule_cursor_hiding(self);
 
+    g_settings_set_double(main_app->settings, "volume", priv->volume);
+
     G_OBJECT_CLASS(gt_player_clutter_parent_class)->finalize(object);
 }
 
@@ -799,9 +801,7 @@ gt_player_clutter_init(GtPlayerClutter* self)
                            priv->chat_view, "opacity",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
-    g_settings_bind(main_app->settings, "volume",
-                    self, "volume",
-                    G_SETTINGS_BIND_DEFAULT);
+    g_object_set(self, "volume", g_settings_get_double(main_app->settings, "volume"), NULL);
 
     ADD_STYLE_CLASS(self, "player-clutter");
     ADD_STYLE_CLASS(priv->buffer_box, "buffer-box");
