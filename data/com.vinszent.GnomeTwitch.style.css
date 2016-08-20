@@ -15,25 +15,25 @@
     padding: 7px;
 }
 
-.gt-channels-container-child .overlay-box .favourite-button
+.gt-channels-container-child .overlay-box .follow-button
 {
     background-color: rgba(0, 0, 0, 0);
     background-image: none;
     border-style: none;
 }
 
-.gt-channels-container-child .overlay-box .favourite-button:hover image
+.gt-channels-container-child .overlay-box .follow-button:hover image
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-channels-container-child .overlay-box .favourite-button image
+.gt-channels-container-child .overlay-box .follow-button image
 {
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-channels-container-child .overlay-box .favourite-button:checked image
+.gt-channels-container-child .overlay-box .follow-button:checked image
 {
     color: gold;
 }

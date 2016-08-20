@@ -1,6 +1,6 @@
 #include "gt-channels-view.h"
 #include "gt-channels-container-top.h"
-#include "gt-channels-container-favourite.h"
+#include "gt-channels-container-follow.h"
 #include "gt-channels-container-search.h"
 #include "gt-channels-container-game.h"
 

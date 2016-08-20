@@ -4,7 +4,7 @@
 #include <gtk/gtk.h>
 #include <libpeas/peas.h>
 #include "gt-twitch.h"
-#include "gt-favourites-manager.h"
+#include "gt-follows-manager.h"
 #include "gt-irc.h"
 
 G_BEGIN_DECLS
@@ -18,7 +18,7 @@ struct _GtApp
     GtkApplication parent_instance;
 
     GtTwitch* twitch;
-    GtFavouritesManager* fav_mgr;
+    GtFollowsManager* fav_mgr;
     GSettings* settings;
 
     PeasEngine* plugins_engine;

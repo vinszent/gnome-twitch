@@ -365,13 +365,13 @@ startup(GApplication* app)
                      G_CALLBACK(gt_app_prefer_dark_theme_changed_cb),
                      gtk_settings);
 
-    self->fav_mgr = gt_favourites_manager_new();
+    self->fav_mgr = gt_follows_manager_new();
 
-    //TODO: Add a setting to allow user to use local favourites even when logged in
+    //TODO: Add a setting to allow user to use local follows even when logged in
     if (gt_app_credentials_valid(self))
-        gt_favourites_manager_load_from_twitch(self->fav_mgr);
+        gt_follows_manager_load_from_twitch(self->fav_mgr);
     else
-        gt_favourites_manager_load_from_file(self->fav_mgr);
+        gt_follows_manager_load_from_file(self->fav_mgr);
 }
 
 static void
@@ -384,9 +384,9 @@ shutdown(GApplication* app)
 
     save_chat_settings(self);
 
-    //TODO: Add a setting to allow user to use local favourites even when logged in
+    //TODO: Add a setting to allow user to use local follows even when logged in
     if (!gt_app_credentials_valid(self))
-        gt_favourites_manager_save(self->fav_mgr);
+        gt_follows_manager_save(self->fav_mgr);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
 }

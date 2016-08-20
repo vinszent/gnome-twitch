@@ -23,7 +23,7 @@ typedef struct
     gint64 viewers;
     GDateTime* stream_started_time;
 
-    gboolean favourited;
+    gboolean followed;
     gboolean online;
     gboolean auto_update;
     gboolean updating;
@@ -61,7 +61,7 @@ enum
     PROP_PREVIEW,
     PROP_VIEWERS,
     PROP_STREAM_STARTED_TIME,
-    PROP_FAVOURITED,
+    PROP_FOLLOWED,
     PROP_ONLINE,
     PROP_AUTO_UPDATE,
     PROP_UPDATING,
@@ -98,35 +98,35 @@ set_banner(GtChannel* self, GdkPixbuf* banner, gboolean save)
 }
 
 static void
-channel_favourited_cb(GtFavouritesManager* mgr,
+channel_followed_cb(GtFollowsManager* mgr,
                       GtChannel* chan,
                       gpointer udata)
 {
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    if (!gt_channel_compare(self, chan) && !priv->favourited)
+    if (!gt_channel_compare(self, chan) && !priv->followed)
     {
-        GQuark detail = g_quark_from_static_string("favourited");
+        GQuark detail = g_quark_from_static_string("followed");
         g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
-        g_object_set(self, "favourited", TRUE, NULL);
+        g_object_set(self, "followed", TRUE, NULL);
         g_signal_handlers_unblock_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
     }
 }
 
 static void
-channel_unfavourited_cb(GtFavouritesManager* mgr,
+channel_unfollowed_cb(GtFollowsManager* mgr,
                         GtChannel* chan,
                         gpointer udata)
 {
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    if (!gt_channel_compare(self, chan) && priv->favourited)
+    if (!gt_channel_compare(self, chan) && priv->followed)
     {
-        GQuark detail = g_quark_from_static_string("favourited");
+        GQuark detail = g_quark_from_static_string("followed");
         g_signal_handlers_block_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
-        g_object_set(self, "favourited", FALSE, NULL);
+        g_object_set(self, "followed", FALSE, NULL);
         g_signal_handlers_unblock_matched(self, G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_DETAIL, 0, detail, NULL, NULL, main_app->fav_mgr);
     }
 }
@@ -349,8 +349,8 @@ finalize(GObject* object)
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
 
-    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_favourited_cb, self);
-    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfavourited_cb, self);
+    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_followed_cb, self);
+    g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfollowed_cb, self);
 
     G_OBJECT_CLASS(gt_channel_parent_class)->finalize(object);
 }
@@ -396,8 +396,8 @@ get_property (GObject*    obj,
         case PROP_STREAM_STARTED_TIME:
             g_value_set_pointer(val, priv->stream_started_time);
             break;
-        case PROP_FAVOURITED:
-            g_value_set_boolean(val, priv->favourited);
+        case PROP_FOLLOWED:
+            g_value_set_boolean(val, priv->followed);
             break;
         case PROP_ONLINE:
             g_value_set_boolean(val, priv->online);
@@ -461,8 +461,8 @@ set_property(GObject*      obj,
             if (priv->stream_started_time)
                 g_date_time_ref(priv->stream_started_time);
             break;
-        case PROP_FAVOURITED:
-            priv->favourited = g_value_get_boolean(val);
+        case PROP_FOLLOWED:
+            priv->followed = g_value_get_boolean(val);
             break;
         case PROP_ONLINE:
             priv->online = g_value_get_boolean(val);
@@ -486,7 +486,7 @@ constructed(GObject* obj)
     priv->cache_filename = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", id, NULL);
     g_free(id);
 
-    priv->favourited = gt_favourites_manager_is_channel_favourited(main_app->fav_mgr, self);
+    priv->followed = gt_follows_manager_is_channel_followed(main_app->fav_mgr, self);
 
     G_OBJECT_CLASS(gt_channel_parent_class)->constructed(obj);
 }
@@ -553,9 +553,9 @@ gt_channel_class_init(GtChannelClass* klass)
                                                            "Stream started time",
                                                            "Stream started time",
                                                            G_PARAM_READWRITE);
-    props[PROP_FAVOURITED] = g_param_spec_boolean("favourited",
-                                                  "Favourited",
-                                                  "Whether the channel is favourited",
+    props[PROP_FOLLOWED] = g_param_spec_boolean("followed",
+                                                  "Followed",
+                                                  "Whether the channel is followed",
                                                   FALSE,
                                                   G_PARAM_READWRITE);
     props[PROP_ONLINE] = g_param_spec_boolean("online",
@@ -595,10 +595,10 @@ gt_channel_init(GtChannel* self)
     priv->viewers = 0;
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
-    g_signal_connect(main_app->fav_mgr, "channel-favourited", G_CALLBACK(channel_favourited_cb), self);
-    g_signal_connect(main_app->fav_mgr, "channel-unfavourited", G_CALLBACK(channel_unfavourited_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
-    gt_favourites_manager_attach_to_channel(main_app->fav_mgr, self);
+    gt_follows_manager_attach_to_channel(main_app->fav_mgr, self);
 }
 
 static GParamSpec**
@@ -652,11 +652,11 @@ gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
 }
 
 void
-gt_channel_toggle_favourited(GtChannel* self)
+gt_channel_toggle_followed(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_object_set(self, "favourited", !priv->favourited, NULL);
+    g_object_set(self, "followed", !priv->followed, NULL);
 }
 
 void
