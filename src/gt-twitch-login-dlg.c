@@ -149,8 +149,9 @@ redirect_cb(WebKitWebView* web_view,
 #else
     if (type == WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION)
     {
-        WebKitNavigationPolicyDecision* navigation = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
-        WebKitURIRequest* request = webkit_navigation_policy_decision_get_request(navigation);
+        WebKitNavigationAction* action = webkit_navigation_policy_decision_get_navigation_action(
+            WEBKIT_NAVIGATION_POLICY_DECISION(decision));
+        WebKitURIRequest* request = webkit_navigation_action_get_request(action);
 
         uri = webkit_uri_request_get_uri(request);
     }
