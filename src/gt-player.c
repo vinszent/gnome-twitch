@@ -876,6 +876,8 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     GVariant* default_quality;
     GAction* quality_action;
 
+    g_object_set(self, "channel", chan, NULL);
+
     if (!priv->backend)
     {
         MESSAGE("Can't open channel, no backend loaded");
@@ -888,8 +890,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
-
-    g_object_set(self, "channel", chan, NULL);
 
     g_object_get(chan,
                  "name", &name,
