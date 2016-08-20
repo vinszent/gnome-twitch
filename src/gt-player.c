@@ -258,7 +258,7 @@ player_button_press_cb(GtkWidget* widget,
                        GdkEventButton* evt,
                        gpointer udata)
 {
-    if (evt->type == GDK_2BUTTON_PRESS)
+    if (evt->button == 1 && evt->type == GDK_2BUTTON_PRESS)
         gt_win_toggle_fullscreen(GT_WIN_TOPLEVEL(widget));
 
     return GDK_EVENT_PROPAGATE;
