@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-    <gresource prefix="/com/gnome-twitch">
+    <gresource prefix="/com/vinszent/GnomeTwitch">
       <file preprocess="xml-stripblanks">ui/gt-win.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channels-view.ui</file>
@@ -19,7 +19,7 @@
       <file preprocess="xml-stripblanks">ui/gt-twitch-channel-info-panel.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-error-dlg.ui</file>
       <file preprocess="xml-stripblanks">ui/app-menu.ui</file>
-      <file>gnome-twitch-style.css</file>
+      <file>com.vinszent.GnomeTwitch.style.css</file>
       <file preprocess="to-pixdata">icons/offline.png</file>
     </gresource>
 </gresources>

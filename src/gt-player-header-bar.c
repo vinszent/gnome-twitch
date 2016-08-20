@@ -248,7 +248,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     object_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
-                                                "/com/gnome-twitch/ui/gt-player-header-bar.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-player-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, hide_chat_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, fullscreen_button);

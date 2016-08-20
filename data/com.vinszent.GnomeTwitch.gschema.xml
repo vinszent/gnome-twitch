@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <enum id="com.gnome-twitch.GtTwitchStreamQuality">
+  <enum id="com.vinszent.GnomeTwitch.GtTwitchStreamQuality">
     <value nick="source" value='0'/>
     <value nick="high" value='1'/>
     <value nick="medium" value='2'/>
     <value nick="low" value='3'/>
     <value nick="mobile" value='4'/>
   </enum>
-  <schema path="/com/gnome-twitch/app/" id="com.gnome-twitch.app">
+  <schema path="/com/vinszent/GnomeTwitch/" id="com.vinszent.GnomeTwitch">
     <key name="prefer-dark-theme" type="b">
       <default>true</default>
       <summary>Prefer dark theme</summary>
       <description>Whether to use the dark variant of the theme</description>
     </key>
-    <key name="default-quality" enum="com.gnome-twitch.GtTwitchStreamQuality">
+    <key name="default-quality" enum="com.vinszent.GnomeTwitch.GtTwitchStreamQuality">
       <default>"source"</default>
       <summary>Default quality</summary>
       <description>Default quality selected when opening a stream</description>

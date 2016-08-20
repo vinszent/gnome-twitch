@@ -11,7 +11,7 @@
 typedef struct
 {
     gboolean search_active;
-    
+
     GtkWidget* games_stack;
     GtkWidget* search_bar;
     GtkWidget* top_container;
@@ -23,7 +23,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesView, gt_games_view, GTK_TYPE_BOX)
 
-enum 
+enum
 {
     PROP_0,
     PROP_SEARCH_ACTIVE,
@@ -37,7 +37,7 @@ static GParamSpec* props[NUM_PROPS];
 GtGamesView*
 gt_games_view_new(void)
 {
-    return g_object_new(GT_TYPE_GAMES_VIEW, 
+    return g_object_new(GT_TYPE_GAMES_VIEW,
                         NULL);
 }
 
@@ -84,7 +84,7 @@ game_activated_cb(GtGamesContainer* container,
     gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->game_container), name);
 
     gt_games_view_show_type(self, GT_CHANNELS_CONTAINER_TYPE_GAME);
-    
+
     g_signal_handlers_block_by_func(self, search_active_cb, self);
     g_object_set(self, "search-active", FALSE, NULL);
     g_signal_handlers_unblock_by_func(self, search_active_cb, self);
@@ -177,7 +177,7 @@ gt_games_view_class_init(GtGamesViewClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-games-view.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-games-view.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, games_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesView, search_bar);

@@ -694,7 +694,7 @@ gt_chat_class_init(GtChatClass* klass)
     obj_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(widget_class,
-                                                "/com/gnome-twitch/ui/gt-chat.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-chat.ui");
 
     gtk_widget_class_bind_template_child_private(widget_class, GtChat, chat_view);
     gtk_widget_class_bind_template_child_private(widget_class, GtChat, chat_scroll);

@@ -11,7 +11,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFavouritesView, gt_favourites_view, GTK_TYPE_BOX)
 
-enum 
+enum
 {
     PROP_0,
     PROP_SEARCH_ACTIVE,
@@ -23,7 +23,7 @@ static GParamSpec* props[NUM_PROPS];
 GtFavouritesView*
 gt_favourites_view_new(void)
 {
-    return g_object_new(GT_TYPE_FAVOURITES_VIEW, 
+    return g_object_new(GT_TYPE_FAVOURITES_VIEW,
                         NULL);
 }
 
@@ -107,7 +107,7 @@ gt_favourites_view_class_init(GtFavouritesViewClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-favourites-view.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-favourites-view.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFavouritesView, favourite_container);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFavouritesView, search_bar);

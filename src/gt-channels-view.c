@@ -18,7 +18,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsView, gt_channels_view, GTK_TYPE_BOX)
 
-enum 
+enum
 {
     PROP_0,
     PROP_SEARCH_ACTIVE,
@@ -31,7 +31,7 @@ static GParamSpec* props[NUM_PROPS];
 GtChannelsView*
 gt_channels_view_new(void)
 {
-    return g_object_new(GT_TYPE_CHANNELS_VIEW, 
+    return g_object_new(GT_TYPE_CHANNELS_VIEW,
                         NULL);
 }
 
@@ -137,7 +137,7 @@ gt_channels_view_class_init(GtChannelsViewClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-channels-view.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-channels-view.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, channels_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsView, top_container);

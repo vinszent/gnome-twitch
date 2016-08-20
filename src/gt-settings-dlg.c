@@ -97,7 +97,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-settings-dlg.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-settings-dlg.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, prefer_dark_theme_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_switcher);
@@ -120,7 +120,8 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     GtkWidget* header_bar = gtk_dialog_get_header_bar(GTK_DIALOG(self));
     gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), priv->settings_switcher);
 
-    priv->settings = g_settings_new("com.gnome-twitch.app");
+    //TODO: Change this to use main_app->settings
+    priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
 
     g_settings_bind(priv->settings, "prefer-dark-theme",
                     priv->prefer_dark_theme_button, "active",

@@ -88,7 +88,7 @@ GtApp*
 gt_app_new(void)
 {
     return g_object_new(GT_TYPE_APP,
-                        "application-id", "com.gnome-twitch.app",
+                        "application-id", "com.vinszent.GnomeTwitch",
                         NULL);
 }
 
@@ -339,7 +339,7 @@ startup(GApplication* app)
                                     G_N_ELEMENTS(app_actions),
                                     self);
 
-    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
+    menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
     g_object_ref(priv->app_menu);
     g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
@@ -484,7 +484,7 @@ gt_app_init(GtApp* self)
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
     self->twitch = gt_twitch_new();
-    self->settings = g_settings_new("com.gnome-twitch.app");
+    self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
     self->plugins_engine = peas_engine_get_default();
 

@@ -105,7 +105,7 @@ show_about_cb(GSimpleAction* action,
                  "license-type", GTK_LICENSE_GPL_3_0,
                  "copyright", "Copyright © 2015 Vincent Szolnoky",
                  "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
-                 "logo-icon-name", "gnome-twitch",
+                 "logo-icon-name", "com.vinszent.GnomeTwitch",
                  "website", "https://github.com/vinszent/gnome-twitch",
                  "website-label", "GitHub",
                  "translator-credits", _("translator-credits"),
@@ -168,7 +168,7 @@ show_error_dialogue_cb(GtkInfoBar* info_bar,
                        gint res,
                        gchar** udata)
 {
-    GtkBuilder* builder = gtk_builder_new_from_resource("/com/gnome-twitch/ui/gt-error-dlg.ui");
+    GtkBuilder* builder = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/gt-error-dlg.ui");
     GtkWidget* dlg = GTK_WIDGET(gtk_builder_get_object(builder, "dlg"));
     GtkTextView* details_text_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "details_text_view"));
 
@@ -572,7 +572,7 @@ gt_win_class_init(GtWinClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
-                                                "/com/gnome-twitch/ui/gt-win.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-win.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, main_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channels_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, games_view);
@@ -619,7 +619,7 @@ gt_win_init(GtWin* self)
                                 g_settings_get_int(main_app->settings, "window-width"),
                                 g_settings_get_int(main_app->settings, "window-height"));
 
-    gtk_window_set_default_icon_name("gnome-twitch");
+    gtk_window_set_default_icon_name("com.vinszent.GnomeTwitch");
 
     g_object_bind_property(priv->browse_stack, "visible-child",
                            self, "visible-view",
@@ -627,7 +627,7 @@ gt_win_init(GtWin* self)
 
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
-    gtk_css_provider_load_from_resource(css, "/com/gnome-twitch/gnome-twitch-style.css");
+    gtk_css_provider_load_from_resource(css, "/com/vinszent/GnomeTwitch/com.vinszent.GnomeTwitch.style.css");
     gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(css),
                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
