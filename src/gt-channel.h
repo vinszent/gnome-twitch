@@ -17,7 +17,7 @@ struct _GtChannel
 
 GtChannel* gt_channel_new(const gchar* name, gint64 id);
 void gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data);
-void gt_channel_toggle_favourited(GtChannel* self);
+void gt_channel_toggle_followed(GtChannel* self);
 void gt_channel_free_list(GList* list);
 gboolean gt_channel_compare(GtChannel* self, gpointer other);
 const gchar* gt_channel_get_name(GtChannel* self);

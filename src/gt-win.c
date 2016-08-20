@@ -8,7 +8,7 @@
 #include "gt-browse-header-bar.h"
 #include "gt-channels-view.h"
 #include "gt-games-view.h"
-#include "gt-favourites-view.h"
+#include "gt-follows-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
 #include "gt-twitch-channel-info-dlg.h"
@@ -35,7 +35,7 @@ typedef struct
     GtkWidget* main_stack;
     GtkWidget* channels_view;
     GtkWidget* games_view;
-    GtkWidget* favourites_view;
+    GtkWidget* follows_view;
     GtkWidget* header_stack;
     GtkWidget* browse_stack;
     GtkWidget* player_header_bar;
@@ -342,13 +342,13 @@ refresh_view_cb(GSimpleAction* action,
         gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view));
     else if (visible_child == priv->games_view)
         gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view));
-    else if (visible_child == priv->favourites_view)
+    else if (visible_child == priv->follows_view)
     {
         //TODO: Quick hack, turn this into a proper refresh function
         if (gt_app_credentials_valid(main_app))
-            gt_favourites_manager_load_from_twitch(main_app->fav_mgr);
+            gt_follows_manager_load_from_twitch(main_app->fav_mgr);
         else
-            gt_favourites_manager_load_from_file(main_app->fav_mgr);
+            gt_follows_manager_load_from_file(main_app->fav_mgr);
     }
 }
 
@@ -410,8 +410,8 @@ key_press_cb(GtkWidget* widget,
                 gt_channels_view_handle_event(GT_CHANNELS_VIEW(priv->channels_view), (GdkEvent*) evt);
             else if (view == priv->games_view)
                 gt_games_view_handle_event(GT_GAMES_VIEW(priv->games_view), (GdkEvent*) evt);
-            else if (view == priv->favourites_view)
-                gt_favourites_view_handle_event(GT_FAVOURITES_VIEW(priv->favourites_view), (GdkEvent* )evt);
+            else if (view == priv->follows_view)
+                gt_follows_view_handle_event(GT_FOLLOWS_VIEW(priv->follows_view), (GdkEvent* )evt);
         }
     }
 
@@ -582,7 +582,7 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_header_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack_switcher);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, favourites_view);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, follows_view);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar);
@@ -604,7 +604,7 @@ gt_win_init(GtWin* self)
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNELS_VIEW;
     GT_TYPE_GAMES_VIEW;
-    GT_TYPE_FAVOURITES_VIEW;
+    GT_TYPE_FOLLOWS_VIEW;
     GT_TYPE_CHAT;
 
     gtk_window_set_application(GTK_WINDOW(self), GTK_APPLICATION(main_app));

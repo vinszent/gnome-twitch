@@ -14,7 +14,7 @@
             <property name="visible">True</property>
             <property name="channels-view">channels_view</property>
             <property name="games-view">games_view</property>
-            <property name="favourites-view">favourites_view</property>
+            <property name="follows-view">follows_view</property>
             <child type="title">
               <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>
@@ -141,12 +141,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtFavouritesView" id="favourites_view">
+                  <object class="GtFollowsView" id="follows_view">
                     <property name="visible">True</property>
                   </object>
                   <packing>
-                    <property name="name">favourites</property>
-                    <property name="title" translatable="yes">Favourites</property>
+                    <property name="name">follows</property>
+                    <property name="title" translatable="yes">Follows</property>
                   </packing>
                 </child>
                 <child>

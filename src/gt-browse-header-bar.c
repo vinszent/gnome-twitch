@@ -1,7 +1,7 @@
 #include "gt-browse-header-bar.h"
 #include "gt-win.h"
 #include "gt-channels-view.h"
-#include "gt-favourites-view.h"
+#include "gt-follows-view.h"
 
 #define TAG "GtBrowseHeaderBar"
 #include "utils.h"
@@ -10,7 +10,7 @@ typedef struct
 {
     GtChannelsView* channels_view;
     GtGamesView* games_view;
-    GtFavouritesView* favourites_view;
+    GtFollowsView* follows_view;
 
     GtkWidget* nav_buttons_revealer;
     GtkWidget* nav_buttons_stack;
@@ -27,7 +27,7 @@ enum
     PROP_0,
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
-    PROP_FAVOURITES_VIEW,
+    PROP_FOLLOWS_VIEW,
     NUM_PROPS
 };
 
@@ -86,8 +86,8 @@ get_property (GObject*    obj,
         case PROP_GAMES_VIEW:
             g_value_set_object(val, priv->games_view);
             break;
-        case PROP_FAVOURITES_VIEW:
-            g_value_set_object(val, priv->favourites_view);
+        case PROP_FOLLOWS_VIEW:
+            g_value_set_object(val, priv->follows_view);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -113,9 +113,9 @@ set_property(GObject*      obj,
             g_clear_object(&priv->games_view);
             priv->games_view = g_value_dup_object(val);
             break;
-        case PROP_FAVOURITES_VIEW:
-            g_clear_object(&priv->favourites_view);
-            priv->favourites_view = g_value_dup_object(val);
+        case PROP_FOLLOWS_VIEW:
+            g_clear_object(&priv->follows_view);
+            priv->follows_view = g_value_dup_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -174,7 +174,7 @@ realize(GtkWidget* widget,
     g_object_bind_property(priv->channels_view, "search-active",
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
-    g_object_bind_property(priv->favourites_view, "search-active",
+    g_object_bind_property(priv->follows_view, "search-active",
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
 
@@ -203,10 +203,10 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                                  "Games View",
                                                  GT_TYPE_GAMES_VIEW,
                                                  G_PARAM_READWRITE);
-    props[PROP_FAVOURITES_VIEW] = g_param_spec_object("favourites-view",
-                                                      "Favourites View",
-                                                      "Favourites View",
-                                                      GT_TYPE_FAVOURITES_VIEW,
+    props[PROP_FOLLOWS_VIEW] = g_param_spec_object("follows-view",
+                                                      "Follows View",
+                                                      "Follows View",
+                                                      GT_TYPE_FOLLOWS_VIEW,
                                                       G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,

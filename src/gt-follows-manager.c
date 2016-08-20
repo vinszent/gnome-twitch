@@ -1,4 +1,4 @@
-#include "gt-favourites-manager.h"
+#include "gt-follows-manager.h"
 #include "gt-app.h"
 #include "gt-win.h"
 #include <json-glib/json-glib.h>
@@ -6,17 +6,17 @@
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 
-#define TAG "GtFavouritesManager"
+#define TAG "GtFollowsManager"
 #include "gnome-twitch/gt-log.h"
 
-#define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
+#define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "follow-channels.json", NULL);
 
 typedef struct
 {
     void* tmp;
-} GtFavouritesManagerPrivate;
+} GtFollowsManagerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtFavouritesManager, gt_favourites_manager, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE(GtFollowsManager, gt_follows_manager, G_TYPE_OBJECT)
 
 enum
 {
@@ -26,10 +26,10 @@ enum
 
 enum
 {
-    SIG_CHANNEL_FAVOURITED,
-    SIG_CHANNEL_UNFAVOURITED,
-    SIG_STARTED_LOADING_FAVOURITES,
-    SIG_FINISHED_LOADING_FAVOURITES,
+    SIG_CHANNEL_FOLLOWED,
+    SIG_CHANNEL_UNFOLLOWED,
+    SIG_STARTED_LOADING_FOLLOWS,
+    SIG_FINISHED_LOADING_FOLLOWS,
     NUM_SIGS
 };
 
@@ -37,10 +37,10 @@ static GParamSpec* props[NUM_PROPS];
 
 static guint sigs[NUM_SIGS];
 
-GtFavouritesManager*
-gt_favourites_manager_new(void)
+GtFollowsManager*
+gt_follows_manager_new(void)
 {
-    return g_object_new(GT_TYPE_FAVOURITES_MANAGER,
+    return g_object_new(GT_TYPE_FOLLOWS_MANAGER,
                         NULL);
 }
 
@@ -49,8 +49,8 @@ channel_online_cb(GObject* source,
                   GParamSpec* pspe,
                   gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
     gboolean online;
     gchar* name;
     gchar* game;
@@ -83,43 +83,43 @@ logged_in_cb(GObject* source,
              GParamSpec* pspec,
              gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
 
     if (gt_app_credentials_valid(main_app))
-        gt_favourites_manager_load_from_twitch(self);
+        gt_follows_manager_load_from_twitch(self);
 }
 
 static void
-channel_favourited_cb(GObject* source,
+channel_followed_cb(GObject* source,
                       GParamSpec* pspec,
                       gpointer udata);
 static gboolean
-toggle_favourited_cb(gpointer udata)
+toggle_followed_cb(gpointer udata)
 {
     GtChannel* chan = GT_CHANNEL(udata);
-    GtFavouritesManager* self = main_app->fav_mgr;
+    GtFollowsManager* self = main_app->fav_mgr;
 
-    g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
-    gt_channel_toggle_favourited(chan);
-    g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+    g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
+    gt_channel_toggle_followed(chan);
+    g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
 
     return G_SOURCE_REMOVE;
 }
 
 static void
-channel_favourited_cb(GObject* source,
+channel_followed_cb(GObject* source,
                       GParamSpec* pspec,
                       gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
     GtChannel* chan = GT_CHANNEL(source);
 
-    gboolean favourited;
+    gboolean followed;
 
-    g_object_get(chan, "favourited", &favourited, NULL);
+    g_object_get(chan, "followed", &followed, NULL);
 
-    if (favourited)
+    if (followed)
     {
         if (gt_app_credentials_valid(main_app))
         {
@@ -136,7 +136,7 @@ channel_favourited_cb(GObject* source,
 
                 gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
 
-                g_idle_add((GSourceFunc) toggle_favourited_cb, chan);
+                g_idle_add((GSourceFunc) toggle_followed_cb, chan);
 
                 g_free(secondary);
                 g_error_free(error);
@@ -145,17 +145,17 @@ channel_favourited_cb(GObject* source,
             }
         }
 
-        self->favourite_channels = g_list_append(self->favourite_channels, chan);
+        self->follow_channels = g_list_append(self->follow_channels, chan);
 //        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
-        MESSAGEF("Favourited channel '%s'", gt_channel_get_name(chan));
+        MESSAGEF("Followed channel '%s'", gt_channel_get_name(chan));
 
-        g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
+        g_signal_emit(self, sigs[SIG_CHANNEL_FOLLOWED], 0, chan);
     }
     else
     {
-        GList* found = g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare);
+        GList* found = g_list_find_custom(self->follow_channels, chan, (GCompareFunc) gt_channel_compare);
         // Should never return null;
 
         g_assert_nonnull(found);
@@ -176,7 +176,7 @@ channel_favourited_cb(GObject* source,
 
                 gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
 
-                g_idle_add((GSourceFunc) toggle_favourited_cb, chan);
+                g_idle_add((GSourceFunc) toggle_followed_cb, chan);
 
                 g_free(secondary);
                 g_error_free(error);
@@ -185,12 +185,12 @@ channel_favourited_cb(GObject* source,
             }
         }
 
-        MESSAGEF("Unfavourited channel '%s'", gt_channel_get_name(chan));
+        MESSAGEF("Unfollowed channel '%s'", gt_channel_get_name(chan));
 
-        g_signal_emit(self, sigs[SIG_CHANNEL_UNFAVOURITED], 0, found->data);
+        g_signal_emit(self, sigs[SIG_CHANNEL_UNFOLLOWED], 0, found->data);
 
         g_clear_object(&found->data);
-        self->favourite_channels = g_list_delete_link(self->favourite_channels, found);
+        self->follow_channels = g_list_delete_link(self->follow_channels, found);
     }
 }
 
@@ -199,7 +199,7 @@ oneshot_updating_cb(GObject* source,
                     GParamSpec* pspec,
                     gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
     gboolean updating;
 
     g_object_get(source, "updating", &updating, NULL);
@@ -215,18 +215,18 @@ static void
 shutdown_cb(GApplication* app,
             gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
 
-//    gt_favourites_manager_save(self);
+//    gt_follows_manager_save(self);
 }
 
 static void
 finalize(GObject* object)
 {
-    GtFavouritesManager* self = (GtFavouritesManager*) object;
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = (GtFollowsManager*) object;
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
 
-    G_OBJECT_CLASS(gt_favourites_manager_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_follows_manager_parent_class)->finalize(object);
 }
 
 static void
@@ -235,8 +235,8 @@ get_property (GObject*    obj,
               GValue*     val,
               GParamSpec* pspec)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(obj);
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
 
     switch (prop)
     {
@@ -251,8 +251,8 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(obj);
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
 
     switch (prop)
     {
@@ -262,7 +262,7 @@ set_property(GObject*      obj,
 }
 
 static void
-gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
+gt_follows_manager_class_init(GtFollowsManagerClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
@@ -270,34 +270,34 @@ gt_favourites_manager_class_init(GtFavouritesManagerClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    sigs[SIG_CHANNEL_FAVOURITED] = g_signal_new("channel-favourited",
-                                                GT_TYPE_FAVOURITES_MANAGER,
+    sigs[SIG_CHANNEL_FOLLOWED] = g_signal_new("channel-followed",
+                                                GT_TYPE_FOLLOWS_MANAGER,
                                                 G_SIGNAL_RUN_LAST,
                                                 0, NULL, NULL,
                                                 NULL,
                                                 G_TYPE_NONE,
                                                 1, GT_TYPE_CHANNEL);
-    sigs[SIG_CHANNEL_UNFAVOURITED] = g_signal_new("channel-unfavourited",
-                                                  GT_TYPE_FAVOURITES_MANAGER,
+    sigs[SIG_CHANNEL_UNFOLLOWED] = g_signal_new("channel-unfollowed",
+                                                  GT_TYPE_FOLLOWS_MANAGER,
                                                   G_SIGNAL_RUN_LAST,
                                                   0, NULL, NULL,
                                                   NULL,
                                                   G_TYPE_NONE,
                                                   1, GT_TYPE_CHANNEL);
-    sigs[SIG_STARTED_LOADING_FAVOURITES] = g_signal_new("started-loading-favourites",
-                                                        GT_TYPE_FAVOURITES_MANAGER,
+    sigs[SIG_STARTED_LOADING_FOLLOWS] = g_signal_new("started-loading-follows",
+                                                        GT_TYPE_FOLLOWS_MANAGER,
                                                         G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                                                         0, NULL, NULL, NULL,
                                                         G_TYPE_NONE, 0, NULL);
-    sigs[SIG_FINISHED_LOADING_FAVOURITES] = g_signal_new("finished-loading-favourites",
-                                                        GT_TYPE_FAVOURITES_MANAGER,
+    sigs[SIG_FINISHED_LOADING_FOLLOWS] = g_signal_new("finished-loading-follows",
+                                                        GT_TYPE_FOLLOWS_MANAGER,
                                                         G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                                                         0, NULL, NULL, NULL,
                                                         G_TYPE_NONE, 0, NULL);
 }
 
 static void
-gt_favourites_manager_init(GtFavouritesManager* self)
+gt_follows_manager_init(GtFollowsManager* self)
 {
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
 //    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
@@ -305,9 +305,9 @@ gt_favourites_manager_init(GtFavouritesManager* self)
 }
 
 static void
-channel_followed_cb(GObject* source,
-                    GAsyncResult* res,
-                    gpointer udata)
+follow_channel_cb(GObject* source,
+                  GAsyncResult* res,
+                  gpointer udata)
 {
     GList* l = udata;
     GError* error = NULL;
@@ -318,11 +318,11 @@ channel_followed_cb(GObject* source,
         GtWin* self = g_list_last(l)->data;
 
         gt_win_show_error_message(GT_WIN_ACTIVE,
-                                  "Unable to move your favourites to Twitch, try refreshing your login",
+                                  "Unable to move your follows to Twitch, try refreshing your login",
                                   error->message);
         g_error_free(error);
 
-        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
+        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
 
         return;
     }
@@ -331,16 +331,16 @@ channel_followed_cb(GObject* source,
     {
         gt_twitch_follow_channel_async(main_app->twitch,
                                        gt_channel_get_name(GT_CHANNEL(l->data)),
-                                       channel_followed_cb, l->next);
+                                       follow_channel_cb, l->next);
     }
-    else if (GT_IS_FAVOURITES_MANAGER(l->data))
+    else if (GT_IS_FOLLOWS_MANAGER(l->data))
     {
         gchar* fp = FAV_CHANNELS_FILE;
         gchar* new_fp = g_strconcat(fp, ".bak", NULL);
 
         g_rename(fp, new_fp);
 
-        gt_favourites_manager_load_from_twitch(GT_FAVOURITES_MANAGER(l->data));
+        gt_follows_manager_load_from_twitch(GT_FOLLOWS_MANAGER(l->data));
 
         g_free(fp);
         g_free(new_fp);
@@ -350,11 +350,11 @@ channel_followed_cb(GObject* source,
 }
 
 static void
-move_local_favourites_cb(GtkInfoBar* bar,
+move_local_follows_cb(GtkInfoBar* bar,
                          gint res,
                          gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
 
     if (res == GTK_RESPONSE_YES)
     {
@@ -370,7 +370,7 @@ move_local_favourites_cb(GtkInfoBar* bar,
 
         if (err)
         {
-            g_warning("{GtFavouritesManager} Error moving local favourite channels to twitch '%s'", err->message);
+            g_warning("{GtFollowsManager} Error moving local follow channels to twitch '%s'", err->message);
             return;
         }
 
@@ -388,7 +388,7 @@ move_local_favourites_cb(GtkInfoBar* bar,
 
         channels = g_list_append(channels, self);
         gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(GT_CHANNEL(channels->data)),
-                                       channel_followed_cb, channels->next);
+                                       follow_channel_cb, channels->next);
 
         g_object_unref(parse);
         g_free(fp);
@@ -400,7 +400,7 @@ move_local_favourites_cb(GtkInfoBar* bar,
 
         g_rename(fp, new_fp);
 
-        gt_favourites_manager_load_from_twitch(self);
+        gt_follows_manager_load_from_twitch(self);
 
         g_free(fp);
         g_free(new_fp);
@@ -412,13 +412,13 @@ follows_all_cb(GObject* source,
                GAsyncResult* res,
                gpointer udata)
 {
-    GtFavouritesManager* self = GT_FAVOURITES_MANAGER(udata);
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
     GError* error = NULL;
     GList* list = g_task_propagate_pointer(G_TASK(res), &error);
     gchar* fp = FAV_CHANNELS_FILE;
 
-    g_clear_pointer(&self->favourite_channels,
+    g_clear_pointer(&self->follow_channels,
                     (GDestroyNotify) gt_channel_free_list);
 
     if (error)
@@ -430,22 +430,22 @@ follows_all_cb(GObject* source,
         return;
     }
 
-    self->favourite_channels = list;
+    self->follow_channels = list;
 
-    if (self->favourite_channels)
+    if (self->follow_channels)
     {
         for (GList* l = list; l != NULL; l = l->next)
         {
             GtChannel* chan = l->data;
 
-            g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
+            g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
             g_object_set(chan,
                          "auto-update", TRUE,
-                         "favourited", TRUE,
+                         "followed", TRUE,
                          NULL);
             g_object_ref_sink(G_OBJECT(chan));
-            g_signal_emit(self, sigs[SIG_CHANNEL_FAVOURITED], 0, chan);
-            g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+            g_signal_emit(self, sigs[SIG_CHANNEL_FOLLOWED], 0, chan);
+            g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
         }
 
     }
@@ -453,19 +453,19 @@ follows_all_cb(GObject* source,
     if (g_file_test(fp, G_FILE_TEST_EXISTS))
     {
         gt_win_ask_question(GT_WIN_ACTIVE,
-                            _("GNOME Twitch has detected local favourites, would you like to move them to Twitch?"),
-                            G_CALLBACK(move_local_favourites_cb), self);
+                            _("GNOME Twitch has detected local follows, would you like to move them to Twitch?"),
+                            G_CALLBACK(move_local_follows_cb), self);
     }
     else
-        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
+        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
 
     g_free(fp);
 }
 
 void
-gt_favourites_manager_load_from_twitch(GtFavouritesManager* self)
+gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 {
-    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FAVOURITES], 0);
+    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
     gt_twitch_follows_all_async(main_app->twitch,
                                 gt_app_get_user_name(main_app),
@@ -473,18 +473,18 @@ gt_favourites_manager_load_from_twitch(GtFavouritesManager* self)
 }
 
 void
-gt_favourites_manager_load_from_file(GtFavouritesManager* self)
+gt_follows_manager_load_from_file(GtFollowsManager* self)
 {
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
     JsonParser* parse = json_parser_new();
     JsonNode* root;
     JsonArray* jarr;
     gchar* fp = FAV_CHANNELS_FILE;
     GError* err = NULL;
 
-    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FAVOURITES], 0);
+    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
-    g_clear_pointer(&self->favourite_channels,
+    g_clear_pointer(&self->follow_channels,
                     (GDestroyNotify) gt_channel_free_list);
 
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
@@ -494,7 +494,7 @@ gt_favourites_manager_load_from_file(GtFavouritesManager* self)
 
     if (err)
     {
-        g_warning("{GtFavouritesManager} Error loading favourite channels '%s'", err->message);
+        g_warning("{GtFollowsManager} Error loading follow channels '%s'", err->message);
         goto finish;
     }
 
@@ -504,32 +504,32 @@ gt_favourites_manager_load_from_file(GtFavouritesManager* self)
     for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
     {
         GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
-        self->favourite_channels = g_list_append(self->favourite_channels, chan);
-        g_signal_handlers_block_by_func(chan, channel_favourited_cb, self);
+        self->follow_channels = g_list_append(self->follow_channels, chan);
+        g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
         g_object_set(chan,
                      "auto-update", TRUE,
-                     "favourited", TRUE,
+                     "followed", TRUE,
                      NULL);
         gt_channel_update(chan);
-        g_signal_handlers_unblock_by_func(chan, channel_favourited_cb, self);
+        g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
 
         g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
 
 finish:
 
-    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FAVOURITES], 0);
+    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
 
     g_object_unref(parse);
     g_free(fp);
 }
 
 void
-gt_favourites_manager_save(GtFavouritesManager* self)
+gt_follows_manager_save(GtFollowsManager* self)
 {
-    GtFavouritesManagerPrivate* priv = gt_favourites_manager_get_instance_private(self);
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
 
-    if (g_list_length(self->favourite_channels) == 0)
+    if (g_list_length(self->follow_channels) == 0)
         return;
 
     JsonArray* jarr = json_array_new();
@@ -537,7 +537,7 @@ gt_favourites_manager_save(GtFavouritesManager* self)
     JsonNode* final = json_node_new(JSON_NODE_ARRAY);
     gchar* fp = FAV_CHANNELS_FILE;
 
-    for (GList* l = self->favourite_channels; l != NULL; l = l->next)
+    for (GList* l = self->follow_channels; l != NULL; l = l->next)
     {
         JsonNode* node = json_gobject_serialize(l->data);
         json_array_add_element(jarr, node);
@@ -557,13 +557,13 @@ gt_favourites_manager_save(GtFavouritesManager* self)
 }
 
 gboolean
-gt_favourites_manager_is_channel_favourited(GtFavouritesManager* self, GtChannel* chan)
+gt_follows_manager_is_channel_followed(GtFollowsManager* self, GtChannel* chan)
 {
-    return g_list_find_custom(self->favourite_channels, chan, (GCompareFunc) gt_channel_compare) != NULL;
+    return g_list_find_custom(self->follow_channels, chan, (GCompareFunc) gt_channel_compare) != NULL;
 }
 
 void
-gt_favourites_manager_attach_to_channel(GtFavouritesManager* self, GtChannel* chan)
+gt_follows_manager_attach_to_channel(GtFollowsManager* self, GtChannel* chan)
 {
-    g_signal_connect(chan, "notify::favourited", G_CALLBACK(channel_favourited_cb), self);
+    g_signal_connect(chan, "notify::followed", G_CALLBACK(channel_followed_cb), self);
 }

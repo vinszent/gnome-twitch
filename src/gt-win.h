@@ -32,7 +32,7 @@ void gt_win_browse_games_view(GtWin* self);
 void gt_win_start_search(GtWin* self);
 void gt_win_stop_search(GtWin* self);
 void gt_win_refresh_view(GtWin* self);
-void gt_win_show_favourites(GtWin* self);
+void gt_win_show_follows(GtWin* self);
 GtGamesView* gt_win_get_games_view(GtWin* self);
 GtChannelsView* gt_win_get_channels_view(GtWin* self);
 gboolean gt_win_is_fullscreen(GtWin* self);
