@@ -311,6 +311,9 @@ gt_follows_manager_init(GtFollowsManager* self)
     //TODO: Remove this in a release or two
     if (g_file_test(old_fp, G_FILE_TEST_EXISTS))
         g_rename(old_fp, new_fp);
+
+    g_free(old_fp);
+    g_free(new_fp);
 }
 
 static void
