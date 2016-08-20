@@ -9,6 +9,7 @@
 #define TAG "GtFollowsManager"
 #include "gnome-twitch/gt-log.h"
 
+#define OLD_FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
 #define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "followed-channels.json", NULL);
 
 typedef struct
@@ -299,9 +300,17 @@ gt_follows_manager_class_init(GtFollowsManagerClass* klass)
 static void
 gt_follows_manager_init(GtFollowsManager* self)
 {
+    gchar* old_fp = OLD_FAV_CHANNELS_FILE;
+    gchar* new_fp = FAV_CHANNELS_FILE;
+
     g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
 //    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
     g_signal_connect(main_app, "notify::user-name", G_CALLBACK(logged_in_cb), self);
+
+
+    //TODO: Remove this in a release or two
+    if (g_file_test(old_fp, G_FILE_TEST_EXISTS))
+        g_rename(old_fp, new_fp);
 }
 
 static void
