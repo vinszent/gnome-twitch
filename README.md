@@ -1,17 +1,9 @@
 # ![](/data/icons/hicolor/48x48/apps/com.vinszent.GnomeTwitch.png) GNOME Twitch
-GNOME Twitch app for watching Twitch on your GNU/Linux desktop. Enjoy your favourite streams without
-the hassle of flash or the web.
+Enjoy Twitch on your GNU/Linux desktop.
 
 [![Issues in ready](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=ready&title=Ready)](http://waffle.io/vinszent/gnome-twitch) [![Issues in progress](https://badge.waffle.io/vinszent/gnome-twitch.svg?label=in%20progress&title=In%20progress)](http://waffle.io/vinszent/gnome-twitch)
 
 [![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/gnome-twitch/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
-
-## News
-### Click [here](NEWS.md) for the entire news log
-* __24/06/2016__
-    * Kind of old news but if you are logged in, GT will now get your follows from Twitch. Just be sure to refresh your login token so that GT can get new permissions if you haven't already.
-    * GT now has a plugin system. Currently it's only for player backends but later on I will expand the API for other types of plugins.
-    * There are now 4 backends available: gstreamer-clutter, gstreamer-cairo, gstreamer-opengl, mpv-opengl so feel free to try them out!
 
 ## Install
 ### Dependencies
@@ -20,7 +12,7 @@ the hassle of flash or the web.
 * gtk+-3.0 >= 3.20
 * libsoup
 * json-glib
-* webkit2gtk
+* webkit2gtk or webkitgtk with `-Duse-deprecated-webkit=true` flag
 
 #### Player backend - GStreamer Cairo & GStreamer OpenGL
 * gstreamer-1.0
