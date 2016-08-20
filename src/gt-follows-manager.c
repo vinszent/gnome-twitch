@@ -9,7 +9,7 @@
 #define TAG "GtFollowsManager"
 #include "gnome-twitch/gt-log.h"
 
-#define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "follow-channels.json", NULL);
+#define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "followed-channels.json", NULL);
 
 typedef struct
 {
