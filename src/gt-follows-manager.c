@@ -528,14 +528,22 @@ void
 gt_follows_manager_save(GtFollowsManager* self)
 {
     GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    gchar* fp = FAV_CHANNELS_FILE;
 
     if (g_list_length(self->follow_channels) == 0)
+    {
+        if (g_file_test(fp, G_FILE_TEST_EXISTS))
+        {
+            g_remove(fp);
+            g_free(fp);
+        }
+
         return;
+    }
 
     JsonArray* jarr = json_array_new();
     JsonGenerator* gen = json_generator_new();
     JsonNode* final = json_node_new(JSON_NODE_ARRAY);
-    gchar* fp = FAV_CHANNELS_FILE;
 
     for (GList* l = self->follow_channels; l != NULL; l = l->next)
     {
