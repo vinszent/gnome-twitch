@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <glib/gprintf.h>
 #include <locale.h>
+#include <glib/gi18n.h>
 #include "utils.h"
 
 #define TAG "GtChat"
@@ -605,6 +606,9 @@ after_connected_cb(GObject* source,
 
     gtk_widget_set_sensitive(priv->chat_entry,
                              gt_app_credentials_valid(main_app));
+    gtk_entry_set_placeholder_text(GTK_ENTRY(priv->chat_entry),
+                                   gt_app_credentials_valid(main_app)
+                                   ? _("Send a message") : _("Please login to chat"));
 }
 
 static gboolean
