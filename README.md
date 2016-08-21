@@ -40,7 +40,7 @@ _Note: If you undo commit [6382b8b](https://github.com/vinszent/gnome-twitch/com
 ``` shell
 mkdir build
 cd build
-meson --prefix /usr --libdir lib -Ddo-post-install=true -Dwith-player-gstreamer-cairo=true ..
+meson --prefix /usr --libdir lib -Ddo-post-install=true -Dwith-player-gstreamer-cairo=true -Db_lundef=false ..
 ninja install
 ```
 
