@@ -1,7 +1,9 @@
 #include "gt-game.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <glib/gi18n.h>
+
+#define TAG "GtGame"
+#include "utils.h"
 
 typedef struct
 {

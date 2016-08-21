@@ -6,15 +6,14 @@ data/ui/gt-win.ui
 data/ui/gt-twitch-login-dlg.ui
 src/gt-app.c
 src/gt-channels-container-child.c
-src/gt-channels-container-favourite.c
+src/gt-channels-container-follow.c
 src/gt-channels-container-search.c
 src/gt-channels-container-game.c
 src/gt-channels-container-top.c
 src/gt-games-container-search.c
 src/gt-games-container-top.c
-src/gt-favourites-manager.c
+src/gt-follows-manager.c
 src/gt-game.c
-src/gt-player-clutter.c
 src/gt-twitch-channel-info-dlg.c
 src/gt-twitch-login-dlg.c
 src/gt-win.c

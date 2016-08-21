@@ -1,9 +1,12 @@
-#include "utils.h"
-#include "config.h"
 #include <glib/gstdio.h>
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
+#include "config.h"
+
+#define TAG "Utils"
+#include "gnome-twitch/gt-log.h"
 
 gpointer
 utils_value_ref_sink_object(const GValue* val)
@@ -98,7 +101,7 @@ utils_download_picture(SoupSession* soup, const gchar* url)
 
     if (err)
     {
-        g_warning("{Utils} Error downloading picture code '%d' message '%s'", err->code, err->message);
+        WARNINGF("Error downloading picture, url=%s, code=%d, message=%s", url, err->code, err->message);
         g_error_free(err);
     }
     else
@@ -231,4 +234,44 @@ gboolean
 utils_str_empty(const gchar* str)
 {
     return !(str && strlen(str) > 0);
+}
+
+typedef struct
+{
+    gpointer instance;
+    GCallback cb;
+    gpointer udata;
+} OneshotData;
+
+static void
+oneshot_cb(OneshotData* data)
+{
+    g_signal_handlers_disconnect_by_func(data->instance,
+                                         data->cb,
+                                         data->udata);
+    g_signal_handlers_disconnect_by_func(data->instance,
+                                         oneshot_cb,
+                                         data);
+}
+
+void
+utils_signal_connect_oneshot(gpointer instance,
+                             const gchar* signal,
+                             GCallback cb,
+                             gpointer udata)
+{
+    OneshotData* data = g_new(OneshotData, 1);
+
+    data->instance = instance;
+    data->cb = cb;
+    data->udata = udata;
+
+    g_signal_connect(instance, signal, cb, udata);
+
+    g_signal_connect_data(instance,
+                          signal,
+                          G_CALLBACK(oneshot_cb),
+                          data,
+                          (GClosureNotify) g_free,
+                          G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 }

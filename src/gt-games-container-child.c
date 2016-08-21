@@ -1,4 +1,6 @@
 #include "gt-games-container-child.h"
+
+#define TAG "GtGamesContainerChild"
 #include "utils.h"
 
 typedef struct
@@ -13,7 +15,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainerChild, gt_games_container_child, GTK_TYPE_FLOW_BOX_CHILD)
 
-enum 
+enum
 {
     PROP_0,
     PROP_GAME,
@@ -25,7 +27,7 @@ static GParamSpec* props[NUM_PROPS];
 GtGamesContainerChild*
 gt_games_container_child_new(GtGame* game)
 {
-    return g_object_new(GT_TYPE_GAMES_VIEW_CHILD, 
+    return g_object_new(GT_TYPE_GAMES_VIEW_CHILD,
                         "game", game,
                         NULL);
 }
@@ -138,8 +140,8 @@ gt_games_container_child_class_init(GtGamesContainerChildClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), 
-                                                "/com/gnome-twitch/ui/gt-games-container-child.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
+                                                "/com/vinszent/GnomeTwitch/ui/gt-games-container-child.ui");
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, preview_image);

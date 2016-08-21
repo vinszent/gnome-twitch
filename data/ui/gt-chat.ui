@@ -21,6 +21,7 @@
                     <property name="margin-top">7</property>
                     <property name="margin-right">7</property>
                     <property name="margin-left">7</property>
+                    <property name="hscrollbar-policy">external</property>
                     <child>
                       <object class="GtkTextView" id="chat_view">
                         <property name="visible">True</property>
@@ -46,7 +47,8 @@
                     <property name="margin-bottom">10</property>
                     <property name="margin-right">7</property>
                     <property name="margin-left">7</property>
-                    <!-- <property name="secondary-icon-name">face-smile-symbolic</property> -->
+                    <property name="secondary-icon-name">face-smile-symbolic</property>
+                    <property name="name">chat-entry</property>
                   </object>
                 </child>
               </object>
@@ -122,4 +124,21 @@
       </object>
     </child>
   </template>
+  <object class="GtkPopover" id="emote_popover">
+    <property name="relative-to">chat_entry</property>
+    <property name="width-request">250</property>
+    <property name="height-request">200</property>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkFlowBox" id="emote_flow">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <property name="selection-mode">none</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
 </interface>

@@ -2,8 +2,8 @@
 <interface domain="gnome-twitch">
   <template class="GtTwitchLoginDlg" parent="GtkDialog">
     <property name="modal">True</property>
-    <property name="default-width">540</property>
-    <property name="default-height">720</property>
+    <property name="default-width">430</property>
+    <property name="default-height">510</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <child>

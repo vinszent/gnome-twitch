@@ -1,8 +1,10 @@
 #include "gt-channels-container-top.h"
 #include "gt-app.h"
 #include "gt-twitch.h"
-#include "utils.h"
 #include <glib/gi18n.h>
+
+#define TAG "GtChannelsContainer"
+#include "utils.h"
 
 #define PCLASS GT_CHANNELS_CONTAINER_CLASS(gt_channels_container_top_parent_class)
 

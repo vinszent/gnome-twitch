@@ -1,9 +1,11 @@
 #include "gt-games-container-search.h"
 #include "gt-app.h"
 #include "gt-twitch.h"
-#include "utils.h"
 #include <string.h>
 #include <glib/gi18n.h>
+
+#define TAG "GtGamesContainerSearch"
+#include "utils.h"
 
 #define PCLASS GT_GAMES_CONTAINER_CLASS(gt_games_container_search_parent_class)
 

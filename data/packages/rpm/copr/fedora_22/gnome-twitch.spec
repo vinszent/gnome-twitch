@@ -4,8 +4,8 @@ Release:        2%{?dist}
 Summary:        Enjoy Twitch on your GNU/Linux desktop
 
 License:        GPLv3+
-URL:            https://github.com/Ippytraxx/gnome-twitch
-Source0:        https://github.com/Ippytraxx/gnome-twitch/archive/v%{version}-autotools.tar.gz
+URL:            https://github.com/vinszent/gnome-twitch
+Source0:        https://github.com/vinszent/gnome-twitch/archive/v%{version}-autotools.tar.gz
 
 BuildRequires:  autoconf
 BuildRequires:  autoconf-archive

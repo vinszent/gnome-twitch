@@ -7,12 +7,14 @@
     <child type="titlebar">
       <object class="GtkStack" id="header_stack">
         <property name="visible">True</property>
+        <property name="transition-type">crossfade</property>
+        <property name="transition-duration">300</property>
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
             <property name="channels-view">channels_view</property>
             <property name="games-view">games_view</property>
-            <property name="favourites-view">favourites_view</property>
+            <property name="follows-view">follows_view</property>
             <child type="title">
               <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>
@@ -28,7 +30,6 @@
         <child>
           <object class="GtPlayerHeaderBar" id="player_header_bar">
             <property name="visible">True</property>
-            <property name="player">player</property>
           </object>
           <packing>
             <property name="name">player</property>
@@ -52,6 +53,8 @@
                   <action-widget response="GTK_RESPONSE_YES">info_bar_yes_button</action-widget>
                   <action-widget response="GTK_RESPONSE_NO">info_bar_no_button</action-widget>
                   <action-widget response="GTK_RESPONSE_OK">info_bar_ok_button</action-widget>
+                  <action-widget response="GTK_RESPONSE_OK">info_bar_details_button</action-widget>
+                  <action-widget response="GTK_RESPONSE_CLOSE">info_bar_close_button</action-widget>
                 </action-widgets>
                 <child internal-child="content_area">
                   <object class="GtkBox">
@@ -59,6 +62,7 @@
                     <child>
                       <object class="GtkLabel" id="info_label">
                         <property name="visible">True</property>
+                        <property name="use-markup">True</property>
                       </object>
                     </child>
                   </object>
@@ -93,6 +97,24 @@
                         <property name="pack-type">start</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkButton" id="info_bar_details_button">
+                        <property name="visible">False</property>
+                        <property name="label" translatable="yes">Details</property>
+                      </object>
+                      <packing>
+                        <property name="pack-type">start</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="info_bar_close_button">
+                        <property name="visible">False</property>
+                        <property name="label" translatable="yes">Close</property>
+                      </object>
+                      <packing>
+                        <property name="pack-type">end</property>
+                      </packing>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -102,7 +124,8 @@
         <child>
           <object class="GtkStack" id="main_stack">
             <property name="visible">True</property>
-            <property name="transition-type">over-right-left</property>
+            <!-- <property name="transition-type">over-right-left</property> -->
+            <property name="transition-type">crossfade</property>
             <property name="transition-duration">300</property>
               <child>
               <object class="GtkStack" id="browse_stack">
@@ -118,12 +141,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtFavouritesView" id="favourites_view">
+                  <object class="GtFollowsView" id="follows_view">
                     <property name="visible">True</property>
                   </object>
                   <packing>
-                    <property name="name">favourites</property>
-                    <property name="title" translatable="yes">Favourites</property>
+                    <property name="name">follows</property>
+                    <property name="title" translatable="yes">Follows</property>
                   </packing>
                 </child>
                 <child>
@@ -142,7 +165,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtPlayerClutter" id="player">
+              <object class="GtPlayer" id="player">
                 <property name="visible">True</property>
                 <property name="expand">True</property>
               </object>

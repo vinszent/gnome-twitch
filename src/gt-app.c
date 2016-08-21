@@ -1,10 +1,17 @@
 #include "gt-app.h"
 #include "gt-win.h"
+#include "config.h"
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <errno.h>
 #include <string.h>
 #include <json-glib/json-glib.h>
+#include <stdlib.h>
+#include "utils.h"
+#include "version.h"
+
+#define TAG "GtApp"
+#include "gnome-twitch/gt-log.h"
 
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
@@ -19,7 +26,9 @@ typedef struct
     GMenuModel* app_menu;
 } GtAppPrivate;
 
-gint LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
+gboolean NO_FANCY_LOGGING = FALSE;
+gboolean VERSION = FALSE;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
@@ -47,19 +56,21 @@ set_log_level(const gchar* name,
               GError** err)
 {
     if (g_strcmp0(arg, "error") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_ERROR;
+        LOG_LEVEL = GT_LOG_LEVEL_ERROR;
     else if (g_strcmp0(arg, "critical") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_CRITICAL;
+        LOG_LEVEL = GT_LOG_LEVEL_CRITICAL;
     else if (g_strcmp0(arg, "warning") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_WARNING;
+        LOG_LEVEL = GT_LOG_LEVEL_WARNING;
     else if (g_strcmp0(arg, "message") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_MESSAGE;
+        LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
     else if (g_strcmp0(arg, "info") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_INFO;
+        LOG_LEVEL = GT_LOG_LEVEL_INFO;
     else if (g_strcmp0(arg, "debug") == 0)
-        LOG_LEVEL = G_LOG_LEVEL_DEBUG;
+        LOG_LEVEL = GT_LOG_LEVEL_DEBUG;
+    else if (g_strcmp0(arg, "trace") == 0)
+        LOG_LEVEL = GT_LOG_LEVEL_TRACE;
     else
-        g_warning("{GtApp} Invalid logging level"); //TODO: Use g_set_error and return false
+        WARNING("Invalid logging level"); //TODO: Use g_set_error and return false
 
     return TRUE;
 }
@@ -68,13 +79,16 @@ static GOptionEntry
 cli_options[] =
 {
     {"log-level", 'l', G_OPTION_FLAG_NONE, G_OPTION_ARG_CALLBACK, set_log_level, "Set logging level", "level"},
+    {"no-fancy-logging", 0, G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &NO_FANCY_LOGGING, "Don't print pretty log messages", NULL},
+    {"version", 'v', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE, &VERSION, "Display version", NULL},
+    {NULL}
 };
 
 GtApp*
 gt_app_new(void)
 {
     return g_object_new(GT_TYPE_APP,
-                        "application-id", "com.gnome-twitch.app",
+                        "application-id", "com.vinszent.GnomeTwitch",
                         NULL);
 }
 
@@ -91,6 +105,7 @@ gt_chat_view_settings_new()
     ret->height = 1.0;
     ret->x_pos = 0;
     ret->y_pos = 0;
+    ret->docked_handle_pos = 0.75;
 
     return ret;
 }
@@ -102,9 +117,10 @@ load_chat_settings(GtApp* self)
     JsonParser* parse = json_parser_new();
     JsonNode* root = NULL;
     JsonArray* array = NULL;
+    GList* ele = NULL;
     GError* err = NULL;
 
-    g_message("{GtApp} Loading chat settings");
+    MESSAGE("Loading chat settings");
 
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
         goto finish;
@@ -113,14 +129,15 @@ load_chat_settings(GtApp* self)
 
     if (err)
     {
-        g_warning("{GtApp} Error loading chat settings '%s'", err->message);
+        WARNINGF("Error loading chat settings '%s'", err->message);
         goto finish;
     }
 
     root = json_parser_get_root(parse);
     array = json_node_get_array(root);
+    ele = json_array_get_elements(array);
 
-    for (GList* l = json_array_get_elements(array); l != NULL; l = l->next)
+    for (GList* l = ele; l != NULL; l = l->next)
     {
         JsonNode* node = l->data;
         JsonObject* chan = json_node_get_object(node);
@@ -136,9 +153,15 @@ load_chat_settings(GtApp* self)
         settings->height = json_object_get_double_member(chan, "height");
         settings->x_pos = json_object_get_double_member(chan, "x-pos");
         settings->y_pos = json_object_get_double_member(chan, "y-pos");
+        if (json_object_has_member(chan, "docked-handle-pos"))
+            settings->docked_handle_pos = json_object_get_double_member(chan, "docked-handle-pos");
+        else
+            settings->docked_handle_pos = 0.75;
 
         g_hash_table_insert(self->chat_settings_table, g_strdup(name), settings);
     }
+
+    g_list_free(ele);
 
 finish:
     g_object_unref(parse);
@@ -155,7 +178,7 @@ save_chat_settings(GtApp* self)
     GList* keys = g_hash_table_get_keys(self->chat_settings_table);
     GError* err = NULL;
 
-    g_message("{GtApp} Saving chat settings");
+    MESSAGE("{GtApp} Saving chat settings");
 
     for (GList* l = keys; l != NULL; l = l->next)
     {
@@ -173,6 +196,7 @@ save_chat_settings(GtApp* self)
         json_object_set_double_member(obj, "height", settings->height);
         json_object_set_double_member(obj, "x-pos", settings->x_pos);
         json_object_set_double_member(obj, "y-pos", settings->y_pos);
+        json_object_set_double_member(obj, "docked-handle-pos", settings->docked_handle_pos);
 
         json_node_take_object(node, obj);
         json_array_add_element(array, node);
@@ -184,7 +208,7 @@ save_chat_settings(GtApp* self)
     json_generator_to_file(generator, fp, &err);
 
     if (err)
-        g_warning("{GtApp} Error saving chat settings '%s'", err->message);
+        WARNINGF("Error saving chat settings '%s'", err->message);
 
     json_node_free(root);
     g_object_unref(generator);
@@ -217,19 +241,19 @@ init_dirs()
     fp = g_build_filename(g_get_user_data_dir(), "gnome-twitch", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating data directory");
+        WARNING("Error creating data directory");
     g_free(fp);
 
     fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating channel cache directory");
+        WARNING("Error creating channel cache directory");
     g_free(fp);
 
     fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
-        g_warning("{GtApp} Error creating game cache directory");
+        WARNING("Error creating game cache directory");
     g_free(fp);
 }
 
@@ -239,11 +263,25 @@ quit_cb(GSimpleAction* action,
         GVariant* par,
         gpointer udata)
 {
-    g_message("{%s} Quitting", "GtApp");
+    MESSAGE("Quitting");
 
     GtApp* self = GT_APP(udata);
 
     g_application_quit(G_APPLICATION(self));
+}
+
+static gint
+handle_command_line_cb(GApplication* self,
+                       GVariantDict* options,
+                       gpointer udata)
+{
+    if (VERSION)
+    {
+        g_print("GNOME Twitch - Version %s\n", GT_VERSION);
+        return 0;
+    }
+
+    return -1;
 }
 
 static GActionEntry app_actions[] =
@@ -258,8 +296,9 @@ activate(GApplication* app)
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    g_message("{%s} Activate", "GtApp");
+    G_APPLICATION_CLASS(gt_app_parent_class)->activate(app);
 
+    MESSAGE("Activate");
 
     priv->win = gt_win_new(self);
 
@@ -285,13 +324,14 @@ startup(GApplication* app)
 {
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
-    GtkSettings* gtk_settings = gtk_settings_get_default();
+    GtkSettings* gtk_settings;
     GtkBuilder* menu_bld;
 
-    g_message("{GtApp} Startup");
+    MESSAGE("Startup");
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
+    load_chat_settings(self);
     init_dirs();
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
@@ -299,7 +339,7 @@ startup(GApplication* app)
                                     G_N_ELEMENTS(app_actions),
                                     self);
 
-    menu_bld = gtk_builder_new_from_resource("/com/gnome-twitch/ui/app-menu.ui");
+    menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
     g_object_ref(priv->app_menu);
     g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
@@ -315,6 +355,8 @@ startup(GApplication* app)
                     self, "oauth-token",
                     G_SETTINGS_BIND_DEFAULT);
 
+    gtk_settings = gtk_settings_get_default();
+
     gt_app_prefer_dark_theme_changed_cb(self->settings,
                                         "prefer-dark-theme",
                                         gtk_settings);
@@ -323,14 +365,13 @@ startup(GApplication* app)
                      G_CALLBACK(gt_app_prefer_dark_theme_changed_cb),
                      gtk_settings);
 
-    self->fav_mgr = gt_favourites_manager_new();
+    self->fav_mgr = gt_follows_manager_new();
 
-    //TODO: Add a setting to allow user to use local favourites even when logged in
+    //TODO: Add a setting to allow user to use local follows even when logged in
     if (gt_app_credentials_valid(self))
-        gt_favourites_manager_load_from_twitch(self->fav_mgr);
+        gt_follows_manager_load_from_twitch(self->fav_mgr);
     else
-        gt_favourites_manager_load_from_file(self->fav_mgr);
-
+        gt_follows_manager_load_from_file(self->fav_mgr);
 }
 
 static void
@@ -339,13 +380,13 @@ shutdown(GApplication* app)
 
     GtApp* self = GT_APP(app);
 
-    g_message("{GtApp} Shutting down");
+    MESSAGE("{GtApp} Shutting down");
 
     save_chat_settings(self);
 
-    //TODO: Add a setting to allow user to use local favourites even when logged in
+    //TODO: Add a setting to allow user to use local follows even when logged in
     if (!gt_app_credentials_valid(self))
-        gt_favourites_manager_save(self->fav_mgr);
+        gt_follows_manager_save(self->fav_mgr);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
 }
@@ -357,7 +398,7 @@ finalize(GObject* object)
     GtApp* self = (GtApp*) object;
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    g_message("{GtApp} Finalise");
+    DEBUG("{GtApp} Finalise");
 
     G_OBJECT_CLASS(gt_app_parent_class)->finalize(object);
 }
@@ -442,16 +483,38 @@ gt_app_init(GtApp* self)
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
+    self->twitch = gt_twitch_new();
+    self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
+    self->plugins_engine = peas_engine_get_default();
+
+    gchar* plugin_dir;
+
+#define ADD_PLUGINS_PATH(root, type)                                    \
+    plugin_dir = g_build_filename(root,                                 \
+                                  "gnome-twitch",                       \
+                                  "plugins",                            \
+                                  type,                                 \
+                                  NULL);                                \
+    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL); \
+    g_free(plugin_dir)                                                  \
+
+    ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
+    ADD_PLUGINS_PATH(g_get_user_data_dir(), "player-backends");
+//    ADD_PLUGINS_PATH(GT_LIB_DIR, "recorder-backends");
+//    ADD_PLUGINS_PATH(g_get_user_data_dir(), "recorder-backends");
+
+#undef ADD_PLUGINS_PATH
 
     priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
 
-    self->twitch = gt_twitch_new();
-    self->settings = g_settings_new("com.gnome-twitch.app");
 
-    load_chat_settings(self);
+    g_settings_bind(self->settings, "loaded-plugins",
+                    self->plugins_engine, "loaded-plugins",
+                    G_SETTINGS_BIND_DEFAULT);
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
+    g_signal_connect(self, "handle-local-options", G_CALLBACK(handle_command_line_cb), self);
 }
 
 const gchar*

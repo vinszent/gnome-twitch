@@ -1,17 +1,17 @@
-#include "gt-favourites-view.h"
-#include "gt-channels-container-favourite.h"
+#include "gt-follows-view.h"
+#include "gt-channels-container-follow.h"
 
 typedef struct
 {
     gboolean search_active;
 
-    GtkWidget* favourite_container;
+    GtkWidget* follow_container;
     GtkWidget* search_bar;
-} GtFavouritesViewPrivate;
+} GtFollowsViewPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtFavouritesView, gt_favourites_view, GTK_TYPE_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtFollowsView, gt_follows_view, GTK_TYPE_BOX)
 
-enum 
+enum
 {
     PROP_0,
     PROP_SEARCH_ACTIVE,
@@ -20,10 +20,10 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtFavouritesView*
-gt_favourites_view_new(void)
+GtFollowsView*
+gt_follows_view_new(void)
 {
-    return g_object_new(GT_TYPE_FAVOURITES_VIEW, 
+    return g_object_new(GT_TYPE_FOLLOWS_VIEW,
                         NULL);
 }
 
@@ -31,21 +31,21 @@ static void
 search_changed_cb(GtkEditable* edit,
                   gpointer udata)
 {
-    GtFavouritesView* self = GT_FAVOURITES_VIEW(udata);
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsView* self = GT_FOLLOWS_VIEW(udata);
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
     const gchar* query = gtk_entry_get_text(GTK_ENTRY(edit));
 
-    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->favourite_container), query);
+    gt_channels_container_set_filter_query(GT_CHANNELS_CONTAINER(priv->follow_container), query);
 }
 
 static void
 finalize(GObject* object)
 {
-    GtFavouritesView* self = (GtFavouritesView*) object;
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsView* self = (GtFollowsView*) object;
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
-    G_OBJECT_CLASS(gt_favourites_view_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_follows_view_parent_class)->finalize(object);
 }
 
 static void
@@ -54,8 +54,8 @@ get_property (GObject*    obj,
               GValue*     val,
               GParamSpec* pspec)
 {
-    GtFavouritesView* self = GT_FAVOURITES_VIEW(obj);
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsView* self = GT_FOLLOWS_VIEW(obj);
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
     switch (prop)
     {
@@ -73,8 +73,8 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtFavouritesView* self = GT_FAVOURITES_VIEW(obj);
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsView* self = GT_FOLLOWS_VIEW(obj);
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
     switch (prop)
     {
@@ -87,11 +87,11 @@ set_property(GObject*      obj,
 }
 
 static void
-gt_favourites_view_class_init(GtFavouritesViewClass* klass)
+gt_follows_view_class_init(GtFollowsViewClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
-    GT_TYPE_CHANNELS_CONTAINER_FAVOURITE;
+    GT_TYPE_CHANNELS_CONTAINER_FOLLOW;
 
     object_class->finalize = finalize;
     object_class->get_property = get_property;
@@ -107,18 +107,18 @@ gt_favourites_view_class_init(GtFavouritesViewClass* klass)
                                       NUM_PROPS,
                                       props);
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-favourites-view.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-follows-view.ui");
 
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFavouritesView, favourite_container);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFavouritesView, search_bar);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFollowsView, follow_container);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtFollowsView, search_bar);
 
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), search_changed_cb);
 }
 
 static void
-gt_favourites_view_init(GtFavouritesView* self)
+gt_follows_view_init(GtFollowsView* self)
 {
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
@@ -128,9 +128,9 @@ gt_favourites_view_init(GtFavouritesView* self)
 }
 
 gboolean
-gt_favourites_view_handle_event(GtFavouritesView* self, GdkEvent* event)
+gt_follows_view_handle_event(GtFollowsView* self, GdkEvent* event)
 {
-    GtFavouritesViewPrivate* priv = gt_favourites_view_get_instance_private(self);
+    GtFollowsViewPrivate* priv = gt_follows_view_get_instance_private(self);
 
     return gtk_search_bar_handle_event(GTK_SEARCH_BAR(priv->search_bar), event);
 }

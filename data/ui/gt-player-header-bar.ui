@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtPlayerHeaderBar" parent="GtkHeaderBar">
+    <style>
+      <class name="titlebar"/>
+    </style>
     <child type="title">
       <!-- <object class="GtkButton" id="title_button"> -->
       <!--   <property name="visible">True</property> -->
@@ -39,7 +42,6 @@
         <property name="spacing">7</property>
         <child>
           <object class="GtkButton" id="back_button">
-            <property name="visible" bind-source="GtPlayerHeaderBar" bind-property="fullscreen" bind-flags="G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN"/>
             <property name="action-name">win.close_player</property>
             <style>
               <class name="image-button"/>
@@ -53,9 +55,8 @@
           </object>
         </child>
         <child>
-          <object class="GtkSeparator" id="seperator_1">
+          <object class="GtkSeparator" id="back_separator">
             <property name="orientation">vertical</property>
-            <property name="visible" bind-source="GtPlayerHeaderBar" bind-property="fullscreen" bind-flags="G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_INVERT_BOOLEAN"/>
             <style>
               <class name="header-bar-separator"/>
             </style>
@@ -117,7 +118,7 @@
           <object class="GtkButton" id="fullscreen_button">
             <property name="visible">True</property>
             <property name="image">fullscreen_image</property>
-            <signal name="clicked" handler="player_fullscreen_button_cb" object="GtPlayerHeaderBar"/>
+            <property name="action-name">win.toggle_fullscreen</property>
           </object>
         </child>
         <child>
@@ -226,6 +227,7 @@
             <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Opacity</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
             <style>
               <class name="separator"/>
             </style>
@@ -237,6 +239,7 @@
             <property name="orientation">horizontal</property>
             <property name="adjustment">chat_view_opacity_adjustment</property>
             <property name="draw-value">False</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
           </object>
         </child>
         <child>
@@ -245,6 +248,7 @@
             <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Width</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
             <style>
               <class name="separator"/>
             </style>
@@ -256,6 +260,7 @@
             <property name="orientation">horizontal</property>
             <property name="adjustment">chat_view_width_adjustment</property>
             <property name="draw-value">False</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
           </object>
         </child>
         <child>
@@ -264,6 +269,7 @@
             <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Height</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
             <style>
               <class name="separator"/>
             </style>
@@ -275,6 +281,7 @@
             <property name="orientation">horizontal</property>
             <property name="adjustment">chat_view_height_adjustment</property>
             <property name="draw-value">False</property>
+            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
           </object>
         </child>
         <child>

@@ -2,7 +2,6 @@
 #include "gt-channel.h"
 #include "gt-game.h"
 #include "gt-app.h"
-#include "utils.h"
 #include "config.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
@@ -11,9 +10,16 @@
 #include <json-glib/json-glib.h>
 #include <string.h>
 #include <stdlib.h>
+#include "utils.h"
+
+#define TAG "GtTwitch"
+#include "gnome-twitch/gt-log.h"
+
+//TODO: Use https://streams.twitch.tv/kraken/streams/{channel}?stream_type=all instead to get is_playlist info
+//TODO: Use https://tmi.twitch.tv/servers?channel=%s to get chat server info
 
 #define ACCESS_TOKEN_URI     "http://api.twitch.tv/api/channels/%s/access_token"
-#define STREAM_PLAYLIST_URI  "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&p=%d"
+#define STREAM_PLAYLIST_URI  "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
 #define TOP_CHANNELS_URI     "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
 #define TOP_GAMES_URI        "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
 #define SEARCH_CHANNELS_URI  "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
@@ -27,6 +33,8 @@
 #define FOLLOWS_URI          "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
 #define FOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define USER_EMOTICONS_URI   "https://api.twitch.tv/kraken/users/%s/emotes"
+#define EMOTICON_IMAGES_URI  "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
 #define OAUTH_INFO_URI       "https://api.twitch.tv/kraken?oauth_token=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
@@ -36,6 +44,8 @@
 typedef struct
 {
     SoupSession* soup;
+
+    GHashTable* emote_table;
 } GtTwitchPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
@@ -162,28 +172,36 @@ gt_twitch_init(GtTwitch* self)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     priv->soup = soup_session_new();
+    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 static gboolean
 send_message(GtTwitch* self, SoupMessage* msg)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-
+    gboolean ret;
     char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 
-    g_info("{GtTwitch} Sending message to uri '%s'", uri);
+    DEBUGF("Sending message to uri '%s'", uri);
+
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
 
     soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
 
     soup_session_send_message(priv->soup, msg);
 
-    g_debug("{GtTwitch} Received code '%d' and response '%s'", msg->status_code, msg->response_body->data);
+    ret = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
 
-    /* g_print("\n\n%s\n\n", msg->response_body->data); */
+    if (ret)
+        TRACEF("Received response from url '%s' with code '%d' and body '%s'",
+               uri, msg->status_code, msg->response_body->data);
+    else
+        WARNINGF("Received unsuccessful response from url '%s' with code '%d' and body '%s'",
+                 uri, msg->status_code, msg->response_body->data);
 
     g_free(uri);
 
-    return msg->status_code == SOUP_STATUS_OK || msg->status_code == SOUP_STATUS_NO_CONTENT;
+    return ret;
 }
 
 static GDateTime*
@@ -362,7 +380,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting stream access token for channel '%s'", channel);
+        WARNINGF("Error getting stream access token for channel='%s'", channel);
         goto finish;
     }
 
@@ -450,7 +468,7 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get stream uris");
+        WARNINGF("Error sending message to get stream uris for channel='%s'", channel);
         goto finish;
     }
 
@@ -532,7 +550,6 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    JsonArray* channels;
     GList* ret = NULL;
 
     uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game);
@@ -540,7 +557,7 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
     if (!send_message(self, msg))
     {
-	g_warning("{GtTwitch} Error sending message to get top channels");
+        WARNING("Error sending message to get top channels");
         goto finish;
     }
 
@@ -819,7 +836,7 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to search games");
+        WARNING("Error sending message to search games");
         goto finish;
     }
 
@@ -979,7 +996,7 @@ gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get raw channel data for channel '%s'", name);
+        WARNINGF("Error sending message to get raw channel data for channel='%s'", name);
         goto finish;
     }
 
@@ -1124,7 +1141,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
-    g_info("{GtTwitch} Downloading picture from url '%s'", url);
+    DEBUGF("Downloading picture from url='%s'", url);
 
     if (!url || strlen(url) < 1)
         return NULL;
@@ -1182,13 +1199,27 @@ GdkPixbuf*
 gt_twitch_download_emote(GtTwitch* self, gint id)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    gchar url[128];
+    GdkPixbuf* ret = NULL;
 
-    g_sprintf(url, TWITCH_EMOTE_URI, id, 1);
+    if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
+    {
+        gchar* url = NULL;
 
-    g_info("{GtTwitch} Downloading emote from url '%s'", url);
+        url = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
 
-    return utils_download_picture(priv->soup, url);
+        DEBUGF("Downloading emote form url='%s'", url);
+
+        g_hash_table_insert(priv->emote_table,
+                            GINT_TO_POINTER(id),
+                            utils_download_picture(priv->soup, url));
+
+        g_free(url);
+    }
+
+    ret = GDK_PIXBUF(g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id)));
+    g_object_ref(ret);
+
+    return ret;
 }
 
 static GtChatBadges*
@@ -1214,7 +1245,7 @@ gt_chat_badges_free(GtChatBadges* badges)
 }
 
 GtChatBadges*
-gt_chat_badges(GtTwitch* self, const gchar* chan)
+gt_twitch_chat_badges(GtTwitch* self, const gchar* chan)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1224,7 +1255,7 @@ gt_chat_badges(GtTwitch* self, const gchar* chan)
     JsonReader* reader;
     GtChatBadges* ret = NULL;
 
-    g_info("{GtTwitch} Getting chat badges for channel '%s'", chan);
+    INFOF("Getting chat badges for channel='%s'", chan);
 
     uri = g_strdup_printf(CHAT_BADGES_URI, chan);
 
@@ -1312,13 +1343,13 @@ chat_badges_async_cb(GTask* task,
 
     data = task_data;
 
-    ret = gt_chat_badges(data->twitch, data->str_1);
+    ret = gt_twitch_chat_badges(data->twitch, data->str_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_badges_free);
 }
 
 void
-gt_chat_badges_async(GtTwitch* self, const gchar* channel,
+gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     GTask* task;
@@ -1371,7 +1402,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
     JsonReader* reader;
     GList* ret = NULL;
 
-    g_info("{GtTwitch} Getting channel info for '%s'", chan);
+    INFOF("Getting channel info for='%s'", chan);
 
     uri = g_strdup_printf(CHANNEL_INFO_URI, chan);
 
@@ -1379,7 +1410,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error getting chat badges for channel '%s'", chan);
+        WARNINGF("Error getting chat badges for channel='%s'", chan);
         goto finish;
     }
 
@@ -1556,7 +1587,7 @@ gt_twitch_follows(GtTwitch* self, const gchar* user_name,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get follows");
+        WARNING("{GtTwitch} Error sending message to get follows");
         goto finish;
     }
 
@@ -1667,7 +1698,7 @@ gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
 }
 
 GList*
-gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
+gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1683,7 +1714,16 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to get follows");
+        WARNING("Error sending message to get follows");
+
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL, msg_str);
+
+        g_free(msg_str);
+
         goto finish;
     }
 
@@ -1728,6 +1768,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name)
         json_reader_end_member(reader);
 
         channel = gt_channel_new(raw->name, raw->id);
+        g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, raw);
 
         json_reader_end_element(reader);
@@ -1763,15 +1804,15 @@ follows_all_async_cb(GTask* task,
 {
     GenericTaskData* data = task_data;
     GList* ret;
+    GError* error = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_follows_all(data->twitch, data->str_1);
+    ret = gt_twitch_follows_all(data->twitch, data->str_1, &error);
 
-    if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
-                                "Error getting follows all");
+    if (error)
+        g_task_return_error(task, error);
     else
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
 }
@@ -1801,7 +1842,8 @@ gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
 
 gboolean
 gt_twitch_follow_channel(GtTwitch* self,
-                         const gchar* chan_name)
+                         const gchar* chan_name,
+                         GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1816,7 +1858,15 @@ gt_twitch_follow_channel(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to follow channel '%s'", chan_name);
+        WARNINGF("Error sending message to follow channel '%s'", chan_name);
+
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+
+        g_free(msg_str);
 
         ret = FALSE;
     }
@@ -1834,13 +1884,13 @@ follow_channel_async_cb(GTask* task,
                         GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
+    GError* error = NULL;
     gboolean ret;
 
-    ret = gt_twitch_follow_channel(data->twitch, data->str_1);
+    ret = gt_twitch_follow_channel(data->twitch, data->str_1, &error);
 
     if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL,
-                                "Error following channel '%s'", data->str_1);
+        g_task_return_error(task, error);
     else
         g_task_return_boolean(task, ret);
 }
@@ -1870,7 +1920,8 @@ gt_twitch_follow_channel_async(GtTwitch* self,
 
 gboolean
 gt_twitch_unfollow_channel(GtTwitch* self,
-                           const gchar* chan_name)
+                           const gchar* chan_name,
+                           GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
@@ -1885,7 +1936,15 @@ gt_twitch_unfollow_channel(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        g_warning("{GtTwitch} Error sending message to unfollow channel '%s'", chan_name);
+        WARNINGF("Error sending message to unfollow channel '%s'", chan_name);
+
+        gchar* msg_str = g_strdup_printf(
+            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
+            msg->status_code, msg->reason_phrase, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+
+        g_free(msg_str);
 
         ret = FALSE;
     }
@@ -1902,13 +1961,13 @@ unfollow_channel_async_cb(GTask* task,
                           GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
+    GError* error = NULL;
     gboolean ret;
 
-    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1);
+    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1, &error);
 
     if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
-                                "Error unfollowing channel '%s'", data->str_1);
+        g_task_return_error(task, error);
     else
         g_task_return_boolean(task, ret);
 }
@@ -1936,14 +1995,153 @@ gt_twitch_unfollow_channel_async(GtTwitch* self,
     g_object_unref(task);
 }
 
-gchar*
-gt_twitch_user_name(GtTwitch* self,
-                    GError** error)
+GList*
+gt_twitch_emoticons(GtTwitch* self,
+                          const gchar* emotesets,
+                          GError** error)
 {
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     SoupMessage* msg;
     gchar* uri;
-    gchar* ret = NULL;
+    GList* ret = NULL;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    gchar** sets;
+
+    uri = g_strdup_printf(EMOTICON_IMAGES_URI,
+                          emotesets);
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    if (!send_message(self, msg))
+    {
+        WARNINGF("Error sending message to get emoticon images, "
+                 "server responded with code=%d and str=%s",
+                 msg->status_code, msg->reason_phrase);
+
+        g_set_error(error,
+                    GT_TWITCH_ERROR,
+                    GT_TWITCH_ERROR_EMOTICON_IMAGES,
+                    "Error sending message to get emoticon images, "
+                    "server responded with code=%d and str=%s",
+                    msg->status_code, msg->reason_phrase);
+
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    sets = g_strsplit(emotesets, ",", 0);
+
+    json_reader_read_member(reader, "emoticon_sets");
+
+    for (gchar** c = sets; *c != NULL; c++)
+    {
+        json_reader_read_member(reader, *c);
+
+        for (gint i = 0; i < json_reader_count_elements(reader); i++)
+        {
+            GtEmote* emote;
+
+            emote = g_new0(GtEmote, 1);
+
+            json_reader_read_element(reader, i);
+
+            json_reader_read_member(reader, "id");
+            emote->id = json_reader_get_int_value(reader);
+            json_reader_end_member(reader);
+
+            json_reader_read_member(reader, "code");
+            emote->code = g_strdup(json_reader_get_string_value(reader));
+            json_reader_end_member(reader);
+
+            emote->set = atoi(*c);
+
+            emote->pixbuf = gt_twitch_download_emote(self, emote->id);
+
+            ret = g_list_append(ret, emote);
+
+            json_reader_end_element(reader);
+        }
+
+        json_reader_end_member(reader);
+    }
+
+    g_strfreev(sets);
+
+    json_reader_end_member(reader);
+
+    g_object_unref(parser);
+    g_object_unref(reader);
+
+finish:
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+}
+
+static void
+emoticon_images_async_cb(GTask* task,
+                         gpointer source,
+                         gpointer task_data,
+                         GCancellable* cancel)
+{
+    GenericTaskData* data = task_data;
+    GList* ret = NULL;
+    GError* error = NULL;
+
+    ret = gt_twitch_emoticons(data->twitch, data->str_1, &error);
+
+    if (error)
+        g_task_return_error(task, error);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_emote_list_free);
+}
+
+void
+gt_twitch_emoticons_async(GtTwitch* self,
+                                const char* emotesets,
+                                GAsyncReadyCallback cb,
+                                GCancellable* cancel,
+                                gpointer udata)
+{
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(NULL, NULL, cb, udata);
+
+    data = generic_task_data_new();
+    data->twitch = self;
+    data->str_1 = g_strdup(emotesets);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, emoticon_images_async_cb);
+
+    g_object_unref(task);
+}
+
+void
+gt_twitch_oauth_info_free(GtTwitchOAuthInfo* info)
+{
+    g_free(info->user_name);
+    g_list_free_full(info->scopes, g_free);
+    g_free(info);
+}
+
+GtTwitchOAuthInfo*
+gt_twitch_oauth_info(GtTwitch* self,
+                     GError** error)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    SoupMessage* msg;
+    gchar* uri;
+    GtTwitchOAuthInfo* ret = NULL;
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
@@ -1954,15 +2152,15 @@ gt_twitch_user_name(GtTwitch* self,
 
     if (!send_message(self, msg))
     {
-        //TODO: Use new logging function
-        g_warning("{GtTwitch} Unable to get username");
+        WARNING("Unable to get oauth info");
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_USER_NAME,
-                    "Unable to get username");
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_OAUTH_INFO,
+                    "Unable to get oauth info");
 
         goto finish;
     }
 
+    ret = g_new0(GtTwitchOAuthInfo, 1);
     parser = json_parser_new();
     json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
     node = json_parser_get_root(parser);
@@ -1971,7 +2169,17 @@ gt_twitch_user_name(GtTwitch* self,
     json_reader_read_member(reader, "token");
 
     json_reader_read_member(reader, "user_name");
-    ret = g_strdup(json_reader_get_string_value(reader));
+    ret->user_name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    json_reader_read_member(reader, "scopes");
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        json_reader_read_element(reader, i);
+        ret->scopes = g_list_append(ret->scopes,
+                                    g_strdup(json_reader_get_string_value(reader)));
+        json_reader_end_element(reader);
+    }
     json_reader_end_member(reader);
 
     json_reader_end_member(reader);
@@ -1994,21 +2202,21 @@ user_name_async_cb(GTask* task,
                   GCancellable* cancel)
 {
     GenericTaskData* data = task_data;
-    gchar* ret = NULL;
+    GtTwitchOAuthInfo* ret;
     GError* error = NULL;
 
-    ret = gt_twitch_user_name(data->twitch, &error);
+    ret = gt_twitch_oauth_info(data->twitch, &error);
 
     if (!ret)
         g_task_return_error(task, error);
     else
-        g_task_return_pointer(task, ret, g_free);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_oauth_info_free);
 }
 
 void
-gt_twitch_user_name_async(GtTwitch* self,
-                          GAsyncReadyCallback cb,
-                          gpointer udata)
+gt_twitch_oauth_info_async(GtTwitch* self,
+                           GAsyncReadyCallback cb,
+                           gpointer udata)
 {
     GTask* task = NULL;
     GenericTaskData* data = NULL;

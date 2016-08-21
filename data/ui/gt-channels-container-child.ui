@@ -45,12 +45,12 @@
                                 <property name="visible">True</property>
                                 <property name="orientation">horizontal</property>
                                 <child>
-                                  <object class="GtkToggleButton" id="favourite_button">
+                                  <object class="GtkToggleButton" id="follow_button">
                                     <property name="visible">True</property>
                                     <property name="halign">start</property>
                                     <property name="relief">none</property>
                                     <style>
-                                      <class name="favourite-button"/>
+                                      <class name="follow-button"/>
                                     </style>
                                     <child>
                                       <object class="GtkImage">

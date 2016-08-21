@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="GtFavouritesView" parent="GtkBox">
+  <template class="GtFollowsView" parent="GtkBox">
     <property name="orientation">vertical</property>
     <child>
       <object class="GtkSearchBar" id="search_bar">
@@ -18,7 +18,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtChannelsContainerFavourite" id="favourite_container">
+      <object class="GtChannelsContainerFollow" id="follow_container">
         <property name="visible">True</property>
       </object>
     </child>

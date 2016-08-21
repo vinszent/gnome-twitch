@@ -1,61 +1,82 @@
 #include <gtk/gtk.h>
-#include <clutter-gst/clutter-gst.h>
-#include <clutter-gtk/clutter-gtk.h>
 #include <glib/gi18n.h>
 #include <stdlib.h>
 #include <math.h>
 #include <locale.h>
 #include "gt-app.h"
 #include "config.h"
+#include "utils.h"
+
+#define TAG "Main"
+#include "gnome-twitch/gt-log.h"
 
 #ifdef GDK_WINDOWING_X11
 #include <X11/Xlib.h>
 #endif
 
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
 GtApp* main_app;
 gchar* ORIGINAL_LOCALE;
 
-static GOptionEntry cli_options[] =
-{
-    {"log-level", 'l', 0, G_OPTION_ARG_INT, &LOG_LEVEL, "Set logging level", "Level"},
-    {NULL},
-};
-
 static void
 gt_log(const gchar* domain,
-       GLogLevelFlags _level,
+       gint _level,
        const gchar* msg,
        gpointer udata)
 {
     gchar* level;
     GDateTime* date = NULL;
     gchar* time_fmt = NULL;
+    gchar* colour = WHT;
 
-    if (_level > LOG_LEVEL)
+    if ((_level >= 1 << G_LOG_LEVEL_USER_SHIFT //GT levels
+         && _level > LOG_LEVEL) ||
+        (_level < 1 << G_LOG_LEVEL_USER_SHIFT //GLib levels
+         && _level > G_LOG_LEVEL_WARNING))
+    {
         return;
+    }
 
     switch (_level)
     {
         case G_LOG_LEVEL_ERROR:
+        case GT_LOG_LEVEL_ERROR:
             level = "Error";
+            colour = RED;
             break;
         case G_LOG_LEVEL_CRITICAL:
+        case GT_LOG_LEVEL_CRITICAL:
             level = "Critical";
+            colour = YEL;
             break;
         case G_LOG_LEVEL_WARNING:
+        case GT_LOG_LEVEL_WARNING:
             level = "Warning";
+            colour = MAG;
             break;
-        case G_LOG_LEVEL_MESSAGE:
+        case GT_LOG_LEVEL_MESSAGE:
             level = "Message";
+            colour = GRN;
             break;
         case G_LOG_LEVEL_INFO:
+        case GT_LOG_LEVEL_INFO:
             level = "Info";
+            colour = CYN;
             break;
-        case G_LOG_LEVEL_DEBUG:
+        case GT_LOG_LEVEL_DEBUG:
             level = "Debug";
+            colour = BLU;
             break;
-        case G_LOG_LEVEL_MASK:
-            level = "All";
+        case GT_LOG_LEVEL_TRACE:
+            level = "Trace";
             break;
         default:
             level = "Unknown";
@@ -65,7 +86,13 @@ gt_log(const gchar* domain,
     date = g_date_time_new_now_utc();
     time_fmt = g_date_time_format(date, "%H:%M:%S");
 
-    g_print("[%s] %s - %s : \"%s\"\n", time_fmt, domain ? domain : "GNOME-Twitch", level, msg);
+    if (NO_FANCY_LOGGING)
+        g_print("[%s] %s - %s : %s\n",
+                time_fmt, level, domain ? domain : "GNOME-Twitch", msg);
+    else
+        g_print("\e[1m[%s]\e[0m %s%s%s - %s : \e[3m%s\e[0m\n",
+                time_fmt, colour, level, RESET, domain ? domain : "GNOME-Twitch", msg);
+
 
     g_free(time_fmt);
     g_date_time_unref(date);
@@ -77,11 +104,6 @@ int main(int argc, char** argv)
 #ifdef GDK_WINDOWING_X11
     XInitThreads();
 #endif
-    if (gtk_clutter_init(NULL, NULL) != CLUTTER_INIT_SUCCESS)
-    {
-        g_critical("Could not initialize GtkClutter");
-        exit(EXIT_FAILURE);
-    }
 
     bindtextdomain("gnome-twitch", GT_LOCALE_DIR);
     bind_textdomain_codeset("gnome-twitch", "UTF-8");

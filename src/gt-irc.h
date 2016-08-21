@@ -54,7 +54,11 @@ typedef struct
 typedef struct
 {
     gint id;
+    gchar* code;
+    gint set;
     GdkPixbuf* pixbuf;
+
+    // These are only set if coming from GtIrc
     gint start;
     gint end;
 } GtEmote;
@@ -164,17 +168,19 @@ struct _GtIrc
     GtTwitchChatSource* source;
 };
 
-GtIrc*        gt_irc_new();
-void          gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
-void          gt_irc_disconnect(GtIrc* self);
-void          gt_irc_join(GtIrc* self, const gchar* channel);
-void          gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
-void          gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void          gt_irc_part(GtIrc* self);
-void          gt_irc_privmsg(GtIrc* self, const gchar* msg);
-gboolean      gt_irc_is_connected(GtIrc* self);
-gboolean      gt_irc_is_logged_in(GtIrc* self);
-void          gt_irc_message_free(GtIrcMessage* msg);
+GtIrc*   gt_irc_new();
+void     gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
+void     gt_irc_disconnect(GtIrc* self);
+void     gt_irc_join(GtIrc* self, const gchar* channel);
+void     gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
+void     gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void     gt_irc_part(GtIrc* self);
+void     gt_irc_privmsg(GtIrc* self, const gchar* msg);
+gboolean gt_irc_is_connected(GtIrc* self);
+gboolean gt_irc_is_logged_in(GtIrc* self);
+void     gt_irc_message_free(GtIrcMessage* msg);
+void     gt_emote_free(GtEmote* emote);
+void     gt_emote_list_free(GList* emote);
 
 G_END_DECLS
 

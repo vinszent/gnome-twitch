@@ -1,17 +1,20 @@
 * Bugs
 ** DONE If loading follows from Twitch, need to go and re-emit favourited signal
    CLOSED: [2016-05-21 Sat 19:09]
-** TODO If stream is closed before chat is connected then it still connects after.
+** DONE If stream is closed before chat is connected then it still connects after.
+CLOSED: [2016-06-04 Sat 18:24]
 ** DONE Somehow even though the source is destroyed messages are still getting through to the view causing in some cases messages from a previous chat to show up in a new one when switching channels quickly
 ** TODO There seems to be a memory leak somewhere with GStreamer that happens when the stream is changed
    - Not sure how much can be done from our side if it's a internal leak.
 ** DONE UI seems to randomly freeze when loading a stream sometimes.
-** TODO Sometimes fetching followed streams occurs after top channels are fetched so we need to retroactively notify channels that they are followed.
+** DONE Sometimes fetching followed streams occurs after top channels are fetched so we need to retroactively notify channels that they are followed.
+CLOSED: [2016-06-04 Sat 18:24]
    - Possibly by getting the TopChannels container to listen for the loaded-favourites signal
 * Technical milestones
 ** TODO Possibly refactor 'favourites' to 'follows'
    Will need to differentiate between a local follow and a actual Twitch follow
-** TODO Only save local favourites when list is populated.
+** DONE Only save local favourites when list is populated.
+CLOSED: [2016-06-26 Sun 23:10]
 ** TODO Need to save prev_volume for player in settings or set a default volume.
 ** TODO Add margin to channel and games containers. Use margin = 15.
 ** DONE Make functions in opening channel async.
@@ -22,17 +25,26 @@
 ** TODO Refactor GtTwitchLoginDlg into GtLoginDlg
 ** TODO Use etag + head requests on normal API requests as well
 * Minor milestones
+** TODO Implement Cheers into chat
+** TODO When chat is resized and is sticky, scroll to bottom
+** DONE Add mouse hover to links in chat
+CLOSED: [2016-06-26 Sun 17:13]
+** TODO Timestamps in chat
+** TODO Popout chat
 ** TODO Add loading spinner to login dialogue
 ** TODO Add GNOME style "Undo action" notifications
-** TODO Add a ability to transfer local favourites to Twitch follows when logging in for first time
+** DONE Add a ability to transfer local favourites to Twitch follows when logging in for first time
+CLOSED: [2016-06-04 Sat 18:22]
 ** TODO Allow user to logout/erase credentials
-** TODO Do proper CLI handling with built GtkApplication
+** DONE Do proper CLI handling with built GtkApplication
+CLOSED: [2016-06-04 Sat 18:22]
 ** TODO Create a better offline image
 ** DONE Add labels to load spinners for views
    CLOSED: [2016-04-24 Sun 17:38]
 ** TODO Replace emotes with their original text when replacing
    - Use GObject data on tag?
-** TODO Automatically set opacity to 1.0 when docked
+** DONE Automatically set opacity to 1.0 when docked
+CLOSED: [2016-06-26 Sun 17:14]
    - Use secondary icon for GtkEntry
 ** TODO Add setting to dock chat on left or right
 ** DONE Stop chat thread on shutdown
@@ -42,7 +54,8 @@
 ** DONE Twitch emotes in chat
    CLOSED: [2016-03-16 Wed 23:44]
    - embed the most popular ones as resources
-** TODO Chat make links clickable
+** DONE Chat make links clickable
+CLOSED: [2016-06-26 Sun 17:14]
 ** TODO Add UTF-8 support to chat
    - Is this necessary? IRC doesn't use UTF-8.
 ** DONE Un-dockable chat
@@ -76,12 +89,18 @@
    - Use http://api.twitch.tv/api/channels/%s/panels
    - Use GMarkupParser and parse the html_description
 * Major milestones
-** TODO Followed streams
+** TODO AppImage/XdgApp
+** DONE Followed streams
+CLOSED: [2016-06-26 Sun 17:15]
 ** TODO Channel feeds
 ** TODO VODS
 ** TODO Screenshotting streams
 ** TODO Recording streams
-** TODO Different player backends
+** DONE Different player backends
+CLOSED: [2016-06-26 Sun 17:15]
    - MPV, use GtkGLArea
    - GtkGst from gst-plugins-bad
    - Maybe VLC if people are interested
+** TODO Multiple website support
+*** Hitbox
+*** Youtube maybe?

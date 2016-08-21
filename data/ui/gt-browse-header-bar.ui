@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="GtBrowseHeaderBar" parent="GtkHeaderBar">
+    <style>
+      <class name="titlebar"/>
+    </style>
     <property name="show-close-button">True</property>
     <child>
       <object class="GtkRevealer" id="nav_buttons_revealer">
@@ -21,14 +24,14 @@
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
-                    <property name="icon-name">go-home-symbolic</property>
+                    <property name="icon-name">go-previous-symbolic</property>
                   </object>
                 </child>
               </object>
               <packing>
                 <property name="name">home</property>
               </packing>
-            </child> 
+            </child>
           </object>
         </child>
       </object>
