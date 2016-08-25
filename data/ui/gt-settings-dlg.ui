@@ -74,7 +74,7 @@
               </object>
               <packing>
                 <property name="name">general</property>
-                <property name="title">General</property>
+                <property name="title" translatable="yes">General</property>
               </packing>
             </child>
             <child>
@@ -83,7 +83,7 @@
               </object>
               <packing>
                 <property name="name">plugins</property>
-                <property name="title">Plugins</property>
+                <property name="title" translatable="yes">Plugins</property>
               </packing>
             </child>
           </object>

@@ -1,36 +1,36 @@
-# Translation of GNOME Twitch to Swedish
-# Copyright (C) 2016 Vincent Szolnoky <vinszent@vinszent.com>
-# This file is distributed under the same license as the GNOME Twitch package.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: GNOME Twitch 0.3.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2016-08-25 23:25+0200\n"
-"PO-Revision-Date: 2016-08-24 20:42+0200\n"
-"Last-Translator: Vincent Szolnoky <vinszent@vinszent.com>\n"
-"Language-Team: \n"
-"Language: sv\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-08-26 00:02+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/gt-app.c:230
 msgid "Refresh login"
-msgstr "Förnya inloggningen"
+msgstr ""
 
-#: src/gt-app.c:509 src/gt-twitch-login-dlg.c:36
+#: src/gt-app.c:345 src/gt-twitch-login-dlg.c:36
 msgid "Login to Twitch"
-msgstr "Logga in på Twitch"
+msgstr ""
 
 #. Translators: Used for when viewers >= 1000
 #. Shorthand for thousands. Ex (English): 6200 = 6.2k
 #: src/gt-channels-container-child.c:106
 #, c-format
 msgid "%3.1fk"
-msgstr "%3.1fk"
+msgstr ""
 
 #. Translators: Used for when viewers < 1000
 #. No need to translate, just future-proofing
@@ -44,282 +44,278 @@ msgstr ""
 #: src/gt-channels-container-child.c:139
 #, c-format
 msgid "%2.1fh"
-msgstr "%2.1f tim."
+msgstr ""
 
 #. Translators: Used when stream time <= 60min
 #. Ex (English): 45 minutes = 45m
 #: src/gt-channels-container-child.c:143
 #, c-format
 msgid "%ldm"
-msgstr "%ld min."
+msgstr ""
 
 #: src/gt-channels-container-follow.c:263
 msgid "No channels followed"
-msgstr "Inga följda kanaler"
+msgstr ""
 
 #: src/gt-channels-container-follow.c:264
 msgid "Follow channels that you like for them to show up here"
-msgstr "Följ kanaler som du gillar, så visas de här"
+msgstr ""
 
 #: src/gt-channels-container-follow.c:266
 msgid "Loading follows"
-msgstr "Ladda följningar"
+msgstr ""
 
 #: src/gt-channels-container-game.c:177 src/gt-channels-container-top.c:157
 msgid "Loading channels"
-msgstr "Ladda kanaler"
+msgstr ""
 
 #: src/gt-channels-container-search.c:186
 msgid "No channels found"
-msgstr "Inga kanaler hittades"
+msgstr ""
 
 #: src/gt-channels-container-search.c:187 src/gt-games-container-search.c:205
 msgid "Try a different search"
-msgstr "Försök med en annan sökning"
+msgstr ""
 
 #: src/gt-channels-container-search.c:188
 msgid "Searching channels"
-msgstr "Söker kanaler"
+msgstr ""
 
 #: src/gt-chat.c:611 data/ui/gt-chat.ui:45
 msgid "Send a message"
-msgstr "Skicka ett meddelande"
+msgstr ""
 
 #: src/gt-chat.c:611
 msgid "Please login to chat"
-msgstr "Logga in för att chatta"
+msgstr ""
 
 #: src/gt-follows-manager.c:71
 #, c-format
 msgid "Channel %s is now online"
-msgstr "Kanal %s är nu online"
+msgstr ""
 
 #: src/gt-follows-manager.c:72
 #, c-format
 msgid "Streaming %s"
-msgstr "Sänder %s"
+msgstr ""
 
 #: src/gt-follows-manager.c:134
 #, c-format
 msgid "Unable to follow channel '%s' on Twitch, try refreshing your login"
-msgstr "Kunde inte följa kanalen '%s' på Twitch, försök förnya din inloggning"
+msgstr ""
 
 #: src/gt-follows-manager.c:174
 #, c-format
 msgid "Unable to unfollow channel '%s' on Twitch, try refreshing your login"
 msgstr ""
-"Kunde inte sluta följa kanalen '%s' på Twitch, försök förnya din inloggning"
 
 #: src/gt-follows-manager.c:468
-msgid ""
-"GNOME Twitch has detected local follows, would you like to move them to "
-"Twitch?"
+msgid "GNOME Twitch has detected local follows, would you like to move them to Twitch?"
 msgstr ""
-"GNOME Twitch har upptäckt lokala följningar, vill du flytta dem till Twitch?"
 
 #: src/gt-game.c:225 src/gt-twitch.c:302
 msgid "Untitled broadcast"
-msgstr "Namnlös sändning"
+msgstr ""
 
 #: src/gt-games-container-search.c:204
 msgid "No games found"
-msgstr "Inga spel hittades"
+msgstr ""
 
 #: src/gt-games-container-search.c:206
 msgid "Searching games"
-msgstr "Söker spel"
+msgstr ""
 
 #: src/gt-games-container-top.c:164
 msgid "Loading games"
-msgstr "Laddar spel"
+msgstr ""
 
 #: src/gt-player.c:283
 #, c-format
 msgid "Buffered %d%%"
-msgstr "Buffrade %d%%"
+msgstr ""
 
 #: src/gt-player.c:887
 msgid "Loading stream"
-msgstr "Laddar sändningen"
+msgstr ""
 
 #: src/gt-twitch.c:1720 src/gt-twitch.c:1864 src/gt-twitch.c:1942
 #, c-format
 msgid "Twitch replied with error code '%d', message '%s' and body '%s'"
-msgstr "Twitch svarade med felkoden '%d', meddelande '%s' och texten '%s'"
+msgstr ""
 
 #: src/gt-twitch-login-dlg.c:121
 msgid "Successfully logged in to Twitch!"
-msgstr "Lyckades logga in på Twitch!"
+msgstr ""
 
 #: src/gt-win.c:107 data/com.vinszent.GnomeTwitch.desktop.in:4
 msgid "Enjoy Twitch on your GNU/Linux desktop"
-msgstr "Njut av Twitch på din GNU/Linux desktop"
+msgstr ""
 
 #. Translators: Put your details here :)
 #: src/gt-win.c:112
 msgid "translator-credits"
-msgstr "Vincent Szolnoky"
+msgstr ""
 
 #: src/gt-win.c:115
 msgid "Contributors"
-msgstr "Medutvecklare"
+msgstr ""
 
 #: src/gt-win.c:182
 msgid "Something went wrong"
-msgstr "Nånting gick fel"
+msgstr ""
 
 #: src/gt-win.c:297
 msgid "Already logged into Twitch, refresh login?"
-msgstr "Redan inloggade på Twitch, förnya inloggningen?"
+msgstr ""
 
 #. Translators: Please keep the markup tags
 #: src/gt-win.c:755
 #, c-format
 msgid "<b>Something went wrong:</b> %s."
-msgstr "<b>Nånting gick fel:</b> %s."
+msgstr ""
 
 #: data/ui/app-menu.ui:6
 msgid "Settings"
-msgstr "Inställningar"
+msgstr ""
 
 #: data/ui/app-menu.ui:12
 msgid "About"
-msgstr "Om"
+msgstr ""
 
 #: data/ui/app-menu.ui:16
 msgid "Quit"
-msgstr "Avsluta"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:175 data/ui/gt-player-header-bar.ui:199
 msgid "Edit chat"
-msgstr "Ändra chatten"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:182 data/ui/gt-player-header-bar.ui:345
 msgid "Stream quality"
-msgstr "Videokvalitét"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:214
 msgid "Dock chat"
-msgstr "Docka chatt"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:220
 msgid "Dark theme"
-msgstr "Mörkt tema"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:229
 msgid "Opacity"
-msgstr "Genomskinlighet"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:250
 msgid "Width"
-msgstr "Bredd"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:271
 msgid "Height"
-msgstr "Höjd"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:292
 msgid "X position"
-msgstr "X position"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:313
 msgid "Y position"
-msgstr "Y position"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:353 data/ui/gt-settings-dlg.ui:62
 msgid "Source"
-msgstr "Käll"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:361 data/ui/gt-settings-dlg.ui:63
 msgid "High"
-msgstr "Hög"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:369 data/ui/gt-settings-dlg.ui:64
 msgid "Medium"
-msgstr "Medium"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:377 data/ui/gt-settings-dlg.ui:65
 msgid "Low"
-msgstr "Låg"
+msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:385 data/ui/gt-settings-dlg.ui:66
 msgid "Mobile"
-msgstr "Mobil"
+msgstr ""
 
 #: data/ui/gt-settings-dlg.ui:29
 msgid "Use dark theme"
-msgstr "Avänd mörkt tema"
+msgstr ""
 
 #: data/ui/gt-settings-dlg.ui:49
 msgid "Default video quality:"
-msgstr "Standard videokvalitét:"
+msgstr ""
 
 #: data/ui/gt-settings-dlg.ui:77
 msgid "General"
-msgstr "Allmänt"
+msgstr ""
 
 #: data/ui/gt-settings-dlg.ui:86
 msgid "Plugins"
-msgstr "Plugins"
+msgstr ""
 
 #: data/ui/gt-chat.ui:74
 msgid "Connecting to chat"
-msgstr "Ansluter till chatten"
+msgstr ""
 
 #: data/ui/gt-chat.ui:114
 msgid "Click to reconnect"
-msgstr "Klicka för att återansluta"
+msgstr ""
 
 #: data/ui/gt-win.ui:27 data/ui/gt-win.ui:164
 msgid "Browse"
-msgstr "Bläddra"
+msgstr ""
 
 #: data/ui/gt-win.ui:36 data/ui/gt-win.ui:174
 msgid "Player"
-msgstr "Spelare"
+msgstr ""
 
 #: data/ui/gt-win.ui:76
 msgid "Yes"
-msgstr "Ja"
+msgstr ""
 
 #: data/ui/gt-win.ui:85
 msgid "No"
-msgstr "Nej"
+msgstr ""
 
 #: data/ui/gt-win.ui:94
 msgid "OK"
-msgstr "OK"
+msgstr ""
 
 #: data/ui/gt-win.ui:103
 msgid "Details"
-msgstr "Detaljer"
+msgstr ""
 
 #: data/ui/gt-win.ui:112
 msgid "Close"
-msgstr "Stäng"
+msgstr ""
 
 #: data/ui/gt-win.ui:140
 msgid "Channels"
-msgstr "Kanaler"
+msgstr ""
 
 #: data/ui/gt-win.ui:149
 msgid "Follows"
-msgstr "Följningar"
+msgstr ""
 
 #: data/ui/gt-win.ui:158
 msgid "Games"
-msgstr "Spel"
+msgstr ""
 
 #: data/com.vinszent.GnomeTwitch.desktop.in:3
 msgid "GNOME Twitch"
-msgstr "GNOME Twitch"
+msgstr ""
 
 #. Translators: Search terms to find this application.
 #. Do NOT translate or localize the semicolons!
 #. The list MUST also end with a semicolon!
 #: data/com.vinszent.GnomeTwitch.desktop.in:8
 msgid "stream;video;twitch;live;games;"
-msgstr "livesändning;video;twitch;spel;"
+msgstr ""
 
 #. Translators: Don't translate this, xgettext marks this automatically
 #: data/com.vinszent.GnomeTwitch.desktop.in:12

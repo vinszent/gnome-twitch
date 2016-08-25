@@ -1,4 +1,13 @@
-install_data('com.vinszent.GnomeTwitch.desktop', install_dir : 'share/applications')
+msgfmt = find_program('msgfmt')
+
+custom_target('desktop-file',
+    input : 'com.vinszent.GnomeTwitch.desktop.in',
+    output : 'com.vinszent.GnomeTwitch.desktop',
+    command : [msgfmt, '--desktop', '--template', '@INPUT@', '-d', '../po', '-o', '@OUTPUT@'],
+    #command : [intltool_merge, '-d', '-u', '../po', '@INPUT@', '@OUTPUT@'],
+    install : true,
+    install_dir : 'share/applications')
+
 install_data('icons/hicolor/16x16/apps/com.vinszent.GnomeTwitch.png', install_dir : 'share/icons/hicolor/16x16/apps/')
 install_data('icons/hicolor/22x22/apps/com.vinszent.GnomeTwitch.png', install_dir : 'share/icons/hicolor/22x22/apps')
 install_data('icons/hicolor/24x24/apps/com.vinszent.GnomeTwitch.png', install_dir : 'share/icons/hicolor/24x24/apps')
