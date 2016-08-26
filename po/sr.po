@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.2.0\n"
-"Report-Msgid-Bugs-To: \n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-08-26 10:35+0200\n"
 "PO-Revision-Date: 2016-08-26 18:36+0200\n"
 "Last-Translator: Марко М. Костић <marko.m.kostic@gmail.com>\n"
@@ -17,7 +17,6 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
 "10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Virtaal 0.7.1\n"
-"X-Project-Style: gnome\n"
 
 #: src/gt-app.c:230
 msgid "Refresh login"
