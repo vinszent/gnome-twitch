@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-08-26 00:02+0200\n"
+"POT-Creation-Date: 2016-08-26 10:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -184,6 +184,22 @@ msgstr ""
 
 #: data/ui/app-menu.ui:16
 msgid "Quit"
+msgstr ""
+
+#: data/ui/gt-player.ui:67
+msgid "No player backends loaded!"
+msgstr ""
+
+#: data/ui/gt-player.ui:81
+msgid "Click "
+msgstr ""
+
+#: data/ui/gt-player.ui:90
+msgid "here"
+msgstr ""
+
+#: data/ui/gt-player.ui:104
+msgid " to load one"
 msgstr ""
 
 #: data/ui/gt-player-header-bar.ui:175 data/ui/gt-player-header-bar.ui:199
