@@ -29,6 +29,7 @@ src/gt-win.c
 src/main.c
 src/utils.c
 data/ui/app-menu.ui
+data/ui/gt-player.ui
 data/ui/gt-player-header-bar.ui
 data/ui/gt-browse-header-bar.ui
 data/ui/gt-settings-dlg.ui
