@@ -1,6 +1,10 @@
 build
 .SRCINFO
-po/gnome-twitch.pot
 po/*.mo
 .compdb.json
 .clang_complete
+/src/.deps/
+/.dir-locals.el
+/.projectile
+compile_commands.json
+data/packages/rpm/obs

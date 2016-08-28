@@ -1,20 +1,19 @@
-# Translation of gnome-twitch to Swedish.
-# Copyright (C) 2015-2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
+# Translation of gnome-twitch to French.
+# Copyright (C) 2015-2016 mr-intrepide <theintrepid95@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch 0.2.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-04-03 20:55+0200\n"
 "PO-Revision-Date: 2016-04-04 10:58+0200\n"
-"Language-Team: mr-intrepide <theintrepid95@gmail.com>\n"
+"Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.7\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"Last-Translator: \n"
+"Last-Translator: mr-intrepide <theintrepid95@gmail.com>\n"
 "Language: fr\n"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6

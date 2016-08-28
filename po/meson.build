@@ -1,3 +1,5 @@
-langs = ['de', 'pl', 'pt_PT', 'sv', 'fr', 'ru', 'sr']
+i18n = import('i18n')
 
-gettext('gnome-twitch', languages : langs)
+langs = ['de', 'pl', 'pt', 'sv', 'fr', 'ru', 'sr', 'hu']
+
+i18n.gettext('gnome-twitch', languages : langs)

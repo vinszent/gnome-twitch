@@ -1,10 +1,10 @@
-# Translation of gnome-twitch to German.
-# Copyright (C) 2015 Philipp Fent <philipp@fent.de>
+# Translation of gnome-twitch to Russian.
+# Copyright (C) 2015-2016 Sunderland93 <samoilov.lex@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.1.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-09 22:42+0200\n"
 "PO-Revision-Date: 2016-04-05 13:42+0900\n"
 "Language-Team: \n"
@@ -13,7 +13,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.6.10\n"
 "Last-Translator: Sunderland93 <samoilov.lex@gmail.com>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "Language: ru\n"
 
 #: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="GtFollowsView" parent="GtkBox">
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkSearchBar" id="search_bar">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkSearchEntry">
+            <property name="visible">True</property>
+            <property name="width-request">300</property>  
+            <signal name="changed" handler="search_changed_cb"/>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="fill">False</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtChannelsContainerFollow" id="follow_container">
+        <property name="visible">True</property>
+      </object>
+    </child>
+  </template>
+</interface>

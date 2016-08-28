@@ -1,9 +1,14 @@
 #include "gt-settings-dlg.h"
+#include "gt-enums.h"
+#include <libpeas-gtk/peas-gtk.h>
 
 typedef struct
 {
     GtkWidget* prefer_dark_theme_button;
     GtkWidget* quality_combo;
+    GtkWidget* settings_switcher;
+    GtkWidget* plugin_view;
+    GtkWidget* settings_stack;
     GtWin* win;
 
     GSettings* settings;
@@ -92,9 +97,12 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
-    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/gnome-twitch/ui/gt-settings-dlg.ui");
+    gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-settings-dlg.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, prefer_dark_theme_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_switcher);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, plugin_view);
 }
 
 static void
@@ -102,9 +110,18 @@ gt_settings_dlg_init(GtSettingsDlg* self)
 {
     GtSettingsDlgPrivate* priv = gt_settings_dlg_get_instance_private(self);
 
+    //So it's not optimised away
+    volatile gpointer type = (gpointer) PEAS_GTK_TYPE_PLUGIN_MANAGER;
+
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    priv->settings = g_settings_new("com.gnome-twitch.app");
+    gtk_widget_show_all(priv->plugin_view);
+
+    GtkWidget* header_bar = gtk_dialog_get_header_bar(GTK_DIALOG(self));
+    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), priv->settings_switcher);
+
+    //TODO: Change this to use main_app->settings
+    priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
 
     g_settings_bind(priv->settings, "prefer-dark-theme",
                     priv->prefer_dark_theme_button, "active",
@@ -112,4 +129,20 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     g_settings_bind(priv->settings, "default-quality",
                     priv->quality_combo, "active-id",
                     G_SETTINGS_BIND_DEFAULT);
+}
+
+void
+gt_settings_dlg_set_view(GtSettingsDlg* self, GtSettingsDlgView view)
+{
+    GtSettingsDlgPrivate* priv = gt_settings_dlg_get_instance_private(self);
+
+    switch (view)
+    {
+        case GT_SETTINGS_DLG_VIEW_GENERAL:
+            gtk_stack_set_visible_child_name(GTK_STACK(priv->settings_stack), "general");
+            break;
+        case GT_SETTINGS_DLG_VIEW_PLUGINS:
+            gtk_stack_set_visible_child_name(GTK_STACK(priv->settings_stack), "plugins");
+            break;
+    }
 }

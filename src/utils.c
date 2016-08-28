@@ -1,6 +1,12 @@
-#include "utils.h"
+#include <glib/gstdio.h>
+#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
+#include "config.h"
+
+#define TAG "Utils"
+#include "gnome-twitch/gt-log.h"
 
 gpointer
 utils_value_ref_sink_object(const GValue* val)
@@ -30,6 +36,33 @@ utils_container_clear(GtkContainer* cont)
     }
 }
 
+gint64
+utils_timestamp_file(const gchar* filename)
+{
+    int ret;
+    GStatBuf file_stat;
+
+    ret = g_stat(filename, &file_stat);
+
+    if (ret)
+        return 0;
+
+    return file_stat.st_mtim.tv_sec;
+}
+
+gint64
+utils_timestamp_now(void)
+{
+    gint64 timestamp;
+    GDateTime* now;
+
+    now = g_date_time_new_now_utc();
+    timestamp = g_date_time_to_unix(now);
+    g_date_time_unref(now);
+
+    return timestamp;
+}
+
 void
 utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterpType interp)
 {
@@ -41,6 +74,19 @@ utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterp
     *pixbuf = tmp;
 }
 
+static gint64
+utils_http_full_date_to_timestamp(const char* string)
+{
+    gint64 ret;
+    SoupDate* tmp;
+
+    tmp = soup_date_new_from_string(string);
+    ret = soup_date_to_time_t(tmp);
+    soup_date_free(tmp);
+
+    return ret;
+}
+
 GdkPixbuf*
 utils_download_picture(SoupSession* soup, const gchar* url)
 {
@@ -50,11 +96,12 @@ utils_download_picture(SoupSession* soup, const gchar* url)
     GError* err = NULL;
 
     msg = soup_message_new("GET", url);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
     input = soup_session_send(soup, msg, NULL, &err);
 
     if (err)
     {
-        g_warning("{Utils} Error downloading picture code '%d' message '%s'", err->code, err->message);
+        WARNINGF("Error downloading picture, url=%s, code=%d, message=%s", url, err->code, err->message);
         g_error_free(err);
     }
     else
@@ -63,6 +110,33 @@ utils_download_picture(SoupSession* soup, const gchar* url)
 
         g_input_stream_close(input, NULL, NULL);
     }
+
+    g_object_unref(msg);
+
+    return ret;
+}
+
+GdkPixbuf*
+utils_download_picture_if_newer(SoupSession* soup, const gchar* url, gint64 timestamp)
+{
+    SoupMessage* msg;
+    guint soup_status;
+    const gchar* last_modified;
+    GdkPixbuf* ret;
+
+    msg = soup_message_new(SOUP_METHOD_HEAD, url);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+    soup_status = soup_session_send_message(soup, msg);
+
+    if (SOUP_STATUS_IS_SUCCESSFUL(soup_status) &&
+        (last_modified = soup_message_headers_get_one(msg->response_headers, "Last-Modified")) != NULL &&
+        utils_http_full_date_to_timestamp(last_modified) < timestamp)
+    {
+        g_info("{Utils} No new content at url '%s'", url);
+        ret = NULL;
+    }
+    else
+        ret = utils_download_picture(soup, url);
 
     g_object_unref(msg);
 
@@ -154,4 +228,50 @@ utils_connect_link(GtkWidget* widget, const gchar* link)
     gchar* tmp = g_strdup(link); //TODO: Free this
     utils_connect_mouse_hover(widget);
     g_signal_connect(widget, "button-press-event", G_CALLBACK(utils_mouse_clicked_link_cb), tmp);
+}
+
+gboolean
+utils_str_empty(const gchar* str)
+{
+    return !(str && strlen(str) > 0);
+}
+
+typedef struct
+{
+    gpointer instance;
+    GCallback cb;
+    gpointer udata;
+} OneshotData;
+
+static void
+oneshot_cb(OneshotData* data)
+{
+    g_signal_handlers_disconnect_by_func(data->instance,
+                                         data->cb,
+                                         data->udata);
+    g_signal_handlers_disconnect_by_func(data->instance,
+                                         oneshot_cb,
+                                         data);
+}
+
+void
+utils_signal_connect_oneshot(gpointer instance,
+                             const gchar* signal,
+                             GCallback cb,
+                             gpointer udata)
+{
+    OneshotData* data = g_new(OneshotData, 1);
+
+    data->instance = instance;
+    data->cb = cb;
+    data->udata = udata;
+
+    g_signal_connect(instance, signal, cb, udata);
+
+    g_signal_connect_data(instance,
+                          signal,
+                          G_CALLBACK(oneshot_cb),
+                          data,
+                          (GClosureNotify) g_free,
+                          G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 }

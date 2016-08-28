@@ -2,8 +2,9 @@
 #define GT_APP_H
 
 #include <gtk/gtk.h>
+#include <libpeas/peas.h>
 #include "gt-twitch.h"
-#include "gt-favourites-manager.h"
+#include "gt-follows-manager.h"
 #include "gt-irc.h"
 
 G_BEGIN_DECLS
@@ -17,8 +18,10 @@ struct _GtApp
     GtkApplication parent_instance;
 
     GtTwitch* twitch;
-    GtFavouritesManager* fav_mgr;
+    GtFollowsManager* fav_mgr;
     GSettings* settings;
+
+    PeasEngine* plugins_engine;
 
     GHashTable* chat_settings_table; //TODO: Move this into GtChannelsManager when it's done
 };
@@ -35,14 +38,16 @@ typedef struct
     gdouble height;
     gdouble x_pos;
     gdouble y_pos;
+    gdouble docked_handle_pos;
 } GtChatViewSettings;
 
 GtChatViewSettings* gt_chat_view_settings_new();
-
 GtApp* gt_app_new(void);
 
 extern GtApp* main_app;
 extern gchar* ORIGINAL_LOCALE;
+extern gint LOG_LEVEL;
+extern gboolean NO_FANCY_LOGGING;
 
 const gchar* gt_app_get_user_name(GtApp* self);
 const gchar* gt_app_get_oauth_token(GtApp* self);

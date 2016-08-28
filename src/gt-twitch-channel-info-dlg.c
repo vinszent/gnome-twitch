@@ -1,10 +1,12 @@
 #include "gt-twitch-channel-info-dlg.h"
 #include "gt-twitch.h"
 #include "gt-app.h"
-#include "utils.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
 #include <webkit2/webkit2.h>
+
+#define TAG "GtTwitchChannelInfoDlg"
+#include "utils.h"
 
 #define HTML_PARAGRAPH "p"
 #define HTML_LIST "ul"
@@ -292,7 +294,7 @@ create_default_panel(GtTwitchChannelInfoDlg* self, GtTwitchChannelInfoPanel* pan
     GtkTextTag* h1_tag;
     GtkTextTagTable* tag_table;
 
-    builder = gtk_builder_new_from_resource("/com/gnome-twitch/ui/gt-twitch-channel-info-panel.ui");
+    builder = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/gt-twitch-channel-info-panel.ui");
     panel_box =  GTK_WIDGET(gtk_builder_get_object(builder, "panel_box"));
     panel_label = GTK_WIDGET(gtk_builder_get_object(builder, "panel_label"));
     panel_image = GTK_WIDGET(gtk_builder_get_object(builder, "panel_image"));
@@ -398,7 +400,7 @@ gt_twitch_channel_info_dlg_class_init(GtTwitchChannelInfoDlgClass* klass)
     obj_class->set_property = set_property;
 
     gtk_widget_class_set_template_from_resource(widget_class,
-                                                "/com/gnome-twitch/ui/gt-twitch-channel-info-dlg.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-twitch-channel-info-dlg.ui");
 
     gtk_widget_class_bind_template_child_private(widget_class,
                                                  GtTwitchChannelInfoDlg, panel_box_1);

@@ -45,12 +45,12 @@
                                 <property name="visible">True</property>
                                 <property name="orientation">horizontal</property>
                                 <child>
-                                  <object class="GtkToggleButton" id="favourite_button">
+                                  <object class="GtkToggleButton" id="follow_button">
                                     <property name="visible">True</property>
                                     <property name="halign">start</property>
                                     <property name="relief">none</property>
                                     <style>
-                                      <class name="favourite-button"/>
+                                      <class name="follow-button"/>
                                     </style>
                                     <child>
                                       <object class="GtkImage">
@@ -143,6 +143,9 @@
         <child>
           <object class="GtkLabel" id="name_label">
             <property name="visible">True</property>
+            <property name="hexpand">True</property>
+            <property name="max-width-chars">1</property>
+            <property name="ellipsize">middle</property>
             <attributes>
               <attribute name="size" value="13000"/>
             </attributes>
@@ -151,6 +154,9 @@
         <child>
           <object class="GtkLabel" id="game_label">
             <property name="visible">True</property>
+            <property name="hexpand">True</property>
+            <property name="max-width-chars">1</property>
+            <property name="ellipsize">middle</property>
             <attributes>
               <attribute name="size" value="10000"/>
             </attributes>

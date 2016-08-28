@@ -1,0 +1,8 @@
+[Plugin]
+Name = GStreamer Cairo player backend
+Module = player-backend-gstreamer-cairo
+Description = Gstreamer player backend using Cairo for rendering
+Authors = Vincent Szolnoky <ippytraxx@installgentoo.com>
+Website = https://github.com/vinszent/gnome-twitch
+License =  GPL3
+Loader = C

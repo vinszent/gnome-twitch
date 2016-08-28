@@ -4,6 +4,9 @@
 #include "gt-win.h"
 #include "utils.h"
 
+#define TAG "GtChannelsContainer"
+#include "gnome-twitch/gt-log.h"
+
 typedef struct
 {
     GtkWidget* channels_scroll;
@@ -110,13 +113,21 @@ remove_channel(GtChannelsContainer* self, GtChannel* chan)
 
         if (!gt_channel_compare(chan, _chan))
         {
-            g_object_unref(_chan);
             gtk_container_remove(GTK_CONTAINER(priv->channels_flow), GTK_WIDGET(child));
+            g_object_unref(_chan);
             break;
         }
 
         g_object_unref(_chan);
     }
+}
+
+static void
+clear_channels(GtChannelsContainer* self)
+{
+    GtChannelsContainerPrivate* priv = gt_channels_container_get_instance_private(self);
+
+    utils_container_clear(GTK_CONTAINER(priv->channels_flow));
 }
 
 static GtkFlowBox*
@@ -226,9 +237,10 @@ gt_channels_container_class_init(GtChannelsContainerClass* klass)
     klass->append_channels = append_channels;
     klass->remove_channel = remove_channel;
     klass->get_channels_flow = get_channels_flow;
+    klass->clear_channels = clear_channels;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
-                                                "/com/gnome-twitch/ui/gt-channels-container.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-channels-container.ui");
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_scroll);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainer, channels_flow);

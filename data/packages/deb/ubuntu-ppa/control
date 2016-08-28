@@ -19,7 +19,7 @@ Build-Depends: debhelper (>= 9),
                gstreamer1.0-plugins-good,
                gstreamer1.0-plugins-bad
 Standards-Version: 3.9.6
-Homepage: https://github.com/Ippytraxx/gnome-twitch
+Homepage: https://github.com/vinszent/gnome-twitch
 
 Package: gnome-twitch
 Architecture: any

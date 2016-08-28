@@ -13,7 +13,7 @@ G_DECLARE_DERIVABLE_TYPE(GtChannelsContainer, gt_channels_container, GT, CHANNEL
 typedef enum
 {
     GT_CHANNELS_CONTAINER_TYPE_TOP,
-    GT_CHANNELS_CONTAINER_TYPE_FAVOURITE,
+    GT_CHANNELS_CONTAINER_TYPE_FOLLOW,
     GT_CHANNELS_CONTAINER_TYPE_SEARCH,
     GT_CHANNELS_CONTAINER_TYPE_GAME
 } GtChannelsContainerType;
@@ -29,6 +29,7 @@ struct _GtChannelsContainerClass
     void (*append_channel) (GtChannelsContainer* self, GtChannel* chan);
     void (*append_channels) (GtChannelsContainer* self, GList* channels);
     void (*remove_channel) (GtChannelsContainer* self, GtChannel* chan);
+    void (*clear_channels) (GtChannelsContainer* self);
     GtkFlowBox* (*get_channels_flow) (GtChannelsContainer* self);
 
     void (*bottom_edge_reached) (GtChannelsContainer* self);

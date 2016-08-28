@@ -1,14 +1,16 @@
 #include "gt-browse-header-bar.h"
 #include "gt-win.h"
-#include "utils.h"
 #include "gt-channels-view.h"
-#include "gt-favourites-view.h"
+#include "gt-follows-view.h"
+
+#define TAG "GtBrowseHeaderBar"
+#include "utils.h"
 
 typedef struct
 {
     GtChannelsView* channels_view;
     GtGamesView* games_view;
-    GtFavouritesView* favourites_view;
+    GtFollowsView* follows_view;
 
     GtkWidget* nav_buttons_revealer;
     GtkWidget* nav_buttons_stack;
@@ -25,7 +27,7 @@ enum
     PROP_0,
     PROP_CHANNELS_VIEW,
     PROP_GAMES_VIEW,
-    PROP_FAVOURITES_VIEW,
+    PROP_FOLLOWS_VIEW,
     NUM_PROPS
 };
 
@@ -54,6 +56,8 @@ show_nav_buttons_cb(GObject* source,
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->nav_buttons_revealer),
                                   showing_game_channels && view == GTK_WIDGET(priv->games_view));
+
+    g_object_unref(view);
 }
 
 static void
@@ -82,8 +86,8 @@ get_property (GObject*    obj,
         case PROP_GAMES_VIEW:
             g_value_set_object(val, priv->games_view);
             break;
-        case PROP_FAVOURITES_VIEW:
-            g_value_set_object(val, priv->favourites_view);
+        case PROP_FOLLOWS_VIEW:
+            g_value_set_object(val, priv->follows_view);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -109,29 +113,13 @@ set_property(GObject*      obj,
             g_clear_object(&priv->games_view);
             priv->games_view = g_value_dup_object(val);
             break;
-        case PROP_FAVOURITES_VIEW:
-            g_clear_object(&priv->favourites_view);
-            priv->favourites_view = g_value_dup_object(val);
+        case PROP_FOLLOWS_VIEW:
+            g_clear_object(&priv->follows_view);
+            priv->follows_view = g_value_dup_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
-}
-
-static void
-show_refresh_button_cb(GObject* source,
-                       GParamSpec* pspec,
-                       gpointer udata)
-{
-    GtBrowseHeaderBar* self = GT_BROWSE_HEADER_BAR(udata);
-    GtBrowseHeaderBarPrivate* priv = gt_browse_header_bar_get_instance_private(self);
-    GtkWidget* view = NULL;
-
-    g_object_get(GT_WIN_TOPLEVEL(self), "visible-view", &view, NULL);
-
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->refresh_revealer), view != GTK_WIDGET(priv->favourites_view));
-
-    g_object_unref(view);
 }
 
 static void
@@ -186,13 +174,12 @@ realize(GtkWidget* widget,
     g_object_bind_property(priv->channels_view, "search-active",
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
-    g_object_bind_property(priv->favourites_view, "search-active",
+    g_object_bind_property(priv->follows_view, "search-active",
                            priv->search_button, "active",
                            G_BINDING_DEFAULT);
 
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(visible_view_cb), self);
     g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_nav_buttons_cb), self);
-    g_signal_connect(GT_WIN_TOPLEVEL(widget), "notify::visible-view", G_CALLBACK(show_refresh_button_cb), self);
     g_signal_connect(priv->games_view, "notify::showing-game-channels", G_CALLBACK(show_nav_buttons_cb), self);
     g_signal_connect(priv->search_button, "notify::active", G_CALLBACK(search_active_cb), self);
 }
@@ -216,10 +203,10 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                                  "Games View",
                                                  GT_TYPE_GAMES_VIEW,
                                                  G_PARAM_READWRITE);
-    props[PROP_FAVOURITES_VIEW] = g_param_spec_object("favourites-view",
-                                                      "Favourites View",
-                                                      "Favourites View",
-                                                      GT_TYPE_FAVOURITES_VIEW,
+    props[PROP_FOLLOWS_VIEW] = g_param_spec_object("follows-view",
+                                                      "Follows View",
+                                                      "Follows View",
+                                                      GT_TYPE_FOLLOWS_VIEW,
                                                       G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class,
@@ -227,7 +214,7 @@ gt_browse_header_bar_class_init(GtBrowseHeaderBarClass* klass)
                                       props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
-                                                "/com/gnome-twitch/ui/gt-browse-header-bar.ui");
+                                                "/com/vinszent/GnomeTwitch/ui/gt-browse-header-bar.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, nav_buttons_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtBrowseHeaderBar, search_button);

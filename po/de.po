@@ -1,10 +1,11 @@
 # Translation of gnome-twitch to German.
 # Copyright (C) 2015 Philipp Fent <philipp@fent.de>
+#               2016 Kordian Bruck <k@bruck.me>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.1.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
+"Project-Id-Version: gnome-twitch 0.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2015-10-09 22:42+0200\n"
 "PO-Revision-Date: 2016-04-04 18:36+0200\n"
 "Language-Team: \n"
@@ -12,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.4\n"
-"Last-Translator: Philipp Fent <philipp@fent.de>\n"
+"Last-Translator: Kordian Bruck <k@bruck.me>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: de\n"
 
@@ -46,7 +47,7 @@ msgstr "Dunkels Design"
 
 #: data/ui/gt-player-header-bar.ui:228
 msgid "Opacity"
-msgstr "Durchsichtigkeit"
+msgstr "Deckkraft"
 
 #: data/ui/gt-player-header-bar.ui:247
 msgid "Width"
@@ -106,7 +107,7 @@ msgstr "Nicht angemeldet."
 
 #: data/ui/gt-chat.ui:110
 msgid "Click to login"
-msgstr "Klicken um anzumelden"
+msgstr "Zum Anmelden klicken"
 
 #: data/ui/gt-chat.ui:136
 msgid "Click to reconnect"
@@ -138,11 +139,11 @@ msgstr "Spiele"
 
 #: src/gt-app.c:175
 msgid "Refresh login"
-msgstr "Anmeldung aktuallisieren"
+msgstr "Anmeldung aktualisieren"
 
 #: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
 msgid "Login to Twitch"
-msgstr "In Twitch anmelden"
+msgstr "Bei Twitch anmelden"
 
 #: src/gt-channels-container-child.c:102
 #, c-format
@@ -157,12 +158,12 @@ msgstr "%ld"
 #: src/gt-channels-container-child.c:131
 #, c-format
 msgid "%2.1fh"
-msgstr "%2.1f stunden."
+msgstr "%2.1f Stunden"
 
 #: src/gt-channels-container-child.c:133
 #, c-format
 msgid "%ldm"
-msgstr "%ld min."
+msgstr "%ld Minuten"
 
 #: src/gt-channels-container-favourite.c:229
 msgid "No channels favourited"
@@ -170,7 +171,7 @@ msgstr "Keine Favoriten"
 
 #: src/gt-channels-container-favourite.c:230
 msgid "Favourite channels that you like for them to show up here"
-msgstr "Beliebte Kanäle, welche du hier sehen möchtest"
+msgstr "Lieblingskanäle, die du hier sehen möchtest"
 
 #: src/gt-channels-container-search.c:183
 msgid "No channels found"
@@ -178,7 +179,7 @@ msgstr "Keine Kanäle gefunden"
 
 #: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
 msgid "Try a different search"
-msgstr "Versuch eine andere Suche"
+msgstr "Versuche einen anderen Suchbegriff"
 
 #: src/gt-channels-container-search.c:185
 msgid "Searching channels"
@@ -208,7 +209,7 @@ msgstr "Kanal %s ist jetzt online"
 #: src/gt-favourites-manager.c:64
 #, c-format
 msgid "Streaming %s"
-msgstr "Streame %s"
+msgstr "Streamt %s"
 
 #: src/gt-game.c:111
 msgid "Untitled broadcast"
@@ -243,4 +244,4 @@ msgstr "Mitwirkende"
 
 #: src/gt-win.c:176
 msgid "Already logged into Twitch, refresh login?"
-msgstr "Bereits in Twitch angemeldet, neu laden?"
+msgstr "Bereits bei Twitch angemeldet, neu laden?"
