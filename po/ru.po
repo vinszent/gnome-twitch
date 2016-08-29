@@ -3,8 +3,8 @@
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.2.0\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: gnome-twitch 0.3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-08-26 10:35+0200\n"
 "PO-Revision-Date: 2016-04-05 13:42+0900\n"
 "Last-Translator: Sunderland93 <samoilov.lex@gmail.com>\n"
@@ -339,12 +339,12 @@ msgstr "GNOME Twitch"
 #. The list MUST also end with a semicolon!
 #: data/com.vinszent.GnomeTwitch.desktop.in:8
 msgid "stream;video;twitch;live;games;"
-msgstr ""
+msgstr "stream;video;twitch;live;games;"
 
 #. Translators: Don't translate this, xgettext marks this automatically
 #: data/com.vinszent.GnomeTwitch.desktop.in:12
 msgid "com.vinszent.GnomeTwitch"
-msgstr ""
+msgstr "com.vinszent.GnomeTwitch"
 
 #~ msgid "Not logged into Twitch!"
 #~ msgstr "Не вошли в Twitch!"
