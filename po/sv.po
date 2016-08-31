@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: GNOME Twitch 0.3.0\n"
-"Report-Msgid-Bugs-To: https://github.com/Ippytraxx/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2016-08-25 23:25+0200\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
+"POT-Creation-Date: 2016-08-26 10:35+0200\n"
 "PO-Revision-Date: 2016-08-24 20:42+0200\n"
 "Last-Translator: Vincent Szolnoky <vinszent@vinszent.com>\n"
 "Language-Team: \n"
@@ -21,7 +21,7 @@ msgstr ""
 msgid "Refresh login"
 msgstr "Förnya inloggningen"
 
-#: src/gt-app.c:509 src/gt-twitch-login-dlg.c:36
+#: src/gt-app.c:345 src/gt-twitch-login-dlg.c:36
 msgid "Login to Twitch"
 msgstr "Logga in på Twitch"
 
@@ -63,11 +63,11 @@ msgstr "Följ kanaler som du gillar, så visas de här"
 
 #: src/gt-channels-container-follow.c:266
 msgid "Loading follows"
-msgstr "Ladda följningar"
+msgstr "Laddar följningar"
 
 #: src/gt-channels-container-game.c:177 src/gt-channels-container-top.c:157
 msgid "Loading channels"
-msgstr "Ladda kanaler"
+msgstr "Laddar kanaler"
 
 #: src/gt-channels-container-search.c:186
 msgid "No channels found"
@@ -189,6 +189,22 @@ msgstr "Om"
 #: data/ui/app-menu.ui:16
 msgid "Quit"
 msgstr "Avsluta"
+
+#: data/ui/gt-player.ui:67
+msgid "No player backends loaded!"
+msgstr "Inga backends till spelaren är laddade!"
+
+#: data/ui/gt-player.ui:81
+msgid "Click "
+msgstr "Klicka "
+
+#: data/ui/gt-player.ui:90
+msgid "here"
+msgstr "här"
+
+#: data/ui/gt-player.ui:104
+msgid " to load one"
+msgstr " för att ladda en"
 
 #: data/ui/gt-player-header-bar.ui:175 data/ui/gt-player-header-bar.ui:199
 msgid "Edit chat"
