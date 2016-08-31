@@ -3,10 +3,10 @@ Upstream-Name: gnome-twitch
 Source: https://github.com/vinszent/gnome-twitch
 
 Files: *
-	Copyright: 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
+	Copyright: 2015 Vincent Szolnoky <vinszent@vinszent.com>
 	License: GPL-3+
 	Enjoy Twitch on your GNU/Linux desktop.
-	Copyright (C) 2015 Vincent Szolnoky <ippytraxx@installgentoo.com>
+	Copyright (C) 2015 Vincent Szolnoky <vinszent@vinszent.com>
 
 	This program is free software: you can redistribute it and/or modify
 	under the terms of the GNU General Public License as published by

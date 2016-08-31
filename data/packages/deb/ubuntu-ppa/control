@@ -1,7 +1,7 @@
 Source: gnome-twitch
 Section: video
 Priority: optional
-Maintainer: Vincent Szolnoky <ippytraxx@installgentoo.com>
+Maintainer: Vincent Szolnoky <vinszent@vinszent.com>
 Build-Depends: debhelper (>= 9),
                dh-autoreconf,
                autotools-dev,

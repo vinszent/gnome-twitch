@@ -80,8 +80,8 @@ fi
 %{_datadir}/glib-2.0/schemas/%{name}.gschema.xml
 
 %changelog
-* Wed Oct 21 2015 Vincent Szolnoky <ippytraxx@installgentoo.com> - 0.1.0-2
+* Wed Oct 21 2015 Vincent Szolnoky <vinszent@vinszent.com> - 0.1.0-2
 - Corrected spec to confer better to packaging standards
 
-* Tue Oct 20 2015 Vincent Szolnoky <ippytraxx@installgentoo.com> - 0.1.0-1
+* Tue Oct 20 2015 Vincent Szolnoky <vinszent@vinszent.com> - 0.1.0-1
 - Initial package
