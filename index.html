@@ -13,6 +13,12 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript">
+      $(document).ready(function(){
+        if(window.location.hash != "") {
+          $('a[href="' + window.location.hash + '"]').click()
+      }
+
+      });
       window.onload = function() {
         $('#download-button').on('click', function(e) {
           $(this).addClass('active');
@@ -98,12 +104,30 @@
             <div id="news" class="tab-pane fade">
               <div id="news-content" class="tab-content">
                 <div id="news-page-1" class="tab-pane fade in active">
-                  <div class="panel panel-default">
+                  <div class="panel panel-default news-post">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="news-header clearfix">
+                          <h4 class="pull-left">Version 0.3.0 released</h4>
+                          <p class="pull-right text-muted">posted 31st August 2016</p>
+                        </div>
+                      </div>
+                      <p>
+                        So finally after 4 months of hard work (and many delays), the next major
+                        version of GNOME Twitch is available! Many new features have been added
+                        as well as a lot of groundwork has been laid for future devlopment.
+                      </p>
+                      <div class="pull-right">
+                        <a href="posts/gnome-twitch-v0.3.0-post.html">Click here to read more</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel panel-default news-post">
                     <div class="container-fluid">
                       <div class="row">
                         <div class="news-header clearfix">
                           <h4 class="pull-left">Version 0.2.1 released</h4>
-                          <p class="pull-right text-info">posted 15th August 2016</p>
+                          <p class="pull-right text-muted">posted 15th August 2016</p>
                         </div>
                       </div>
                       <p>
@@ -112,12 +136,12 @@
                       </p>
                     </div>
                   </div>
-                  <div class="panel panel-default">
+                  <div class="panel panel-default news-post">
                     <div class="container-fluid">
                       <div class="row">
                         <div class="news-header clearfix">
                           <h4 class="pull-left">New landing page</h4>
-                          <p class="pull-right text-info">posted 15th August 2016</p>
+                          <p class="pull-right text-muted">posted 15th August 2016</p>
                         </div>
                       </div>
                       <p>

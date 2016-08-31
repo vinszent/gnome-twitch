@@ -41,9 +41,10 @@ body
     margin-top: 20px;
 }
 
-#download-button
+#download-button,
+#home-button
 {
-    float: left;
+        float: left;
     padding: 10px 15px;
 }
 
@@ -68,6 +69,11 @@ body
 {
     background: none;
     color: #449d44;
+}
+.btn-primary.btn-outline
+{
+    background: none;
+    color: #337ab7;
 }
 
 .download
@@ -99,4 +105,20 @@ body
 .feature-image
 {
     border-radius: 7px;
+}
+
+.news-post
+{
+    padding: 10px;
+}
+
+#news-text
+{
+    padding-left: 110px;
+    padding-right: 110px;
+}
+
+#news-post-title
+{
+    margin-bottom: 20px;
 }

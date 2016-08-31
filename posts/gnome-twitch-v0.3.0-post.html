@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<!-- I suck at this shit -->
+
+<html lang="en">
+  <head>
+    <title>GNOME Twitch</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="../img/favicon.png">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <body>
+      <div id="top" align="center">
+        <h1 id="header">
+          <img src="../img/gnome-twitch.svg" height="100px" width="100px" style="margin-right: 20px;">
+          GNOME Twitch
+        </h1>
+        <div id="main" class="container">
+          <div class="row">
+            <div class="col-sm-12">
+              <div class="pull-left">
+                <a id="home-button" class="btn btn-primary btn-outline" href="../index.html">
+                  <span class="glyphicon glyphicon-home"></span>
+                  Home
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <h2 id="news-post-title">GNOME Twitch 0.3.0 released</h2>
+            <div id="news-text">
+              <p class="text-left">
+                So finally after 4 months of hard work (and many delays), the next major
+                version of GNOME Twitch is available! Many new features have been added
+                as well as a lot of groundwork has been laid for future devlopment.
+              </p>
+
+              <h4 class="text-left"><b>Revamped player</b></h4>
+              <p class="text-left">
+                A new system has been introduced using plugins as a way to load
+                different player backends, so 4 different ones are now available.
+                The new default player uses GStreamer and Cairo which removes any
+                dependencies on Clutter. Of course if you liked the Clutter player
+                then it is still available as one of the backends. Additionally a
+                GStreamer + OpenGL backend has been added, should the Cairo one not
+                be adequate. Finally due to popular demand, an experimental MPV backend
+                also using OpenGL has been added.
+              </p>
+
+              <img src="../img/scrot_plugins.png"/>
+
+              <p class="text-left">
+                The first time you open a stream, you will be asked to load a player
+                backend. Hopefully you have one installed and all packages should at
+                least by default install the Cairo + GStreamer one. If you want to use
+                one of the other backends then some distros, like Arch, will soon have
+                packages available to install. Otherwise you'll have to install them manually
+                but this is super simple and instructions can be found in the
+                <a href="https://github.com/vinszent/gnome-twitch/wiki/How-to-install-player-backends">
+                  wiki
+                </a>.
+              </p>
+
+              <h4 class="text-left"><b>Follows are now synced</b></h4>
+              <p class="text-left">
+                You might have already noticed in v0.2.1, but GNOME Twitch will now sync
+                your follows if you are logged in. After logging in through the app menu,
+                if you have any local follows, GNOME Twitch will prompt you if you would like
+                move them up to Twitch. After that any following/unfollowing that you do, will
+                be kept in sync with Twitch.
+              </p>
+
+              <h4 class="text-left"><b>New chat features</b></h4>
+              <p class="text-left">
+                Chat has been improved as well with new features and stability fixes.
+                When the chat is docked you can now drag to resize and when it is undocked
+                you use the controls in the menu to resize it and move it around.
+                Links are now clickable and will open your default browser when clicked.
+                A new emote popup has been added that will insert your favourite emotes easily
+                into the text box. A noticeable fix is that the 'locking' behaviour has been changed,
+                so now it's less likely for the chat to randomly lock/unlock. Also a max scrollback of
+                1000 lines has been implemented, for better performance, this will later be changeable.
+              </p>
+              <div class="container-fluid">
+                <div class="row">
+                  <div class="col-sm-4">
+                    <img src="../img/scrot_resize.png"/>
+                  </div>
+                  <div class="col-sm-4">
+                    <img src="../img/scrot_emotes.png"/>
+                  </div>
+                  <div class="col-sm-4">
+                    <img src="../img/scrot_link.png"/>
+                  </div>
+                </div>
+              </div>
+
+              <h4 class="text-left"><b>UI improvements</b></h4>
+              <p class="text-left">
+                A bunch of UI tweaks and improvements have also been introduced. Just to name a few:
+              </p>
+              <div class="text-left">
+                <ul>
+                  <li>Player can now be muted by <u>right</u> clicking on the volume button</li>
+                  <li>Fullscreen bar is now animated when shown/hidden</li>
+                  <li>All views now show some useful info when empty</li>
+                </ul>
+              </div>
+
+              <p class="text-left">
+                All this plus a whole lot of work under the hood. I'll be updating with v0.3.1 soonish
+                with any bug fixes and extra translations. I hope you enjoy the new release and look
+                forward to v0.4.0!
+              <p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+  </head>
+</html>
