@@ -8,7 +8,7 @@ Keywords=stream;video;twitch;live;games;
 Type=Application
 Exec=gnome-twitch
 # Translators: Don't translate this, xgettext marks this automatically
-Icon=com.vinszent.GnomeTwitch
+Icon=gnome-twitch
 Categories=GTK;GNOME;AudioVideo;Player;Video;
 Terminal=false
 Encoding=UTF-8
