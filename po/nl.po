@@ -1,5 +1,5 @@
 # Translation of GNOME Twitch to Dutch
-# Copyright (C) 2016 Naessens Arne <naessens71@gmail.com>
+# Copyright (C) 2016 Naessens Arne <arnenaessens@hotmail.com>
 # This file is distributed under the same license as the GNOME Twitch package.
 
 msgid ""
@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
 "POT-Creation-Date: 2016-08-31 23:30+0100\n"
 "PO-Revision-Date: 2016-08-31 23:30+0100\n"
-"Last-Translator: Naessens Arne <naessens71@gmail.com>\n"
+"Last-Translator: Naessens Arne <arnenaessens@hotmail.com>\n"
 "Language-Team: \n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
@@ -62,7 +62,7 @@ msgstr "Volg kanalen dat u leuk vind om ze hier te verkrijgen"
 
 #: src/gt-channels-container-follow.c:266
 msgid "Loading follows"
-msgstr "Volgders laden"
+msgstr "Volgers laden"
 
 #: src/gt-channels-container-game.c:177 src/gt-channels-container-top.c:157
 msgid "Loading channels"
@@ -86,7 +86,7 @@ msgstr "Zend een bericht"
 
 #: src/gt-chat.c:611
 msgid "Please login to chat"
-msgstr "Log in voor te chatten"
+msgstr "Log in om te chatten"
 
 #: src/gt-follows-manager.c:71
 #, c-format
@@ -114,7 +114,7 @@ msgid ""
 "GNOME Twitch has detected local follows, would you like to move them to "
 "Twitch?"
 msgstr ""
-"GNOME Twitch heeft locale follows gedecteerd, wilt u ze importeren in Twitch?"
+"GNOME Twitch heeft locale follows gedecteerd, wilt u ze exporteren naar Twitch?"
 
 #: src/gt-game.c:225 src/gt-twitch.c:302
 msgid "Untitled broadcast"
@@ -157,7 +157,7 @@ msgstr "Geniet van Twitch op uw GNU/Linux desktop"
 #. Translators: Put your details here :)
 #: src/gt-win.c:112
 msgid "translator-credits"
-msgstr "Naessens Arne <naessens71@gmail.com>"
+msgstr "Naessens Arne <arnenaessens@hotmail.com>"
 
 #: src/gt-win.c:115
 msgid "Contributors"
