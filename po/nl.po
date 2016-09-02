@@ -323,7 +323,7 @@ msgstr "Volgers"
 
 #: data/ui/gt-win.ui:158
 msgid "Games"
-msgstr "Spel"
+msgstr "Spellen"
 
 #: data/com.vinszent.GnomeTwitch.desktop.in:3
 msgid "GNOME Twitch"
