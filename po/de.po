@@ -344,7 +344,7 @@ msgstr "GNOME Twitch"
 #. The list MUST also end with a semicolon!
 #: data/com.vinszent.GnomeTwitch.desktop.in:8
 msgid "stream;video;twitch;live;games;"
-msgstr "stream;video;twitch;live;spiele"
+msgstr "stream;video;twitch;live;spiele;"
 
 #. Translators: Don't translate this, xgettext marks this automatically
 #: data/com.vinszent.GnomeTwitch.desktop.in:12
