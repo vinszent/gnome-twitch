@@ -105,7 +105,7 @@ show_about_cb(GSimpleAction* action,
                  "license-type", GTK_LICENSE_GPL_3_0,
                  "copyright", "Copyright © 2015 Vincent Szolnoky",
                  "comments", _("Enjoy Twitch on your GNU/Linux desktop"),
-                 "logo-icon-name", "gnome-twitch",
+                 "logo-icon-name", "com.vinszent.GnomeTwitch",
                  "website", "https://github.com/vinszent/gnome-twitch",
                  "website-label", "GitHub",
                  // Translators: Put your details here :)
@@ -620,7 +620,7 @@ gt_win_init(GtWin* self)
                                 g_settings_get_int(main_app->settings, "window-width"),
                                 g_settings_get_int(main_app->settings, "window-height"));
 
-    gtk_window_set_default_icon_name("gnome-twitch");
+    gtk_window_set_default_icon_name("com.vinszent.GnomeTwitch");
 
     g_object_bind_property(priv->browse_stack, "visible-child",
                            self, "visible-view",
