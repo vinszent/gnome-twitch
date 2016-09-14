@@ -509,7 +509,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 
                 g_error_free(err);
 
-                WARNINGF("Unable to log in on recive socket, server replied with message='%s'",
+                WARNINGF("Unable to log in on receive socket, server replied with message='%s'",
                           msg->cmd.notice->msg);
 
                 return FALSE;
