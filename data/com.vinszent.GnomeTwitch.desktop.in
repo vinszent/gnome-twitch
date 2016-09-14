@@ -11,4 +11,3 @@ Exec=gnome-twitch
 Icon=gnome-twitch
 Categories=GTK;GNOME;AudioVideo;Player;Video;
 Terminal=false
-Encoding=UTF-8
