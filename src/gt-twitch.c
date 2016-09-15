@@ -186,8 +186,6 @@ send_message(GtTwitch* self, SoupMessage* msg)
 
     soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
 
-    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
-
     soup_session_send_message(priv->soup, msg);
 
     ret = SOUP_STATUS_IS_SUCCESSFUL(msg->status_code);
