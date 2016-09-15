@@ -1718,7 +1718,7 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
             _("Twitch replied with error code '%d', message '%s' and body '%s'"),
             msg->status_code, msg->reason_phrase, msg->response_body->data);
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL, msg_str);
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL, "%s", msg_str);
 
         g_free(msg_str);
 
@@ -1862,7 +1862,7 @@ gt_twitch_follow_channel(GtTwitch* self,
             _("Twitch replied with error code '%d', message '%s' and body '%s'"),
             msg->status_code, msg->reason_phrase, msg->response_body->data);
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, "%s", msg_str);
 
         g_free(msg_str);
 
@@ -1940,7 +1940,7 @@ gt_twitch_unfollow_channel(GtTwitch* self,
             _("Twitch replied with error code '%d', message '%s' and body '%s'"),
             msg->status_code, msg->reason_phrase, msg->response_body->data);
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, msg_str);
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, "%s", msg_str);
 
         g_free(msg_str);
 
