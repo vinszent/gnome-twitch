@@ -1,0 +1,348 @@
+# Translation of gnome-twitch to Czech.
+# Copyright (C) 2016 Radek Sprta <mail@radeksprta.eu>
+# This file is distributed under the same license as the gnome-twitch package.
+msgid ""
+msgstr ""
+"Project-Id-Version: gnome-twitch 0.3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
+"POT-Creation-Date: 2016-09-26 10:35+0200\n"
+"PO-Revision-Date: 2016-09-26 13:00+0200\n"
+"Last-Translator: Radek Sprta <mail@radeksprta.eu>\n"
+"Language-Team: \n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
+
+#: src/gt-app.c:230
+msgid "Refresh login"
+msgstr "Znova přihlásit"
+
+#: src/gt-app.c:345 src/gt-twitch-login-dlg.c:36
+msgid "Login to Twitch"
+msgstr "Přihlásit se na Twitch"
+
+#. Translators: Used for when viewers >= 1000
+#. Shorthand for thousands. Ex (English): 6200 = 6.2k
+#: src/gt-channels-container-child.c:106
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1f tis."
+
+#. Translators: Used for when viewers < 1000
+#. No need to translate, just future-proofing
+#: src/gt-channels-container-child.c:110
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#. Translators: Used for when stream time > 60 min
+#. Ex (English): 3 hours and 45 minutes = 3.75h
+#: src/gt-channels-container-child.c:139
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1f hod."
+
+#. Translators: Used when stream time <= 60min
+#. Ex (English): 45 minutes = 45m
+#: src/gt-channels-container-child.c:143
+#, c-format
+msgid "%ldm"
+msgstr "%ld min."
+
+#: src/gt-channels-container-follow.c:263
+msgid "No channels followed"
+msgstr "Žádné sledované kanály"
+
+#: src/gt-channels-container-follow.c:264
+msgid "Follow channels that you like for them to show up here"
+msgstr "Zde najdete kanály, které sledujete"
+
+#: src/gt-channels-container-follow.c:266
+msgid "Loading follows"
+msgstr "Načítání sledovaných kanálů"
+
+#: src/gt-channels-container-game.c:177 src/gt-channels-container-top.c:157
+msgid "Loading channels"
+msgstr "Načítání kanálů"
+
+#: src/gt-channels-container-search.c:186
+msgid "No channels found"
+msgstr "Žádné kanály nenalezeny"
+
+#: src/gt-channels-container-search.c:187 src/gt-games-container-search.c:205
+msgid "Try a different search"
+msgstr "Zkuste nové hledání"
+
+#: src/gt-channels-container-search.c:188
+msgid "Searching channels"
+msgstr "Hledání kanálů"
+
+#: src/gt-chat.c:611 data/ui/gt-chat.ui:45
+msgid "Send a message"
+msgstr "Poslat zprávu"
+
+#: src/gt-chat.c:611
+msgid "Please login to chat"
+msgstr "Pro chat je třeba se přihlásit"
+
+#: src/gt-follows-manager.c:71
+#, c-format
+msgid "Channel %s is now online"
+msgstr "Kanál „%s” je nyní online"
+
+#: src/gt-follows-manager.c:72
+#, c-format
+msgid "Streaming %s"
+msgstr "Streamování „%s”"
+
+#: src/gt-follows-manager.c:134
+#, c-format
+msgid "Unable to follow channel '%s' on Twitch, try refreshing your login"
+msgstr ""
+"Není možné přidat na Twitchi kanál „%s” do sledovaných, zkuste se znova přihlásit"
+
+#: src/gt-follows-manager.c:174
+#, c-format
+msgid "Unable to unfollow channel '%s' on Twitch, try refreshing your login"
+msgstr ""
+"Není možné odebrat na Twitchi kanál „%s”, ze sledovaných, zkuste se znova přihlásit"
+
+#: src/gt-follows-manager.c:468
+msgid ""
+"GNOME Twitch has detected local follows, would you like to move them to "
+"Twitch?"
+msgstr ""
+"GNOME Twitch objevil seznam sledovaných kanálů. Chcete je přesunout "
+"na Twitch?"
+
+#: src/gt-game.c:225 src/gt-twitch.c:302
+msgid "Untitled broadcast"
+msgstr "Vysílání bez názvu"
+
+#: src/gt-games-container-search.c:204
+msgid "No games found"
+msgstr "Žádné hry nenalezeny"
+
+#: src/gt-games-container-search.c:206
+msgid "Searching games"
+msgstr "Hledání her"
+
+#: src/gt-games-container-top.c:164
+msgid "Loading games"
+msgstr "Nahrávání her"
+
+#: src/gt-player.c:283
+#, c-format
+msgid "Buffered %d%%"
+msgstr "Nabufferováno %d%%"
+
+#: src/gt-player.c:887
+msgid "Loading stream"
+msgstr "Načítání streamu"
+
+#: src/gt-twitch.c:1720 src/gt-twitch.c:1864 src/gt-twitch.c:1942
+#, c-format
+msgid "Twitch replied with error code '%d', message '%s' and body '%s'"
+msgstr ""
+"Twitch odpověděl chybovým kódem „%d”, se zprávou „%s” a statí "
+"„%s”"
+
+#: src/gt-twitch-login-dlg.c:121
+msgid "Successfully logged in to Twitch!"
+msgstr "Úspěšné přihlášení na Twitch!"
+
+#: src/gt-win.c:107 data/com.vinszent.GnomeTwitch.desktop.in:4
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Užijte si Twitch na svém GNU/Linux systému"
+
+#. Translators: Put your details here :)
+#: src/gt-win.c:112
+msgid "translator-credits"
+msgstr ""
+"Radek Šprta <mail@radeksprta.eu>, 2016"
+
+#: src/gt-win.c:115
+msgid "Contributors"
+msgstr "Přispěli"
+
+#: src/gt-win.c:182
+msgid "Something went wrong"
+msgstr "Něco se pokazilo"
+
+#: src/gt-win.c:297
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Již jste na Twitch přihlášeni, znova přihlásit?"
+
+#. Translators: Please keep the markup tags
+#: src/gt-win.c:755
+#, c-format
+msgid "<b>Something went wrong:</b> %s."
+msgstr "<b>Něco se pokazilo:</b> %s."
+
+#: data/ui/app-menu.ui:6
+msgid "Settings"
+msgstr "Nastavení"
+
+#: data/ui/app-menu.ui:12
+msgid "About"
+msgstr "O programu"
+
+#: data/ui/app-menu.ui:16
+msgid "Quit"
+msgstr "Ukončit"
+
+#: data/ui/gt-player.ui:67
+msgid "No player backends loaded!"
+msgstr "Nenalezen žádný přehrávač!"
+
+#: data/ui/gt-player.ui:81
+msgid "Click "
+msgstr "Kliknutím "
+
+#: data/ui/gt-player.ui:90
+msgid "here"
+msgstr "sem"
+
+#: data/ui/gt-player.ui:104
+msgid " to load one"
+msgstr "nějaký otevřete"
+
+#: data/ui/gt-player-header-bar.ui:175 data/ui/gt-player-header-bar.ui:199
+msgid "Edit chat"
+msgstr "Upravit chat"
+
+#: data/ui/gt-player-header-bar.ui:182 data/ui/gt-player-header-bar.ui:345
+msgid "Stream quality"
+msgstr "Kvalita obrazu"
+
+#: data/ui/gt-player-header-bar.ui:214
+msgid "Dock chat"
+msgstr "Zadokovat chat"
+
+#: data/ui/gt-player-header-bar.ui:220
+msgid "Dark theme"
+msgstr "Tmavé barevné schéma"
+
+#: data/ui/gt-player-header-bar.ui:229
+msgid "Opacity"
+msgstr "Opacita"
+
+#: data/ui/gt-player-header-bar.ui:250
+msgid "Width"
+msgstr "Šířka"
+
+#: data/ui/gt-player-header-bar.ui:271
+msgid "Height"
+msgstr "Výška"
+
+#: data/ui/gt-player-header-bar.ui:292
+msgid "X position"
+msgstr "Pozice na ose X"
+
+#: data/ui/gt-player-header-bar.ui:313
+msgid "Y position"
+msgstr "Pozice na ose Y"
+
+#: data/ui/gt-player-header-bar.ui:353 data/ui/gt-settings-dlg.ui:62
+msgid "Source"
+msgstr "Původní"
+
+#: data/ui/gt-player-header-bar.ui:361 data/ui/gt-settings-dlg.ui:63
+msgid "High"
+msgstr "Vysoká"
+
+#: data/ui/gt-player-header-bar.ui:369 data/ui/gt-settings-dlg.ui:64
+msgid "Medium"
+msgstr "Střední"
+
+#: data/ui/gt-player-header-bar.ui:377 data/ui/gt-settings-dlg.ui:65
+msgid "Low"
+msgstr "Nízká"
+
+#: data/ui/gt-player-header-bar.ui:385 data/ui/gt-settings-dlg.ui:66
+msgid "Mobile"
+msgstr "Mobilní"
+
+#: data/ui/gt-settings-dlg.ui:29
+msgid "Use dark theme"
+msgstr "Použít tmavé barevné schéma"
+
+#: data/ui/gt-settings-dlg.ui:49
+msgid "Default video quality:"
+msgstr "Výchozí kvalita obrazu:"
+
+#: data/ui/gt-settings-dlg.ui:77
+msgid "General"
+msgstr "Obecné"
+
+#: data/ui/gt-settings-dlg.ui:86
+msgid "Plugins"
+msgstr "Zásuvné moduly"
+
+#: data/ui/gt-chat.ui:74
+msgid "Connecting to chat"
+msgstr "Připojování do chatu"
+
+#: data/ui/gt-chat.ui:114
+msgid "Click to reconnect"
+msgstr "Kliknutím se připojíte znovu"
+
+#: data/ui/gt-win.ui:27 data/ui/gt-win.ui:164
+msgid "Browse"
+msgstr "Prohlížet"
+
+#: data/ui/gt-win.ui:36 data/ui/gt-win.ui:174
+msgid "Player"
+msgstr "Přehrávač"
+
+#: data/ui/gt-win.ui:76
+msgid "Yes"
+msgstr "Ano"
+
+#: data/ui/gt-win.ui:85
+msgid "No"
+msgstr "Ne"
+
+#: data/ui/gt-win.ui:94
+msgid "OK"
+msgstr "OK"
+
+#: data/ui/gt-win.ui:103
+msgid "Details"
+msgstr "Podrobnosti"
+
+#: data/ui/gt-win.ui:112
+msgid "Close"
+msgstr "Zavřít"
+
+#: data/ui/gt-win.ui:140
+msgid "Channels"
+msgstr "Kanály"
+
+#: data/ui/gt-win.ui:149
+msgid "Follows"
+msgstr "Sledované"
+
+#: data/ui/gt-win.ui:158
+msgid "Games"
+msgstr "Hry"
+
+#: data/com.vinszent.GnomeTwitch.desktop.in:3
+msgid "GNOME Twitch"
+msgstr "GNOME Twitch"
+
+#. Translators: Search terms to find this application.
+#. Do NOT translate or localize the semicolons!
+#. The list MUST also end with a semicolon!
+#: data/com.vinszent.GnomeTwitch.desktop.in:8
+msgid "stream;video;twitch;live;games;"
+msgstr ""
+"stream;streamování;video;twitch;živě;live;hry;hraní;"
+
+#. Translators: Don't translate this, xgettext marks this automatically
+#: data/com.vinszent.GnomeTwitch.desktop.in:12
+msgid "com.vinszent.GnomeTwitch"
+msgstr "com.vinszent.GnomeTwitch"
