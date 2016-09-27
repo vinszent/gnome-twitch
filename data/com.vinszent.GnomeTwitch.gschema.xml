@@ -46,7 +46,7 @@
       <default>''</default>
       <summary>Twitch user name</summary>
       <description>
-        User name that is used in conjuction with the OAuth token
+        User name that is used in conjunction with the OAuth token
         to authenticate to the Twitch API. Is also used to login to IRC
         and other Twitch services.
       </description>
