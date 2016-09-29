@@ -7,7 +7,8 @@
 5. Edit the newly created template in the `po` directory (`gnome-twitch/po/gnome-twitch.po`) either manually or with your favourite Gettext editor (gtranslator, poedit, etc)
 6. Rename your translated template to `language_code.po`, ex: Swedish = sv.po, German = de.po, Chinese (traditional) = zh_TW.po
 7. Add your language to the langs array in `po/meson.build`
-8. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
+8. Add the language code to the LINGUAS file in the po directory (notice the file is sorted alphabetically)
+9. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
 
 ## Development
 1. Clone the latest source: `git clone https://github.com/vinszent/gnome-twitch`
