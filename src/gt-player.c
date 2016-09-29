@@ -30,6 +30,7 @@ typedef struct
     GtkWidget* fullscreen_bar;
     GtkWidget* buffer_revealer;
     GtkWidget* buffer_label;
+    GtkWidget* player_widget;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -51,6 +52,7 @@ typedef struct
     gdouble docked_handle_position;
 
     guint inhibitor_cookie;
+    guint mouse_source;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
@@ -529,6 +531,42 @@ set_quality_action_cb(GSimpleAction* action,
     g_type_class_unref(eclass);
 }
 
+static gboolean
+hide_cursor_cb(gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GdkCursor* cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_BLANK_CURSOR);
+
+    gdk_window_set_cursor(gtk_widget_get_window(GTK_WIDGET(priv->player_widget)), cursor);
+
+    priv->mouse_source = 0;
+
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean
+motion_event_cb(GtkWidget* widget,
+                GdkEvent* evt,
+                gpointer udata)
+{
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GdkCursor* cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_LEFT_PTR);
+
+    gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
+
+    if (!gt_win_is_fullscreen(GT_WIN_TOPLEVEL(self)))
+        return G_SOURCE_REMOVE;
+
+    if (priv->mouse_source)
+        g_source_remove(priv->mouse_source);
+
+    priv->mouse_source = g_timeout_add(1000, hide_cursor_cb, self);
+
+    return G_SOURCE_REMOVE;
+}
+
 static void
 plugin_loaded_cb(PeasEngine* engine,
                  PeasPluginInfo* info,
@@ -578,12 +616,13 @@ plugin_loaded_cb(PeasEngine* engine,
 
         gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->empty_box);
 
-        GtkWidget* widget = gt_player_backend_get_widget(priv->backend);
-        gtk_widget_add_events(widget, GDK_POINTER_MOTION_MASK);
-        gtk_container_add(GTK_CONTAINER(priv->player_overlay), widget);
+        priv->player_widget = gt_player_backend_get_widget(priv->backend);
+        gtk_widget_add_events(priv->player_widget, GDK_POINTER_MOTION_MASK);
+        gtk_container_add(GTK_CONTAINER(priv->player_overlay), priv->player_widget);
         gtk_widget_show_all(priv->player_overlay);
 
-        g_signal_connect(widget, "button-press-event", G_CALLBACK(player_button_press_cb), self);
+        g_signal_connect(priv->player_widget, "button-press-event", G_CALLBACK(player_button_press_cb), self);
+        g_signal_connect(priv->player_widget, "motion-notify-event", G_CALLBACK(motion_event_cb), self);
 
         if (priv->channel)
             gt_player_open_channel(self, priv->channel);
@@ -606,6 +645,8 @@ plugin_unloaded_cb(PeasEngine* engine,
                              gt_player_backend_get_widget(priv->backend));
         gtk_container_add(GTK_CONTAINER(priv->player_overlay),
                           priv->empty_box);
+
+        priv->player_widget = NULL;
 
         g_clear_object(&priv->backend);
 
