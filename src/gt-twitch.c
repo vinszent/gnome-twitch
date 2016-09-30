@@ -1080,7 +1080,7 @@ channel_raw_data_cb(GTask* task,
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_raw_data_free);
 }
 
-// This was a bit unecessary, but at least it's here if it's ever needed
+// This was a bit unnecessary, but at least it's here if it's ever needed
 G_DEPRECATED
 void
 gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
