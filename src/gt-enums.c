@@ -14,7 +14,7 @@ static const GEnumValue gt_twitch_stream_quality_enum_values[] =
 static const GEnumValue gt_settings_dlg_view_enum_values[] =
 {
     {GT_SETTINGS_DLG_VIEW_GENERAL, "GT_SETTINGS_DLG_GENERAL", "general"},
-    {GT_SETTINGS_DLG_VIEW_PLUGINS, "GT_SETTINGS_DLG_PLUGINS", "plugins"}
+    {GT_SETTINGS_DLG_VIEW_PLAYERS, "GT_SETTINGS_DLG_PLUGINS", "plugins"}
 };
 
 GType

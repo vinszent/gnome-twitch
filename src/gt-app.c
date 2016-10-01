@@ -487,7 +487,7 @@ gt_app_init(GtApp* self)
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
-    self->plugins_engine = peas_engine_get_default();
+    self->players_engine = peas_engine_get_default();
 
     gchar* plugin_dir;
 
@@ -497,7 +497,7 @@ gt_app_init(GtApp* self)
                                   "plugins",                            \
                                   type,                                 \
                                   NULL);                                \
-    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL); \
+    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL); \
     g_free(plugin_dir)                                                  \
 
     ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
@@ -508,7 +508,7 @@ gt_app_init(GtApp* self)
 #undef ADD_PLUGINS_PATH
 
     g_settings_bind(self->settings, "loaded-plugins",
-                    self->plugins_engine, "loaded-plugins",
+                    self->players_engine, "loaded-plugins",
                     G_SETTINGS_BIND_DEFAULT);
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
