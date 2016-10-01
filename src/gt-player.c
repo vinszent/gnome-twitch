@@ -121,7 +121,7 @@ update_docked(GtPlayer* self)
         if (gtk_widget_get_parent(priv->chat_view))
             gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->chat_view);
 
-        gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, TRUE, TRUE);
+        gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, FALSE, TRUE);
 
         width = gtk_widget_get_allocated_width(GTK_WIDGET(self));
 
@@ -320,25 +320,6 @@ fullscreen_cb(GObject* source,
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
 }
 
-static gboolean
-win_configure_cb(GtkWidget* widget,
-                 GdkEventConfigure* evt,
-                 gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    if (priv->chat_docked)
-    {
-        gint width = gtk_widget_get_allocated_width(GTK_WIDGET(self));
-
-        gtk_paned_set_position(GTK_PANED(priv->docking_pane),
-                               (gint) (priv->docked_handle_position*width));
-    }
-
-    return GDK_EVENT_PROPAGATE;
-}
-
 static void
 set_property(GObject* obj,
              guint prop,
@@ -506,7 +487,6 @@ realise_cb(GtkWidget* widget,
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
 
-    g_signal_connect(win, "configure-event", G_CALLBACK(win_configure_cb), self);
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 
