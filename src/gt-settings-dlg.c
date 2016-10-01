@@ -121,6 +121,16 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     GtkWidget* header_bar = gtk_dialog_get_header_bar(GTK_DIALOG(self));
     gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), priv->settings_switcher);
 
+    GList* children = gtk_container_get_children(GTK_CONTAINER(priv->players_view));
+    GtkToolbar* toolbar = GTK_TOOLBAR(g_list_nth(children, 1)->data);
+    GtkToolItem* item = gtk_tool_item_new();
+    gtk_container_add(GTK_CONTAINER(item), gtk_link_button_new_with_label(
+            "https://github.com/vinszent/gnome-twitch/wiki/How-to-install-players",
+            _("How to install players")));
+    gtk_widget_show_all(GTK_WIDGET(item));
+    gtk_toolbar_insert(toolbar, item, 0);
+    g_list_free(children);
+
     //TODO: Change this to use main_app->settings
     priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
 
