@@ -21,7 +21,7 @@ struct _GtApp
     GtFollowsManager* fav_mgr;
     GSettings* settings;
 
-    PeasEngine* plugins_engine;
+    PeasEngine* players_engine;
 
     GHashTable* chat_settings_table; //TODO: Move this into GtChannelsManager when it's done
 };

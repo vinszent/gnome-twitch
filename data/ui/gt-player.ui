@@ -64,7 +64,7 @@
                     <child>
                       <object class="GtkLabel" id="empty_title_label">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">No player backends loaded!</property>
+                        <property name="label" translatable="yes">No players loaded!</property>
                         <style>
                           <class name="empty-title"/>
                         </style>

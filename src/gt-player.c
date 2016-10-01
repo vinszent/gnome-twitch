@@ -583,7 +583,7 @@ plugin_loaded_cb(PeasEngine* engine,
 
         if (priv->backend_info)
         {
-            peas_engine_unload_plugin(main_app->plugins_engine,
+            peas_engine_unload_plugin(main_app->players_engine,
                                       priv->backend_info);
         }
 
@@ -862,18 +862,18 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(self, "notify::docked-handle-position", G_CALLBACK(chat_settings_changed_cb), self);
     g_signal_connect(priv->player_overlay, "get-child-position", G_CALLBACK(chat_position_cb), self);
     utils_signal_connect_oneshot(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
-    g_signal_connect_after(main_app->plugins_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
-    g_signal_connect(main_app->plugins_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
+    g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
+    g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
 
     gchar** c;
     gchar** _c;
-    for (_c = c = peas_engine_get_loaded_plugins(main_app->plugins_engine); *c != NULL; c++)
+    for (_c = c = peas_engine_get_loaded_plugins(main_app->players_engine); *c != NULL; c++)
     {
-        PeasPluginInfo* info = peas_engine_get_plugin_info(main_app->plugins_engine, *c);
+        PeasPluginInfo* info = peas_engine_get_plugin_info(main_app->players_engine, *c);
 
-        if (peas_engine_provides_extension(main_app->plugins_engine, info, GT_TYPE_PLAYER_BACKEND))
-            plugin_loaded_cb(main_app->plugins_engine, info, self);
+        if (peas_engine_provides_extension(main_app->players_engine, info, GT_TYPE_PLAYER_BACKEND))
+            plugin_loaded_cb(main_app->players_engine, info, self);
     }
 
     g_strfreev(_c);

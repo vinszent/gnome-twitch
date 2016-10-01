@@ -14,7 +14,7 @@ G_DECLARE_FINAL_TYPE(GtSettingsDlg, gt_settings_dlg, GT, SETTINGS_DLG, GtkDialog
 typedef enum _GtSettingsDlgView
 {
     GT_SETTINGS_DLG_VIEW_GENERAL,
-    GT_SETTINGS_DLG_VIEW_PLUGINS
+    GT_SETTINGS_DLG_VIEW_PLAYERS
 } GtSettingsDlgView;
 
 struct _GtSettingsDlg
