@@ -720,7 +720,7 @@ gt_irc_connect(GtIrc* self,
         g_print("Error\n");
         goto cleanup;
     }
-    g_clear_error(&err); // Probably unecessary
+    g_clear_error(&err); // Probably unnecessary
     priv->irc_conn_send = g_socket_client_connect(sock_client, addr, NULL, &err);
     if (err)
     {
