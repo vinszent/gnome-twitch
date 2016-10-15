@@ -130,8 +130,8 @@
             "sources": [
                 {
                     "type": "git",
-                    "url": "https://github.com/mattiasb/gnome-twitch.git",
-                    "branch": "feature/flatpak2"
+                    "url": "https://github.com/vinszent/gnome-twitch.git",
+                    "branch": "master"
                 }
             ]
         }
