@@ -1,9 +1,10 @@
 msgfmt = find_program('msgfmt')
+podir = meson.source_root() + '/po'
 
 custom_target('desktop-file',
     input : 'com.vinszent.GnomeTwitch.desktop.in',
     output : 'com.vinszent.GnomeTwitch.desktop',
-    command : [msgfmt, '--desktop', '--template', '@INPUT@', '-d', '../po', '-o', '@OUTPUT@'],
+    command : [msgfmt, '--desktop', '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@'],
     #command : [intltool_merge, '-d', '-u', '../po', '@INPUT@', '@OUTPUT@'],
     install : true,
     install_dir : 'share/applications')
