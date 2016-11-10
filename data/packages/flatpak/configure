@@ -1,0 +1,19 @@
+#!/bin/bash
+
+mkdir -p build/gnome-twitch/
+
+meson.py --prefix /app                                                \
+         --libdir lib                                                 \
+         -Ddo-post-install=true                                       \
+         -Dwith-player-backend-gstreamer-opengl=true                  \
+         -Dwith-player-backend-gstreamer-cairo=true                   \
+         -Dwith-player-backend-gstreamer-clutter=true                 \
+         -Db_lundef=false                                             \
+         ../../../                                                    \
+         build/gnome-twitch/
+
+for srcdir in ../../../subprojects/player-backend-gstreamer-*; do
+    builddir=build/$(basename "${srcdir}")
+    mkdir "${builddir}"
+    meson.py --prefix /app --libdir lib "${srcdir}" "${builddir}"
+done
