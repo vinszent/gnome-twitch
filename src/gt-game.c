@@ -50,6 +50,9 @@ static GParamSpec* props[NUM_PROPS];
 static inline void
 set_preview(GtGame* self, GdkPixbuf* pic, gboolean save)
 {
+    g_assert(GT_IS_GAME(self));
+    g_assert(GDK_IS_PIXBUF(pic));
+
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     g_clear_object(&priv->preview);
@@ -69,6 +72,8 @@ set_preview(GtGame* self, GdkPixbuf* pic, gboolean save)
 static void
 update_func(gpointer data, gpointer udata)
 {
+    g_assert(GT_IS_GAME(data));
+
     GtGame* self = GT_GAME(data);
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
@@ -81,6 +86,8 @@ update_func(gpointer data, gpointer udata)
         set_preview(self, pic, TRUE);
         g_info("{GtGame} Updated preview for game '%s'", priv->name);
     }
+
+    g_object_unref(self);
 }
 
 static void
@@ -88,6 +95,8 @@ download_preview_cb(GObject* source,
                     GAsyncResult* res,
                     gpointer udata)
 {
+    g_assert(GT_IS_GAME(udata));
+
     GtGame* self = GT_GAME(udata);
     GtGamePrivate* priv = gt_game_get_instance_private(self);
     GError* error = NULL;
@@ -95,20 +104,21 @@ download_preview_cb(GObject* source,
     GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
 
     if (error)
-    {
         g_error_free(error);
-        return;
-    }
-
-    set_preview(self, pic, TRUE);
+    else
+        set_preview(self, pic, TRUE);
 
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
+    g_object_unref(self);
 }
 
 static void
 update_preview(GtGame* self)
 {
+    g_assert(GT_IS_GAME(self));
+
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     if (g_file_test(priv->preview_filename, G_FILE_TEST_EXISTS))
@@ -121,13 +131,13 @@ update_preview(GtGame* self)
 
     }
 
+    g_object_ref(self);
+
     if (!priv->preview)
         gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, 0,
                                          priv->cancel, download_preview_cb, self);
     else
     {
-        //FIXME: We need to ref ourselves because otherwise this can
-        //evaluated after we are destroyed
         g_thread_pool_push(update_pool, self, NULL);
     }
 }
