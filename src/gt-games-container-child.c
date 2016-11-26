@@ -7,10 +7,10 @@ typedef struct
 {
     GtGame* game;
 
-    GtkWidget* preview_image;
-    GtkWidget* middle_revealer;
+    GtkWidget* cover_stack;
+    GtkWidget* cover_image;
+    GtkWidget* cover_overlay_revealer;
     GtkWidget* name_label;
-    GtkWidget* event_box;
 } GtGamesContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainerChild, gt_games_container_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -40,7 +40,7 @@ motion_enter_cb(GtkWidget* widget,
     GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), TRUE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->cover_overlay_revealer), TRUE);
 }
 
 static void
@@ -51,7 +51,22 @@ motion_leave_cb(GtkWidget* widget,
     GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->cover_overlay_revealer), FALSE);
+}
+
+static void
+updating_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    g_assert(GT_IS_GAMES_CONTAINER_CHILD(udata));
+    g_assert(GT_IS_GAME(source));
+
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
+    GtGame* game = GT_GAME(source);
+
+    gtk_stack_set_visible_child_name(GTK_STACK(priv->cover_stack),
+        gt_game_get_updating(game) ? "load-spinner" : "cover");
 }
 
 static void
@@ -114,8 +129,12 @@ constructed(GObject* obj)
                            priv->name_label, "label",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
     g_object_bind_property(priv->game, "preview",
-                           priv->preview_image, "pixbuf",
+                           priv->cover_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
+    g_signal_connect(priv->game, "notify::updating", G_CALLBACK(updating_cb), self);
+
+    updating_cb(G_OBJECT(priv->game), NULL, self);
 
     G_OBJECT_CLASS(gt_games_container_child_parent_class)->constructed(obj);
 }
@@ -144,10 +163,10 @@ gt_games_container_child_class_init(GtGamesContainerChildClass* klass)
                                                 "/com/vinszent/GnomeTwitch/ui/gt-games-container-child.ui");
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, preview_image);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, middle_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, cover_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, cover_overlay_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, name_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, event_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, cover_stack);
 }
 
 static void
@@ -163,5 +182,16 @@ gt_games_container_child_hide_overlay(GtGamesContainerChild* self)
 {
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->cover_overlay_revealer), FALSE);
+}
+
+
+GtGame*
+gt_games_container_child_get_game(GtGamesContainerChild* self)
+{
+    g_assert(GT_IS_GAMES_CONTAINER_CHILD(self));
+
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
+
+    return priv->game;
 }

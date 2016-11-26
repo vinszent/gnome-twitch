@@ -1,66 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+  Copyright © 2016 Vincent Szolnoky <vinszent@vinszent.com>
+
+  GNOME Twitch is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  GNOME Twitch is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+-->
+
 <interface>
   <template class="GtGamesContainerChild" parent="GtkFlowBoxChild">
+    <property name="width-request">210</property>
+    <property name="height-request">320</property>
+    <property name="valign">start</property>
     <style>
       <class name="gt-games-container-child"/>
     </style>
     <child>
-      <object class="GtkBox" id="main_box">
-        <property name="visible">True</property>
+      <object class="GtkBox">
+        <property name="visible">true</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkEventBox" id="event_box">
-            <property name="visible">True</property>
-            <property name="width-request">200</property>
-            <property name="halign">center</property>
-            <signal name="enter-notify-event" handler="motion_enter_cb"/>
-            <signal name="leave-notify-event" handler="motion_leave_cb"/>
+          <object class="GtkStack" id="cover_stack">
+            <property name="visible">true</property>
             <child>
-              <object class="GtkOverlay">
-                <property name="visible">True</property>
-                <child type="overlay">
-                  <object class="GtkRevealer" id="middle_revealer">
-                    <property name="visible">True</property>
-                    <property name="transition-type">crossfade</property>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <style>
-                          <class name="overlay-box"/>
-                        </style>
+              <object class="GtkSpinner">
+                <property name="visible">true</property>
+                <property name="active">true</property>
+                <property name="valign">center</property>
+                <property name="vexpand">true</property>
+                <property name="height-request">48</property>
+                <property name="width-request">48</property>
+              </object>
+              <packing>
+                <property name="name">load-spinner</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEventBox">
+                <property name="visible">true</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <signal name="enter-notify-event" handler="motion_enter_cb"/>
+                <signal name="leave-notify-event" handler="motion_leave_cb"/>
+                <child>
+                  <object class="GtkOverlay">
+                    <property name="visible">true</property>
+                    <child type="overlay">
+                      <object class="GtkRevealer" id="cover_overlay_revealer">
+                        <property name="visible">true</property>
+                        <property name="transition-type">crossfade</property>
                         <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="icon-name">mail-replied-symbolic</property> 
-                            <property name="icon-size">5</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
+                          <object class="GtkBox">
+                            <property name="visible">true</property>
+                            <property name="name">cover-overlay</property>
+                            <style>
+                              <class name="overlay-box"/>
+                            </style>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">true</property>
+                                <property name="icon-name">mail-replied-symbolic</property>
+                                <property name="icon-size">5</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                              </object>
+                              <packing>
+                                <property name="expand">true</property>
+                              </packing>
+                            </child>
                           </object>
-                          <packing>
-                            <property name="expand">True</property>
-                          </packing>
                         </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImage" id="cover_image">
+                        <property name="visible">true</property>
                       </object>
                     </child>
                   </object>
                 </child>
-                <child>
-                  <object class="GtkImage" id="preview_image">
-                    <property name="visible">True</property>
-                  </object>
-                </child>
               </object>
+              <packing>
+                <property name="name">cover</property>
+              </packing>
             </child>
           </object>
         </child>
         <child>
           <object class="GtkLabel" id="name_label">
-            <property name="visible">True</property>
-            <property name="wrap">True</property>
-            <property name="hexpand">True</property>
+            <property name="visible">true</property>
+            <property name="wrap">true</property>
+            <property name="hexpand">true</property>
             <property name="max-width-chars">1</property>
-            <property name="ellipsize">middle</property>
-            <property name="lines">2</property>
+            <property name="ellipsize">end</property>
+            <property name="lines">1</property>
             <property name="justify">center</property>
             <attributes>
               <attribute name="size" value="13000"/>

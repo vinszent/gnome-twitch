@@ -17,7 +17,9 @@ struct _GtGame
 
 GtGame* gt_game_new(const gchar* name, gint64 id);
 void gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data);
-void gt_game_free_list(GList* self);
+void gt_game_list_free(GList* self);
+const gchar* gt_game_get_name(GtGame* self);
+gboolean gt_game_get_updating(GtGame* self);
 
 G_END_DECLS
 

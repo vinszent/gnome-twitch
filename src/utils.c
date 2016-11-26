@@ -275,3 +275,12 @@ utils_signal_connect_oneshot(gpointer instance,
                           (GClosureNotify) g_free,
                           G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 }
+
+void inline
+utils_refresh_cancellable(GCancellable** cancel)
+{
+    if (*cancel && !g_cancellable_is_cancelled(*cancel))
+        g_cancellable_cancel(*cancel);
+    g_clear_object(cancel);
+    *cancel = g_cancellable_new();
+}

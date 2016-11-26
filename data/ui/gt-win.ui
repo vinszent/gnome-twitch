@@ -12,9 +12,6 @@
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
-            <property name="channels-view">channels_view</property>
-            <property name="games-view">games_view</property>
-            <property name="follows-view">follows_view</property>
             <child type="title">
               <object class="GtkStackSwitcher" id="browse_stack_switcher">
                 <property name="visible">True</property>
@@ -132,7 +129,7 @@
                 <property name="visible">True</property>
                 <property name="transition-type">slide-left-right</property>
                 <child>
-                  <object class="GtChannelsView" id="channels_view">
+                  <object class="GtChannelContainerView" id="channels_view">
                     <property name="visible">True</property>
                   </object>
                   <packing>
@@ -141,7 +138,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtFollowsView" id="follows_view">
+                  <object class="GtFollowedContainerView" id="follows_view">
                     <property name="visible">True</property>
                   </object>
                   <packing>
@@ -150,7 +147,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtGamesView" id="games_view">
+                  <object class="GtGameContainerView" id="games_view">
                     <property name="visible">True</property>
                   </object>
                   <packing>

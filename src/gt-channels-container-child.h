@@ -13,6 +13,8 @@ G_DECLARE_FINAL_TYPE(GtChannelsContainerChild, gt_channels_container_child, GT, 
 struct _GtChannelsContainerChild
 {
     GtkFlowBoxChild parent_instance;
+
+    GtChannel* channel;
 };
 
 GtChannelsContainerChild* gt_channels_container_child_new(GtChannel* chan);

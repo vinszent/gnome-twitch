@@ -115,6 +115,10 @@ update_preview(GtGame* self)
     {
         priv->preview_timestamp = utils_timestamp_file(priv->preview_filename);
         set_preview(self, gdk_pixbuf_new_from_file(priv->preview_filename, NULL), FALSE);
+
+        priv->updating = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
     }
 
     if (!priv->preview)
@@ -122,6 +126,8 @@ update_preview(GtGame* self)
                                          priv->cancel, download_preview_cb, self);
     else
     {
+        //FIXME: We need to ref ourselves because otherwise this can
+        //evaluated after we are destroyed
         g_thread_pool_push(update_pool, self, NULL);
     }
 }
@@ -326,7 +332,27 @@ gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data)
 }
 
 void
-gt_game_free_list(GList* list)
+gt_game_list_free(GList* list)
 {
     g_list_free_full(list, g_object_unref);
+}
+
+const gchar*
+gt_game_get_name(GtGame* self)
+{
+    g_assert(GT_IS_GAME(self));
+
+    GtGamePrivate* priv = gt_game_get_instance_private(self);
+
+    return priv->name;
+}
+
+gboolean
+gt_game_get_updating(GtGame* self)
+{
+    g_assert(GT_IS_GAME(self));
+
+    GtGamePrivate* priv = gt_game_get_instance_private(self);
+
+    return priv->updating;
 }

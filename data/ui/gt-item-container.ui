@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+  Copyright © 2016 Vincent Szolnoky <vinszent@vinszent.com>
+
+  GNOME Twitch is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  GNOME Twitch is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<interface domain="GnomeTwitch">
+  <template class="GtItemContainer" parent="GtkStack">
+    <property name="visible">true</property>
+    <style>
+      <class name="ItemContainer"/>
+    </style>
+    <child>
+      <object class="GtkScrolledWindow" id="item_scroll">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">true</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkFlowBox" id="item_flow">
+                <property name="visible">true</property>
+                <property name="hexpand">true</property>
+                <property name="selection-mode">none</property>
+                <!-- <property name="homogeneous">true</property> -->
+                <property name="activate-on-single-click">true</property>
+                <property name="max-children-per-line">20</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkRevealer">
+                <property name="visible">true</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="transition-type">crossfade</property>
+                <property name="reveal-child"
+                          bind-source="GtItemContainer"
+                          bind-property="fetching-items"
+                          bind-flags="default|sync-create"/>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">true</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">7</property>
+                    <child>
+                      <object class="GtkSpinner">
+                        <property name="visible">true</property>
+                        <property name="active">true</property>
+                        <property name="expand">true</property>
+                        <property name="height-request">100</property>
+                        <property name="width-request">100</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="fetching_label">
+                        <property name="visible">true</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="name">main</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">true</property>
+        <property name="orientation">vertical</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <property name="spacing">7</property>
+        <child>
+          <object class="GtkImage" id="empty_image">
+            <property name="visible">true</property>
+            <property name="icon-size">6</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="empty_label">
+            <property name="visible">true</property>
+            <property name="name">empty-label</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="empty_sub_label">
+            <property name="visible">true</property>
+            <property name="name">empty-sub-label</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="name">empty</property>
+      </packing>
+    </child>
+  </template>
+</interface>
