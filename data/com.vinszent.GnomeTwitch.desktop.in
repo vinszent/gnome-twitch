@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=GNOME Twitch
+Comment=Enjoy Twitch on your GNU/Linux desktop
+# Translators: Search terms to find this application.
+# Do NOT translate or localize the semicolons!
+# The list MUST also end with a semicolon!
+Keywords=stream;video;twitch;live;games;
+Type=Application
+Exec=gnome-twitch
+# Translators: Don't translate this, xgettext marks this automatically
+Icon=com.vinszent.GnomeTwitch
+Categories=GTK;GNOME;AudioVideo;Player;Video;
+Terminal=false

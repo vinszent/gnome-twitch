@@ -64,7 +64,7 @@
                     <child>
                       <object class="GtkLabel" id="empty_title_label">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">No player backends loaded!</property>
+                        <property name="label" translatable="yes">No players loaded!</property>
                         <style>
                           <class name="empty-title"/>
                         </style>
@@ -87,7 +87,7 @@
                         <child>
                           <object class="GtkLinkButton">
                             <property name="visible">True</property>
-                            <property name="label">here</property>
+                            <property name="label" translatable="yes">here</property>
                             <property name="margin">0</property>
                             <property name="action-name">win.show_settings_with_view</property>
                             <property name="action-target">'plugins'</property>

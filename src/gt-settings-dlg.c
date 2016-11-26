@@ -1,5 +1,6 @@
 #include "gt-settings-dlg.h"
 #include "gt-enums.h"
+#include <glib/gi18n.h>
 #include <libpeas-gtk/peas-gtk.h>
 
 typedef struct
@@ -7,7 +8,7 @@ typedef struct
     GtkWidget* prefer_dark_theme_button;
     GtkWidget* quality_combo;
     GtkWidget* settings_switcher;
-    GtkWidget* plugin_view;
+    GtkWidget* players_view;
     GtkWidget* settings_stack;
     GtWin* win;
 
@@ -102,7 +103,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_switcher);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_stack);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, plugin_view);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, players_view);
 }
 
 static void
@@ -115,10 +116,20 @@ gt_settings_dlg_init(GtSettingsDlg* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
-    gtk_widget_show_all(priv->plugin_view);
+    gtk_widget_show_all(priv->players_view);
 
     GtkWidget* header_bar = gtk_dialog_get_header_bar(GTK_DIALOG(self));
     gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), priv->settings_switcher);
+
+    GList* children = gtk_container_get_children(GTK_CONTAINER(priv->players_view));
+    GtkToolbar* toolbar = GTK_TOOLBAR(g_list_nth(children, 1)->data);
+    GtkToolItem* item = gtk_tool_item_new();
+    gtk_container_add(GTK_CONTAINER(item), gtk_link_button_new_with_label(
+            "https://github.com/vinszent/gnome-twitch/wiki/How-to-install-players",
+            _("How to install players")));
+    gtk_widget_show_all(GTK_WIDGET(item));
+    gtk_toolbar_insert(toolbar, item, 0);
+    g_list_free(children);
 
     //TODO: Change this to use main_app->settings
     priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
@@ -141,8 +152,8 @@ gt_settings_dlg_set_view(GtSettingsDlg* self, GtSettingsDlgView view)
         case GT_SETTINGS_DLG_VIEW_GENERAL:
             gtk_stack_set_visible_child_name(GTK_STACK(priv->settings_stack), "general");
             break;
-        case GT_SETTINGS_DLG_VIEW_PLUGINS:
-            gtk_stack_set_visible_child_name(GTK_STACK(priv->settings_stack), "plugins");
+        case GT_SETTINGS_DLG_VIEW_PLAYERS:
+            gtk_stack_set_visible_child_name(GTK_STACK(priv->settings_stack), "players");
             break;
     }
 }

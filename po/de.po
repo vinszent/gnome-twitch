@@ -1,23 +1,193 @@
 # Translation of gnome-twitch to German.
 # Copyright (C) 2015 Philipp Fent <philipp@fent.de>
 #               2016 Kordian Bruck <k@bruck.me>
+#               2016 Tim Dengel <tim.dengel.debian@gmail.com>
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.2.0\n"
+"Project-Id-Version: gnome-twitch 0.3.1\n"
 "Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2015-10-09 22:42+0200\n"
-"PO-Revision-Date: 2016-04-04 18:36+0200\n"
+"POT-Creation-Date: 2016-08-26 10:35+0200\n"
+"PO-Revision-Date: 2016-09-03 21:09+0200\n"
+"Last-Translator: Tim Dengel <tim.dengel.debian@gmail.com>\n"
 "Language-Team: \n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.4\n"
-"Last-Translator: Kordian Bruck <k@bruck.me>\n"
+"X-Generator: Poedit 1.8.8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Language: de\n"
 
-#: data/ui/app-menu.ui:6 data/ui/gt-settings-dlg.ui:6
+#: src/gt-app.c:230
+msgid "Refresh login"
+msgstr "Anmeldung aktualisieren"
+
+#: src/gt-app.c:345 src/gt-twitch-login-dlg.c:36
+msgid "Login to Twitch"
+msgstr "Bei Twitch anmelden"
+
+#. Translators: Used for when viewers >= 1000
+#. Shorthand for thousands. Ex (English): 6200 = 6.2k
+#: src/gt-channels-container-child.c:106
+#, c-format
+msgid "%3.1fk"
+msgstr "%3.1f tausend"
+
+#. Translators: Used for when viewers < 1000
+#. No need to translate, just future-proofing
+#: src/gt-channels-container-child.c:110
+#, c-format
+msgid "%ld"
+msgstr "%ld"
+
+#. Translators: Used for when stream time > 60 min
+#. Ex (English): 3 hours and 45 minutes = 3.75h
+#: src/gt-channels-container-child.c:139
+#, c-format
+msgid "%2.1fh"
+msgstr "%2.1f Stunden"
+
+#. Translators: Used when stream time <= 60min
+#. Ex (English): 45 minutes = 45m
+#: src/gt-channels-container-child.c:143
+#, c-format
+msgid "%ldm"
+msgstr "%ld Minuten"
+
+#: src/gt-channels-container-follow.c:263
+msgid "No channels followed"
+msgstr "Du folgst keinen Kanälen"
+
+#: src/gt-channels-container-follow.c:264
+msgid "Follow channels that you like for them to show up here"
+msgstr "Folge Kanälen, die du hier sehen möchtest"
+
+#: src/gt-channels-container-follow.c:266
+msgid "Loading follows"
+msgstr "Lade gefolgte Kanäle"
+
+#: src/gt-channels-container-game.c:177 src/gt-channels-container-top.c:157
+msgid "Loading channels"
+msgstr "Lade Kanäle"
+
+#: src/gt-channels-container-search.c:186
+msgid "No channels found"
+msgstr "Keine Kanäle gefunden"
+
+#: src/gt-channels-container-search.c:187 src/gt-games-container-search.c:205
+msgid "Try a different search"
+msgstr "Versuche einen anderen Suchbegriff"
+
+#: src/gt-channels-container-search.c:188
+msgid "Searching channels"
+msgstr "Suche nach Kanälen"
+
+#: src/gt-chat.c:611 data/ui/gt-chat.ui:45
+msgid "Send a message"
+msgstr "Nachricht senden"
+
+#: src/gt-chat.c:611
+msgid "Please login to chat"
+msgstr "Bitte logge dich zum chatten ein"
+
+#: src/gt-follows-manager.c:71
+#, c-format
+msgid "Channel %s is now online"
+msgstr "Kanal %s ist jetzt online"
+
+#: src/gt-follows-manager.c:72
+#, c-format
+msgid "Streaming %s"
+msgstr "Streamt %s"
+
+#: src/gt-follows-manager.c:134
+#, c-format
+msgid "Unable to follow channel '%s' on Twitch, try refreshing your login"
+msgstr ""
+"Folgen des Kanals '%s' auf Twitch fehlgeschlagen. Versuche, dich neu "
+"einzuloggen."
+
+#: src/gt-follows-manager.c:174
+#, c-format
+msgid "Unable to unfollow channel '%s' on Twitch, try refreshing your login"
+msgstr ""
+"Konnte den Kanal '%s' nicht von den auf Twitch gefolgten Kanälen "
+"entfernen. Versuche, dich neu einzuloggen."
+
+#: src/gt-follows-manager.c:468
+msgid ""
+"GNOME Twitch has detected local follows, would you like to move them to "
+"Twitch?"
+msgstr ""
+"GNOME Twitch hat lokale Favoriten gefunden, möchtest du sie nach Twitch "
+"verschieben?"
+
+#: src/gt-game.c:225 src/gt-twitch.c:302
+msgid "Untitled broadcast"
+msgstr "Unbenannte Sendung"
+
+#: src/gt-games-container-search.c:204
+msgid "No games found"
+msgstr "Keine Spiele gefunden"
+
+#: src/gt-games-container-search.c:206
+msgid "Searching games"
+msgstr "Suche nach Spielen"
+
+#: src/gt-games-container-top.c:164
+msgid "Loading games"
+msgstr "Lade Spiele"
+
+#: src/gt-player.c:283
+#, c-format
+msgid "Buffered %d%%"
+msgstr "Zwischenspeichern %d%%"
+
+#: src/gt-player.c:887
+msgid "Loading stream"
+msgstr "Lade Stream"
+
+#: src/gt-twitch.c:1720 src/gt-twitch.c:1864 src/gt-twitch.c:1942
+#, c-format
+msgid "Twitch replied with error code '%d', message '%s' and body '%s'"
+msgstr ""
+"Twitch antwortete mit Fehlercode '%d', Nachricht '%s' und Inhalt '%s'"
+
+#: src/gt-twitch-login-dlg.c:121
+msgid "Successfully logged in to Twitch!"
+msgstr "Erfolgreich angemeldet!"
+
+#: src/gt-win.c:107 data/com.vinszent.GnomeTwitch.desktop.in:4
+msgid "Enjoy Twitch on your GNU/Linux desktop"
+msgstr "Genieße Twitch auf deinem GNU/Linux Computer"
+
+#. Translators: Put your details here :)
+#: src/gt-win.c:112
+msgid "translator-credits"
+msgstr ""
+"Philipp Fent <philipp@fent.de>\n"
+"Kordian Bruck <k@bruck.me>\n"
+"Tim Dengel <tim.dengel.debian@gmail.com>"
+
+#: src/gt-win.c:115
+msgid "Contributors"
+msgstr "Mitwirkende"
+
+#: src/gt-win.c:182
+msgid "Something went wrong"
+msgstr "Irgendetwas ist schief gelaufen"
+
+#: src/gt-win.c:297
+msgid "Already logged into Twitch, refresh login?"
+msgstr "Bereits bei Twitch angemeldet, neu laden?"
+
+#. Translators: Please keep the markup tags
+#: src/gt-win.c:755
+#, c-format
+msgid "<b>Something went wrong:</b> %s."
+msgstr "<b>Irgendetwas ist schief gelaufen:</b> %s."
+
+#: data/ui/app-menu.ui:6
 msgid "Settings"
 msgstr "Einstellungen"
 
@@ -29,219 +199,163 @@ msgstr "Über"
 msgid "Quit"
 msgstr "Beenden"
 
-#: data/ui/gt-player-header-bar.ui:174 data/ui/gt-player-header-bar.ui:198
+#: data/ui/gt-player.ui:67
+msgid "No player backends loaded!"
+msgstr "Keine Player Backends geladen!"
+
+#: data/ui/gt-player.ui:81
+msgid "Click "
+msgstr "Klicke"
+
+#: data/ui/gt-player.ui:90
+msgid "here"
+msgstr "hier"
+
+#: data/ui/gt-player.ui:104
+msgid " to load one"
+msgstr "um einen zu laden"
+
+#: data/ui/gt-player-header-bar.ui:175 data/ui/gt-player-header-bar.ui:199
 msgid "Edit chat"
 msgstr "Chat bearbeiten"
 
-#: data/ui/gt-player-header-bar.ui:181 data/ui/gt-player-header-bar.ui:338
+#: data/ui/gt-player-header-bar.ui:182 data/ui/gt-player-header-bar.ui:345
 msgid "Stream quality"
 msgstr "Stream-Qualität"
 
-#: data/ui/gt-player-header-bar.ui:213
+#: data/ui/gt-player-header-bar.ui:214
 msgid "Dock chat"
 msgstr "Chat andocken"
 
-#: data/ui/gt-player-header-bar.ui:219
+#: data/ui/gt-player-header-bar.ui:220
 msgid "Dark theme"
-msgstr "Dunkels Design"
+msgstr "Dunkles Design"
 
-#: data/ui/gt-player-header-bar.ui:228
+#: data/ui/gt-player-header-bar.ui:229
 msgid "Opacity"
 msgstr "Deckkraft"
 
-#: data/ui/gt-player-header-bar.ui:247
+#: data/ui/gt-player-header-bar.ui:250
 msgid "Width"
 msgstr "Breite"
 
-#: data/ui/gt-player-header-bar.ui:266
+#: data/ui/gt-player-header-bar.ui:271
 msgid "Height"
 msgstr "Höhe"
 
-#: data/ui/gt-player-header-bar.ui:285
+#: data/ui/gt-player-header-bar.ui:292
 msgid "X position"
 msgstr "X Position"
 
-#: data/ui/gt-player-header-bar.ui:306
+#: data/ui/gt-player-header-bar.ui:313
 msgid "Y position"
 msgstr "Y Position"
 
-#: data/ui/gt-player-header-bar.ui:346 data/ui/gt-settings-dlg.ui:38
+#: data/ui/gt-player-header-bar.ui:353 data/ui/gt-settings-dlg.ui:62
 msgid "Source"
 msgstr "Quelle"
 
-#: data/ui/gt-player-header-bar.ui:354 data/ui/gt-settings-dlg.ui:39
+#: data/ui/gt-player-header-bar.ui:361 data/ui/gt-settings-dlg.ui:63
 msgid "High"
 msgstr "Hoch"
 
-#: data/ui/gt-player-header-bar.ui:362 data/ui/gt-settings-dlg.ui:40
+#: data/ui/gt-player-header-bar.ui:369 data/ui/gt-settings-dlg.ui:64
 msgid "Medium"
 msgstr "Mittel"
 
-#: data/ui/gt-player-header-bar.ui:370 data/ui/gt-settings-dlg.ui:41
+#: data/ui/gt-player-header-bar.ui:377 data/ui/gt-settings-dlg.ui:65
 msgid "Low"
 msgstr "Niedrig"
 
-#: data/ui/gt-player-header-bar.ui:378
+#: data/ui/gt-player-header-bar.ui:385 data/ui/gt-settings-dlg.ui:66
 msgid "Mobile"
 msgstr "Mobil"
 
-#: data/ui/gt-settings-dlg.ui:14
-msgid "Use dark theme variant"
-msgstr "Dunkeles Design verwenden"
+#: data/ui/gt-settings-dlg.ui:29
+msgid "Use dark theme"
+msgstr "Dunkles Design verwenden"
 
-#: data/ui/gt-settings-dlg.ui:26
+#: data/ui/gt-settings-dlg.ui:49
 msgid "Default video quality:"
-msgstr "Standard Video Qualität"
+msgstr "Standard Videoqualität"
 
-#: data/ui/gt-chat.ui:44
-msgid "Send a message"
-msgstr "Nachricht senden"
+#: data/ui/gt-settings-dlg.ui:77
+msgid "General"
+msgstr "Allgemein"
 
-#: data/ui/gt-chat.ui:70
+#: data/ui/gt-settings-dlg.ui:86
+msgid "Plugins"
+msgstr "Plugins"
+
+#: data/ui/gt-chat.ui:74
 msgid "Connecting to chat"
 msgstr "Verbindung mit dem Chat wird hergestellt"
 
-#: data/ui/gt-chat.ui:104
-msgid "Not logged into Twitch!"
-msgstr "Nicht angemeldet."
-
-#: data/ui/gt-chat.ui:110
-msgid "Click to login"
-msgstr "Zum Anmelden klicken"
-
-#: data/ui/gt-chat.ui:136
+#: data/ui/gt-chat.ui:114
 msgid "Click to reconnect"
 msgstr "Wiederverbinden"
 
-#: data/ui/gt-win.ui:25 data/ui/gt-win.ui:131
+#: data/ui/gt-win.ui:27 data/ui/gt-win.ui:164
 msgid "Browse"
 msgstr "Durchsuchen"
 
-#: data/ui/gt-win.ui:35 data/ui/gt-win.ui:141
+#: data/ui/gt-win.ui:36 data/ui/gt-win.ui:174
 msgid "Player"
 msgstr "Spieler"
 
-#: data/ui/gt-win.ui:71
+#: data/ui/gt-win.ui:76
 msgid "Yes"
 msgstr "Ja"
 
-#: data/ui/gt-win.ui:107
+#: data/ui/gt-win.ui:85
+msgid "No"
+msgstr "Nein"
+
+#: data/ui/gt-win.ui:94
+msgid "OK"
+msgstr "OK"
+
+#: data/ui/gt-win.ui:103
+msgid "Details"
+msgstr "Details"
+
+#: data/ui/gt-win.ui:112
+msgid "Close"
+msgstr "Schließen"
+
+#: data/ui/gt-win.ui:140
 msgid "Channels"
 msgstr "Kanäle"
 
-#: data/ui/gt-win.ui:116
-msgid "Favourites"
-msgstr "Favoriten"
+#: data/ui/gt-win.ui:149
+msgid "Follows"
+msgstr "Gefolgte Kanäle"
 
-#: data/ui/gt-win.ui:125
+#: data/ui/gt-win.ui:158
 msgid "Games"
 msgstr "Spiele"
 
-#: src/gt-app.c:175
-msgid "Refresh login"
-msgstr "Anmeldung aktualisieren"
+#: data/com.vinszent.GnomeTwitch.desktop.in:3
+msgid "GNOME Twitch"
+msgstr "GNOME Twitch"
 
-#: src/gt-app.c:386 src/gt-twitch-login-dlg.c:27
-msgid "Login to Twitch"
-msgstr "Bei Twitch anmelden"
+#. Translators: Search terms to find this application.
+#. Do NOT translate or localize the semicolons!
+#. The list MUST also end with a semicolon!
+#: data/com.vinszent.GnomeTwitch.desktop.in:8
+msgid "stream;video;twitch;live;games;"
+msgstr "stream;video;twitch;live;spiele;"
 
-#: src/gt-channels-container-child.c:102
-#, c-format
-msgid "%3.1fk"
-msgstr "%3.1f tausend"
+#. Translators: Don't translate this, xgettext marks this automatically
+#: data/com.vinszent.GnomeTwitch.desktop.in:12
+msgid "com.vinszent.GnomeTwitch"
+msgstr "com.vinszent.GnomeTwitch"
 
-#: src/gt-channels-container-child.c:104
-#, c-format
-msgid "%ld"
-msgstr "%ld"
+#~ msgid "Not logged into Twitch!"
+#~ msgstr "Nicht angemeldet."
 
-#: src/gt-channels-container-child.c:131
-#, c-format
-msgid "%2.1fh"
-msgstr "%2.1f Stunden"
+#~ msgid "Favourites"
+#~ msgstr "Favoriten"
 
-#: src/gt-channels-container-child.c:133
-#, c-format
-msgid "%ldm"
-msgstr "%ld Minuten"
-
-#: src/gt-channels-container-favourite.c:229
-msgid "No channels favourited"
-msgstr "Keine Favoriten"
-
-#: src/gt-channels-container-favourite.c:230
-msgid "Favourite channels that you like for them to show up here"
-msgstr "Lieblingskanäle, die du hier sehen möchtest"
-
-#: src/gt-channels-container-search.c:183
-msgid "No channels found"
-msgstr "Keine Kanäle gefunden"
-
-#: src/gt-channels-container-search.c:184 src/gt-games-container-search.c:203
-msgid "Try a different search"
-msgstr "Versuche einen anderen Suchbegriff"
-
-#: src/gt-channels-container-search.c:185
-msgid "Searching channels"
-msgstr "Suche nach Kanälen"
-
-#: src/gt-channels-container-game.c:174 src/gt-channels-container-top.c:155
-msgid "Loading channels"
-msgstr "Lade Kanäle"
-
-#: src/gt-games-container-search.c:202
-msgid "No games found"
-msgstr "Keine Spiele gefunden"
-
-#: src/gt-games-container-search.c:204
-msgid "Searching games"
-msgstr "Suche nach Spielen"
-
-#: src/gt-games-container-top.c:161
-msgid "Loading games"
-msgstr "Lade Spiele"
-
-#: src/gt-favourites-manager.c:63
-#, c-format
-msgid "Channel %s is now online"
-msgstr "Kanal %s ist jetzt online"
-
-#: src/gt-favourites-manager.c:64
-#, c-format
-msgid "Streaming %s"
-msgstr "Streamt %s"
-
-#: src/gt-game.c:111
-msgid "Untitled broadcast"
-msgstr "Unbenannte Sendung"
-
-#: src/gt-player-clutter.c:295
-msgid "Loading stream"
-msgstr "Lade Stream"
-
-#: src/gt-player-clutter.c:410
-#, c-format
-msgid "Buffered %d%%"
-msgstr "Zwischenspeichern %d%%"
-
-#: src/gt-twitch-login-dlg.c:114
-msgid "Successfully logged in to Twitch!"
-msgstr "Erfolgreich angemeldet!"
-
-#: src/gt-win.c:93
-msgid "Enjoy Twitch on your GNU/Linux desktop"
-msgstr "Genieße Twitch auf deinem GNU/Linux Computer"
-
-#: src/gt-win.c:97
-msgid "translator-credits"
-msgstr ""
-"Philipp Fent <philipp@fent.de>\n"
-"Kordian Bruck <k@bruck.me>"
-
-#: src/gt-win.c:100
-msgid "Contributors"
-msgstr "Mitwirkende"
-
-#: src/gt-win.c:176
-msgid "Already logged into Twitch, refresh login?"
-msgstr "Bereits bei Twitch angemeldet, neu laden?"
+#~ msgid "No channels favourited"
+#~ msgstr "Keine Favoriten"

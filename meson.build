@@ -1,5 +1,5 @@
 project('gnome-twitch', 'c',
-        version : '0.2.0',
+        version : '0.3.0',
         meson_version : '>=0.31.0',
         license : 'GPL3')
 
@@ -18,7 +18,7 @@ if get_option('do-post-install')
 endif
 
 if WITH_PLAYER_GSTREAMER_CLUTTER
-   subprojec('player-backend-gstreamer-clutter')
+   subproject('player-backend-gstreamer-clutter')
 endif
 if WITH_PLAYER_MPV_OPENGL
    subproject('player-backend-mpv-opengl')

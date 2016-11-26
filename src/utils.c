@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"
+#include "config.h"
 
 #define TAG "Utils"
 #include "gnome-twitch/gt-log.h"
@@ -95,6 +96,7 @@ utils_download_picture(SoupSession* soup, const gchar* url)
     GError* err = NULL;
 
     msg = soup_message_new("GET", url);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
     input = soup_session_send(soup, msg, NULL, &err);
 
     if (err)
@@ -123,6 +125,7 @@ utils_download_picture_if_newer(SoupSession* soup, const gchar* url, gint64 time
     GdkPixbuf* ret;
 
     msg = soup_message_new(SOUP_METHOD_HEAD, url);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
     soup_status = soup_session_send_message(soup, msg);
 
     if (SOUP_STATUS_IS_SUCCESSFUL(soup_status) &&

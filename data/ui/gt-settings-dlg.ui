@@ -74,16 +74,16 @@
               </object>
               <packing>
                 <property name="name">general</property>
-                <property name="title">General</property>
+                <property name="title" translatable="yes">General</property>
               </packing>
             </child>
             <child>
-              <object class="PeasGtkPluginManager" id="plugin_view">
+              <object class="PeasGtkPluginManager" id="players_view">
                 <property name="visible">True</property>
               </object>
               <packing>
-                <property name="name">plugins</property>
-                <property name="title">Plugins</property>
+                <property name="name">players</property>
+                <property name="title" translatable="yes">Players</property>
               </packing>
             </child>
           </object>

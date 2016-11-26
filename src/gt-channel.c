@@ -3,6 +3,7 @@
 #include <json-glib/json-glib.h>
 
 #define TAG "GtChannel"
+#include "gnome-twitch/gt-log.h"
 #include "utils.h"
 
 #define N_JSON_PROPS 2
@@ -33,6 +34,7 @@ typedef struct
     gint64 preview_timestamp;
 
     guint update_id;
+    guint update_set_id;
 
     GCancellable* cancel;
     GCancellable* cache_cancel;
@@ -135,16 +137,26 @@ static gboolean
 update_set_cb(gpointer udata)
 {
     GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     GtChannelRawData* raw = g_object_get_data(G_OBJECT(self), "raw-data");
 
-    g_info("{GtChannel} Finished update '%s'", raw->name);
+    if (!raw)
+    {
+        WARNING("Unable to set update data");
+        goto finish;
+    }
+
+    INFOF("Finished update '%s'", raw->name);
 
     gt_channel_update_from_raw_data(self, raw);
 
     gt_twitch_channel_raw_data_free(raw);
     g_object_set_data(G_OBJECT(self), "raw-data", NULL);
 
-    return FALSE;
+finish:
+    priv->update_set_id = 0;
+
+    return G_SOURCE_REMOVE;
 }
 
 static void
@@ -159,12 +171,12 @@ update_cb(gpointer data,
 
     GtChannelRawData* raw = gt_twitch_channel_with_stream_raw_data(main_app->twitch, priv->name);
 
-    if (!raw)
-        return; //Most likely error getting data
+    if (!raw || priv->update_set_id)
+        return; //Most likely error getting data or already running update
 
     g_object_set_data(G_OBJECT(self), "raw-data", raw);
 
-    g_idle_add((GSourceFunc) update_set_cb, self); //Needs to be run on main thread.
+    priv->update_set_id = g_idle_add((GSourceFunc) update_set_cb, self); //Needs to be run on main thread.
 }
 
 static void
@@ -338,6 +350,8 @@ finalize(GObject* object)
     g_free(priv->game);
     g_free(priv->status);
     g_free(priv->cache_filename);
+    g_free(priv->preview_url);
+    g_free(priv->video_banner_url);
 
     if (priv->stream_started_time)
         g_date_time_unref(priv->stream_started_time);
@@ -593,6 +607,9 @@ gt_channel_init(GtChannel* self)
 
     priv->stream_started_time = NULL;
     priv->viewers = 0;
+
+    priv->update_id = 0;
+    priv->update_set_id = 0;
 
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);

@@ -342,6 +342,7 @@ startup(GApplication* app)
     menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
     g_object_ref(priv->app_menu);
+    priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
     g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
 
     gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
@@ -486,7 +487,7 @@ gt_app_init(GtApp* self)
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
-    self->plugins_engine = peas_engine_get_default();
+    self->players_engine = peas_engine_get_default();
 
     gchar* plugin_dir;
 
@@ -496,7 +497,7 @@ gt_app_init(GtApp* self)
                                   "plugins",                            \
                                   type,                                 \
                                   NULL);                                \
-    peas_engine_add_search_path(self->plugins_engine, plugin_dir, NULL); \
+    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL); \
     g_free(plugin_dir)                                                  \
 
     ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
@@ -506,11 +507,8 @@ gt_app_init(GtApp* self)
 
 #undef ADD_PLUGINS_PATH
 
-    priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
-
-
     g_settings_bind(self->settings, "loaded-plugins",
-                    self->plugins_engine, "loaded-plugins",
+                    self->players_engine, "loaded-plugins",
                     G_SETTINGS_BIND_DEFAULT);
 
     g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);

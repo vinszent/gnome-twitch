@@ -85,8 +85,8 @@ fi
 %{_datadir}/locale/*/LC_MESSAGES/gnome-twitch.mo
 
 %changelog
-* Sun Aug 7 2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
+* Sun Aug 7 2016 Vincent Szolnoky <vinszent@vinszent.com>
 - Update to v0.2.1
 
-* Fri Apr 8 2016 Vincent Szolnoky <ippytraxx@installgentoo.com>
+* Fri Apr 8 2016 Vincent Szolnoky <vinszent@vinszent.com>
 - Initial package

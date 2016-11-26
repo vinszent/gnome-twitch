@@ -465,7 +465,8 @@ follows_all_cb(GObject* source,
     if (g_file_test(fp, G_FILE_TEST_EXISTS))
     {
         gt_win_ask_question(GT_WIN_ACTIVE,
-                            _("GNOME Twitch has detected local follows, would you like to move them to Twitch?"),
+                            _("GNOME Twitch has detected local follows,"
+                              " would you like to move them to Twitch?"),
                             G_CALLBACK(move_local_follows_cb), self);
     }
     else

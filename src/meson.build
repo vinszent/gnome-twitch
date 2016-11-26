@@ -14,13 +14,18 @@ deps_gt = [dependency('gtk+-3.0', version : '>=3.20'),
            dependency('libsoup-2.4'),
            dependency('json-glib-1.0'),
            dependency('libpeas-1.0'),
-           dependency('libpeas-gtk-1.0'),
-           dependency('x11')] #TODO: Make this option to compile in
+           dependency('libpeas-gtk-1.0')]
 
 if get_option('use-deprecated-webkit')
    deps_gt += dependency('webkitgtk-3.0')
 else
    deps_gt += dependency('webkit2gtk-4.0')
+endif
+
+r = run_command('pkg-config', '--variable', 'targets', 'gdk-3.0')
+
+if (r.stdout().contains('x11'))
+   deps_gt += dependency('x11')
 endif
 
 res = gnome.compile_resources('gt-resources', '../data/com.vinszent.GnomeTwitch.gresource.xml', source_dir : '../data')

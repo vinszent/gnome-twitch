@@ -101,10 +101,12 @@ viewers_converter(GBinding* bind,
         viewers = g_value_get_int64(from);
 
         if (viewers > 1e4)
-            /* Translators: Shorthand for thousands of players watching,
-             * i.e. in English 6200 = 6.2k */
+            // Translators: Used for when viewers >= 1000
+            // Shorthand for thousands. Ex (English): 6200 = 6.2k
             label = g_strdup_printf(_("%3.1fk"), (gdouble) viewers / 1e3);
         else
+            // Translators: Used for when viewers < 1000
+            // No need to translate, just future-proofing
             label = g_strdup_printf(_("%ld"), viewers);
     }
 
@@ -132,8 +134,12 @@ time_converter(GBinding* bind,
         dif = g_date_time_difference(now_time, stream_started_time);
 
         if (dif > G_TIME_SPAN_HOUR)
+            // Translators: Used for when stream time > 60 min
+            // Ex (English): 3 hours and 45 minutes = 3.75h
             label = g_strdup_printf(_("%2.1fh"), (gdouble) dif / G_TIME_SPAN_HOUR);
         else
+            // Translators: Used when stream time <= 60min
+            // Ex (English): 45 minutes = 45m
             label  = g_strdup_printf(_("%ldm"), dif / G_TIME_SPAN_MINUTE);
 
         g_date_time_unref(now_time);

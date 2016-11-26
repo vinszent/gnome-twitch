@@ -108,6 +108,7 @@ show_about_cb(GSimpleAction* action,
                  "logo-icon-name", "com.vinszent.GnomeTwitch",
                  "website", "https://github.com/vinszent/gnome-twitch",
                  "website-label", "GitHub",
+                 // Translators: Put your details here :)
                  "translator-credits", _("translator-credits"),
                  NULL);
 
@@ -750,6 +751,7 @@ gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* deta
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     QueuedInfoData* data = g_new(QueuedInfoData, 1);
     gchar** udata = g_malloc(sizeof(gchar*)*3);
+    // Translators: Please keep the markup tags
     gchar* msg = g_strdup_printf(_("<b>Something went wrong:</b> %s."), secondary);
 
     *udata = g_strdup(secondary);
