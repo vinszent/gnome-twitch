@@ -63,7 +63,7 @@
                         <child>
                           <object class="GtkBox">
                             <property name="visible">true</property>
-                            <property name="name">cover-overlay</property>
+                            <property name="name">overlay</property>
                             <style>
                               <class name="overlay-box"/>
                             </style>

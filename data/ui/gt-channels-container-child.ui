@@ -64,10 +64,8 @@
                         <child>
                           <object class="GtkGrid">
                             <property name="visible">true</property>
-                            <property name="name">preview-overlay</property>
-                            <style>
-                              <class name="overlay-box"/>
-                            </style>
+                            <property name="name">overlay</property>
+                            <property name="column-spacing">7</property>
                             <child>
                               <object class="GtkToggleButton" id="follow_button">
                                 <property name="visible">true</property>

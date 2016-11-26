@@ -1,10 +1,16 @@
-.gt-channels-container-child .overlay-box,
-.gt-games-container-child .overlay-box
+.gt-channels-container-child #overlay,
+.gt-games-container-child #overlay
 {
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-.gt-channels-container-child .overlay-box .label
+.gt-channels-container-child #overlay
+{
+    padding: 7px;
+}
+
+.gt-channels-container-child #overlay label,
+.gt-channels-container-child #overlay image
 {
     color: rgba(109, 115, 128, 1);
 }
@@ -15,25 +21,27 @@
     padding: 7px;
 }
 
-.gt-channels-container-child .overlay-box .follow-button
+.gt-channels-container-child #follow-button
 {
     background-color: rgba(0, 0, 0, 0);
     background-image: none;
     border-style: none;
+    padding: 0px;
 }
 
-.gt-channels-container-child .overlay-box .follow-button:hover image
+.gt-channels-container-child #follow-button:hover image
 {
     transition: 150ms ease-in-out;
     color: gold;
 }
 
-.gt-channels-container-child .overlay-box .follow-button image
+.gt-channels-container-child #follow-button image
 {
+    transition: 150ms ease-in-out;
     color: rgba(109, 115, 128, 1);
 }
 
-.gt-channels-container-child .overlay-box .follow-button:checked image
+.gt-channels-container-child #follow-button:checked image
 {
     color: gold;
 }
