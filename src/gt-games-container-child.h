@@ -17,6 +17,7 @@ struct _GtGamesContainerChild
 
 GtGamesContainerChild* gt_games_container_child_new(GtGame* game);
 void gt_games_container_child_hide_overlay(GtGamesContainerChild* self);
+GtGame* gt_games_container_child_get_game(GtGamesContainerChild* self);
 
 G_END_DECLS
 

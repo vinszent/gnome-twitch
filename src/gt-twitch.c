@@ -689,7 +689,7 @@ top_channels_async_cb(GTask* task,
                                 "Error getting top channels");
     }
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
 }
 
 void
@@ -731,7 +731,7 @@ top_games_async_cb(GTask* task,
 
     ret = gt_twitch_top_games(data->twitch, data->int_1, data->int_2);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
 }
 
 void
@@ -893,7 +893,7 @@ search_channels_async_cb(GTask* task,
                                 "Error searching channels");
     }
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
 }
 
 void
@@ -936,7 +936,7 @@ search_games_async_cb(GTask* task,
 
     ret = gt_twitch_search_games(data->twitch, data->str_1, data->int_1, data->int_2);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_free_list);
+    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
 }
 
 void
@@ -1666,7 +1666,7 @@ follows_async_cb(GTask* task,
         g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
                                 "Error getting follows");
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
 }
 
 void
@@ -1812,7 +1812,7 @@ follows_all_async_cb(GTask* task,
     if (error)
         g_task_return_error(task, error);
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_free_list);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
 }
 
 void

@@ -431,7 +431,7 @@ follows_all_cb(GObject* source,
     gchar* fp = FAV_CHANNELS_FILE;
 
     g_clear_pointer(&self->follow_channels,
-                    (GDestroyNotify) gt_channel_free_list);
+                    (GDestroyNotify) gt_channel_list_free);
 
     if (error)
     {
@@ -498,7 +498,7 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
     g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
     g_clear_pointer(&self->follow_channels,
-                    (GDestroyNotify) gt_channel_free_list);
+                    (GDestroyNotify) gt_channel_list_free);
 
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
         goto finish;

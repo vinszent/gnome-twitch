@@ -677,7 +677,7 @@ gt_channel_toggle_followed(GtChannel* self)
 }
 
 void
-gt_channel_free_list(GList* list)
+gt_channel_list_free(GList* list)
 {
     g_list_free_full(list, g_object_unref);
 }

@@ -7,19 +7,18 @@
 
 typedef struct
 {
-    GtChannel* channel;
-
     GtkWidget* preview_image;
     GtkWidget* name_label;
     GtkWidget* game_label;
-    GtkWidget* event_box;
-    GtkWidget* middle_revealer;
+    GtkWidget* preview_event_box;
+    GtkWidget* preview_overlay_revealer;
     GtkWidget* viewers_label;
+    GtkWidget* viewers_image;
     GtkWidget* time_label;
+    GtkWidget* time_image;
     GtkWidget* follow_button;
-    GtkWidget* middle_stack;
+    GtkWidget* preview_stack;
     GtkWidget* play_image;
-    GtkWidget* bottom_box;
 } GtChannelsContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerChild, gt_channels_container_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -48,9 +47,9 @@ updating_converter(GBinding* bind,
                    gpointer udata)
 {
     if (g_value_get_boolean(from))
-        g_value_set_string(to, "spinner");
+        g_value_set_string(to, "load-spinner");
     else
-        g_value_set_string(to, "content");
+        g_value_set_string(to, "preview");
 
     return TRUE;
 }
@@ -63,7 +62,7 @@ motion_enter_cb(GtkWidget* widget,
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
     GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), TRUE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->preview_overlay_revealer), TRUE);
 }
 
 static void
@@ -74,7 +73,7 @@ motion_leave_cb(GtkWidget* widget,
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
     GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->preview_overlay_revealer), FALSE);
 }
 
 static void
@@ -82,9 +81,8 @@ follow_button_cb(GtkButton* button,
                     gpointer udata)
 {
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    gt_channel_toggle_followed(priv->channel);
+    gt_channel_toggle_followed(self->channel);
 }
 
 static gboolean
@@ -156,10 +154,9 @@ online_cb(GObject* source,
           gpointer udata)
 {
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
     gboolean online;
 
-    g_object_get(priv->channel, "online", &online, NULL);
+    g_object_get(self->channel, "online", &online, NULL);
 
     if (online)
         REMOVE_STYLE_CLASS(self, "gt-channels-container-child-offline");
@@ -171,29 +168,10 @@ static void
 finalize(GObject* object)
 {
     GtChannelsContainerChild* self = (GtChannelsContainerChild*) object;
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    g_object_unref(priv->channel);
+    g_object_unref(self->channel);
 
     G_OBJECT_CLASS(gt_channels_container_child_parent_class)->finalize(object);
-}
-
-static void
-realise_cb(GtkWidget* widget,
-           gpointer udata)
-{
-    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(widget);
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
-
-    g_object_bind_property(priv->channel, "online",
-                           priv->viewers_label, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "online",
-                           priv->play_image, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "online",
-                           priv->bottom_box, "visible",
-                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 }
 
 static void
@@ -208,7 +186,7 @@ get_property (GObject*    obj,
     switch (prop)
     {
         case PROP_CHANNEL:
-            g_value_set_object(val, priv->channel);
+            g_value_set_object(val, self->channel);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -227,8 +205,8 @@ set_property(GObject*      obj,
     switch (prop)
     {
         case PROP_CHANNEL:
-            g_clear_object(&priv->channel);
-            priv->channel = utils_value_ref_sink_object(val);
+            g_clear_object(&self->channel);
+            self->channel = utils_value_ref_sink_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -241,35 +219,50 @@ constructed(GObject* obj)
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(obj);
     GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    g_object_bind_property(priv->channel, "display-name",
+    g_object_bind_property(self->channel, "display-name",
                            priv->name_label, "label",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "game",
+    g_object_bind_property(self->channel, "game",
                            priv->game_label, "label",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "followed",
+    g_object_bind_property(self->channel, "followed",
                            priv->follow_button, "active",
                            G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
-    g_object_bind_property(priv->channel, "preview",
+    g_object_bind_property(self->channel, "preview",
                            priv->preview_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-    g_object_bind_property_full(priv->channel, "viewers",
+    g_object_bind_property_full(self->channel, "viewers",
                                 priv->viewers_label, "label",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) viewers_converter,
                                 NULL, NULL, NULL);
-    g_object_bind_property_full(priv->channel, "stream-started-time",
+    g_object_bind_property_full(self->channel, "stream-started-time",
                                 priv->time_label, "label",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) time_converter,
                                 NULL, NULL, NULL);
-    g_object_bind_property_full(priv->channel, "updating",
-                                priv->middle_stack, "visible-child-name",
+    g_object_bind_property_full(self->channel, "updating",
+                                priv->preview_stack, "visible-child-name",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) updating_converter,
                                 NULL, NULL, NULL);
+    g_object_bind_property(self->channel, "online",
+                           priv->viewers_label, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self->channel, "online",
+                           priv->viewers_image, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self->channel, "online",
+                           priv->time_label, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self->channel, "online",
+                           priv->time_image, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self->channel, "online",
+                           priv->play_image, "visible",
+                           G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    g_signal_connect(priv->channel, "notify::online", G_CALLBACK(online_cb), self);
+    g_signal_connect(self->channel, "notify::online", G_CALLBACK(online_cb), self);
 
     online_cb(NULL, NULL, self);
 
@@ -299,29 +292,27 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
                                       NUM_PROPS,
                                       props);
 
+    //TODO: Move these binds into code?
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_leave_cb);
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), follow_button_cb);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, name_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, game_label);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, event_box);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, middle_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_overlay_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_event_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, viewers_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, viewers_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, time_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, time_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, follow_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, middle_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, play_image);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, bottom_box);
 }
 
 static void
 gt_channels_container_child_init(GtChannelsContainerChild* self)
 {
-    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
-
-    g_signal_connect(self, "realize", G_CALLBACK(realise_cb), self);
-
     gtk_widget_init_template(GTK_WIDGET(self));
 }
 
@@ -330,5 +321,5 @@ gt_channels_container_child_hide_overlay(GtChannelsContainerChild* self)
 {
     GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
 
-    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->middle_revealer), FALSE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->preview_overlay_revealer), FALSE);
 }

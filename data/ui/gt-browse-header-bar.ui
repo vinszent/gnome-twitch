@@ -6,31 +6,22 @@
     </style>
     <property name="show-close-button">True</property>
     <child>
-      <object class="GtkRevealer" id="nav_buttons_revealer">
+      <object class="GtkRevealer" id="back_button_revealer">
         <property name="reveal-child">False</property>
         <property name="visible">True</property>
         <property name="transition-type">crossfade</property>
         <child>
-          <object class="GtkStack" id="nav_buttons_stack">
+          <object class="GtkButton" id="back_button">
             <property name="visible">True</property>
-            <property name="transition-type">crossfade</property>
+            <property name="action-name">win.go_back</property>
+            <style>
+              <class name="image-button"/>
+            </style>
             <child>
-              <object class="GtkButton" id="home_button">
+              <object class="GtkImage">
                 <property name="visible">True</property>
-                <property name="action-name">win.show_view_default</property>
-                <style>
-                  <class name="image-button"/>
-                </style>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="icon-name">go-previous-symbolic</property>
-                  </object>
-                </child>
+                <property name="icon-name">go-previous-symbolic</property>
               </object>
-              <packing>
-                <property name="name">home</property>
-              </packing>
             </child>
           </object>
         </child>
