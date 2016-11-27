@@ -19,8 +19,6 @@
 #define TAG "GtWin"
 #include "gnome-twitch/gt-log.h"
 
-#define MAIN_VISIBLE_CHILD gtk_stack_get_visible_child(GTK_STACK(priv->main_stack))
-
 typedef struct
 {
     gchar* msg;
@@ -354,30 +352,6 @@ show_channel_info_cb(GSimpleAction* action,
     g_object_unref(channel);
 }
 
-
-static void
-refresh_view_cb(GSimpleAction* action,
-                GVariant* arg,
-                gpointer udata)
-{
-    GtWin* self = GT_WIN(udata);
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-    GtkWidget* visible_child = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
-
-    /* if (visible_child == priv->channels_view) */
-    /*     gt_channels_view_refresh(GT_CHANNELS_VIEW(priv->channels_view)); */
-    /* else if (visible_child == priv->games_view) */
-    /*     gt_games_view_refresh(GT_GAMES_VIEW(priv->games_view)); */
-    /* else if (visible_child == priv->follows_view) */
-    /* { */
-    /*     //TODO: Quick hack, turn this into a proper refresh function */
-    /*     if (gt_app_credentials_valid(main_app)) */
-    /*         gt_follows_manager_load_from_twitch(main_app->fav_mgr); */
-    /*     else */
-    /*         gt_follows_manager_load_from_file(main_app->fav_mgr); */
-    /* } */
-}
-
 static void
 go_back_cb(GSimpleAction* action,
     GVariant* arg, gpointer udata)
@@ -394,6 +368,22 @@ go_back_cb(GSimpleAction* action,
     gt_container_view_go_back(GT_CONTAINER_VIEW(current_view));
 }
 
+static void
+refresh_cb(GSimpleAction* action,
+    GVariant* arg, gpointer udata)
+{
+    g_assert(GT_IS_WIN(udata));
+
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    GtkWidget* current_view = gtk_stack_get_visible_child(GTK_STACK(priv->browse_stack));
+
+    g_assert(GT_IS_CONTAINER_VIEW(current_view));
+
+    gt_container_view_refresh(GT_CONTAINER_VIEW(current_view));
+}
+
 static gboolean
 key_press_cb(GtkWidget* widget,
              GdkEventKey* evt,
@@ -402,12 +392,13 @@ key_press_cb(GtkWidget* widget,
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
+    GtkWidget* visible_child = gtk_stack_get_visible_child(GTK_STACK(priv->main_stack));
     gboolean playing;
-    GAction *action;
+    GAction *action = NULL;
 
     g_object_get(self->player, "playing", &playing, NULL);
 
-    if (MAIN_VISIBLE_CHILD == GTK_WIDGET(self->player))
+    if (visible_child == GTK_WIDGET(self->player))
     {
         if (evt->keyval == GDK_KEY_Escape)
         {
@@ -493,7 +484,7 @@ update_fullscreen(GtWin* self)
 
 static GActionEntry win_actions[] =
 {
-    {"refresh_view", refresh_view_cb, NULL, NULL, NULL},
+    {"refresh", refresh_cb, NULL, NULL, NULL},
     {"go_back", go_back_cb, NULL, NULL, NULL},
     {"show_about", show_about_cb, NULL, NULL, NULL},
     {"show_settings", show_settings_cb, NULL, NULL},

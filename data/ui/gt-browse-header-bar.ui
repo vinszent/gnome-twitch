@@ -42,7 +42,7 @@
             <child>
               <object class="GtkButton" id="refresh_button">
                 <property name="visible">True</property>
-                <property name="action-name">win.refresh_view</property>
+                <property name="action-name">win.refresh</property>
                 <style>
                   <class name="image-button"/>
                 </style>

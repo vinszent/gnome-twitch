@@ -26,6 +26,7 @@ GtkWidget* gt_container_view_get_container_stack(GtContainerView* self);
 GtkWidget* gt_container_view_get_search_entry(GtContainerView* self);
 GtkWidget* gt_container_view_get_search_bar(GtContainerView* self);
 void gt_container_view_go_back(GtContainerView* self);
+void gt_container_view_refresh(GtContainerView* self);
 
 G_END_DECLS
 

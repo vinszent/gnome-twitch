@@ -315,6 +315,7 @@ gt_item_container_append_items(GtItemContainer* self, GList* items)
     g_print("Length %d\n", g_list_length(items));
 }
 
+//TODO: Make this overridable, mainly for GtFollowedChannelContainer
 void
 gt_item_container_refresh(GtItemContainer* self)
 {

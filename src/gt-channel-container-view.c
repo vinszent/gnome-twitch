@@ -29,6 +29,22 @@ search_active_cb(GObject* obj,
 }
 
 static void
+refresh(GtContainerView* view)
+{
+    g_assert(GT_IS_CHANNEL_CONTAINER_VIEW(view));
+
+    GtChannelContainerView* self = GT_CHANNEL_CONTAINER_VIEW(view);
+    GtChannelContainerViewPrivate* priv = gt_channel_container_view_get_instance_private(self);
+
+    GtkWidget* container = gtk_stack_get_visible_child(
+        GTK_STACK(gt_container_view_get_container_stack(view)));
+
+    g_assert(GT_IS_ITEM_CONTAINER(container));
+
+    gt_item_container_refresh(GT_ITEM_CONTAINER(container));
+}
+
+static void
 constructed(GObject* obj)
 {
     GtChannelContainerView* self = GT_CHANNEL_CONTAINER_VIEW(obj);
@@ -52,6 +68,8 @@ static void
 gt_channel_container_view_class_init(GtChannelContainerViewClass* klass)
 {
     G_OBJECT_CLASS(klass)->constructed = constructed;
+
+    GT_CONTAINER_VIEW_CLASS(klass)->refresh = refresh;
 }
 
 static void

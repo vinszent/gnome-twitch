@@ -63,6 +63,23 @@ go_back(GtContainerView* view)
 }
 
 static void
+refresh(GtContainerView* view)
+{
+    g_assert(GT_IS_GAME_CONTAINER_VIEW(view));
+
+    GtGameContainerView* self = GT_GAME_CONTAINER_VIEW(view);
+    GtGameContainerViewPrivate* priv = gt_game_container_view_get_instance_private(self);
+
+    GtkWidget* container = gtk_stack_get_visible_child(
+        GTK_STACK(gt_container_view_get_container_stack(view)));
+
+    g_assert(GT_IS_ITEM_CONTAINER(container));
+
+    gt_item_container_refresh(GT_ITEM_CONTAINER(container));
+
+}
+
+static void
 constructed(GObject* obj)
 {
     GtGameContainerView* self = GT_GAME_CONTAINER_VIEW(obj);
@@ -93,6 +110,7 @@ gt_game_container_view_class_init(GtGameContainerViewClass* klass)
     G_OBJECT_CLASS(klass)->constructed = constructed;
 
     GT_CONTAINER_VIEW_CLASS(klass)->go_back = go_back;
+    GT_CONTAINER_VIEW_CLASS(klass)->refresh = refresh;
 }
 
 static void
