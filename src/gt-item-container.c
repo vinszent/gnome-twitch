@@ -8,6 +8,7 @@ typedef struct
 {
     GtkWidget* item_scroll;
     GtkWidget* item_flow;
+    GtkWidget* fetching_label;
     GtkWidget* empty_label;
     GtkWidget* empty_sub_label;
     GtkWidget* empty_image;
@@ -15,6 +16,10 @@ typedef struct
     gint child_width;
     gint child_height;
     gboolean append_extra;
+    gchar* empty_label_text;
+    gchar* empty_sub_label_text;
+    gchar* empty_image_name;
+    gchar* fetching_label_text;
 
     guint num_items;
     gboolean fetching_items;
@@ -66,6 +71,9 @@ fetch_items_cb(GObject* source,
         priv->num_items++;
     }
 
+    if (priv->num_items == 0)
+        gtk_stack_set_visible_child_name(GTK_STACK(self), "empty");
+
     gtk_widget_show_all(GTK_WIDGET(self));
 
     priv->fetching_items = FALSE;
@@ -96,6 +104,8 @@ fetch_items(GtItemContainer* self)
 
     priv->fetching_items = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
+
+    gtk_stack_set_visible_child_name(GTK_STACK(self), "main");
 
     guint columns = width / priv->child_width;
     guint rows = height / priv->child_height;
@@ -231,7 +241,13 @@ constructed(GObject* obj)
     /* G_OBJECT_GET_CLASS(gt_item_container_parent_class)->constructed(obj); */
 
     GT_ITEM_CONTAINER_GET_CLASS(self)->get_properties(self,
-        &priv->child_width, &priv->child_height, &priv->append_extra);
+        &priv->child_width, &priv->child_height, &priv->append_extra,
+        &priv->empty_label_text, &priv->empty_sub_label_text, &priv->empty_image_name, &priv->fetching_label_text);
+
+    gtk_label_set_text(GTK_LABEL(priv->empty_label), priv->empty_label_text);
+    gtk_label_set_text(GTK_LABEL(priv->empty_sub_label), priv->empty_sub_label_text);
+    gtk_label_set_text(GTK_LABEL(priv->fetching_label), priv->fetching_label_text);
+    gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), priv->empty_image_name, GTK_ICON_SIZE_DIALOG);
 
     //TODO: This should probably be connected to the window's size-allocate
     if (priv->append_extra)
@@ -264,6 +280,10 @@ gt_item_container_class_init(GtItemContainerClass* klass)
 
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, item_flow);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, item_scroll);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_sub_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, fetching_label);
 }
 
 static void

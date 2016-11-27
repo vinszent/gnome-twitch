@@ -14,7 +14,7 @@ struct _GtItemContainerClass
     GtkStackClass parent_class;
 
     /* Protected funcs */
-    void (*get_properties) (GtItemContainer* item_container, gint* child_width, gint* child_height, gboolean* append_extra);
+    void (*get_properties) (GtItemContainer* item_container, gint* child_width, gint* child_height, gboolean* append_extra, gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name, gchar** fetching_label_text);
     GTaskThreadFunc fetch_items;
     GtkWidget* (*create_child) (gpointer data);
     void (*activate_child) (GtItemContainer* item_container, gpointer child);

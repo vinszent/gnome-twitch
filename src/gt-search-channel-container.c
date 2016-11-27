@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include "gt-search-channel-container.h"
 #include "gt-top-channel-container.h"
 #include "gt-item-container.h"
@@ -35,11 +36,17 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 static void
-get_properties(GtItemContainer* self, gint* child_width, gint* child_height, gboolean* append_extra)
+get_properties(GtItemContainer* self,
+    gint* child_width, gint* child_height, gboolean* append_extra,
+    gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name, gchar** fetching_label_text)
 {
     *child_width = CHILD_WIDTH;
     *child_height = CHILD_HEIGHT;
     *append_extra = APPEND_EXTRA;
+    *empty_label_text = g_strdup(_("No channels found"));
+    *empty_sub_label_text = g_strdup(_("Try a different search"));
+    *empty_image_name = g_strdup("edit-find-symbolic");
+    *fetching_label_text = g_strdup(_("Fetching channels"));
 }
 
 static void

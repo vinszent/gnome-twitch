@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include "gt-game-channel-container.h"
 #include "gt-twitch.h"
 #include "gt-app.h"
@@ -25,11 +26,17 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 static void
-get_properties(GtItemContainer* self, gint* child_width, gint* child_height, gboolean* append_extra)
+get_properties(GtItemContainer* self,
+    gint* child_width, gint* child_height, gboolean* append_extra,
+    gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name, gchar** fetching_label_text)
 {
     *child_width = CHILD_WIDTH;
     *child_height = CHILD_HEIGHT;
     *append_extra = APPEND_EXTRA;
+    *empty_label_text = g_strdup(_("No channels found"));
+    *empty_sub_label_text = g_strdup(_("Nobody is currently streaming this game"));
+    *empty_image_name = g_strdup("face-plain-symbolic");
+    *fetching_label_text = g_strdup("Fetching channels");
 }
 
 static void

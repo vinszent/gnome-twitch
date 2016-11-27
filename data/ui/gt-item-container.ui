@@ -22,7 +22,7 @@
   <template class="GtItemContainer" parent="GtkStack">
     <property name="visible">true</property>
     <style>
-      <class name="ItemContainer"/>
+      <class name="gt-item-container"/>
     </style>
     <child>
       <object class="GtkScrolledWindow" id="item_scroll">

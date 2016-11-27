@@ -1,3 +1,4 @@
+#include <glib/gi18n.h>
 #include "gt-top-game-container.h"
 #include "gt-game.h"
 #include "gt-games-container-child.h"
@@ -17,11 +18,17 @@ typedef struct
 G_DEFINE_TYPE_WITH_PRIVATE(GtTopGameContainer, gt_top_game_container, GT_TYPE_ITEM_CONTAINER);
 
 static void
-get_properties(GtItemContainer* self, gint* child_width, gint* child_height, gboolean* append_extra)
+get_properties(GtItemContainer* self,
+    gint* child_width, gint* child_height, gboolean* append_extra,
+    gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name, gchar** fetching_label_text)
 {
     *child_width = CHILD_WIDTH;
     *child_height = CHILD_HEIGHT;
     *append_extra = APPEND_EXTRA;
+    *empty_label_text = g_strdup(_("No games found"));
+    *empty_sub_label_text = g_strdup(_("Probably an error occurred, try refreshing"));
+    *empty_image_name = g_strdup("view-refresh-symbolic");
+    *fetching_label_text = g_strdup("Fetching channels");
 }
 
 static void

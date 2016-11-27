@@ -111,15 +111,13 @@
     padding-right: 0px;
 }
 
-.empty-channels-box .empty-title,
-.empty-games-box .empty-title
+.gt-item-container #empty-label
 {
     font-weight: bold;
     font-size: large;
 }
 
-.empty-channels-box .empty-subtitle,
-.empty-games-box .empty-subtitle
+.gt-item-container #empty-sub-label
 {
     font-weight: lighter;
     font-size: small;
