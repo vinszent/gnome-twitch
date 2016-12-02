@@ -1,9 +1,9 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-#define GT_LOCALE_DIR "@LOCALE_DIR@"
-#define GT_LIB_DIR "@LIB_DIR@"
-#define CLIENT_ID "afjnp6n4ufzott4atb3xpb8l5a31aav"
+#mesondefine GT_LOCALE_DIR
+#mesondefine GT_LIB_DIR
 #mesondefine USE_DEPRECATED_WEBKIT
+#define CLIENT_ID "afjnp6n4ufzott4atb3xpb8l5a31aav"
 
 #endif
