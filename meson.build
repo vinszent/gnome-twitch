@@ -13,9 +13,7 @@ WITH_PLAYER_MPV_OPENGL = get_option('with-player-mpv-opengl')
 WITH_PLAYER_GSTREAMER_CAIRO = get_option('with-player-gstreamer-cairo')
 WITH_PLAYER_GSTREAMER_OPENGL = get_option('with-player-gstreamer-opengl')
 
-if get_option('do-post-install')
-    meson.add_install_script('meson_post_install.sh')
-endif
+meson.add_install_script('meson_post_install.sh')
 
 if WITH_PLAYER_GSTREAMER_CLUTTER
    subproject('player-backend-gstreamer-clutter')
