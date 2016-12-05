@@ -72,6 +72,7 @@ ninja install
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
 * [Ubuntu (courtesy of @Sunderland93)](https://launchpad.net/~samoilov-lex/+archive/ubuntu/gnome-twitch) (Same requirements as above)
 * [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/~nilarimogard/+archive/ubuntu/webupd8/+index?batch=75&memo=150&start=150) (Same requirements as above)
+* [Gentoo](https://github.com/TorArneThune/gnome-twitch-ebuild)
 
 ## Screenshots
 ![](/data/screenshots/scrot_player.png?raw=true)
