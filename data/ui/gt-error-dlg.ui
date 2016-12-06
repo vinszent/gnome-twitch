@@ -18,6 +18,7 @@
               <object class="GtkTextView" id="details_text_view">
                 <property name="visible">True</property>
                 <property name="wrap-mode">word</property>
+                <property name="monospace">true</property>
               </object>
             </child>
           </object>
