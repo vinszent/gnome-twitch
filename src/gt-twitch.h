@@ -22,6 +22,8 @@ typedef enum _GtTwitchError
     GT_TWITCH_ERROR_UNFOLLOW_CHANNEL,
     GT_TWITCH_ERROR_EMOTICON_IMAGES,
     GT_TWITCH_ERROR_OAUTH_INFO,
+    GT_TWITCH_ERROR_CHAT_BADGES,
+    GT_TWITCH_ERROR_SOUP,
 } GtTwitchError;
 
 typedef enum _GtTwitchStreamQuality
@@ -88,6 +90,13 @@ typedef struct _GtChatBadges
     GdkPixbuf* turbo;
     GdkPixbuf* subscriber;
 } GtChatBadges;
+
+typedef struct
+{
+    gchar* name;
+    gchar* version;
+    GdkPixbuf* pixbuf;
+} GtChatBadge;
 
 typedef enum _GtTwitchChannelInfoPanelType
 {
@@ -158,6 +167,11 @@ void                       gt_twitch_emoticons_async(GtTwitch* self, const char*
 void                       gt_twitch_oauth_info_free(GtTwitchOAuthInfo* info);
 GtTwitchOAuthInfo*         gt_twitch_oauth_info(GtTwitch* self, GError** error);
 void                       gt_twitch_oauth_info_async(GtTwitch* self, GAsyncReadyCallback cb, gpointer udata);
+GList*                     gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err);
+void                       gt_twitch_fetch_chat_badges_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList*                     gt_twitch_fetch_chat_badges_finish(GtTwitch* self, GAsyncResult* result, GError** err);
+void                       gt_chat_badge_free(GtChatBadge* badge);
+void                       gt_chat_badge_list_free(GList* list);
 
 G_END_DECLS
 

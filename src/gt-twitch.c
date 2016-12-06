@@ -18,24 +18,26 @@
 //TODO: Use https://streams.twitch.tv/kraken/streams/{channel}?stream_type=all instead to get is_playlist info
 //TODO: Use https://tmi.twitch.tv/servers?channel=%s to get chat server info
 
-#define ACCESS_TOKEN_URI     "http://api.twitch.tv/api/channels/%s/access_token"
-#define STREAM_PLAYLIST_URI  "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
-#define TOP_CHANNELS_URI     "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
-#define TOP_GAMES_URI        "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
-#define SEARCH_CHANNELS_URI  "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
-#define SEARCH_GAMES_URI     "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
-#define STREAMS_URI          "https://api.twitch.tv/kraken/streams/%s"
-#define CHANNELS_URI         "https://api.twitch.tv/kraken/channels/%s"
-#define CHAT_BADGES_URI      "https://api.twitch.tv/kraken/chat/%s/badges/"
-#define TWITCH_EMOTE_URI     "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
-#define CHANNEL_INFO_URI     "http://api.twitch.tv/api/channels/%s/panels"
-#define CHAT_SERVERS_URI     "https://api.twitch.tv/api/channels/%s/chat_properties"
-#define FOLLOWS_URI          "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
-#define FOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
-#define UNFOLLOW_CHANNEL_URI "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
-#define USER_EMOTICONS_URI   "https://api.twitch.tv/kraken/users/%s/emotes"
-#define EMOTICON_IMAGES_URI  "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
-#define OAUTH_INFO_URI       "https://api.twitch.tv/kraken?oauth_token=%s"
+#define ACCESS_TOKEN_URI       "http://api.twitch.tv/api/channels/%s/access_token"
+#define STREAM_PLAYLIST_URI    "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
+#define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
+#define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
+#define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
+#define SEARCH_GAMES_URI       "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
+#define STREAMS_URI            "https://api.twitch.tv/kraken/streams/%s"
+#define CHANNELS_URI           "https://api.twitch.tv/kraken/channels/%s"
+#define CHAT_BADGES_URI        "https://api.twitch.tv/kraken/chat/%s/badges/"
+#define TWITCH_EMOTE_URI       "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
+#define CHANNEL_INFO_URI       "http://api.twitch.tv/api/channels/%s/panels"
+#define CHAT_SERVERS_URI       "https://api.twitch.tv/api/channels/%s/chat_properties"
+#define FOLLOWS_URI            "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
+#define FOLLOW_CHANNEL_URI     "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define UNFOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
+#define USER_EMOTICONS_URI     "https://api.twitch.tv/kraken/users/%s/emotes"
+#define EMOTICON_IMAGES_URI    "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
+#define OAUTH_INFO_URI         "https://api.twitch.tv/kraken?oauth_token=%s"
+#define GLOBAL_CHAT_BADGES_URI "https://badges.twitch.tv/v1/badges/global/display"
+#define NEW_CHAT_BADGES_URI    "https://badges.twitch.tv/v1/badges/channels/%s/display"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -1397,6 +1399,163 @@ gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
     g_object_unref(task);
 }
 
+GList*
+gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(name));
+
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    gchar* uri = NULL;
+    SoupMessage* msg = NULL;
+    JsonParser* parser;
+    JsonNode* node;
+    JsonReader* reader;
+    GList* ret = NULL;
+    GError* e = NULL;
+
+    INFO("Fetching chat badges");
+
+    uri = g_strcmp0(name, "global") == 0 ? g_strdup_printf(GLOBAL_CHAT_BADGES_URI) :
+        g_strdup_printf(NEW_CHAT_BADGES_URI, name);
+
+    msg = soup_message_new("GET", uri);
+
+    new_send_message(self, msg, &e);
+
+    if (e)
+    {
+        WARNING("Error fetching chat badges, unable to send message");
+
+        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_CHAT_BADGES, "Unable to fetch chat badges because: %s", e->message);
+
+        g_error_free(e);
+
+        goto finish;
+    }
+
+    parser = json_parser_new();
+    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &e);
+
+    if (e)
+    {
+        WARNING("Error fetching chat badges, unable to parse json");
+
+        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_CHAT_BADGES, "Unable to parse json");
+
+        g_error_free(e);
+
+        goto finish;
+    }
+
+    node = json_parser_get_root(parser);
+    reader = json_reader_new(node);
+
+    json_reader_read_member(reader, "badge_sets");
+
+    for (gint i = 0; i < json_reader_count_members(reader); i++)
+    {
+        json_reader_read_element(reader, i);
+
+        const gchar* name = json_reader_get_member_name(reader);
+
+        json_reader_read_member(reader, "versions");
+
+        for (gint j = 0; j < json_reader_count_members(reader); j++)
+        {
+            GtChatBadge* badge = g_new(GtChatBadge, 1);
+
+            json_reader_read_element(reader, j);
+
+            badge->name = g_strdup(name);
+            badge->version = g_strdup(json_reader_get_member_name(reader));
+
+            g_print("Badge %s %s\n", badge->name, badge->version);
+
+            json_reader_read_member(reader, "image_url_1x");
+            badge->pixbuf = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+            json_reader_end_member(reader);
+
+            json_reader_end_element(reader);
+
+            ret = g_list_append(ret, badge);
+        }
+
+        json_reader_end_member(reader);
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+finish:
+    g_free(uri);
+    g_object_unref(msg);
+
+    return ret;
+}
+
+void
+fetch_chat_badges_async_cb(GTask* task,
+    gpointer source, gpointer task_data, GCancellable* cancel)
+{
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GenericTaskData* data;
+    GList* ret = NULL;
+    GError* err = NULL;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    data = task_data;
+
+    ret = gt_twitch_fetch_chat_badges(GT_TWITCH(source), data->str_1, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_badge_list_free);
+}
+
+void
+gt_twitch_fetch_chat_badges_async(GtTwitch* self, const gchar* name,
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(name));
+
+    GTask* task;
+    GenericTaskData* data;
+
+    task = g_task_new(self, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->str_1 = g_strdup(name);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, fetch_chat_badges_async_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_fetch_chat_badges_finish(GtTwitch* self,
+    GAsyncResult* result, GError** err)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_TASK(result));
+
+    GList* ret = NULL;
+
+    ret = g_task_propagate_pointer(G_TASK(result), err);
+
+    return ret;
+}
+
 static GtTwitchChannelInfoPanel*
 gt_twitch_channel_info_panel_new()
 {
@@ -2259,4 +2418,21 @@ gt_twitch_oauth_info_async(GtTwitch* self,
     g_task_run_in_thread(task, user_name_async_cb);
 
     g_object_unref(task);
+}
+
+void
+gt_chat_badge_free(GtChatBadge* badge)
+{
+    g_assert_nonnull(badge);
+
+    g_free(badge->name);
+    g_free(badge->version);
+    g_object_unref(badge->pixbuf);
+    g_free(badge);
+}
+
+void
+gt_chat_badge_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_chat_badge_free);
 }
