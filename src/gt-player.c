@@ -1,3 +1,5 @@
+#include <libpeas-gtk/peas-gtk.h>
+#include <glib/gi18n.h>
 #include "gt-player.h"
 #include "gt-twitch.h"
 #include "gt-win.h"
@@ -5,8 +7,6 @@
 #include "gt-enums.h"
 #include "gt-chat.h"
 #include "gnome-twitch/gt-player-backend.h"
-#include <libpeas-gtk/peas-gtk.h>
-#include <glib/gi18n.h>
 #include "utils.h"
 
 #define TAG "GtPlayer"
@@ -55,7 +55,7 @@ typedef struct
     guint mouse_source;
 } GtPlayerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_BIN)
+G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_EVENT_BOX)
 
 enum
 {
@@ -890,8 +890,11 @@ gt_player_stop(GtPlayer* self)
 void
 gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 {
+    g_assert(GT_IS_PLAYER(self));
+    g_assert(GT_IS_CHANNEL(chan));
+
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    gchar* name;
+    const gchar* name = gt_channel_get_name(chan);
     gchar* token;
     gchar* sig;
     GVariant* default_quality;
@@ -912,11 +915,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
 
-    g_object_get(chan,
-                 "name", &name,
-                 NULL);
-
-    gt_chat_connect(GT_CHAT(priv->chat_view), name);
+    gt_chat_connect(GT_CHAT(priv->chat_view), chan);
 
     default_quality = g_settings_get_value(main_app->settings, "default-quality");
     priv->quality = g_settings_get_enum(main_app->settings, "default-quality");
@@ -951,8 +950,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     g_signal_handlers_unblock_by_func(self, chat_settings_changed_cb, self);
 
     gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
-
-    g_free(name);
 }
 
 void
@@ -960,9 +957,9 @@ gt_player_close_channel(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    g_object_set(self, "channel", NULL, NULL);
-
     gt_chat_disconnect(GT_CHAT(priv->chat_view));
+
+    g_object_set(self, "channel", NULL, NULL);
 
     gt_player_stop(self);
 
@@ -999,4 +996,14 @@ gt_player_toggle_muted(GtPlayer* self)
 
     g_object_get(self, "muted", &muted, NULL);
     g_object_set(self, "muted", !muted, NULL);
+}
+
+GtChannel*
+gt_player_get_channel(GtPlayer* self)
+{
+    g_assert(GT_IS_PLAYER(self));
+
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    return priv->channel;
 }
