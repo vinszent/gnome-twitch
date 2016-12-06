@@ -192,14 +192,44 @@ send_message(GtTwitch* self, SoupMessage* msg)
 
     if (ret)
         TRACEF("Received response from url '%s' with code '%d' and body '%s'",
-               uri, msg->status_code, msg->response_body->data);
+            uri, msg->status_code, msg->response_body->data);
     else
         WARNINGF("Received unsuccessful response from url '%s' with code '%d' and body '%s'",
-                 uri, msg->status_code, msg->response_body->data);
+            uri, msg->status_code, msg->response_body->data);
 
     g_free(uri);
 
     return ret;
+}
+
+static void
+new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
+{
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
+
+    DEBUGF("Sending message to uri '%s'", uri);
+
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+
+    soup_session_send_message(priv->soup, msg);
+
+    if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code))
+    {
+        TRACEF("Received response from url '%s' with code '%d' and body '%s'",
+               uri, msg->status_code, msg->response_body->data);
+    }
+    else
+    {
+        WARNINGF("Received unsuccessful response from url '%s' with code '%d' and body '%s'",
+                 uri, msg->status_code, msg->response_body->data);
+
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP,
+            _("Received unsuccessful response from url '%s' with code '%d' and body '%s'"),
+            uri, msg->status_code, msg->response_body->data);
+    }
+
+    g_free(uri);
 }
 
 static GDateTime*
