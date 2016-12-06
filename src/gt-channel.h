@@ -21,6 +21,7 @@ void gt_channel_toggle_followed(GtChannel* self);
 void gt_channel_list_free(GList* list);
 gboolean gt_channel_compare(GtChannel* self, gpointer other);
 const gchar* gt_channel_get_name(GtChannel* self);
+gint64 gt_channel_get_id(GtChannel* self);
 gboolean gt_channel_update(GtChannel* self);
 
 G_END_DECLS

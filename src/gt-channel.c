@@ -710,9 +710,21 @@ gt_channel_compare(GtChannel* self,
 const gchar*
 gt_channel_get_name(GtChannel* self)
 {
+    g_assert(GT_IS_CHANNEL(self));
+
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     return priv->name;
+}
+
+gint64
+gt_channel_get_id(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->id;
 }
 
 gboolean
