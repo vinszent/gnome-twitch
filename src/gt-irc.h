@@ -2,12 +2,25 @@
 #define GT_IRC_H
 
 #include <gtk/gtk.h>
+#include "gt-channel.h"
 
 G_BEGIN_DECLS
 
 #define GT_TYPE_IRC gt_irc_get_type()
 
-G_DECLARE_FINAL_TYPE(GtIrc, gt_irc, GT, IRC, GObject)
+G_DECLARE_FINAL_TYPE(GtIrc, gt_irc, GT, IRC, GObject);
+
+typedef enum
+{
+    GT_IRC_STATE_DISCONNECTED,
+    GT_IRC_STATE_CONNECTED,
+    GT_IRC_STATE_LOGGED_IN,
+    GT_IRC_STATE_JOINED,
+} GtIrcState;
+
+#define GT_TYPE_IRC_STATE gt_irc_state_get_type()
+
+GType gt_irc_state_get_type();
 
 typedef enum
 {
@@ -51,6 +64,21 @@ typedef struct
 #define IRC_USER_MODE_TURBO       1 << 6
 #define IRC_USER_MODE_SUBSCRIBER  1 << 7
 
+enum
+{
+    IRC_BADGE_SUBSCRIBER_0 = 1 << 0,
+    IRC_BADGE_SUBSCRIBER_3 = 1 << 1,
+    IRC_BADGE_SUBSCRIBER_6 = 1 << 2,
+    IRC_BADGE_SUBSCRIBER_12 = 1 << 3,
+    IRC_BADGE_SUBSCRIBER_24 = 1 << 4,
+    IRC_BADGE_STAFF = 1 << 5,
+    IRC_BADGE_ADMIN = 1 << 6,
+    IRC_BADGE_GLOBAL_MOD = 1 << 7,
+    IRC_BADGE_MOD = 1 << 8,
+    IRC_BADGE_TURBO = 1 << 9,
+    IRC_BADGE_PRIME = 1 << 10
+};
+
 typedef struct
 {
     gint id;
@@ -65,10 +93,18 @@ typedef struct
 
 typedef struct
 {
+    gchar* name;
+    gchar* version;
+    GdkPixbuf* pixbuf;
+} GtBadge;
+
+typedef struct
+{
     gchar* target;
     gchar* msg;
     gint user_modes;
     gchar* display_name;
+    GList* badges;
     GList* emotes;
     gchar* colour;
 } GtIrcCommandPrivmsg;
@@ -168,19 +204,18 @@ struct _GtIrc
     GtTwitchChatSource* source;
 };
 
-GtIrc*   gt_irc_new();
-void     gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
-void     gt_irc_disconnect(GtIrc* self);
-void     gt_irc_join(GtIrc* self, const gchar* channel);
-void     gt_irc_connect_and_join(GtIrc* self, const gchar* chan);
-void     gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-void     gt_irc_part(GtIrc* self);
-void     gt_irc_privmsg(GtIrc* self, const gchar* msg);
-gboolean gt_irc_is_connected(GtIrc* self);
-gboolean gt_irc_is_logged_in(GtIrc* self);
-void     gt_irc_message_free(GtIrcMessage* msg);
-void     gt_emote_free(GtEmote* emote);
-void     gt_emote_list_free(GList* emote);
+GtIrc*     gt_irc_new();
+void       gt_irc_connect(GtIrc* self, const gchar* host, int port, const gchar* oauth_token, const gchar* nick);
+void       gt_irc_disconnect(GtIrc* self);
+void       gt_irc_join(GtIrc* self, const gchar* channel);
+void       gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan);
+void       gt_irc_connect_and_join_channel_async(GtIrc* self, GtChannel* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+void       gt_irc_part(GtIrc* self);
+void       gt_irc_privmsg(GtIrc* self, const gchar* msg);
+GtIrcState gt_irc_get_state(GtIrc* self);
+void       gt_irc_message_free(GtIrcMessage* msg);
+void       gt_emote_free(GtEmote* emote);
+void       gt_emote_list_free(GList* emote);
 
 G_END_DECLS
 

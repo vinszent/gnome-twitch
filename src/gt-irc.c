@@ -1,9 +1,11 @@
-#include "gt-irc.h"
-#include "gt-app.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib/gprintf.h>
+#include <glib/gi18n.h>
+#include "gt-irc.h"
+#include "gt-win.h"
+#include "gt-app.h"
 #include "utils.h"
 
 #define TAG "GtIrc"
@@ -58,10 +60,17 @@ typedef struct
     GThread* worker_thread_recv;
     GThread* worker_thread_send;
 
-    gchar* cur_chan;
-    gboolean connected;
+    GHashTable* emote_table;
+    GHashTable* badge_table;
+
+    GtChannel* chan;
+    gchar* chan_id_str;
+
+    GtIrcState state;
     gboolean recv_logged_in;
     gboolean send_logged_in;
+
+    GMutex mutex;
 } GtIrcPrivate;
 
 struct _GtTwitchChatSource
@@ -83,7 +92,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtIrc, gt_irc, G_TYPE_OBJECT)
 enum
 {
     PROP_0,
-    PROP_LOGGED_IN,
+    PROP_STATE,
     NUM_PROPS
 };
 
@@ -97,11 +106,23 @@ static GParamSpec* props[NUM_PROPS];
 
 static guint sigs[NUM_SIGS];
 
-GtIrc*
-gt_irc_new()
+static const GEnumValue gt_irc_state_enum_values[] =
 {
-    return g_object_new(GT_TYPE_IRC,
-                        NULL);
+    {GT_IRC_STATE_DISCONNECTED, "GT_IRC_STATE_DISCONNECTED", "disconnected"},
+    {GT_IRC_STATE_CONNECTED, "GT_IRC_STATE_CONNECTED", "connected"},
+    {GT_IRC_STATE_LOGGED_IN, "GT_IRC_STATE_LOGGED_IN", "logged-in"},
+    {GT_IRC_STATE_JOINED, "GT_IRC_STATE_JOINED", "joined"},
+};
+
+GType
+gt_irc_state_get_type()
+{
+    static GType type = 0;
+
+    if (!type)
+        type = g_enum_register_static("GtIrcState", gt_irc_state_enum_values);
+
+    return type;
 }
 
 static gboolean
@@ -335,6 +356,8 @@ parse_line(GtIrc* self, gchar* line)
 
     TRACEF("Received line='%s'", line);
 
+    /* g_print("%s\n", line); */
+
     if (line[0] == '@')
     {
         line = line+1;
@@ -398,6 +421,42 @@ parse_line(GtIrc* self, gchar* line)
             else if (g_strcmp0(user_type, "staff") == 0) user_modes |= IRC_USER_MODE_STAFF;
 
             msg->cmd.privmsg->user_modes = user_modes;
+
+            const gchar* badges = utils_search_key_value_strv(msg->tags, "badges");
+
+            g_assert_nonnull(badges);
+
+            gchar** badgesv = g_strsplit(badges, ",", -1);
+
+            for (gchar** c = badgesv; *c != NULL; c++)
+            {
+                gchar** badgev = g_strsplit(*c, "/", -1);
+
+                const gchar* name = *badgev;
+                const gchar* version = *(badgev+1);
+
+                gchar* global_badge_name = g_strdup_printf("%s%s%s",
+                    "global", name, version);
+                gchar* channel_badge_name = g_strdup_printf("%s%s%s",
+                    priv->chan_id_str, name, version);
+
+                GtBadge* badge = NULL;
+
+                if (g_hash_table_contains(priv->badge_table, channel_badge_name))
+                    badge = g_hash_table_lookup(priv->badge_table, channel_badge_name);
+                else if (g_hash_table_contains(priv->badge_table, global_badge_name))
+                    badge = g_hash_table_lookup(priv->badge_table, global_badge_name);
+
+                g_assert_nonnull(badge); //TODO: Replace this with an error
+
+                msg->cmd.privmsg->badges = g_list_append(msg->cmd.privmsg->badges, badge);
+
+                g_free(global_badge_name);
+                g_free(channel_badge_name);
+                g_strfreev(badgev);
+            }
+
+            g_strfreev(badgesv);
 
             msg->cmd.privmsg->colour = g_strdup(utils_search_key_value_strv(msg->tags, "color"));
             msg->cmd.privmsg->display_name = g_strdup(utils_search_key_value_strv(msg->tags, "display-name"));
@@ -495,8 +554,16 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
             {
                 priv->recv_logged_in = TRUE;
 
-                if (priv->send_logged_in)
-                    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+                g_mutex_lock(&priv->mutex);
+
+                if (priv->state == GT_IRC_STATE_CONNECTED &&
+                    priv->send_logged_in)
+                {
+                    priv->state = GT_IRC_STATE_LOGGED_IN;
+                    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
+                }
+
+                g_mutex_unlock(&priv->mutex);
             }
             else
             {
@@ -522,7 +589,7 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
         }
         else
         {
-            if (priv->cur_chan) g_async_queue_push(self->source->queue, msg);
+            if (priv->chan) g_async_queue_push(self->source->queue, msg);
         }
     }
     else if (ostream == priv->ostream_send)
@@ -533,8 +600,16 @@ handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
             {
                 priv->send_logged_in = TRUE;
 
-                if (priv->recv_logged_in)
-                    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+                g_mutex_lock(&priv->mutex);
+
+                if (priv->state == GT_IRC_STATE_CONNECTED &&
+                    priv->recv_logged_in)
+                {
+                    priv->state = GT_IRC_STATE_LOGGED_IN;
+                    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
+                }
+
+                g_mutex_unlock(&priv->mutex);
             }
             else
             {
@@ -580,7 +655,7 @@ read_lines(ChatThreadData* data)
     for (gchar* line = g_data_input_stream_read_line(data->istream, &read, NULL, &err); !err;
          line = g_data_input_stream_read_line(data->istream, &read, NULL, &err))
     {
-        if (!priv->connected)
+        if (priv->state < GT_IRC_STATE_CONNECTED)
             break;
 
         if (line)
@@ -591,6 +666,7 @@ read_lines(ChatThreadData* data)
                 break;
         }
     }
+
     if (data->istream == priv->istream_recv)
         INFO("Stopping chat worker thread for receive");
     else if (data->istream == priv->istream_send)
@@ -603,6 +679,34 @@ error_encountered_cb(GtIrc* self,
                      gpointer udata)
 {
     gt_irc_disconnect(self);
+}
+
+static void
+logged_in_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    g_assert(GT_IS_IRC(source));
+
+    GtIrc* self = GT_IRC(source);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
+
+    if (priv->state == GT_IRC_STATE_LOGGED_IN)
+    {
+        gt_irc_join(self, gt_channel_get_name(priv->chan));
+
+        g_signal_handlers_disconnect_by_func(self, logged_in_cb, self);
+    }
+}
+
+static void
+dispose(GObject* obj)
+{
+    GtIrc* self = GT_IRC(obj);
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
+
+    g_hash_table_unref(priv->badge_table);
+
+    G_OBJECT_CLASS(gt_irc_parent_class)->dispose(obj);
 }
 
 static void
@@ -619,6 +723,43 @@ finalise(GObject* obj)
 }
 
 static void
+fetch_badges(GtIrc* self, const gchar* name)
+{
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
+    GList* badges = NULL;
+    GError* error = NULL;
+
+    g_assert_false(g_hash_table_contains(priv->badge_table, name));
+
+    g_hash_table_insert(priv->badge_table, g_strdup(name), NULL); /* To keep track of badge sets */
+
+    badges = gt_twitch_fetch_chat_badges(main_app->twitch, name, &error);
+
+    if (error)
+    {
+        WARNINGF("Unable to connect to chat for channel %s", name);
+
+        gt_win_show_error_message(GT_WIN_ACTIVE, _("Unable to connect to chat for channel"), error->message);
+
+        g_error_free(error);
+
+        return;
+    }
+
+    for (GList* l = badges; l != NULL; l = l->next)
+    {
+        g_assert_nonnull(l->data);
+
+        GtChatBadge* badge = l->data;
+
+        //NOTE: Will be freed by the GHashTable
+        gchar* badge_name = g_strdup_printf("%s%s%s", name, badge->name, badge->version);
+
+        g_hash_table_insert(priv->badge_table, badge_name, badge);
+    }
+}
+
+static void
 get_property(GObject* obj,
              guint prop,
              GValue* val,
@@ -629,8 +770,8 @@ get_property(GObject* obj,
 
     switch (prop)
     {
-        case PROP_LOGGED_IN:
-            g_value_set_boolean(val, priv->recv_logged_in && priv->send_logged_in);
+        case PROP_STATE:
+            g_value_set_enum(val, priv->state);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -661,6 +802,7 @@ gt_irc_class_init(GtIrcClass* klass)
     obj_class->finalize = finalise;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
+    obj_class->dispose = dispose;
 
     sigs[SIG_ERROR_ENCOUNTERED] = g_signal_new("error-encountered",
                                                GT_TYPE_IRC,
@@ -670,11 +812,8 @@ gt_irc_class_init(GtIrcClass* klass)
                                                G_TYPE_NONE,
                                                1, G_TYPE_ERROR);
 
-    props[PROP_LOGGED_IN] = g_param_spec_boolean("logged-in",
-                                                 "Logged In",
-                                                 "Whether logged in",
-                                                 FALSE,
-                                                 G_PARAM_READABLE);
+    props[PROP_STATE] = g_param_spec_enum("state", "State", "Current state",
+        GT_TYPE_IRC_STATE, GT_IRC_STATE_DISCONNECTED, G_PARAM_READABLE);
 
     g_object_class_install_properties(obj_class, NUM_PROPS, props);
 }
@@ -684,9 +823,13 @@ gt_irc_init(GtIrc* self)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    priv->connected = FALSE;
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
+    priv->state = GT_IRC_STATE_DISCONNECTED;
+
+    g_mutex_init(&priv->mutex);
+
+    priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
@@ -696,8 +839,8 @@ gt_irc_init(GtIrc* self)
 
 void
 gt_irc_connect(GtIrc* self,
-               const gchar* host, int port,
-               const gchar* oauth_token, const gchar* nick)
+    const gchar* host, int port,
+    const gchar* oauth_token, const gchar* nick)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
@@ -729,7 +872,8 @@ gt_irc_connect(GtIrc* self,
         goto cleanup;
     }
 
-    priv->connected = TRUE;
+    priv->state = GT_IRC_STATE_CONNECTED;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 
     priv->istream_recv = g_data_input_stream_new(g_io_stream_get_input_stream(G_IO_STREAM(priv->irc_conn_recv)));
     g_data_input_stream_set_newline_type(priv->istream_recv, G_DATA_STREAM_NEWLINE_TYPE_CR_LF);
@@ -784,36 +928,42 @@ cleanup:
 void
 gt_irc_disconnect(GtIrc* self)
 {
+    g_assert(GT_IS_IRC(self));
+
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    if (priv->connected)
-    {
-        if (priv->cur_chan) gt_irc_part(self);
+    g_assert(priv->state >= GT_IRC_STATE_CONNECTED);
 
-        priv->connected = FALSE;
-        priv->recv_logged_in = FALSE;
-        priv->send_logged_in = FALSE;
+    if (priv->state >= GT_IRC_STATE_LOGGED_IN)
+        gt_irc_part(self);
 
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+    MESSAGE("Disconnecting");
 
-        MESSAGE("Disconnecting");
+    priv->state = GT_IRC_STATE_DISCONNECTED;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
-        g_clear_object(&priv->irc_conn_recv);
+    g_clear_object(&priv->irc_conn_recv);
 //        g_clear_object(&priv->istream_recv);
 //        g_clear_object(&priv->ostream_recv);
-        g_clear_object(&priv->irc_conn_send);
+    g_clear_object(&priv->irc_conn_send);
 //        g_clear_object(&priv->istream_send);
 //        g_clear_object(&priv->ostream_send);
-        g_thread_unref(priv->worker_thread_recv);
-        g_thread_unref(priv->worker_thread_send);
-    }
+
+    g_thread_unref(priv->worker_thread_recv);
+    g_thread_unref(priv->worker_thread_send);
+
+    g_object_unref(priv->chan);
+    g_free(priv->chan_id_str);
 
     self->source->resetting_queue = TRUE;
     g_async_queue_unref(self->source->queue);
     self->source->queue = g_async_queue_new_full((GDestroyNotify) gt_irc_message_free);
     self->source->resetting_queue = FALSE;
+
+    priv->recv_logged_in = FALSE;
+    priv->send_logged_in = FALSE;
 
 }
 
@@ -823,95 +973,127 @@ gt_irc_join(GtIrc* self, const gchar* channel)
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gchar* chan = NULL;
 
-    g_return_if_fail(priv->connected);
+    g_assert(priv->state == GT_IRC_STATE_LOGGED_IN);
 
     if (channel[0] != '#')
         chan = g_strdup_printf("#%s", channel);
     else
         chan = g_strdup(channel);
 
-    priv->cur_chan = chan;
-
     MESSAGEF("Joining with channel='%s'", chan);
 
     send_cmd(priv->ostream_recv, CHAT_CMD_STR_JOIN, chan);
     send_cmd(priv->ostream_send, CHAT_CMD_STR_JOIN, chan);
+
+    priv->state = GT_IRC_STATE_JOINED;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 }
 
 void
 gt_irc_part(GtIrc* self)
 {
+    g_assert(GT_IS_IRC(self));
+
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
+    const gchar* name;
 
-    g_return_if_fail(priv->connected);
-    g_return_if_fail(priv->cur_chan != NULL);
+    g_assert_true(priv->state >= GT_IRC_STATE_JOINED);
 
-    MESSAGEF("Parting with channel='%s'", priv->cur_chan);
-    send_cmd(priv->ostream_recv, CHAT_CMD_STR_PART, priv->cur_chan);
-    send_cmd(priv->ostream_send, CHAT_CMD_STR_PART, priv->cur_chan);
+    name = gt_channel_get_name(priv->chan);
 
-    g_clear_pointer(&priv->cur_chan, (GDestroyNotify) g_free);
+    MESSAGEF("Parting with channel='%s'", name);
 
+    send_cmd(priv->ostream_recv, CHAT_CMD_STR_PART, name);
+    send_cmd(priv->ostream_send, CHAT_CMD_STR_PART, name);
+
+    priv->state = GT_IRC_STATE_LOGGED_IN;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 }
 
-//TODO: Async version
 void
-gt_irc_connect_and_join(GtIrc* self, const gchar* chan)
+gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 {
+    g_assert(GT_IS_IRC(self));
+    g_assert(GT_IS_CHANNEL(chan));
+
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     GList* servers = NULL;
     gint pos = 0;
     gchar host[20];
     gint port;
+    const gchar* name;
+    static gboolean fetched_global_badges = FALSE;
 
-    g_return_if_fail(!priv->connected);
+    g_assert(priv->state == GT_IRC_STATE_DISCONNECTED);
 
-    servers = gt_twitch_chat_servers(main_app->twitch, chan);
+    priv->chan = g_object_ref(chan);
+
+    if (!fetched_global_badges)
+    {
+        fetch_badges(self, "global");
+        fetched_global_badges = TRUE;
+    }
+
+    priv->chan_id_str = g_strdup_printf("%ld", gt_channel_get_id(chan));
+
+    if (!g_hash_table_contains(priv->badge_table, priv->chan_id_str))
+        fetch_badges(self, priv->chan_id_str);
+
+    name = gt_channel_get_name(chan);
+
+    servers = gt_twitch_chat_servers(main_app->twitch, name);
 
     pos = g_random_int() % g_list_length(servers);
 
     sscanf((gchar*) g_list_nth(servers, pos)->data, "%[^:]:%d", host, &port);
 
-    gt_irc_connect(self, host, port,
-                   gt_app_get_oauth_token(main_app),
-                   gt_app_get_user_name(main_app));
+    g_signal_connect(self, "notify::state", G_CALLBACK(logged_in_cb), self);
 
-    gt_irc_join(self, chan);
+    gt_irc_connect(self, host, port,
+        gt_app_get_oauth_token(main_app),
+        gt_app_get_user_name(main_app));
 
     g_list_free_full(servers, g_free);
 }
 
 static void
-connect_and_join_async_cb(GTask* task,
-                          gpointer source,
-                          gpointer task_data,
-                          GCancellable* cancel)
+connect_and_join_channel_async(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(G_IS_TASK(task));
+    g_assert(GT_IS_IRC(source));
+    g_assert(GT_IS_CHANNEL(task_data));
+
     GtIrc* self = GT_IRC(source);
-    gchar* chan;
+    GtChannel* chan = task_data;
 
     if (g_task_return_error_if_cancelled(task))
-        return;
+        goto finish;
 
-    chan = task_data;
+    gt_irc_connect_and_join_channel(self, chan);
 
-    gt_irc_connect_and_join(self, chan);
+finish:
+    g_object_unref(chan);
 }
 
 void
-gt_irc_connect_and_join_async(GtIrc* self, const gchar* chan,
-                                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+gt_irc_connect_and_join_channel_async(GtIrc* self, GtChannel* chan,
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
-    GTask* task;
+    g_assert(GT_IS_IRC(self));
+    g_assert(GT_IS_CHANNEL(chan));
+
+    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
+    GTask* task = NULL;
+
+    g_assert_false(priv->state == GT_IRC_STATE_CONNECTED);
 
     task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
-    g_task_set_task_data(task, g_strdup(chan), (GDestroyNotify) g_free);
+    g_task_set_task_data(task, g_object_ref(chan), (GDestroyNotify) g_object_unref);
 
-    g_task_run_in_thread(task, connect_and_join_async_cb);
-
-    g_object_unref(task);
+    g_task_run_in_thread(task, connect_and_join_channel_async);
 }
 
 void
@@ -919,25 +1101,20 @@ gt_irc_privmsg(GtIrc* self, const gchar* msg)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    g_return_if_fail(priv->connected);
+    g_assert(priv->state >= GT_IRC_STATE_JOINED);
 
-    send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "%s :%s", priv->cur_chan, msg);
+    send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "%s :%s",
+        gt_channel_get_name(priv->chan), msg);
 }
 
-gboolean
-gt_irc_is_connected(GtIrc* self)
+GtIrcState
+gt_irc_get_state(GtIrc* self)
 {
+    g_assert(GT_IS_IRC(self));
+
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    return priv->connected;
-}
-
-gboolean
-gt_irc_is_logged_in(GtIrc* self)
-{
-    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
-
-    return priv->recv_logged_in && priv->send_logged_in;
+    return priv->state;
 }
 
 void
@@ -1022,4 +1199,11 @@ void
 gt_emote_list_free(GList* list)
 {
     g_list_free_full(list, (GDestroyNotify) gt_emote_free);
+}
+
+GtIrc*
+gt_irc_new()
+{
+    return g_object_new(GT_TYPE_IRC,
+                        NULL);
 }
