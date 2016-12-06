@@ -2,6 +2,7 @@
 #define GT_CHAT_H
 
 #include <gtk/gtk.h>
+#include "gt-channel.h"
 
 G_BEGIN_DECLS
 
@@ -15,7 +16,7 @@ struct _GtChat
 };
 
 GtChat* gt_chat_new();
-void gt_chat_connect(GtChat* self, const gchar* chan);
+void gt_chat_connect(GtChat* self, GtChannel* chan);
 void gt_chat_disconnect(GtChat* self);
 
 G_END_DECLS
