@@ -8,7 +8,7 @@ Enjoy Twitch on your GNU/Linux desktop.
 
 ## Install
 ### Dependencies
-* meson >= 0.32.0 (install only)
+* meson >= 0.36.0 (install only)
 * ninja (install only)
 * gtk+-3.0 >= 3.20
 * libsoup
@@ -33,15 +33,12 @@ Same as above plus:
 
 _Note: If you undo commit [c4b4955](https://github.com/vinszent/gnome-twitch/commit/c4b49557dfed8465f273f2b5490002607baa5182) then gtk+-3.0 >= 3.16 can be used_
 
-_Note: If you undo commit [6382b8b](https://github.com/vinszent/gnome-twitch/commit/6382b8b918306306da0c014cedb8f314ecd66a93) then meson => 0.26.0 can be used_
-
 ### From source
 
 ``` shell
-mkdir build
-cd build
-meson --prefix /usr --libdir lib -Ddo-post-install=true -Dwith-player-gstreamer-cairo=true -Db_lundef=false ..
-ninja install
+meson build -Dwith-player-gstreamer-cairo=true
+ninja -C build
+sudo ninja -C build install
 ```
 
 ### Install extra player backends
@@ -49,18 +46,17 @@ ninja install
 
 ``` shell
 cd subprojects/${gt-player-backend-you-want}
-mkdir build
-cd build
-meson --prefix /usr --libdir lib ..
-sudo ninja install
+meson build
+ninja -C build
+sudo ninja -C build install
 ```
 #### Local install
 
 Same as the root install but instead change the last two lines to:
 
 ``` shell
-meson --prefix ~/.local --libdir share ..
-ninja install
+meson build --prefix=$HOME/.local
+ninja -C build install
 ```
 
 ### Packages
@@ -69,6 +65,7 @@ ninja install
 * [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian (courtesy of @dengelt)](https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
+* [Flatpak](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-FlatPak-package)
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
 * [Ubuntu (courtesy of @Sunderland93)](https://launchpad.net/~samoilov-lex/+archive/ubuntu/gnome-twitch) (Same requirements as above)
 * [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/~nilarimogard/+archive/ubuntu/webupd8/+index?batch=75&memo=150&start=150) (Same requirements as above)
