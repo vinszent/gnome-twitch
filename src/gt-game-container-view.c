@@ -29,7 +29,11 @@ search_active_cb(GObject* obj,
     g_assert(GTK_IS_STACK(container_stack));
 
     if (gt_container_view_get_search_active(GT_CONTAINER_VIEW(self)))
+    {
+        g_object_set(self, "show-back-button", FALSE, NULL);
+
         gtk_stack_set_visible_child(GTK_STACK(container_stack), GTK_WIDGET(priv->search_container));
+    }
     else
         gtk_stack_set_visible_child(GTK_STACK(container_stack), GTK_WIDGET(priv->top_container));
 }
