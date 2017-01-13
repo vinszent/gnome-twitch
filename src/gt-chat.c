@@ -67,10 +67,9 @@ typedef struct
     GtChatBadges* chat_badges;
     GCancellable* chat_badges_cancel;
 
-    GHashTable* badges_table;
-    GHashTable* emote_table;
-
     GtIrc* irc;
+    GCancellable* irc_cancel;
+    guint irc_disconnected_source;
     GtChannel* chan;
 
     gboolean chat_sticky;
@@ -78,6 +77,7 @@ typedef struct
     GRegex* url_regex;
 
     GMutex mutex;
+
 } GtChatPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChat, gt_chat, GTK_TYPE_BOX)
@@ -763,6 +763,8 @@ gt_chat_init(GtChat* self)
     priv->chat_adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(priv->chat_scroll));
 
     priv->irc = gt_irc_new();
+    priv->irc_cancel = g_cancellable_new();
+    priv->irc_disconnected_source = 0;
     priv->chan = NULL;
 
     priv->joined_channel = FALSE;
@@ -770,6 +772,7 @@ gt_chat_init(GtChat* self)
 
     priv->url_regex = g_regex_new("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)",
                                   G_REGEX_OPTIMIZE, 0, NULL);
+
 
     g_signal_connect(priv->chat_entry, "key-press-event", G_CALLBACK(key_press_cb), self);
     utils_signal_connect_oneshot(self, "hierarchy-changed", G_CALLBACK(anchored_cb), self);
@@ -798,6 +801,26 @@ gt_chat_init(GtChat* self)
     ADD_STYLE_CLASS(self, "gt-chat");
 }
 
+static void
+disconnected_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    g_assert(GT_IS_CHAT(udata));
+    g_assert(GT_IS_IRC(source));
+
+    GtChat* self = GT_CHAT(udata);
+    GtChatPrivate* priv = gt_chat_get_instance_private(self);
+
+    if (gt_irc_get_state(priv->irc) == GT_IRC_STATE_DISCONNECTED)
+    {
+        gt_irc_connect_and_join_channel_async(priv->irc, priv->chan,
+            priv->irc_cancel, NULL, NULL);
+
+        g_signal_handler_disconnect(priv->irc, priv->irc_disconnected_source);
+        priv->irc_disconnected_source = 0;
+    }
+}
+
 void
 gt_chat_connect(GtChat* self, GtChannel* chan)
 {
@@ -806,31 +829,46 @@ gt_chat_connect(GtChat* self, GtChannel* chan)
 
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    GtIrcState state = gt_irc_get_state(priv->irc);
-
-    g_assert(state == GT_IRC_STATE_DISCONNECTED);
-
     priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
 
     priv->chan = g_object_ref(chan);
 
-    /* TODO: This should be cancelled if we disconnect before we are
-     * connected */
-    gt_irc_connect_and_join_channel_async(priv->irc, priv->chan,
-        NULL, NULL, NULL);
+    GtIrcState state = gt_irc_get_state(priv->irc);
+
+    utils_refresh_cancellable(&priv->irc_cancel);
+
+    if (state == GT_IRC_STATE_CONNECTING)
+    {
+        if (priv->irc_disconnected_source > 0)
+            g_signal_handler_disconnect(priv->irc, priv->irc_disconnected_source);
+
+        priv->irc_disconnected_source = g_signal_connect(priv->irc, "notify::state",
+            G_CALLBACK(disconnected_cb), self);
+    }
+    else
+    {
+        gt_irc_connect_and_join_channel_async(priv->irc, priv->chan,
+            priv->irc_cancel, NULL, NULL);
+    }
 }
 
 void
 gt_chat_disconnect(GtChat* self)
 {
+    INFO("Disconnecting");
+
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
     priv->joined_channel = FALSE;
 
     GtIrcState state = gt_irc_get_state(priv->irc);
 
-    if (state > GT_IRC_STATE_DISCONNECTED)
+    g_print("State %d %d\n", state, GT_IRC_STATE_DISCONNECTED);
+
+    if (state == GT_IRC_STATE_CONNECTING)
+        g_cancellable_cancel(priv->irc_cancel);
+    else if (state > GT_IRC_STATE_CONNECTING)
         gt_irc_disconnect(priv->irc);
 
     g_object_unref(priv->chan);

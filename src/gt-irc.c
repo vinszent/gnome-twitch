@@ -109,6 +109,7 @@ static guint sigs[NUM_SIGS];
 static const GEnumValue gt_irc_state_enum_values[] =
 {
     {GT_IRC_STATE_DISCONNECTED, "GT_IRC_STATE_DISCONNECTED", "disconnected"},
+    {GT_IRC_STATE_CONNECTING, "GT_IRC_STATE_CONNECTING", "connecting"},
     {GT_IRC_STATE_CONNECTED, "GT_IRC_STATE_CONNECTED", "connected"},
     {GT_IRC_STATE_LOGGED_IN, "GT_IRC_STATE_LOGGED_IN", "logged-in"},
     {GT_IRC_STATE_JOINED, "GT_IRC_STATE_JOINED", "joined"},
@@ -930,14 +931,14 @@ gt_irc_disconnect(GtIrc* self)
 {
     g_assert(GT_IS_IRC(self));
 
+    MESSAGE("Disconnecting");
+
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    g_assert(priv->state >= GT_IRC_STATE_CONNECTED);
+    g_assert(priv->state > GT_IRC_STATE_DISCONNECTED);
 
     if (priv->state >= GT_IRC_STATE_LOGGED_IN)
         gt_irc_part(self);
-
-    MESSAGE("Disconnecting");
 
     priv->state = GT_IRC_STATE_DISCONNECTED;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
@@ -1026,6 +1027,9 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     g_assert(priv->state == GT_IRC_STATE_DISCONNECTED);
 
+    priv->state = GT_IRC_STATE_CONNECTING;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
+
     priv->chan = g_object_ref(chan);
 
     if (!fetched_global_badges)
@@ -1057,7 +1061,7 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 }
 
 static void
-connect_and_join_channel_async(GTask* task, gpointer source,
+connect_and_join_channel_async_cb(GTask* task, gpointer source,
     gpointer task_data, GCancellable* cancel)
 {
     g_assert(G_IS_TASK(task));
@@ -1067,10 +1071,10 @@ connect_and_join_channel_async(GTask* task, gpointer source,
     GtIrc* self = GT_IRC(source);
     GtChannel* chan = task_data;
 
-    if (g_task_return_error_if_cancelled(task))
-        goto finish;
-
     gt_irc_connect_and_join_channel(self, chan);
+
+    if (g_task_return_error_if_cancelled(task))
+        gt_irc_disconnect(self);
 
 finish:
     g_object_unref(chan);
@@ -1093,7 +1097,7 @@ gt_irc_connect_and_join_channel_async(GtIrc* self, GtChannel* chan,
 
     g_task_set_task_data(task, g_object_ref(chan), (GDestroyNotify) g_object_unref);
 
-    g_task_run_in_thread(task, connect_and_join_channel_async);
+    g_task_run_in_thread(task, connect_and_join_channel_async_cb);
 }
 
 void
