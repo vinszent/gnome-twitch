@@ -135,7 +135,15 @@ filter_by_name(GtkFlowBoxChild* _child,
     if (!priv->query)
         ret = TRUE;
     else
-        ret = g_strrstr(gt_channel_get_name(child->channel), priv->query) != NULL;
+    {
+        gchar* name = g_utf8_casefold(gt_channel_get_name(child->channel), -1);
+        gchar* query = g_utf8_casefold(priv->query, -1);
+
+        ret = g_strrstr(name, query) != NULL;
+
+        g_free(name);
+        g_free(query);
+    }
 
     return ret;
 }
