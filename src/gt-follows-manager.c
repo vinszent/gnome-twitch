@@ -186,12 +186,16 @@ channel_followed_cb(GObject* source,
             }
         }
 
+        // Remove the link before the signal is emitted
+        self->follow_channels = g_list_remove_link(self->follow_channels, found);
+
         MESSAGEF("Unfollowed channel '%s'", gt_channel_get_name(chan));
 
         g_signal_emit(self, sigs[SIG_CHANNEL_UNFOLLOWED], 0, found->data);
 
+        // Unref here so that the GtChannel has a ref while the signal is being emitted
         g_clear_object(&found->data);
-        self->follow_channels = g_list_delete_link(self->follow_channels, found);
+        g_list_free(found);
     }
 }
 

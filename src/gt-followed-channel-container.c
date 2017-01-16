@@ -77,8 +77,6 @@ fetch_items(GTask* task,
 
     g_assert_nonnull(data);
 
-    g_print("Returning %d\n", g_list_length(main_app->fav_mgr->follow_channels));
-
     g_task_return_pointer(task, main_app->fav_mgr->follow_channels, NULL);
 }
 
@@ -90,6 +88,34 @@ finished_loading_follows_cb(GtFollowsManager* mgr,
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
+
+    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+}
+
+static void
+channel_followed_cb(GtFollowsManager* mgr,
+    GtChannel* chan, gpointer udata)
+{
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    g_assert(GT_IS_CHANNEL(chan));
+    g_assert(GT_IS_FOLLOWS_MANAGER(mgr));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
+
+    //TODO: Ideally we should just add the channel instead of refreshing
+    // the entire container.
+    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+}
+
+static void
+channel_unfollowed_cb(GtFollowsManager* mgr,
+    GtChannel* chan, gpointer udata)
+{
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    g_assert(GT_IS_CHANNEL(chan));
+    g_assert(GT_IS_FOLLOWS_MANAGER(mgr));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
 }
@@ -167,7 +193,10 @@ constructed(GObject* obj)
         (GtkFlowBoxFilterFunc) filter_by_name,
         self, NULL);
 
+    //TODO: Need to refresh everytime a channel is followed or unfollowed
     g_signal_connect(main_app->fav_mgr, "finished-loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_followed_cb), self);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
 }
