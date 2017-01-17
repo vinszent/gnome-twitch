@@ -60,11 +60,7 @@ typedef struct
     GThread* worker_thread_recv;
     GThread* worker_thread_send;
 
-    GHashTable* emote_table;
-    GHashTable* badge_table;
-
     GtChannel* chan;
-    gchar* chan_id_str;
 
     GtIrcState state;
     gboolean recv_logged_in;
@@ -432,28 +428,17 @@ parse_line(GtIrc* self, gchar* line)
             for (gchar** c = badgesv; *c != NULL; c++)
             {
                 gchar** badgev = g_strsplit(*c, "/", -1);
-
                 const gchar* name = *badgev;
                 const gchar* version = *(badgev+1);
+                GError* err = NULL;
 
-                gchar* global_badge_name = g_strdup_printf("%s%s%s",
-                    "global", name, version);
-                gchar* channel_badge_name = g_strdup_printf("%s%s%s",
-                    priv->chan_id_str, name, version);
+                GtChatBadge* badge = gt_twitch_fetch_chat_badge(main_app->twitch,
+                    gt_channel_get_id(priv->chan), name, version, &err);
 
-                GtBadge* badge = NULL;
-
-                if (g_hash_table_contains(priv->badge_table, channel_badge_name))
-                    badge = g_hash_table_lookup(priv->badge_table, channel_badge_name);
-                else if (g_hash_table_contains(priv->badge_table, global_badge_name))
-                    badge = g_hash_table_lookup(priv->badge_table, global_badge_name);
-
-                g_assert_nonnull(badge); //TODO: Replace this with an error
+                g_assert_null(err); //TODO: Propagate the error further
 
                 msg->cmd.privmsg->badges = g_list_append(msg->cmd.privmsg->badges, badge);
 
-                g_free(global_badge_name);
-                g_free(channel_badge_name);
                 g_strfreev(badgev);
             }
 
@@ -477,11 +462,12 @@ parse_line(GtIrc* self, gchar* line)
 
                 while ((i = strsep(&indexes, ",")) != NULL)
                 {
+                    GdkPixbuf* pixbuf = NULL;
                     GtEmote* emp = g_new0(GtEmote, 1);
                     emp->start = atoi(strsep(&i, "-"));
                     emp->end = atoi(strsep(&i, "-"));
                     emp->id = id;
-                    emp->pixbuf = gt_twitch_download_emote(main_app->twitch, id);
+                    emp->pixbuf = gt_twitch_download_emote(main_app->twitch, emp->id);
 
                     msg->cmd.privmsg->emotes = g_list_append(msg->cmd.privmsg->emotes, emp);
                 }
@@ -700,17 +686,6 @@ logged_in_cb(GObject* source,
 }
 
 static void
-dispose(GObject* obj)
-{
-    GtIrc* self = GT_IRC(obj);
-    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
-
-    g_hash_table_unref(priv->badge_table);
-
-    G_OBJECT_CLASS(gt_irc_parent_class)->dispose(obj);
-}
-
-static void
 finalise(GObject* obj)
 {
     GtIrc* self = GT_IRC(obj);
@@ -721,43 +696,6 @@ finalise(GObject* obj)
     gt_irc_disconnect(self);
 
     //TODO: Free other stuff
-}
-
-static void
-fetch_badges(GtIrc* self, const gchar* name)
-{
-    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
-    GList* badges = NULL;
-    GError* error = NULL;
-
-    g_assert_false(g_hash_table_contains(priv->badge_table, name));
-
-    g_hash_table_insert(priv->badge_table, g_strdup(name), NULL); /* To keep track of badge sets */
-
-    badges = gt_twitch_fetch_chat_badges(main_app->twitch, name, &error);
-
-    if (error)
-    {
-        WARNINGF("Unable to connect to chat for channel %s", name);
-
-        gt_win_show_error_message(GT_WIN_ACTIVE, _("Unable to connect to chat for channel"), error->message);
-
-        g_error_free(error);
-
-        return;
-    }
-
-    for (GList* l = badges; l != NULL; l = l->next)
-    {
-        g_assert_nonnull(l->data);
-
-        GtChatBadge* badge = l->data;
-
-        //NOTE: Will be freed by the GHashTable
-        gchar* badge_name = g_strdup_printf("%s%s%s", name, badge->name, badge->version);
-
-        g_hash_table_insert(priv->badge_table, badge_name, badge);
-    }
 }
 
 static void
@@ -803,7 +741,6 @@ gt_irc_class_init(GtIrcClass* klass)
     obj_class->finalize = finalise;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
-    obj_class->dispose = dispose;
 
     sigs[SIG_ERROR_ENCOUNTERED] = g_signal_new("error-encountered",
                                                GT_TYPE_IRC,
@@ -829,8 +766,6 @@ gt_irc_init(GtIrc* self)
     priv->state = GT_IRC_STATE_DISCONNECTED;
 
     g_mutex_init(&priv->mutex);
-
-    priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
 
     self->source = gt_twitch_chat_source_new();
     g_source_attach((GSource*) self->source, g_main_context_default());
@@ -956,7 +891,6 @@ gt_irc_disconnect(GtIrc* self)
     g_thread_unref(priv->worker_thread_send);
 
     g_object_unref(priv->chan);
-    g_free(priv->chan_id_str);
 
     self->source->resetting_queue = TRUE;
     g_async_queue_unref(self->source->queue);
@@ -1022,8 +956,6 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
     gint pos = 0;
     gchar host[20];
     gint port;
-    const gchar* name;
-    static gboolean fetched_global_badges = FALSE;
 
     g_assert(priv->state == GT_IRC_STATE_DISCONNECTED);
 
@@ -1032,20 +964,10 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     priv->chan = g_object_ref(chan);
 
-    if (!fetched_global_badges)
-    {
-        fetch_badges(self, "global");
-        fetched_global_badges = TRUE;
-    }
+    //TODO: Use an error here
+    gt_twitch_load_chat_badge_sets_for_channel(main_app->twitch, gt_channel_get_id(priv->chan), NULL);
 
-    priv->chan_id_str = g_strdup_printf("%ld", gt_channel_get_id(chan));
-
-    if (!g_hash_table_contains(priv->badge_table, priv->chan_id_str))
-        fetch_badges(self, priv->chan_id_str);
-
-    name = gt_channel_get_name(chan);
-
-    servers = gt_twitch_chat_servers(main_app->twitch, name);
+    servers = gt_twitch_chat_servers(main_app->twitch, gt_channel_get_name(chan));
 
     pos = g_random_int() % g_list_length(servers);
 
@@ -1076,7 +998,6 @@ connect_and_join_channel_async_cb(GTask* task, gpointer source,
     if (g_task_return_error_if_cancelled(task))
         gt_irc_disconnect(self);
 
-finish:
     g_object_unref(chan);
 }
 

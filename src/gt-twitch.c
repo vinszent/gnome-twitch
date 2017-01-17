@@ -48,6 +48,7 @@ typedef struct
     SoupSession* soup;
 
     GHashTable* emote_table;
+    GHashTable* badge_table;
 } GtTwitchPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
@@ -174,7 +175,8 @@ gt_twitch_init(GtTwitch* self)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     priv->soup = soup_session_new();
-    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal);
+    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal); //TODO: Use the full version of this
+    priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
 }
 
 static gboolean
@@ -1247,6 +1249,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
     }
 
     ret = GDK_PIXBUF(g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id)));
+
     g_object_ref(ret);
 
     return ret;
@@ -1399,11 +1402,11 @@ gt_twitch_chat_badges_async(GtTwitch* self, const gchar* channel,
     g_object_unref(task);
 }
 
-GList*
-gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
+static void
+fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** err)
 {
     g_assert(GT_IS_TWITCH(self));
-    g_assert_false(utils_str_empty(name));
+    g_assert_false(utils_str_empty(set_name));
 
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     gchar* uri = NULL;
@@ -1411,13 +1414,16 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
     JsonParser* parser;
     JsonNode* node;
     JsonReader* reader;
-    GList* ret = NULL;
     GError* e = NULL;
 
-    INFO("Fetching chat badges");
+    g_assert_false(g_hash_table_contains(priv->badge_table, set_name));
 
-    uri = g_strcmp0(name, "global") == 0 ? g_strdup_printf(GLOBAL_CHAT_BADGES_URI) :
-        g_strdup_printf(NEW_CHAT_BADGES_URI, name);
+    g_hash_table_add(priv->badge_table, g_strdup(set_name)); //NOTE: This will be freed by the hash table when it's destroyed
+
+    INFOF("Fetching chat badge set with name '%s'", set_name);
+
+    uri = g_strcmp0(set_name, "global") == 0 ? g_strdup_printf(GLOBAL_CHAT_BADGES_URI) :
+        g_strdup_printf(NEW_CHAT_BADGES_URI, set_name);
 
     msg = soup_message_new("GET", uri);
 
@@ -1427,7 +1433,7 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
     {
         WARNING("Error fetching chat badges, unable to send message");
 
-        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_CHAT_BADGES, "Unable to fetch chat badges because: %s", e->message);
+        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE_SET, "Unable to fetch chat badges because: %s", e->message);
 
         g_error_free(e);
 
@@ -1441,7 +1447,7 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
     {
         WARNING("Error fetching chat badges, unable to parse json");
 
-        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_CHAT_BADGES, "Unable to parse json");
+        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE_SET, "Unable to parse json because: %s", e->message);
 
         g_error_free(e);
 
@@ -1457,20 +1463,19 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
     {
         json_reader_read_element(reader, i);
 
-        const gchar* name = json_reader_get_member_name(reader);
+        const gchar* badge_name = json_reader_get_member_name(reader);
 
         json_reader_read_member(reader, "versions");
 
         for (gint j = 0; j < json_reader_count_members(reader); j++)
         {
             GtChatBadge* badge = g_new(GtChatBadge, 1);
+            gchar* key = NULL;
 
             json_reader_read_element(reader, j);
 
-            badge->name = g_strdup(name);
+            badge->name = g_strdup(badge_name);
             badge->version = g_strdup(json_reader_get_member_name(reader));
-
-            g_print("Badge %s %s\n", badge->name, badge->version);
 
             json_reader_read_member(reader, "image_url_1x");
             badge->pixbuf = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
@@ -1478,7 +1483,15 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
 
             json_reader_end_element(reader);
 
-            ret = g_list_append(ret, badge);
+            // Don't need to free this as it's freed by the hash table when it's destroyed.
+            key = g_strdup_printf("%s-%s-%s", set_name, badge->name, badge->version);
+
+            g_assert_false(g_hash_table_contains(priv->badge_table, key));
+
+            g_hash_table_insert(priv->badge_table, key, badge);
+
+            DEBUGF("Downloaded emote for set '%s' with name '%s' and version '%s'", set_name,
+                badge->name, badge->version);
         }
 
         json_reader_end_member(reader);
@@ -1490,20 +1503,105 @@ gt_twitch_fetch_chat_badges(GtTwitch* self, const char* name, GError** err)
 finish:
     g_free(uri);
     g_object_unref(msg);
+}
 
+void
+gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GError** err)
+{
+    g_assert(GT_IS_TWITCH(self));
+
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    gchar* id_str = g_strdup_printf("%ld", chan_id);
+
+#define FETCH_BADGE_SET(s)                                              \
+    if (!g_hash_table_contains(priv->badge_table, s))                   \
+    {                                                                   \
+        GError* e = NULL;                                               \
+                                                                        \
+        fetch_chat_badge_set(self, s, &e);                              \
+                                                                        \
+        if (e)                                                          \
+        {                                                               \
+            WARNINGF("Unable to load chat badge sets for channel '%ld'", \
+                chan_id);                                               \
+                                                                        \
+            g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE, \
+                "Unable to load chat badge sets for channel '%ld' because: %s", \
+                chan_id, e->message);                                   \
+                                                                        \
+            g_free(e);                                                  \
+        }                                                               \
+    }                                                                   \
+
+    FETCH_BADGE_SET("global");
+    FETCH_BADGE_SET(id_str);
+
+#undef FETCH_BADGE_SET
+}
+
+// NOTE: This will automatically download any badge sets if they
+// aren't already
+GtChatBadge*
+gt_twitch_fetch_chat_badge(GtTwitch* self,
+    gint64 chan_id, const gchar* badge_name,
+    const gchar* version, GError** err)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(badge_name));
+    g_assert_false(utils_str_empty(version));
+
+    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    gchar* global_key = NULL;
+    gchar* chan_key = NULL;
+    gchar* id_str = NULL;
+    GtChatBadge* ret = NULL;
+    GError* e = NULL;
+
+    gt_twitch_load_chat_badge_sets_for_channel(self, chan_id, &e);
+
+    if (e)
+    {
+        WARNINGF("Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s'",
+            chan_id, badge_name, version);
+
+        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE,
+            "Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: %s",
+            chan_id, badge_name, version, e->message);
+
+        g_free(e);
+
+        goto finish;
+    }
+
+    id_str = g_strdup_printf("%ld", chan_id);
+
+    global_key = g_strdup_printf("global-%s-%s", badge_name, version);
+    chan_key = g_strdup_printf("%s-%s-%s", id_str, badge_name, version);
+
+    if (g_hash_table_contains(priv->badge_table, chan_key))
+        ret = g_hash_table_lookup(priv->badge_table, chan_key);
+    else if (g_hash_table_contains(priv->badge_table, global_key))
+        ret = g_hash_table_lookup(priv->badge_table, global_key);
+
+    g_assert_nonnull(ret); //NOTE: We might as well crash here as the badge being null would lead to many problems
+    g_free(global_key);
+    g_free(chan_key);
+    g_free(id_str);
+
+finish:
     return ret;
 }
 
 void
-fetch_chat_badges_async_cb(GTask* task,
-    gpointer source, gpointer task_data, GCancellable* cancel)
+fetch_chat_badge_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
     g_assert(GT_IS_TWITCH(source));
     g_assert(G_IS_TASK(task));
     g_assert_nonnull(task_data);
 
     GenericTaskData* data;
-    GList* ret = NULL;
+    GtChatBadge* ret = NULL;
     GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
@@ -1511,7 +1609,8 @@ fetch_chat_badges_async_cb(GTask* task,
 
     data = task_data;
 
-    ret = gt_twitch_fetch_chat_badges(GT_TWITCH(source), data->str_1, &err);
+    ret = gt_twitch_fetch_chat_badge(GT_TWITCH(source),
+        data->int_1, data->str_1, data->str_2, &err);
 
     if (err)
         g_task_return_error(task, err);
@@ -1520,11 +1619,13 @@ fetch_chat_badges_async_cb(GTask* task,
 }
 
 void
-gt_twitch_fetch_chat_badges_async(GtTwitch* self, const gchar* name,
+gt_twitch_fetch_chat_badge_async(GtTwitch* self,
+    gint64 chan_id, const gchar* badge_name, const gchar* version,
     GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     g_assert(GT_IS_TWITCH(self));
-    g_assert_false(utils_str_empty(name));
+    g_assert_false(utils_str_empty(badge_name));
+    g_assert_false(utils_str_empty(version));
 
     GTask* task;
     GenericTaskData* data;
@@ -1533,23 +1634,25 @@ gt_twitch_fetch_chat_badges_async(GtTwitch* self, const gchar* name,
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->str_1 = g_strdup(name);
+    data->int_1 = chan_id;
+    data->str_1 = g_strdup(badge_name);
+    data->str_2 = g_strdup(version);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
-    g_task_run_in_thread(task, fetch_chat_badges_async_cb);
+    g_task_run_in_thread(task, fetch_chat_badge_async_cb);
 
     g_object_unref(task);
 }
 
-GList*
-gt_twitch_fetch_chat_badges_finish(GtTwitch* self,
+GtChatBadge*
+gt_twitch_fetch_chat_badge_finish(GtTwitch* self,
     GAsyncResult* result, GError** err)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert(G_IS_TASK(result));
 
-    GList* ret = NULL;
+    GtChatBadge* ret = NULL;
 
     ret = g_task_propagate_pointer(G_TASK(result), err);
 
