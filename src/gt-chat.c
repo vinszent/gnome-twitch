@@ -64,9 +64,6 @@ typedef struct
 
     GtkCssProvider* chat_css_provider;
 
-    GtChatBadges* chat_badges;
-    GCancellable* chat_badges_cancel;
-
     GtIrc* irc;
     GCancellable* irc_cancel;
     guint irc_disconnected_source;
