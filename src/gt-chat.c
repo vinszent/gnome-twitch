@@ -170,7 +170,7 @@ emote_icon_press_cb(GtkEntry* entry,
 }
 
 static gint
-int_compare(const GtEmote* a, const GtEmote* b)
+int_compare(const GtChatEmote* a, const GtChatEmote* b)
 {
     return a->id - b->id;
 }
@@ -200,7 +200,11 @@ emoticons_cb(GObject* source,
 
     for (GList* l = emoticons; l != NULL; l = l->next)
     {
-        GtEmote* emote = l->data;
+        GtChatEmote* emote = l->data;
+
+        g_assert_nonnull(emote);
+        g_assert(GDK_IS_PIXBUF(emote->pixbuf));
+
         GtkWidget* image = gtk_image_new_from_pixbuf(emote->pixbuf);
         gchar* code = NULL;;
 
@@ -219,7 +223,7 @@ emoticons_cb(GObject* source,
         gtk_flow_box_insert(GTK_FLOW_BOX(priv->emote_flow), image, -1);
     }
 
-    gt_emote_list_free(emoticons);
+    gt_chat_emote_list_free(emoticons);
 }
 
 static gboolean
@@ -303,11 +307,12 @@ irc_source_cb(GtIrcMessage* msg,
         gchar* c = g_utf8_offset_to_pointer(privmsg->msg, 0);
         gchar* d = g_utf8_offset_to_pointer(privmsg->msg, 1);
         GList* l = privmsg->emotes;
-        GtEmote* emote = NULL;
         for (gint i = 0; i < g_utf8_strlen(privmsg->msg, -1);
              ++i, c = g_utf8_offset_to_pointer(privmsg->msg, i),
                  d = g_utf8_offset_to_pointer(privmsg->msg, i + 1))
         {
+            GtChatEmote* emote = NULL;
+
             if (l) emote = l->data;
 
             if (emote && i == emote->start)
@@ -860,8 +865,6 @@ gt_chat_disconnect(GtChat* self)
     priv->joined_channel = FALSE;
 
     GtIrcState state = gt_irc_get_state(priv->irc);
-
-    g_print("State %d %d\n", state, GT_IRC_STATE_DISCONNECTED);
 
     if (state == GT_IRC_STATE_CONNECTING)
         g_cancellable_cancel(priv->irc_cancel);

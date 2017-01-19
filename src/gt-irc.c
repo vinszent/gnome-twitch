@@ -332,7 +332,7 @@ chat_reply_str_to_enum(const gchar* str_reply)
 }
 
 gint
-emote_compare(const GtEmote* a, const GtEmote* b)
+emote_compare(const GtChatEmote* a, const GtChatEmote* b)
 {
     if (a->start < b->start)
         return -1;
@@ -463,7 +463,7 @@ parse_line(GtIrc* self, gchar* line)
                 while ((i = strsep(&indexes, ",")) != NULL)
                 {
                     GdkPixbuf* pixbuf = NULL;
-                    GtEmote* emp = g_new0(GtEmote, 1);
+                    GtChatEmote* emp = gt_chat_emote_new();
                     emp->start = atoi(strsep(&i, "-"));
                     emp->end = atoi(strsep(&i, "-"));
                     emp->id = id;
@@ -1066,7 +1066,7 @@ gt_irc_message_free(GtIrcMessage* msg)
             g_free(msg->cmd.privmsg->target);
             g_free(msg->cmd.privmsg->colour);
             g_free(msg->cmd.privmsg->display_name);
-            g_list_free_full(msg->cmd.privmsg->emotes, (GDestroyNotify) gt_emote_free);
+            gt_chat_emote_list_free(msg->cmd.privmsg->emotes);
             g_free(msg->cmd.privmsg);
             break;
         case GT_IRC_COMMAND_REPLY:
@@ -1111,19 +1111,6 @@ gt_irc_message_free(GtIrcMessage* msg)
     }
 
     g_free(msg);
-}
-
-void
-gt_emote_free(GtEmote* emote)
-{
-    g_object_unref(emote->pixbuf);
-    g_clear_pointer(&emote, g_free);
-}
-
-void
-gt_emote_list_free(GList* list)
-{
-    g_list_free_full(list, (GDestroyNotify) gt_emote_free);
 }
 
 GtIrc*

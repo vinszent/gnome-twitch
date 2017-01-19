@@ -82,25 +82,6 @@ enum
 
 typedef struct
 {
-    gint id;
-    gchar* code;
-    gint set;
-    GdkPixbuf* pixbuf;
-
-    // These are only set if coming from GtIrc
-    gint start;
-    gint end;
-} GtEmote;
-
-typedef struct
-{
-    gchar* name;
-    gchar* version;
-    GdkPixbuf* pixbuf;
-} GtBadge;
-
-typedef struct
-{
     gchar* target;
     gchar* msg;
     gint user_modes;
@@ -215,8 +196,6 @@ void       gt_irc_part(GtIrc* self);
 void       gt_irc_privmsg(GtIrc* self, const gchar* msg);
 GtIrcState gt_irc_get_state(GtIrc* self);
 void       gt_irc_message_free(GtIrcMessage* msg);
-void       gt_emote_free(GtEmote* emote);
-void       gt_emote_list_free(GList* emote);
 
 G_END_DECLS
 

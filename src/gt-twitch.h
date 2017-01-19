@@ -88,6 +88,18 @@ typedef struct
     GdkPixbuf* pixbuf;
 } GtChatBadge;
 
+typedef struct
+{
+    gint id;
+    gchar* code;
+    gint set;
+    GdkPixbuf* pixbuf;
+
+    //NOTE: These are only set if coming from GtIrc
+    gint start; // Start of text to replace
+    gint end; // End of text to replace
+} GtChatEmote;
+
 typedef enum _GtTwitchChannelInfoPanelType
 {
     GT_TWITCH_CHANNEL_INFO_PANEL_TYPE_DEFAULT,
@@ -160,6 +172,9 @@ GtChatBadge*               gt_twitch_fetch_chat_badge_finish(GtTwitch* self, GAs
 void                       gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GError** err);
 void                       gt_chat_badge_free(GtChatBadge* badge);
 void                       gt_chat_badge_list_free(GList* list);
+GtChatEmote*               gt_chat_emote_new();
+void                       gt_chat_emote_free(GtChatEmote* emote);
+void                       gt_chat_emote_list_free(GList* list);
 
 G_END_DECLS
 

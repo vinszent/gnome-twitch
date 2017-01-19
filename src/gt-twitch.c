@@ -107,6 +107,34 @@ gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token)
     g_free(token);
 }
 
+GtChatEmote*
+gt_chat_emote_new()
+{
+    GtChatEmote* emote = g_new0(GtChatEmote, 1);
+
+    emote->start = -1;
+    emote->end = -1;
+
+    return emote;
+}
+
+void
+gt_chat_emote_free(GtChatEmote* emote)
+{
+    g_assert_nonnull(emote);
+    g_assert(GDK_IS_PIXBUF(emote->pixbuf));
+
+    g_object_unref(emote->pixbuf);
+    g_free(emote->code);
+    g_free(emote);
+}
+
+void
+gt_chat_emote_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_chat_emote_free);
+}
+
 static GQuark
 gt_spawn_twitch_error_quark()
 {
@@ -1242,8 +1270,8 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
         DEBUGF("Downloading emote form url='%s'", url);
 
         g_hash_table_insert(priv->emote_table,
-                            GINT_TO_POINTER(id),
-                            utils_download_picture(priv->soup, url));
+            GINT_TO_POINTER(id),
+            utils_download_picture(priv->soup, url));
 
         g_free(url);
     }
@@ -2188,9 +2216,9 @@ gt_twitch_emoticons(GtTwitch* self,
 
         for (gint i = 0; i < json_reader_count_elements(reader); i++)
         {
-            GtEmote* emote;
+            GtChatEmote* emote;
 
-            emote = g_new0(GtEmote, 1);
+            emote = gt_chat_emote_new();
 
             json_reader_read_element(reader, i);
 
@@ -2243,7 +2271,7 @@ emoticon_images_async_cb(GTask* task,
     if (error)
         g_task_return_error(task, error);
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_emote_list_free);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_emote_list_free);
 }
 
 void
