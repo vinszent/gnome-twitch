@@ -22,8 +22,8 @@
 #define STREAM_PLAYLIST_URI    "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
 #define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
 #define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
-#define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/streams?q=%s&limit=%d&offset=%d"
-#define SEARCH_GAMES_URI       "https://api.twitch.tv/kraken/search/games?q=%s&type=suggest"
+#define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
+#define SEARCH_GAMES_URI       "https://api.twitch.tv/kraken/search/games?query=%s&type=suggest"
 #define STREAMS_URI            "https://api.twitch.tv/kraken/streams/%s"
 #define CHANNELS_URI           "https://api.twitch.tv/kraken/channels/%s"
 #define CHAT_BADGES_URI        "https://api.twitch.tv/kraken/chat/%s/badges/"
@@ -242,6 +242,8 @@ new_send_message_json(GtTwitch* self, SoupMessage* msg, GError** error)
     g_assert(SOUP_IS_MESSAGE(msg));
 
     JsonReader* ret = NULL;
+
+    soup_message_headers_append(msg->request_headers, "Accept", "application/vnd.twitchtv.v5+json");
 
     new_send_message(self, msg, error);
 
