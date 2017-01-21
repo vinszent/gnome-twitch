@@ -45,10 +45,15 @@ fetch_items(GTask* task,
 
     g_assert_nonnull(data);
 
-    GList* items = gt_twitch_top_games(main_app->twitch,
-        data->amount, data->offset);
+    GError* err = NULL;
 
-    g_task_return_pointer(task, items, (GDestroyNotify) gt_game_list_free);
+    GList* items = gt_twitch_top_games(main_app->twitch,
+        data->amount, data->offset, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, items, (GDestroyNotify) gt_game_list_free);
 }
 
 static GtkWidget*

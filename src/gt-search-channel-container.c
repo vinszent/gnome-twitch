@@ -99,11 +99,15 @@ fetch_items(GTask* task, gpointer source, gpointer task_data, GCancellable* canc
 
             g_assert(!utils_str_empty(priv->query));
 
-            //TODO: Check for return error
-            GList* items = gt_twitch_search_channels(main_app->twitch,
-                priv->query, data->amount, data->offset);
+            GError* err = NULL;
 
-            g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
+            GList* items = gt_twitch_search_channels(main_app->twitch,
+                priv->query, data->amount, data->offset, &err);
+
+            if (err)
+                g_task_return_error(task, err);
+            else
+                g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
 
             g_mutex_unlock(&priv->mutex);
 

@@ -429,20 +429,27 @@ follows_all_cb(GObject* source,
                gpointer udata)
 {
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    GError* error = NULL;
-    GList* list = g_task_propagate_pointer(G_TASK(res), &error);
+    GError* err = NULL;
+    GList* list = NULL;
     gchar* fp = FAV_CHANNELS_FILE;
 
-    g_clear_pointer(&self->follow_channels,
-                    (GDestroyNotify) gt_channel_list_free);
+    list = gt_twitch_follows_all_finish(GT_TWITCH(source), res, &err);
 
-    if (error)
+    g_clear_pointer(&self->follow_channels,
+        (GDestroyNotify) gt_channel_list_free);
+
+    if (err)
     {
+        GtWin* win = GT_WIN_ACTIVE;
+
+        g_assert(GT_IS_WIN(win));
+
         gt_win_show_error_message(GT_WIN_ACTIVE,
-                                  "An error occurred when trying to get your Twitch follows",
-                                  error->message);
-        g_error_free(error);
+            "Unable to get your Twitch follows",
+            err->message);
+
+        g_error_free(err);
+
         return;
     }
 
@@ -485,8 +492,8 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
     g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
     gt_twitch_follows_all_async(main_app->twitch,
-                                gt_app_get_user_name(main_app),
-                                NULL, follows_all_cb, self);
+        gt_app_get_user_name(main_app),
+        NULL, follows_all_cb, self);
 }
 
 void

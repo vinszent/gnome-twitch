@@ -43,12 +43,16 @@ fetch_items(GTask* task,
         return;
 
     FetchItemsData* data = task_data;
+    GError* err = NULL;
 
     //TODO: Check for error
     GList* items = gt_twitch_top_channels(main_app->twitch,
-        data->amount, data->offset, NO_GAME);
+        data->amount, data->offset, NO_GAME, &err);
 
-    g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
 }
 
 static GtkWidget*

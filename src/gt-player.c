@@ -444,17 +444,30 @@ streams_list_cb(GObject* source,
                 GAsyncResult* res,
                 gpointer udata)
 {
+    g_assert(GT_IS_PLAYER(udata));
+    g_assert(G_IS_TASK(res));
+    g_assert(GT_IS_TWITCH(source));
+
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    GList* streams;
+    GList* streams = NULL;
     GtTwitchStreamData* stream;
     GtTwitchStreamQuality default_quality;
+    GError* err = NULL;
 
-    streams = g_task_propagate_pointer(G_TASK(res), NULL); //TODO: Error handling
+    streams = gt_twitch_all_streams_finish(GT_TWITCH(source), res, &err);
 
-    if (!streams)
+    //TODO: Replace player with some kind of error image
+    if (err)
     {
-        g_warning("{GtPlayer} Error opening stream");
+        GtWin* win = GT_WIN_TOPLEVEL(self);
+
+        g_assert(GT_IS_WIN(win));
+
+        gt_win_show_error_message(win, "Error opening stream", err->message);
+
+        g_error_free(err);
+
         return;
     }
 

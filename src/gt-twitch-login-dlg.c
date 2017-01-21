@@ -98,19 +98,28 @@ gt_twitch_login_dlg_class_init(GtTwitchLoginDlgClass* klass)
 
 static void
 oauth_info_cb(GObject* source,
-             GAsyncResult* res,
-             gpointer udata)
+    GAsyncResult* res, gpointer udata)
 {
     GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(udata);
-    GError* error = NULL;
+    GError* err = NULL;
 
-    GtTwitchOAuthInfo* oauth_info = g_task_propagate_pointer(G_TASK(res), &error);
+    GtTwitchOAuthInfo* oauth_info = gt_twitch_oauth_info_finish(main_app->twitch, res, &err);
 
-    if (error)
+    if (err)
     {
+        GtWin* win;
+
         gtk_widget_destroy(GTK_WIDGET(self));
 
-        return; //TODO: Show error to user
+        win = GT_WIN_TOPLEVEL(self);
+
+        g_assert(GT_IS_WIN(win));
+
+        gt_win_show_error_message(win, "Unable to get oauth info", err->message);
+
+        g_error_free(err);
+
+        return;
     }
 
     MESSAGEF("Successfully got username '%s'", oauth_info->user_name);
@@ -170,7 +179,7 @@ redirect_cb(WebKitWebView* web_view,
 
         MESSAGEF("Successfully got OAuth token '%s'", token);
 
-        gt_twitch_oauth_info_async(main_app->twitch, oauth_info_cb, self);
+        gt_twitch_oauth_info_async(main_app->twitch, oauth_info_cb, NULL, self);
 
         g_free(token);
 

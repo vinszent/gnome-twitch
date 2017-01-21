@@ -55,6 +55,7 @@ fetch_items_cb(GObject* source,
     g_print("Done fetching\n");
 
     //TODO: Check for cancelled code
+    //TODO: Show error message to user
     if (err)
     {
         WARNINGF("Unable to fetch items due to '%s'", err->message);

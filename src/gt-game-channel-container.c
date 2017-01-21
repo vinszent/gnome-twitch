@@ -55,14 +55,18 @@ fetch_items(GTask* task,
     GtGameChannelContainerPrivate* priv = gt_game_channel_container_get_instance_private(self);
 
     FetchItemsData* data = task_data;
+    GError* err = NULL;
 
     g_assert_nonnull(data);
 
     //TODO: Check for error
     GList* items = gt_twitch_top_channels(main_app->twitch,
-        data->amount, data->offset, priv->game);
+        data->amount, data->offset, priv->game, &err);
 
-    g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
 }
 
 static GtkWidget*

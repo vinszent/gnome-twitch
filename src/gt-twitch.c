@@ -63,8 +63,6 @@ static GParamSpec* props[NUM_PROPS];
 
 typedef struct
 {
-    GtTwitch* twitch;
-
     gint64 int_1;
     gint64 int_2;
     gint64 int_3;
@@ -149,52 +147,8 @@ gt_twitch_new(void)
 }
 
 static void
-finalize(GObject* object)
-{
-    GtTwitch* self = (GtTwitch*) object;
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-
-    G_OBJECT_CLASS(gt_twitch_parent_class)->finalize(object);
-}
-
-static void
-get_property (GObject*    obj,
-              guint       prop,
-              GValue*     val,
-              GParamSpec* pspec)
-{
-    GtTwitch* self = GT_TWITCH(obj);
-
-    switch (prop)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
-}
-
-static void
-set_property(GObject*      obj,
-             guint         prop,
-             const GValue* val,
-             GParamSpec*   pspec)
-{
-    GtTwitch* self = GT_TWITCH(obj);
-
-    switch (prop)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
-}
-
-static void
 gt_twitch_class_init(GtTwitchClass* klass)
 {
-    GObjectClass* object_class = G_OBJECT_CLASS(klass);
-
-    object_class->finalize = finalize;
-    object_class->get_property = get_property;
-    object_class->set_property = set_property;
 }
 
 static void
@@ -234,9 +188,13 @@ send_message(GtTwitch* self, SoupMessage* msg)
     return ret;
 }
 
+//TODO: Refactor GtTwitch to use these new functions
 static void
 new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(SOUP_IS_MESSAGE(msg));
+
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     char* uri = soup_uri_to_string(soup_message_get_uri(msg), FALSE);
 
@@ -262,6 +220,59 @@ new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
     }
 
     g_free(uri);
+}
+
+struct _JsonReaderPrivate
+{
+  JsonNode *root;
+
+  JsonNode *current_node;
+  JsonNode *previous_node;
+
+  /* Stack of member names. */
+  GPtrArray *members;
+
+  GError *error;
+};
+
+static JsonReader*
+new_send_message_json(GtTwitch* self, SoupMessage* msg, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(SOUP_IS_MESSAGE(msg));
+
+    JsonReader* ret = NULL;
+
+    new_send_message(self, msg, error);
+
+    if (!*error)
+    {
+        JsonParser* parser = json_parser_new();
+        JsonNode* node = NULL;
+        GError* e = NULL;
+
+        json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &e);
+
+        if (e)
+        {
+            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,
+                "Error parsing JSON response because: %s", e->message);
+
+            WARNINGF("Error parsing JSON response because: %s", e->message);
+
+            g_error_free(e);
+
+            goto finish;
+        }
+
+        node = json_parser_get_root(parser);
+        ret = json_reader_new(json_node_ref(node)); //NOTE: Parser doesn't seem to have its own reference to node
+
+        g_object_unref(G_OBJECT(parser));
+    }
+
+finish:
+    return ret;
 }
 
 static GDateTime*
@@ -424,33 +435,34 @@ parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
 }
 
 GtTwitchStreamAccessToken*
-gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
+gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(channel));
+
+    SoupMessage* msg = NULL;
+    JsonReader* reader = NULL;
     GtTwitchStreamAccessToken* ret = NULL;
     gchar* uri = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(ACCESS_TOKEN_URI, channel);
 
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        WARNINGF("Error getting stream access token for channel='%s'", channel);
+        WARNINGF("Error getting stream access token for channel '%s'", channel);
+
+        g_propagate_prefixed_error(error, err,
+            "Error getting stream access token for channel '%s' because: ", channel);
+
         goto finish;
     }
 
     ret = gt_twitch_stream_access_token_new();
-
-    parser = json_parser_new();
-
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "sig");
     ret->sig = g_strdup(json_reader_get_string_value(reader));
@@ -461,7 +473,7 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel)
     json_reader_end_member(reader);
 
     g_object_unref(reader);
-    g_object_unref(parser);
+
 finish:
     g_free(uri);
     g_object_unref(msg);
@@ -469,66 +481,47 @@ finish:
     return ret;
 }
 
-//Not used but here if the are needed in the future
-static void
-stream_access_token_cb(GTask* task,
-                       gpointer source,
-                       gpointer task_data,
-                       GCancellable* cancel)
-{
-    GenericTaskData* data = task_data;
-    GtTwitchStreamAccessToken* ret;
-
-    if (g_task_return_error_if_cancelled(task))
-        return;
-
-    ret = gt_twitch_stream_access_token(data->twitch, data->str_1);
-
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_stream_access_token_free);
-}
-
-G_DEPRECATED
-void
-gt_twitch_stream_access_token_async(GtTwitch* self, const gchar* channel,
-                                    GCancellable* cancel, GAsyncReadyCallback cb,
-                                    gpointer udata)
-{
-    GTask* task;
-    GenericTaskData* data;
-
-    task = g_task_new(NULL, cancel, cb, udata);
-    g_task_set_return_on_cancel(task, FALSE);
-
-    data = generic_task_data_new();
-    data->twitch = self;
-    data->str_1 = g_strdup(channel);
-
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, stream_access_token_cb);
-
-    g_object_unref(task);
-}
-
 GList*
-gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
+gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(channel));
+
+    SoupMessage* msg = NULL;
     gchar* uri = NULL;
-    GtTwitchStreamAccessToken* token;
+    GtTwitchStreamAccessToken* token = NULL;
     GList* ret = NULL;
+    GError* err = NULL;
 
-    token = gt_twitch_stream_access_token(self, channel);
+    token = gt_twitch_stream_access_token(self, channel, &err);
 
-    g_return_val_if_fail(token != NULL, NULL);
+    if (err)
+    {
+        WARNINGF("Unable to get streams for channel '%s' because: %s",
+            channel, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to get streams for channel '%s' because: ", channel);
+
+        goto finish;
+    }
 
     uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
+
+    gt_twitch_stream_access_token_free(token);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    new_send_message(self, msg, &err);
+
+    if (err)
     {
-        WARNINGF("Error sending message to get stream uris for channel='%s'", channel);
+        WARNINGF("Unable to get all streams for channel '%s' because: %s",
+            channel, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to get all streams for channel '%s' because: ", channel);
+
         goto finish;
     }
 
@@ -536,44 +529,48 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel)
 
 finish:
     g_free(uri);
-    g_object_unref(msg);
-    gt_twitch_stream_access_token_free(token);
+    if (msg) g_object_unref(msg);
 
     return ret;
 }
 
 static void
-all_streams_cb(GTask* task,
-               gpointer source,
-               gpointer task_data,
-               GCancellable* cancel)
+all_streams_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
-    GenericTaskData* data;
-    GtTwitchStreamAccessToken* token;
-    GList* ret;
+    g_assert(G_IS_TASK(task));
+    g_assert(GT_IS_TWITCH(source));
+    g_assert_nonnull(task_data);
+
+    GenericTaskData* data = NULL;
+    GList* ret = NULL;
+    GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
     data = task_data;
 
-    ret = gt_twitch_all_streams(data->twitch, data->str_1);
+    ret = gt_twitch_all_streams(GT_TWITCH(source), data->str_1, &err);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_stream_data_list_free);
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_stream_data_list_free);
 }
 
 void
 gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel,
-                            GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     GTask* task;
     GenericTaskData* data;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
+
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(channel);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -581,9 +578,22 @@ gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel,
     g_task_run_in_thread(task, all_streams_cb);
 }
 
+GList*
+gt_twitch_all_streams_finish(GtTwitch* self, GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
+
+
+//TODO: Remove use of this function
 GtTwitchStreamData*
 gt_twitch_stream_list_filter_quality(GList* list,
-                                  GtTwitchStreamQuality qual)
+    GtTwitchStreamQuality qual)
 {
     GtTwitchStreamData* ret = NULL;
 
@@ -602,29 +612,37 @@ gt_twitch_stream_list_filter_quality(GList* list,
 }
 
 GList*
-gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
+gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_nonnull(game);
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    JsonReader* reader = NULL;
     GList* ret = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(TOP_CHANNELS_URI, n, offset, game);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        WARNING("Error sending message to get top channels");
+        WARNINGF("Unable to fetch top channels with amount '%d', offset '%d' and game '%s' because: %s",
+            n, offset, game, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to fetch top channels with amount '%d', offset '%d' and game '%s' because: ",
+            n, offset, game);
+
         goto finish;
     }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "streams");
 
@@ -649,43 +667,114 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game)
 
         gt_twitch_channel_raw_data_free(data);
     }
+
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
+
 finish:
     g_object_unref(msg);
     g_free(uri);
 
     return ret;
 }
+static void
+top_channels_async_cb(GTask* task,
+                      gpointer source,
+                      gpointer task_data,
+                      GCancellable* cancel)
+{
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GenericTaskData* data = task_data;
+    GList* ret = NULL;
+    GError* err = NULL;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    ret = gt_twitch_top_channels(GT_TWITCH(source), data->int_1, data->int_2, data->str_1, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
+}
+
+void
+gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game,
+                             GCancellable* cancel,
+                             GAsyncReadyCallback cb,
+                             gpointer udata)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_nonnull(game);
+
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(self, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->int_1 = n;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(game);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, top_channels_async_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_top_channels_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
 
 GList*
 gt_twitch_top_games(GtTwitch* self,
-                    gint n, gint offset)
+    gint n, gint offset, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    JsonArray* channels;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    JsonReader* reader = NULL;
     GList* ret = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(TOP_GAMES_URI, n, offset);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        g_warning("{GtTwitch} Error sending message to get top channels");
+        WARNINGF("Unable to get top games with amount '%d' and offset '%d' because: %s", n, offset, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to get top games with amount '%d' and offset '%d' because: ", n, offset);
+
         goto finish;
     }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "top");
 
@@ -722,8 +811,8 @@ gt_twitch_top_games(GtTwitch* self,
 
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
+
 finish:
     g_object_unref(msg);
     g_free(uri);
@@ -731,53 +820,6 @@ finish:
     return ret;
 }
 
-static void
-top_channels_async_cb(GTask* task,
-                      gpointer source,
-                      gpointer task_data,
-                      GCancellable* cancel)
-{
-    GenericTaskData* data = task_data;
-    GList* ret;
-
-    if (g_task_return_error_if_cancelled(task))
-        return;
-
-    ret = gt_twitch_top_channels(data->twitch, data->int_1, data->int_2, data->str_1);
-
-    if (!ret)
-    {
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_TOP_CHANNELS,
-                                "Error getting top channels");
-    }
-    else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
-}
-
-void
-gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game,
-                             GCancellable* cancel,
-                             GAsyncReadyCallback cb,
-                             gpointer udata)
-{
-    GTask* task = NULL;
-    GenericTaskData* data = NULL;
-
-    task = g_task_new(NULL, cancel, cb, udata);
-    g_task_set_return_on_cancel(task, FALSE);
-
-    data = generic_task_data_new();
-    data->twitch = self;
-    data->int_1 = n;
-    data->int_2 = offset;
-    data->str_1 = g_strdup(game);
-
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, top_channels_async_cb);
-
-    g_object_unref(task);
-}
 
 static void
 top_games_async_cb(GTask* task,
@@ -785,15 +827,23 @@ top_games_async_cb(GTask* task,
                    gpointer task_data,
                    GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GList* ret;
+    GList* ret = NULL;
+    GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_top_games(data->twitch, data->int_1, data->int_2);
+    ret = gt_twitch_top_games(GT_TWITCH(source), data->int_1, data->int_2, &err);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
 }
 
 void
@@ -802,14 +852,18 @@ gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset,
                              GAsyncReadyCallback cb,
                              gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->int_1 = n;
     data->int_2 = offset;
 
@@ -821,32 +875,52 @@ gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset,
 }
 
 GList*
-gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset)
+gt_twitch_top_games_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    JsonArray* channels;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
+
+GList*
+gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_false(utils_str_empty(query));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    JsonReader* reader = NULL;
     GList* ret = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, n, offset);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        g_warning("{GtTwitch} Error sending message to search channels");
+        WARNINGF("Unable to search channels with query '%s', amount '%d' and offset '%d' because: %s",
+            query, n, offset, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to search channels with query '%s', amount '%d', and offset '%d' because: ",
+            query, n, offset);
+
         goto finish;
     }
 
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
-
     json_reader_read_member(reader, "streams");
+
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtChannel* channel;
@@ -870,7 +944,6 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     }
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
 finish:
     g_object_unref(msg);
@@ -879,33 +952,107 @@ finish:
     return ret;
 }
 
-GList*
-gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
+static void
+search_channels_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    JsonArray* channels;
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GenericTaskData* data = task_data;
+
+    if (g_task_return_error_if_cancelled(task))
+        return;
+
+    GError* err = NULL;
+    GList* ret = gt_twitch_search_channels(GT_TWITCH(source), data->str_1, data->int_1, data->int_2, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
+}
+
+void
+gt_twitch_search_channels_async(GtTwitch* self,
+    const gchar* query, gint n, gint offset,
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_false(utils_str_empty(query));
+
+    GTask* task = NULL;
+    GenericTaskData* data = NULL;
+
+    task = g_task_new(self, cancel, cb, udata);
+    g_task_set_return_on_cancel(task, FALSE);
+
+    data = generic_task_data_new();
+    data->int_1 = n;
+    data->int_2 = offset;
+    data->str_1 = g_strdup(query);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, search_channels_async_cb);
+
+    g_object_unref(task);
+}
+
+GList*
+gt_twitch_search_channels_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
+
+GList*
+gt_twitch_search_games(GtTwitch* self,
+    const gchar* query, gint n, gint offset,
+    GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_false(utils_str_empty(query));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    JsonReader* reader = NULL;
     GList* ret = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(SEARCH_GAMES_URI, query);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        WARNING("Error sending message to search games");
+        WARNINGF("Unable to search games with query '%s', amount '%d' and offset '%d' because: %s",
+            query, n, offset, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to search games with query '%s', amount '%d' and offset '%d' because: ",
+            query, n, offset);
+
         goto finish;
     }
 
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
-
     json_reader_read_member(reader, "games");
+
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game;
@@ -924,10 +1071,11 @@ gt_twitch_search_games(GtTwitch* self, const gchar* query, gint n, gint offset)
 
         gt_twitch_game_raw_data_free(data);
     }
+
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
+
 finish:
     g_object_unref(msg);
     g_free(uri);
@@ -935,87 +1083,48 @@ finish:
     return ret;
 }
 
+
 static void
-search_channels_async_cb(GTask* task,
-                         gpointer source,
-                         gpointer task_data,
-                         GCancellable* cancel)
+search_games_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GList* ret;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_search_channels(data->twitch, data->str_1, data->int_1, data->int_2);
+    GError* err = NULL;
+    GList* ret = gt_twitch_search_games(GT_TWITCH(source), data->str_1, data->int_1, data->int_2, &err);
 
-    if (!ret)
-    {
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SEARCH_CHANNELS,
-                                "Error searching channels");
-    }
+    if (err)
+        g_task_return_error(task, err);
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
 }
 
 void
-gt_twitch_search_channels_async(GtTwitch* self, const gchar* query,
-                                gint n, gint offset,
-                                GCancellable* cancel,
-                                GAsyncReadyCallback cb,
-                                gpointer udata)
+gt_twitch_search_games_async(GtTwitch* self,
+    const gchar* query, gint n, gint offset,
+    GCancellable* cancel, GAsyncReadyCallback cb,
+    gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(n, >=, 0);
+    g_assert_cmpint(n, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+    g_assert_false(utils_str_empty(query));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
-    data->int_1 = n;
-    data->int_2 = offset;
-    data->str_1 = g_strdup(query);
-
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, search_channels_async_cb);
-
-    g_object_unref(task);
-}
-
-static void
-search_games_async_cb(GTask* task,
-                      gpointer source,
-                      gpointer task_data,
-                      GCancellable* cancel)
-{
-    GenericTaskData* data = task_data;
-    GList* ret;
-
-    if (g_task_return_error_if_cancelled(task))
-        return;
-
-    ret = gt_twitch_search_games(data->twitch, data->str_1, data->int_1, data->int_2);
-
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_game_list_free);
-}
-
-void
-gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
-                             gint n, gint offset,
-                             GCancellable* cancel,
-                             GAsyncReadyCallback cb,
-                             gpointer udata)
-{
-    GTask* task = NULL;
-    GenericTaskData* data = NULL;
-
-    task = g_task_new(NULL, cancel, cb, udata);
-    g_task_set_return_on_cancel(task, FALSE);
-
-    data = generic_task_data_new();
-    data->twitch = self;
     data->int_1 = n;
     data->int_2 = offset;
     data->str_1 = g_strdup(query);
@@ -1025,6 +1134,18 @@ gt_twitch_search_games_async(GtTwitch* self, const gchar* query,
     g_task_run_in_thread(task, search_games_async_cb);
 
     g_object_unref(task);
+}
+
+GList*
+gt_twitch_search_games_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
 }
 
 void
@@ -1137,7 +1258,7 @@ channel_raw_data_cb(GTask* task,
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_channel_raw_data(data->twitch, data->str_1);
+    ret = gt_twitch_channel_raw_data(GT_TWITCH(source), data->str_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_raw_data_free);
 }
@@ -1157,7 +1278,6 @@ gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
     g_task_set_return_on_cancel(task, FALSE);
 
     data = g_new0(GenericTaskData, 1);
-    data->twitch = self;
     data->str_1 = g_strdup(name);
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
@@ -1224,27 +1344,28 @@ download_picture_async_cb(GTask* task,
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_download_picture(data->twitch, data->str_1, data->int_1);
+    ret = gt_twitch_download_picture(GT_TWITCH(source), data->str_1, data->int_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
 }
 
 void
 gt_twitch_download_picture_async(GtTwitch* self,
-                                 const gchar* url,
-                                 gint64 timestamp,
-                                 GCancellable* cancel,
-                                 GAsyncReadyCallback cb,
-                                 gpointer udata)
+    const gchar* url, gint64 timestamp,
+    GCancellable* cancel, GAsyncReadyCallback cb,
+    gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(url));
+    g_assert_cmpint(timestamp, >=, 0);
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(url);
     data->int_1 = timestamp;
 
@@ -1284,7 +1405,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
 }
 
 static void
-fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** err)
+fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(set_name));
@@ -1292,10 +1413,8 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** err)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
     gchar* uri = NULL;
     SoupMessage* msg = NULL;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    GError* e = NULL;
+    JsonReader* reader = NULL;
+    GError* err = NULL;
 
     g_assert_false(g_hash_table_contains(priv->badge_table, set_name));
 
@@ -1308,35 +1427,18 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** err)
 
     msg = soup_message_new("GET", uri);
 
-    new_send_message(self, msg, &e);
+    reader = new_send_message_json(self, msg, &err);
 
-    if (e)
+    if (err)
     {
         WARNING("Error fetching chat badges, unable to send message");
 
-        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE_SET, "Unable to fetch chat badges because: %s", e->message);
 
-        g_error_free(e);
-
-        goto finish;
-    }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &e);
-
-    if (e)
-    {
-        WARNING("Error fetching chat badges, unable to parse json");
-
-        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE_SET, "Unable to parse json because: %s", e->message);
-
-        g_error_free(e);
+        g_propagate_prefixed_error(error, err,
+            "Unable to fetch chat badges for set '%s' because: ", set_name);
 
         goto finish;
     }
-
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "badge_sets");
 
@@ -1387,7 +1489,7 @@ finish:
 }
 
 void
-gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GError** err)
+gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
 
@@ -1397,20 +1499,17 @@ gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GErro
 #define FETCH_BADGE_SET(s)                                              \
     if (!g_hash_table_contains(priv->badge_table, s))                   \
     {                                                                   \
-        GError* e = NULL;                                               \
+        GError* err = NULL;                                             \
                                                                         \
-        fetch_chat_badge_set(self, s, &e);                              \
+        fetch_chat_badge_set(self, s, &err);                            \
                                                                         \
-        if (e)                                                          \
+        if (err)                                                        \
         {                                                               \
             WARNINGF("Unable to load chat badge sets for channel '%ld'", \
                 chan_id);                                               \
                                                                         \
-            g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE, \
-                "Unable to load chat badge sets for channel '%ld' because: %s", \
-                chan_id, e->message);                                   \
-                                                                        \
-            g_free(e);                                                  \
+            g_propagate_prefixed_error(error, err,                      \
+                "Unable to load chat badge sets for channel '%ld'", chan_id); \
         }                                                               \
     }                                                                   \
 
@@ -1425,7 +1524,7 @@ gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GErro
 GtChatBadge*
 gt_twitch_fetch_chat_badge(GtTwitch* self,
     gint64 chan_id, const gchar* badge_name,
-    const gchar* version, GError** err)
+    const gchar* version, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(badge_name));
@@ -1436,20 +1535,18 @@ gt_twitch_fetch_chat_badge(GtTwitch* self,
     gchar* chan_key = NULL;
     gchar* id_str = NULL;
     GtChatBadge* ret = NULL;
-    GError* e = NULL;
+    GError* err = NULL;
 
-    gt_twitch_load_chat_badge_sets_for_channel(self, chan_id, &e);
+    gt_twitch_load_chat_badge_sets_for_channel(self, chan_id, &err);
 
-    if (e)
+    if (err)
     {
-        WARNINGF("Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s'",
+        WARNINGF("Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: %s",
+            chan_id, badge_name, version, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: ",
             chan_id, badge_name, version);
-
-        g_set_error(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FETCH_CHAT_BADGE,
-            "Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: %s",
-            chan_id, badge_name, version, e->message);
-
-        g_free(e);
 
         goto finish;
     }
@@ -1531,7 +1628,7 @@ gt_twitch_fetch_chat_badge_finish(GtTwitch* self,
     GAsyncResult* result, GError** err)
 {
     g_assert(GT_IS_TWITCH(self));
-    g_assert(G_IS_TASK(result));
+    g_assert(G_IS_ASYNC_RESULT(result));
 
     GtChatBadge* ret = NULL;
 
@@ -1659,36 +1756,40 @@ finish:
 
 
 static void
-channel_info_async_cb(GTask* task,
-                      gpointer source,
-                      gpointer task_data,
-                      GCancellable* cancel)
+channel_info_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
-    GenericTaskData* data;
-    GList* ret;
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GenericTaskData* data = NULL;
+    GList* ret = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
     data = task_data;
 
-    ret = gt_twitch_channel_info(data->twitch, data->str_1);
+    ret = gt_twitch_channel_info(GT_TWITCH(source), data->str_1);
 
     g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_info_panel_list_free);
 }
 
 void
 gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan,
-                             GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan));
+
     GTask* task;
     GenericTaskData* data;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(chan);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -1822,41 +1923,48 @@ finish:
 }
 
 static void
-follows_async_cb(GTask* task,
-                 gpointer source,
-                 gpointer task_data,
-                 GCancellable* cancel)
+follows_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GList* ret;
+    GList* ret = NULL;
+    GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_follows(data->twitch, data->str_1, data->int_1, data->int_2);
+    ret = gt_twitch_follows(GT_TWITCH(source), data->str_1, data->int_1, data->int_2);
 
-    if (!ret)
-        g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS,
-                                "Error getting follows");
-    else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
+    //TODO:
+    /* if (!ret) */
+    /*     g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS, */
+    /*                             "Error getting follows"); */
+    /* else */
+    /*     g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free); */
 }
 
 void
 gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
-                        gint limit, gint offset,
-                        GCancellable* cancel,
-                        GAsyncReadyCallback cb,
-                        gpointer udata)
+    gint limit, gint offset, GCancellable* cancel,
+    GAsyncReadyCallback cb, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(user_name));
+    g_assert_cmpint(limit, >=, 0);
+    g_assert_cmpint(limit, <=, 100);
+    g_assert_cmpint(offset, >=, 0);
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->int_1 = limit;
     data->int_2 = offset;
     data->str_1 = g_strdup(user_name);
@@ -1871,37 +1979,32 @@ gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
 GList*
 gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(user_name));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    JsonReader* reader = NULL;
     GList* ret = NULL;
     gint64 total;
+    GError* err = NULL;
 
     uri = g_strdup_printf(FOLLOWS_URI, user_name, 99, 0);
+
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
-    if (!send_message(self, msg))
+    reader = new_send_message_json(self, msg, &err);
+
+    if (err)
     {
-        WARNING("Error sending message to get follows");
+        WARNINGF("Error fetching follows for user '%s' because: %s",
+            user_name, err->message);
 
-        gchar* msg_str = g_strdup_printf(
-            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
-            msg->status_code, msg->reason_phrase, msg->response_body->data);
-
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS_ALL, "%s", msg_str);
-
-        g_free(msg_str);
+        g_propagate_prefixed_error(error, err,
+            "Unable to fetch follows for user '%s' because: ", user_name);
 
         goto finish;
     }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "_total");
     total = json_reader_get_int_value(reader);
@@ -1957,7 +2060,6 @@ gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
 
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
 
 finish:
@@ -1968,40 +2070,41 @@ finish:
 }
 
 static void
-follows_all_async_cb(GTask* task,
-                     gpointer source,
-                     gpointer task_data,
-                     GCancellable* cancel)
+follows_all_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GList* ret;
-    GError* error = NULL;
+    GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_follows_all(data->twitch, data->str_1, &error);
+    GList* ret = gt_twitch_follows_all(GT_TWITCH(source), data->str_1, &err);
 
-    if (error)
-        g_task_return_error(task, error);
+    if (err)
+        g_task_return_error(task, err);
     else
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free);
 }
 
 void
 gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
-                            GCancellable* cancel,
-                            GAsyncReadyCallback cb,
-                            gpointer udata)
+    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(user_name));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, cancel, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(user_name);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -2011,75 +2114,84 @@ gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
     g_object_unref(task);
 }
 
-gboolean
-gt_twitch_follow_channel(GtTwitch* self,
-                         const gchar* chan_name,
-                         GError** error)
+GList*
+gt_twitch_follows_all_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    gboolean ret = TRUE;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
 
-    uri = g_strdup_printf(FOLLOW_CHANNEL_URI,
-                          gt_app_get_user_name(main_app),
-                          chan_name,
-                          gt_app_get_oauth_token(main_app));
-    msg = soup_message_new(SOUP_METHOD_PUT, uri);
-
-    if (!send_message(self, msg))
-    {
-        WARNINGF("Error sending message to follow channel '%s'", chan_name);
-
-        gchar* msg_str = g_strdup_printf(
-            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
-            msg->status_code, msg->reason_phrase, msg->response_body->data);
-
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, "%s", msg_str);
-
-        g_free(msg_str);
-
-        ret = FALSE;
-    }
-
-    g_free(uri);
-    g_object_unref(msg);
+    GList* ret = g_task_propagate_pointer(G_TASK(result), error);
 
     return ret;
 }
 
-static void
-follow_channel_async_cb(GTask* task,
-                        gpointer source,
-                        gpointer task_data,
-                        GCancellable* cancel)
+//TODO: Don't return anything use the error instead to check if something went wrong
+void
+gt_twitch_follow_channel(GtTwitch* self,
+    const gchar* chan_name, GError** error)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan_name));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
+    GError* err = NULL;
+
+    uri = g_strdup_printf(FOLLOW_CHANNEL_URI,
+        gt_app_get_user_name(main_app), chan_name,
+        gt_app_get_oauth_token(main_app));
+
+    msg = soup_message_new(SOUP_METHOD_PUT, uri);
+
+    new_send_message(self, msg, &err);
+
+    if (err)
+    {
+        WARNINGF("Unable to follow channel '%s' because: %s",
+            chan_name, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to follow channel '%s' because: ", chan_name);
+    }
+
+    g_free(uri);
+    g_object_unref(msg);
+}
+
+static void
+follow_channel_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
+{
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GError* error = NULL;
-    gboolean ret;
+    GError* err = NULL;
 
-    ret = gt_twitch_follow_channel(data->twitch, data->str_1, &error);
+    gt_twitch_follow_channel(GT_TWITCH(source), data->str_1, &err);
 
-    if (!ret)
-        g_task_return_error(task, error);
+    if (err)
+        g_task_return_error(task, err);
     else
-        g_task_return_boolean(task, ret);
+        g_task_return_pointer(task, NULL, NULL);
 }
 
 // Not cancellable; hard to guarantee that channel is not followed
 void
-gt_twitch_follow_channel_async(GtTwitch* self,
-                               const gchar* chan_name,
-                               GAsyncReadyCallback cb,
-                               gpointer udata)
+gt_twitch_follow_channel_async(GtTwitch* self, const gchar* chan_name,
+    GAsyncReadyCallback cb, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan_name));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, NULL, cb, udata);
+    task = g_task_new(self, NULL, cb, udata);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(chan_name);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -2089,74 +2201,81 @@ gt_twitch_follow_channel_async(GtTwitch* self,
     g_object_unref(task);
 }
 
-gboolean
-gt_twitch_unfollow_channel(GtTwitch* self,
-                           const gchar* chan_name,
-                           GError** error)
+void
+gt_twitch_follow_channel_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    g_task_propagate_pointer(G_TASK(result), error);
+}
+
+//TODO: Don't return anything use the error instead to check if something went wrong
+void
+gt_twitch_unfollow_channel(GtTwitch* self,
+    const gchar* chan_name, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan_name));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
     gboolean ret = TRUE;
+    GError* err = NULL;
 
     uri = g_strdup_printf(UNFOLLOW_CHANNEL_URI,
-                          gt_app_get_user_name(main_app),
-                          chan_name,
-                          gt_app_get_oauth_token(main_app));
+        gt_app_get_user_name(main_app), chan_name,
+        gt_app_get_oauth_token(main_app));
+
     msg = soup_message_new(SOUP_METHOD_DELETE, uri);
 
-    if (!send_message(self, msg))
+    new_send_message(self, msg, &err);
+
+    if (err)
     {
-        WARNINGF("Error sending message to unfollow channel '%s'", chan_name);
+        WARNINGF("Unable to unfollow channel '%s' because: %s", chan_name, err->message);
 
-        gchar* msg_str = g_strdup_printf(
-            _("Twitch replied with error code '%d', message '%s' and body '%s'"),
-            msg->status_code, msg->reason_phrase, msg->response_body->data);
-
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOW_CHANNEL, "%s", msg_str);
-
-        g_free(msg_str);
-
-        ret = FALSE;
+        g_propagate_prefixed_error(error, err, "Unable to unfollow channel '%s' because: ", chan_name);
     }
 
     g_free(uri);
     g_object_unref(msg);
-
-    return ret;
 }
+
 static void
-unfollow_channel_async_cb(GTask* task,
-                          gpointer source,
-                          gpointer task_data,
-                          GCancellable* cancel)
+unfollow_channel_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
-    GError* error = NULL;
-    gboolean ret;
+    GError* err = NULL;
 
-    ret = gt_twitch_unfollow_channel(data->twitch, data->str_1, &error);
+    gt_twitch_unfollow_channel(GT_TWITCH(source), data->str_1, &err);
 
-    if (!ret)
-        g_task_return_error(task, error);
+    if (err)
+        g_task_return_error(task, err);
     else
-        g_task_return_boolean(task, ret);
+        g_task_return_pointer(task, NULL, NULL); //NOTE: Just return null as this is a void function
 }
 
-// Not cancellable; hard to guarantee that channel is not unfollowed
+//NOTE: Not cancellable; hard to guarantee that channel is not unfollowed
 void
-gt_twitch_unfollow_channel_async(GtTwitch* self,
-                               const gchar* chan_name,
-                               GAsyncReadyCallback cb,
-                               gpointer udata)
+gt_twitch_unfollow_channel_async(GtTwitch* self, const gchar* chan_name,
+    GAsyncReadyCallback cb, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan_name));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, NULL, cb, udata);
+    task = g_task_new(self, NULL, cb, udata);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(chan_name);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -2166,45 +2285,47 @@ gt_twitch_unfollow_channel_async(GtTwitch* self,
     g_object_unref(task);
 }
 
+void
+gt_twitch_unfollow_channel_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    g_task_propagate_pointer(G_TASK(result), error);
+}
+
 GList*
 gt_twitch_emoticons(GtTwitch* self,
-                          const gchar* emotesets,
-                          GError** error)
+    const gchar* emotesets, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(emotesets));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
     GList* ret = NULL;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    gchar** sets;
+    JsonReader* reader = NULL;
+    gchar** sets = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(EMOTICON_IMAGES_URI,
                           emotesets);
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
-    if (!send_message(self, msg))
-    {
-        WARNINGF("Error sending message to get emoticon images, "
-                 "server responded with code=%d and str=%s",
-                 msg->status_code, msg->reason_phrase);
+    reader = new_send_message_json(self, msg, &err);
 
-        g_set_error(error,
-                    GT_TWITCH_ERROR,
-                    GT_TWITCH_ERROR_EMOTICON_IMAGES,
-                    "Error sending message to get emoticon images, "
-                    "server responded with code=%d and str=%s",
-                    msg->status_code, msg->reason_phrase);
+    if (err)
+    {
+        WARNINGF("Unable to get emoticons for emote sets '%s' because: %s",
+            emotesets, err->message);
+
+        g_propagate_prefixed_error(error, err,
+            "Unable to get emoticons for emote sets '%s' because: ", emotesets);
 
         goto finish;
     }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     sets = g_strsplit(emotesets, ",", 0);
 
@@ -2246,7 +2367,6 @@ gt_twitch_emoticons(GtTwitch* self,
 
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
     g_object_unref(reader);
 
 finish:
@@ -2257,37 +2377,38 @@ finish:
 }
 
 static void
-emoticon_images_async_cb(GTask* task,
-                         gpointer source,
-                         gpointer task_data,
-                         GCancellable* cancel)
+emoticon_images_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
     GenericTaskData* data = task_data;
     GList* ret = NULL;
-    GError* error = NULL;
+    GError* err = NULL;
 
-    ret = gt_twitch_emoticons(data->twitch, data->str_1, &error);
+    ret = gt_twitch_emoticons(GT_TWITCH(source), data->str_1, &err);
 
-    if (error)
-        g_task_return_error(task, error);
+    if (err)
+        g_task_return_error(task, err);
     else
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_chat_emote_list_free);
 }
 
 void
-gt_twitch_emoticons_async(GtTwitch* self,
-                                const char* emotesets,
-                                GAsyncReadyCallback cb,
-                                GCancellable* cancel,
-                                gpointer udata)
+gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets,
+    GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(emotesets));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, NULL, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
 
     data = generic_task_data_new();
-    data->twitch = self;
     data->str_1 = g_strdup(emotesets);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
@@ -2309,33 +2430,31 @@ GtTwitchOAuthInfo*
 gt_twitch_oauth_info(GtTwitch* self,
                      GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
+    g_assert(GT_IS_TWITCH(self));
+
+    SoupMessage* msg = NULL;
+    gchar* uri = NULL;
     GtTwitchOAuthInfo* ret = NULL;
-    JsonParser* parser;
-    JsonNode* node;
     JsonReader* reader;
+    GError* err = NULL;
 
     uri = g_strdup_printf(OAUTH_INFO_URI,
-                          gt_app_get_oauth_token(main_app));
+        gt_app_get_oauth_token(main_app));
+
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
-    if (!send_message(self, msg))
-    {
-        WARNING("Unable to get oauth info");
+    reader = new_send_message_json(self, msg, &err);
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_OAUTH_INFO,
-                    "Unable to get oauth info");
+    if (err)
+    {
+        WARNINGF("Unable to get oauth info because: %s", err->message);
+
+        g_propagate_prefixed_error(error, err, "Unable to get oauth info because: ");
 
         goto finish;
     }
 
     ret = g_new0(GtTwitchOAuthInfo, 1);
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
 
     json_reader_read_member(reader, "token");
 
@@ -2344,6 +2463,7 @@ gt_twitch_oauth_info(GtTwitch* self,
     json_reader_end_member(reader);
 
     json_reader_read_member(reader, "scopes");
+
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         json_reader_read_element(reader, i);
@@ -2351,11 +2471,11 @@ gt_twitch_oauth_info(GtTwitch* self,
                                     g_strdup(json_reader_get_string_value(reader)));
         json_reader_end_element(reader);
     }
-    json_reader_end_member(reader);
 
     json_reader_end_member(reader);
 
-    g_object_unref(parser);
+    json_reader_end_member(reader);
+
     g_object_unref(reader);
 
 finish:
@@ -2367,41 +2487,52 @@ finish:
 }
 
 static void
-user_name_async_cb(GTask* task,
-                  gpointer source,
-                  gpointer task_data,
-                  GCancellable* cancel)
+oauth_info_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
 {
-    GenericTaskData* data = task_data;
-    GtTwitchOAuthInfo* ret;
-    GError* error = NULL;
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
 
-    ret = gt_twitch_oauth_info(data->twitch, &error);
+    GError* err = NULL;
 
-    if (!ret)
-        g_task_return_error(task, error);
+    GtTwitchOAuthInfo* ret = gt_twitch_oauth_info(GT_TWITCH(source), &err);
+
+    if (err)
+        g_task_return_error(task, err);
     else
         g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_oauth_info_free);
 }
 
 void
 gt_twitch_oauth_info_async(GtTwitch* self,
-                           GAsyncReadyCallback cb,
-                           gpointer udata)
+    GAsyncReadyCallback cb, GCancellable* cancel,
+    gpointer udata)
 {
+    g_assert(GT_IS_TWITCH(self));
+
     GTask* task = NULL;
     GenericTaskData* data = NULL;
 
-    task = g_task_new(NULL, NULL, cb, udata);
+    task = g_task_new(self, cancel, cb, udata);
 
-    data = generic_task_data_new();
-    data->twitch = self;
+    g_task_set_task_data(task, NULL, NULL);
 
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, user_name_async_cb);
+    g_task_run_in_thread(task, oauth_info_async_cb);
 
     g_object_unref(task);
+}
+
+GtTwitchOAuthInfo*
+gt_twitch_oauth_info_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GtTwitchOAuthInfo* ret = g_task_propagate_pointer(G_TASK(error), error);
+
+    return ret;
 }
 
 void
