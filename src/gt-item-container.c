@@ -42,8 +42,7 @@ static GParamSpec* props[NUM_PROPS];
 
 static void
 fetch_items_cb(GObject* source,
-    GAsyncResult* res,
-    gpointer udata)
+    GAsyncResult* res, gpointer udata)
 {
     GtItemContainer* self = GT_ITEM_CONTAINER(source);
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
@@ -52,13 +51,14 @@ fetch_items_cb(GObject* source,
 
     GList* items = g_task_propagate_pointer(G_TASK(res), &err);
 
-    g_print("Done fetching\n");
-
-    //TODO: Check for cancelled code
     //TODO: Show error message to user
     if (err)
     {
-        WARNINGF("Unable to fetch items due to '%s'", err->message);
+        if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+            TRACE("Search was cancelled");
+        else
+            WARNINGF("Unable to fetch items because: %s", err->message);
+
         g_error_free(err);
 
         return;
