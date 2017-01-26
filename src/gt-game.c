@@ -27,7 +27,7 @@ typedef struct
     GCancellable* cancel;
 } GtGamePrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtGame, gt_game, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE(GtGame, gt_game, G_TYPE_INITIALLY_UNOWNED)
 
 enum
 {
@@ -78,8 +78,7 @@ update_func(gpointer data, gpointer udata)
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch,
-                                                priv->preview_url,
-                                                priv->preview_timestamp);
+        priv->preview_url, priv->preview_timestamp);
 
     if (pic)
     {
@@ -134,12 +133,12 @@ update_preview(GtGame* self)
     g_object_ref(self);
 
     if (!priv->preview)
-        gt_twitch_download_picture_async(main_app->twitch, priv->preview_url, 0,
-                                         priv->cancel, download_preview_cb, self);
-    else
     {
-        g_thread_pool_push(update_pool, self, NULL);
+        gt_twitch_download_picture_async(main_app->twitch,
+            priv->preview_url, 0, priv->cancel, download_preview_cb, self);
     }
+    else
+        g_thread_pool_push(update_pool, self, NULL);
 }
 
 GtGame*

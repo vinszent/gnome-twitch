@@ -8,11 +8,11 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_GAME (gt_game_get_type())
 
-G_DECLARE_FINAL_TYPE(GtGame, gt_game, GT, GAME, GObject)
+G_DECLARE_FINAL_TYPE(GtGame, gt_game, GT, GAME, GInitiallyUnowned)
 
 struct _GtGame
 {
-    GObject parent_instance;
+    GInitiallyUnowned parent_instance;
 };
 
 GtGame* gt_game_new(const gchar* name, gint64 id);

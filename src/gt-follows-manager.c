@@ -461,6 +461,11 @@ follows_all_cb(GObject* source,
         {
             GtChannel* chan = l->data;
 
+            g_assert(GT_IS_CHANNEL(chan));
+            g_assert(g_object_is_floating(chan));
+
+            g_object_ref_sink(chan);
+
             g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
             g_object_set(chan,
                          "auto-update", TRUE,
@@ -528,6 +533,12 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
     for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
     {
         GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
+
+        g_assert(GT_IS_CHANNEL(chan));
+        g_assert(g_object_is_floating(chan));
+
+        g_object_ref_sink(chan);
+
         self->follow_channels = g_list_append(self->follow_channels, chan);
         g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
         g_object_set(chan,

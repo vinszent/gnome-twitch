@@ -8,11 +8,11 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_CHANNEL (gt_channel_get_type())
 
-G_DECLARE_FINAL_TYPE(GtChannel, gt_channel, GT, CHANNEL, GObject)
+G_DECLARE_FINAL_TYPE(GtChannel, gt_channel, GT, CHANNEL, GInitiallyUnowned)
 
 struct _GtChannel
 {
-    GObject parent_instance;
+    GInitiallyUnowned parent_instance;
 };
 
 GtChannel* gt_channel_new(const gchar* name, gint64 id);

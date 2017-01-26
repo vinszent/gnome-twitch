@@ -46,9 +46,9 @@ static GThreadPool* cache_update_pool;
 static void
 json_serializable_iface_init(JsonSerializableIface* iface);
 
-G_DEFINE_TYPE_WITH_CODE(GtChannel, gt_channel, G_TYPE_OBJECT,
-                        G_ADD_PRIVATE(GtChannel)
-                        G_IMPLEMENT_INTERFACE(JSON_TYPE_SERIALIZABLE, json_serializable_iface_init))
+G_DEFINE_TYPE_WITH_CODE(GtChannel, gt_channel, G_TYPE_INITIALLY_UNOWNED,
+    G_ADD_PRIVATE(GtChannel)
+    G_IMPLEMENT_INTERFACE(JSON_TYPE_SERIALIZABLE, json_serializable_iface_init))
 
 enum
 {
@@ -266,6 +266,7 @@ download_banner_cb(GObject* source,
         g_error_free(error);
         return;
     }
+
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 

@@ -660,7 +660,6 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game, GError*
 
         parse_stream(self, reader, data);
         channel = gt_channel_new(data->name, data->id);
-        g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
@@ -791,7 +790,6 @@ gt_twitch_top_games(GtTwitch* self,
 
         parse_game(self, reader, data);
         game = gt_game_new(data->name, data->id);
-        g_object_force_floating(G_OBJECT(game));
         gt_game_update_from_raw_data(game, data);
 
         json_reader_end_member(reader);
@@ -935,7 +933,6 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
         parse_stream(self, reader, data);
         channel = gt_channel_new(data->name, data->id);
-        g_object_force_floating(G_OBJECT(channel));
         gt_channel_update_from_raw_data(channel, data);
 
         json_reader_end_element(reader);
@@ -1064,7 +1061,6 @@ gt_twitch_search_games(GtTwitch* self,
 
         parse_game(self, reader, data);
         game = gt_game_new(data->name, data->id);
-        g_object_force_floating(G_OBJECT(game));
         gt_game_update_from_raw_data(game, data);
 
         json_reader_end_element(reader);
