@@ -19,14 +19,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitchLoginDlg, gt_twitch_login_dlg, GTK_TYPE_DIALOG)
 
-enum
-{
-    PROP_0,
-    NUM_PROPS
-};
-
-static GParamSpec* props[NUM_PROPS];
-
 GtTwitchLoginDlg*
 gt_twitch_login_dlg_new(GtkWindow* parent)
 {
@@ -38,44 +30,14 @@ gt_twitch_login_dlg_new(GtkWindow* parent)
 }
 
 static void
-finalise(GObject* obj)
+finalize(GObject* obj)
 {
     GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(obj);
     GtTwitchLoginDlgPrivate* priv = gt_twitch_login_dlg_get_instance_private(self);
+
+    g_regex_unref(priv->token_redirect_regex);
 
     G_OBJECT_CLASS(gt_twitch_login_dlg_parent_class)->finalize(obj);
-}
-
-static void
-get_property(GObject* obj,
-             guint prop,
-             GValue* val,
-             GParamSpec* pspec)
-{
-    GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(obj);
-    GtTwitchLoginDlgPrivate* priv = gt_twitch_login_dlg_get_instance_private(self);
-
-    switch (prop)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
-}
-
-static void
-set_property(GObject* obj,
-             guint prop,
-             const GValue* val,
-             GParamSpec* pspec)
-{
-    GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(obj);
-    GtTwitchLoginDlgPrivate* priv = gt_twitch_login_dlg_get_instance_private(self);
-
-    switch (prop)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
-    }
 }
 
 static void
@@ -86,12 +48,10 @@ gt_twitch_login_dlg_class_init(GtTwitchLoginDlgClass* klass)
 
     WEBKIT_TYPE_WEB_VIEW;
 
-    obj_class->finalize = finalise;
-    obj_class->get_property = get_property;
-    obj_class->set_property = set_property;
+    obj_class->finalize = finalize;
 
     gtk_widget_class_set_template_from_resource(widget_class,
-                                                "/com/vinszent/GnomeTwitch/ui/gt-twitch-login-dlg.ui");
+        "/com/vinszent/GnomeTwitch/ui/gt-twitch-login-dlg.ui");
 
     gtk_widget_class_bind_template_child_private(widget_class, GtTwitchLoginDlg, web_view);
 }
