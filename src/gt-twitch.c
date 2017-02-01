@@ -1,7 +1,4 @@
 #include "gt-twitch.h"
-#include "gt-channel.h"
-#include "gt-game.h"
-#include "gt-app.h"
 #include "config.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
@@ -24,24 +21,111 @@
 #define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
 #define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
 #define SEARCH_GAMES_URI       "https://api.twitch.tv/kraken/search/games?query=%s&type=suggest"
-#define STREAMS_URI            "https://api.twitch.tv/kraken/streams/%s"
-#define CHANNELS_URI           "https://api.twitch.tv/kraken/channels/%s"
+#define FETCH_STREAM_URI       "https://api.twitch.tv/kraken/streams/%ld"
+#define FETCH_CHANNEL_URI      "https://api.twitch.tv/kraken/channels/%ld"
 #define CHAT_BADGES_URI        "https://api.twitch.tv/kraken/chat/%s/badges/"
 #define TWITCH_EMOTE_URI       "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 #define CHANNEL_INFO_URI       "http://api.twitch.tv/api/channels/%s/panels"
 #define CHAT_SERVERS_URI       "https://api.twitch.tv/api/channels/%s/chat_properties"
-#define FOLLOWS_URI            "https://api.twitch.tv/api/users/%s/follows/channels?limit=%d&offset=%d"
+#define FOLLOWED_STREAMS_URI   "https://api.twitch.tv/kraken/streams/followed?limit=%d&offset=%d&oauth_token=%s&stream_type=live"
+#define FOLLOWED_CHANNELS_URI  "https://api.twitch.tv/kraken/users/%ld/follows/channels?limit=%d&offset=%d"
 #define FOLLOW_CHANNEL_URI     "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define UNFOLLOW_CHANNEL_URI   "https://api.twitch.tv/kraken/users/%s/follows/channels/%s?oauth_token=%s"
 #define USER_EMOTICONS_URI     "https://api.twitch.tv/kraken/users/%s/emotes"
 #define EMOTICON_IMAGES_URI    "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s"
-#define OAUTH_INFO_URI         "https://api.twitch.tv/kraken?oauth_token=%s"
+#define USER_INFO_URI          "https://api.twitch.tv/kraken/user?oauth_token=%s"
 #define GLOBAL_CHAT_BADGES_URI "https://badges.twitch.tv/v1/badges/global/display"
 #define NEW_CHAT_BADGES_URI    "https://badges.twitch.tv/v1/badges/channels/%s/display"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
 #define GT_TWITCH_ERROR gt_spawn_twitch_error_quark()
+
+#define END_JSON_MEMBER() json_reader_end_member(reader) // Just for consistency's sake
+#define END_JSON_ELEMENT() json_reader_end_element(reader) // Just for consistency's sake
+
+#define READ_JSON_MEMBER(name) \
+    if (!json_reader_read_member(reader, name))                         \
+    {                                                                   \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON member with name %s", #name);          \
+                                                                        \
+        WARNINGF("Unable to read JSON member with name %s", #name);     \
+                                                                        \
+        goto json_error;                                                \
+    }                                                                   \
+
+#define READ_JSON_ELEMENT(i)                                            \
+    if (!json_reader_read_element(reader, i))                           \
+    {                                                                   \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON element with position %d", i);         \
+                                                                        \
+        WARNINGF("Unable to read JSON element with position %d", i);    \
+                                                                        \
+        goto json_error;                                                \
+    }                                                                   \
+
+#define READ_JSON_VALUE(name, p)                                        \
+    if (json_reader_read_member(reader, name))                          \
+    {                                                                   \
+        p = _Generic(p,                                                 \
+            gchar*: g_strdup(json_reader_get_string_value(reader)),     \
+            gint64: json_reader_get_int_value(reader),                  \
+            gdouble: json_reader_get_double_value(reader),              \
+            gboolean: json_reader_get_boolean_value(reader),            \
+            GDateTime*: parse_time(json_reader_get_string_value(reader))); \
+    }                                                                   \
+    else                                                                \
+    {                                                                   \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON member with name %s", #name);          \
+                                                                        \
+        WARNINGF("Unable to read JSON member with name %s", #name);     \
+                                                                        \
+        goto json_error;                                                \
+    }                                                                   \
+    json_reader_end_member(reader);                                     \
+
+#define READ_JSON_VALUE_NULL(name, p, def) \
+    if (json_reader_read_member(reader, name))                          \
+    {                                                                   \
+        if (json_reader_get_null_value(reader))                         \
+        {                                                               \
+            p = _Generic(p,                                             \
+                gchar*: g_strdup(def),                                  \
+                default: def);                                          \
+        }                                                               \
+        else                                                            \
+        {                                                               \
+            p = _Generic(p,                                             \
+                gchar*: g_strdup(json_reader_get_string_value(reader)), \
+                gint64: json_reader_get_int_value(reader),              \
+                gdouble: json_reader_get_double_value(reader),          \
+                gboolean: json_reader_get_boolean_value(reader),        \
+                GDateTime*: parse_time(json_reader_get_string_value(reader))); \
+        }                                                               \
+    }                                                                   \
+    else                                                                \
+    {                                                                   \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON member with name %s", #name);          \
+                                                                        \
+        WARNINGF("Unable to read JSON member with name %s", #name);     \
+                                                                        \
+        goto json_error;                                                \
+    }                                                                   \
+    json_reader_end_member(reader);                                     \
+
+#define CHECK_AND_PROPAGATE_ERROR(msg, ...)                             \
+    if (err)                                                            \
+    {                                                                   \
+        WARNINGF(msg " because: %s", ##__VA_ARGS__, err->message);      \
+                                                                        \
+        g_propagate_prefixed_error(error, err, msg " because: ", ##__VA_ARGS__); \
+                                                                        \
+        goto error;                                                     \
+    }                                                                   \
 
 typedef struct
 {
@@ -53,6 +137,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
+//TODO: Remove unecessary code
 enum
 {
     PROP_0,
@@ -222,19 +307,6 @@ new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
     g_free(uri);
 }
 
-struct _JsonReaderPrivate
-{
-  JsonNode *root;
-
-  JsonNode *current_node;
-  JsonNode *previous_node;
-
-  /* Stack of member names. */
-  GPtrArray *members;
-
-  GError *error;
-};
-
 static JsonReader*
 new_send_message_json(GtTwitch* self, SoupMessage* msg, GError** error)
 {
@@ -355,85 +427,77 @@ parse_playlist(const gchar* playlist)
     return ret;
 }
 
-static void
-parse_channel(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
+static GtChannelData*
+parse_channel(JsonReader* reader, GError** error)
 {
-    json_reader_read_member(reader, "_id");
-    data->id = json_reader_get_int_value(reader);
-    json_reader_end_member(reader);
+    GtChannelData* data = gt_channel_data_new();
 
-    json_reader_read_member(reader, "name");
-    data->name = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    READ_JSON_VALUE("_id", data->id);
+    READ_JSON_VALUE("name", data->name);
+    READ_JSON_VALUE("display_name", data->display_name);
+    READ_JSON_VALUE_NULL("status", data->status, _("Untitled broadcast"));
+    READ_JSON_VALUE_NULL("video_banner", data->video_banner_url, NULL);
+    READ_JSON_VALUE_NULL("logo", data->logo_url, NULL);
+    READ_JSON_VALUE("url", data->profile_url);
 
-    json_reader_read_member(reader, "display_name");
-    data->display_name = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    data->online = FALSE;
 
-    json_reader_read_member(reader, "status");
-    if (json_reader_get_null_value(reader))
-        data->status = g_strdup(_("Untitled broadcast"));
-    else
-        data->status = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    return data;
 
-    json_reader_read_member(reader, "video_banner");
-    if (json_reader_get_null_value(reader))
-        data->video_banner_url = NULL;
-    else
-        data->video_banner_url = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+json_error:
+    gt_channel_data_free(data);
+
+    return NULL;
 }
 
-static void
-parse_stream(GtTwitch* self, JsonReader* reader, GtChannelRawData* data)
+static GtChannelData*
+parse_stream(JsonReader* reader, GError** error)
 {
-    json_reader_read_member(reader, "game");
-    if (!json_reader_get_null_value(reader))
-        data->game = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    GtChannelData* data = NULL;
 
-    json_reader_read_member(reader, "viewers");
-    data->viewers = json_reader_get_int_value(reader);
-    json_reader_end_member(reader);
+    READ_JSON_MEMBER("channel");
+    data = parse_channel(reader, error);
+    END_JSON_MEMBER();
 
-    json_reader_read_member(reader, "created_at");
-    data->stream_started_time = parse_time(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    if (*error) goto json_error;
 
-    json_reader_read_member(reader, "channel");
+    READ_JSON_VALUE_NULL("game", data->game, NULL);
+    READ_JSON_VALUE("viewers", data->viewers);
+    READ_JSON_VALUE("created_at", data->stream_started_time);
+    READ_JSON_MEMBER("preview");
+    READ_JSON_VALUE("large", data->preview_url);
+    END_JSON_MEMBER();
 
-    parse_channel(self, reader, data);
+    data->online = TRUE;
 
-    json_reader_end_member(reader);
+    return data;
 
-    json_reader_read_member(reader, "preview");
+json_error:
+    gt_channel_data_free(data);
 
-    json_reader_read_member(reader, "large");
-    data->preview_url = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-
-    json_reader_end_member(reader);
+    return NULL;
 }
 
-static void
-parse_game(GtTwitch* self, JsonReader* reader, GtGameRawData* data)
+static GtGameData*
+parse_game(JsonReader* reader, GError** error)
 {
-    json_reader_read_member(reader, "_id");
-    data->id = json_reader_get_int_value(reader);
-    json_reader_end_member(reader);
+    GtGameData* data = gt_game_data_new();
 
-    json_reader_read_member(reader, "name");
-    data->name = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    READ_JSON_VALUE("_id", data->id);
+    READ_JSON_VALUE("name", data->name);
+    READ_JSON_MEMBER("box");
+    READ_JSON_VALUE("large", data->preview_url);
+    END_JSON_MEMBER();
+    READ_JSON_MEMBER("logo");
+    READ_JSON_VALUE("large", data->logo_url);
+    END_JSON_MEMBER();
 
-    json_reader_read_member(reader, "box");
-    json_reader_read_member(reader, "large");
+    return data;
 
-    data->preview_url = g_strdup(json_reader_get_string_value(reader));
+json_error:
+    gt_game_data_free(data);
 
-    json_reader_end_member(reader);
-    json_reader_end_member(reader);
+    return NULL;
 }
 
 GtTwitchStreamAccessToken*
@@ -442,10 +506,10 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** err
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(channel));
 
-    SoupMessage* msg = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GtTwitchStreamAccessToken* ret = NULL;
-    gchar* uri = NULL;
     GError* err = NULL;
 
     uri = g_strdup_printf(ACCESS_TOKEN_URI, channel);
@@ -454,33 +518,21 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** err
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Error getting stream access token for channel '%s'", channel);
-
-        g_propagate_prefixed_error(error, err,
-            "Error getting stream access token for channel '%s' because: ", channel);
-
-        goto finish;
-    }
+    CHECK_AND_PROPAGATE_ERROR("Error getting stream access token for channel '%s'",
+        channel);
 
     ret = gt_twitch_stream_access_token_new();
 
-    json_reader_read_member(reader, "sig");
-    ret->sig = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
+    READ_JSON_VALUE("sig", ret->sig);
+    READ_JSON_VALUE("token", ret->token);
 
-    json_reader_read_member(reader, "token");
-    ret->token = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_free(uri);
-    g_object_unref(msg);
-
+error:
     return ret;
+
+json_error:
+    gt_twitch_stream_access_token_free(ret);
+
+    return NULL;
 }
 
 GList*
@@ -489,26 +541,19 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error)
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(channel));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
     GtTwitchStreamAccessToken* token = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
     token = gt_twitch_stream_access_token(self, channel, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to get streams for channel '%s' because: %s",
-            channel, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to get streams for channel '%s'",
+        channel);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to get streams for channel '%s' because: ", channel);
-
-        goto finish;
-    }
-
-    uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel, token->token, token->sig, g_random_int_range(0, 999999));
+    uri = g_strdup_printf(STREAM_PLAYLIST_URI, channel,
+        token->token, token->sig, g_random_int_range(0, 999999));
 
     gt_twitch_stream_access_token_free(token);
 
@@ -516,23 +561,12 @@ gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error)
 
     new_send_message(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to get all streams for channel '%s' because: %s",
-            channel, err->message);
-
-        g_propagate_prefixed_error(error, err,
-            "Unable to get all streams for channel '%s' because: ", channel);
-
-        goto finish;
-    }
+    CHECK_AND_PROPAGATE_ERROR("Unable to get all streams for channel '%s'",
+        channel);
 
     ret = parse_playlist(msg->response_body->data);
 
-finish:
-    g_free(uri);
-    if (msg) g_object_unref(msg);
-
+error:
     return ret;
 }
 
@@ -622,9 +656,9 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game, GError*
     g_assert_cmpint(offset, >=, 0);
     g_assert_nonnull(game);
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
@@ -634,50 +668,40 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game, GError*
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to fetch top channels with amount '%d', offset '%d' and game '%s' because: %s",
-            n, offset, game, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch top channels with amount '%d', offset '%d' and game '%s'",
+        n, offset, game);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to fetch top channels with amount '%d', offset '%d' and game '%s' because: ",
-            n, offset, game);
-
-        goto finish;
-    }
-
-    json_reader_read_member(reader, "streams");
+    READ_JSON_MEMBER("streams");
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtChannel* channel;
-        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));;
+        GtChannel* channel = NULL;
+        g_autoptr(GtChannelData) data = NULL;
 
-        data->viewers = -1;
-        data->online = TRUE;
+        READ_JSON_ELEMENT(i);
 
-        json_reader_read_element(reader, i);
+        data = parse_stream(reader, &err);
 
-        parse_stream(self, reader, data);
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch top channels with amount '%d', offset '%d' and game '%s'",
+            n, offset, game);
+
         channel = gt_channel_new(data->name, data->id);
         gt_channel_update_from_raw_data(channel, data);
 
-        json_reader_end_element(reader);
+        END_JSON_ELEMENT();
 
         ret = g_list_append(ret, channel);
-
-        gt_twitch_channel_raw_data_free(data);
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
-    g_free(uri);
+    END_JSON_MEMBER();
 
     return ret;
+
+error:
+json_error:
+    gt_channel_list_free(ret);
+
+    return NULL;
 }
 static void
 top_channels_async_cb(GTask* task,
@@ -755,9 +779,9 @@ gt_twitch_top_games(GtTwitch* self,
     g_assert_cmpint(n, <=, 100);
     g_assert_cmpint(offset, >=, 0);
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
@@ -767,33 +791,28 @@ gt_twitch_top_games(GtTwitch* self,
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to get top games with amount '%d' and offset '%d' because: %s", n, offset, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to get top games with amount '%d' and offset '%d'",
+        n, offset);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to get top games with amount '%d' and offset '%d' because: ", n, offset);
-
-        goto finish;
-    }
-
-    json_reader_read_member(reader, "top");
+    READ_JSON_MEMBER("top");
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtGame* game;
-        GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
+        GtGame* game = NULL;
+        g_autoptr(GtGameData) data = NULL;
 
-        json_reader_read_element(reader, i);
+        READ_JSON_ELEMENT(i);
 
-        json_reader_read_member(reader, "game");
+        READ_JSON_MEMBER("game");
 
-        parse_game(self, reader, data);
+        data = parse_game(reader, &err);
+
         game = gt_game_new(data->name, data->id);
         gt_game_update_from_raw_data(game, data);
 
-        json_reader_end_member(reader);
+        END_JSON_MEMBER();
 
+        //TODO: Put these fields in GtGameData
         json_reader_read_member(reader, "viewers");
         g_object_set(game, "viewers", json_reader_get_int_value(reader), NULL);
         json_reader_end_member(reader);
@@ -802,22 +821,20 @@ gt_twitch_top_games(GtTwitch* self,
         g_object_set(game, "channels", json_reader_get_int_value(reader), NULL);
         json_reader_end_member(reader);
 
-        json_reader_end_element(reader);
+        END_JSON_ELEMENT();
 
         ret = g_list_append(ret, game);
-
-        gt_twitch_game_raw_data_free(data);
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
-    g_free(uri);
+    END_JSON_MEMBER();
 
     return ret;
+
+error:
+json_error:
+    gt_game_list_free(ret);
+
+    return NULL;
 }
 
 
@@ -895,9 +912,11 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     g_assert_cmpint(offset, >=, 0);
     g_assert_false(utils_str_empty(query));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    JsonReader* reader = NULL;
+    MESSAGEF("Searching for channels with query '%s', amount '%d' and offset '%d'", query, n, offset);
+
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
@@ -907,48 +926,40 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to search channels with query '%s', amount '%d' and offset '%d' because: %s",
-            query, n, offset, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' and offset '%d'",
+        query, n, offset);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to search channels with query '%s', amount '%d', and offset '%d' because: ",
-            query, n, offset);
-
-        goto finish;
-    }
-
-    json_reader_read_member(reader, "streams");
+    READ_JSON_MEMBER("streams");
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtChannel* channel;
-        GtChannelRawData* data = g_malloc0(sizeof(GtChannelRawData));
+        GtChannel* channel = NULL;
+        g_autoptr(GtChannelData) data = NULL;
 
-        data->online = TRUE;
-        data->viewers = -1;
+        READ_JSON_ELEMENT(i);
 
-        json_reader_read_element(reader, i);
+        data = parse_stream(reader, &err);
 
-        parse_stream(self, reader, data);
+        CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' and offset '%d'",
+            query, n, offset);
+
         channel = gt_channel_new(data->name, data->id);
         gt_channel_update_from_raw_data(channel, data);
 
-        json_reader_end_element(reader);
+        END_JSON_ELEMENT();
 
         ret = g_list_append(ret, channel);
-
-        gt_twitch_channel_raw_data_free(data);
     }
+
     json_reader_end_member(reader);
 
-    g_object_unref(reader);
-finish:
-    g_object_unref(msg);
-    g_free(uri);
-
     return ret;
+
+error:
+json_error:
+    gt_channel_list_free(ret);
+
+    return NULL;
 }
 
 static void
@@ -1026,9 +1037,9 @@ gt_twitch_search_games(GtTwitch* self,
     g_assert_cmpint(offset, >=, 0);
     g_assert_false(utils_str_empty(query));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
@@ -1038,47 +1049,40 @@ gt_twitch_search_games(GtTwitch* self,
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to search games with query '%s', amount '%d' and offset '%d' because: %s",
-            query, n, offset, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to search games with query '%s', amount '%d' and offset '%d'",
+        query, n, offset);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to search games with query '%s', amount '%d' and offset '%d' because: ",
-            query, n, offset);
-
-        goto finish;
-    }
-
-    json_reader_read_member(reader, "games");
+    READ_JSON_MEMBER("games");
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game;
-        GtGameRawData* data = g_malloc0(sizeof(GtGameRawData));
+        g_autoptr(GtGameData) data = NULL;
 
-        json_reader_read_element(reader, i);
+        READ_JSON_ELEMENT(i);
 
-        parse_game(self, reader, data);
+        data = parse_game(reader, &err);
+
+        CHECK_AND_PROPAGATE_ERROR("Unable to search games with query '%s', amount '%d' and offset '%d'",
+            query, n, offset);
+
         game = gt_game_new(data->name, data->id);
         gt_game_update_from_raw_data(game, data);
 
-        json_reader_end_element(reader);
+        END_JSON_ELEMENT();
 
         ret = g_list_append(ret, game);
-
-        gt_twitch_game_raw_data_free(data);
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
-    g_free(uri);
+    END_JSON_MEMBER();
 
     return ret;
+
+error:
+json_error:
+    gt_game_list_free(ret);
+
+    return NULL;
 }
 
 
@@ -1159,159 +1163,70 @@ gt_twitch_stream_data_list_free(GList* list)
     g_list_free_full(list, (GDestroyNotify) gt_twitch_stream_data_free);
 }
 
-GtChannelRawData*
-gt_twitch_channel_raw_data(GtTwitch* self, const gchar* name)
+GtChannelData*
+gt_twitch_fetch_channel_data(GtTwitch* self, gint64 id, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    GtChannelRawData* ret = NULL;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(id, >=, 0);
 
-    uri = g_strdup_printf(CHANNELS_URI, name);
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
+    GError* err = NULL;
+    GtChannelData* ret = NULL;
+
+    uri = g_strdup_printf(FETCH_STREAM_URI, id);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
-    {
-        WARNINGF("Error sending message to get raw channel data for channel='%s'", name);
-        goto finish;
-    }
+    reader = new_send_message_json(self, msg, &err);
 
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch channel data with id %ld",
+        id);
 
-    ret = g_malloc0_n(1, sizeof(GtChannelRawData));
-    parse_channel(self, reader, ret);
+    ret = gt_channel_data_new();
 
-    g_object_unref(parser);
-    g_object_unref(reader);
-finish:
-    g_object_unref(msg);
-    g_free(uri);
-
-    return ret;
-}
-
-GtChannelRawData*
-gt_twitch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name)
-{
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    GtChannelRawData* ret = NULL;
-
-    uri = g_strdup_printf(STREAMS_URI, name);
-    msg = soup_message_new("GET", uri);
-
-    if (!send_message(self, msg))
-        goto finish;
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
-
-    json_reader_read_member(reader, "stream");
+    READ_JSON_MEMBER("stream");
 
     if (json_reader_get_null_value(reader))
     {
-        ret = gt_twitch_channel_raw_data(self, name);
+        //NOTE: Free these here as they will be used again
+        g_object_unref(msg);
+        g_object_unref(reader);
+        g_free(uri);
 
-        if (ret) ret->online = FALSE;
+        uri = g_strdup_printf(FETCH_CHANNEL_URI, id);
+
+        msg = soup_message_new("GET", uri);
+
+        reader = new_send_message_json(self, msg, &err);
+
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch channel data with id %ld",
+            id);
+
+        ret = parse_channel(reader, &err);
+
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch channel data with id %ld",
+            id);
     }
     else
     {
-        ret = g_malloc0_n(1, sizeof(GtChannelRawData));
-        parse_stream(self, reader, ret);
-        ret->online = TRUE;
+        ret = parse_stream(reader, &err);
+
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch channel data with id %ld",
+            id);
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(parser);
-    g_object_unref(reader);
-finish:
-    g_object_unref(msg);
-    g_free(uri);
+    END_JSON_MEMBER();
 
     return ret;
-}
 
-static void
-channel_raw_data_cb(GTask* task,
-                    gpointer source,
-                    gpointer task_data,
-                    GCancellable* cancel)
-{
-    GtChannelRawData* ret;
-    GenericTaskData* data = task_data;
+error:
+json_error:
 
-    if (g_task_return_error_if_cancelled(task))
-        return;
-
-    ret = gt_twitch_channel_raw_data(GT_TWITCH(source), data->str_1);
-
-    g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_channel_raw_data_free);
-}
-
-// This was a bit unnecessary, but at least it's here if it's ever needed
-G_DEPRECATED
-void
-gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name,
-                          GCancellable* cancel,
-                          GAsyncReadyCallback cb,
-                          gpointer udata)
-{
-    GTask* task = NULL;
-    GenericTaskData* data;
-
-    task = g_task_new(NULL, cancel, cb, udata);
-    g_task_set_return_on_cancel(task, FALSE);
-
-    data = g_new0(GenericTaskData, 1);
-    data->str_1 = g_strdup(name);
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, channel_raw_data_cb);
-
-    g_object_unref(task);
-}
-
-void
-gt_twitch_channel_raw_data_free(GtChannelRawData* data)
-{
-    g_free(data->game);
-    g_free(data->status);
-    g_free(data->display_name);
-    g_free(data->preview_url);
-    g_free(data->video_banner_url);
-    if (data->stream_started_time)
-        g_date_time_unref(data->stream_started_time);
-
-    g_free(data);
-}
-
-GtGameRawData*
-gt_game_raw_data(GtTwitch* self, const gchar* name)
-{
-    //TODO not possible with current API
+    gt_channel_data_free(ret);
 
     return NULL;
-}
-
-void
-gt_twitch_game_raw_data_free(GtGameRawData* data)
-{
-    g_free(data->name);
-    g_free(data->preview_url);
-    g_free(data);
 }
 
 GdkPixbuf*
@@ -1321,7 +1236,8 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp)
 
     DEBUGF("Downloading picture from url='%s'", url);
 
-    if (!url || strlen(url) < 1)
+    //TODO: Shouldn't this be a programming error?
+    if (utils_str_empty(url))
         return NULL;
 
     if (timestamp)
@@ -1409,9 +1325,9 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
     g_assert_false(utils_str_empty(set_name));
 
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    gchar* uri = NULL;
-    SoupMessage* msg = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
     GError* err = NULL;
 
     g_assert_false(g_hash_table_contains(priv->badge_table, set_name));
@@ -1427,42 +1343,34 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNING("Error fetching chat badges, unable to send message");
+    CHECK_AND_PROPAGATE_ERROR("Error fetching chat badges for set %s", set_name);
 
-
-        g_propagate_prefixed_error(error, err,
-            "Unable to fetch chat badges for set '%s' because: ", set_name);
-
-        goto finish;
-    }
-
-    json_reader_read_member(reader, "badge_sets");
+    READ_JSON_MEMBER("badge_sets");
 
     for (gint i = 0; i < json_reader_count_members(reader); i++)
     {
-        json_reader_read_element(reader, i);
+        READ_JSON_ELEMENT(i);
 
         const gchar* badge_name = json_reader_get_member_name(reader);
 
-        json_reader_read_member(reader, "versions");
+        READ_JSON_MEMBER("versions");
 
         for (gint j = 0; j < json_reader_count_members(reader); j++)
         {
             GtChatBadge* badge = g_new(GtChatBadge, 1);
             gchar* key = NULL;
 
-            json_reader_read_element(reader, j);
+            READ_JSON_ELEMENT(j);
 
             badge->name = g_strdup(badge_name);
             badge->version = g_strdup(json_reader_get_member_name(reader));
 
+            //TODO: Handle this in READ_JSON_VALUE once priv->soup has been moved to GtApp
             json_reader_read_member(reader, "image_url_1x");
             badge->pixbuf = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
             json_reader_end_member(reader);
 
-            json_reader_end_element(reader);
+            END_JSON_ELEMENT();
 
             // Don't need to free this as it's freed by the hash table when it's destroyed.
             key = g_strdup_printf("%s-%s-%s", set_name, badge->name, badge->version);
@@ -1475,15 +1383,15 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
                 badge->name, badge->version);
         }
 
-        json_reader_end_member(reader);
-        json_reader_end_element(reader);
+        END_JSON_MEMBER();
+        END_JSON_ELEMENT();
     }
 
-    json_reader_end_member(reader);
+    END_JSON_MEMBER();
 
-finish:
-    g_free(uri);
-    g_object_unref(msg);
+error:
+json_error:
+    return;
 }
 
 void
@@ -1492,7 +1400,7 @@ gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GErro
     g_assert(GT_IS_TWITCH(self));
 
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    gchar* id_str = g_strdup_printf("%ld", chan_id);
+    g_autofree gchar* id_str = g_strdup_printf("%ld", chan_id);
 
 #define FETCH_BADGE_SET(s)                                              \
     if (!g_hash_table_contains(priv->badge_table, s))                   \
@@ -1529,25 +1437,16 @@ gt_twitch_fetch_chat_badge(GtTwitch* self,
     g_assert_false(utils_str_empty(version));
 
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    gchar* global_key = NULL;
-    gchar* chan_key = NULL;
-    gchar* id_str = NULL;
+    g_autofree gchar* global_key = NULL;
+    g_autofree gchar* chan_key = NULL;
+    g_autofree gchar* id_str = NULL;
     GtChatBadge* ret = NULL;
     GError* err = NULL;
 
     gt_twitch_load_chat_badge_sets_for_channel(self, chan_id, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: %s",
-            chan_id, badge_name, version, err->message);
-
-        g_propagate_prefixed_error(error, err,
-            "Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s' because: ",
-            chan_id, badge_name, version);
-
-        goto finish;
-    }
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch chat badge for channel '%ld' with badge name '%s' and version '%s'",
+        chan_id, badge_name, version);
 
     id_str = g_strdup_printf("%ld", chan_id);
 
@@ -1560,11 +1459,8 @@ gt_twitch_fetch_chat_badge(GtTwitch* self,
         ret = g_hash_table_lookup(priv->badge_table, global_key);
 
     g_assert_nonnull(ret); //NOTE: We might as well crash here as the badge being null would lead to many problems
-    g_free(global_key);
-    g_free(chan_key);
-    g_free(id_str);
 
-finish:
+error:
     return ret;
 }
 
@@ -1657,6 +1553,7 @@ gt_twitch_channel_info_panel_list_free(GList* list)
     g_list_free_full(list, (GDestroyNotify) gt_twitch_channel_info_panel_free);
 }
 
+//TODO: Rewrite this once we start displaying channel info again
 GList*
 gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
 {
@@ -1799,276 +1696,249 @@ gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan,
 
 GList*
 gt_twitch_chat_servers(GtTwitch* self,
-                       const gchar* chan)
+    const gchar* chan, GError** error)
 {
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(chan));
+
+    g_autoptr(SoupMessage) msg;
+    g_autoptr(JsonReader) reader;
+    g_autofree gchar* uri;
     GList* ret = NULL;
+    GError* err = NULL;
 
     uri = g_strdup_printf(CHAT_SERVERS_URI, chan);
+
     msg = soup_message_new("GET", uri);
 
-    if (!send_message(self, msg))
-        goto finish;
+    reader = new_send_message_json(self, msg, &err);
 
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch chat servers for channel %s", chan);
 
-    json_reader_read_member(reader, "chat_servers");
+    READ_JSON_MEMBER("chat_servers");
 
     for (int i = 0; i < json_reader_count_elements(reader); i++)
     {
-        json_reader_read_element(reader, i);
+        READ_JSON_ELEMENT(i);
         ret = g_list_append(ret, g_strdup(json_reader_get_string_value(reader)));
-        json_reader_end_element(reader);
+        END_JSON_ELEMENT();
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(parser);
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
+    END_JSON_MEMBER();
 
     return ret;
+
+error:
+json_error:
+    g_list_free_full(ret, g_free);
+
+    return NULL;
 }
 
-GList*
-gt_twitch_follows(GtTwitch* self, const gchar* user_name,
-                  gint limit, gint offset)
-{
-    GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
-    SoupMessage* msg;
-    gchar* uri;
-    JsonParser* parser;
-    JsonNode* node;
-    JsonReader* reader;
-    GList* ret = NULL;
-
-    uri = g_strdup_printf(FOLLOWS_URI, user_name, limit, offset);
-    msg = soup_message_new(SOUP_METHOD_GET, uri);
-
-    if (!send_message(self, msg))
-    {
-        WARNING("{GtTwitch} Error sending message to get follows");
-        goto finish;
-    }
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, NULL);
-    node = json_parser_get_root(parser);
-    reader = json_reader_new(node);
-
-    json_reader_read_member(reader, "follows");
-
-    gint max = json_reader_count_elements(reader);
-
-    for (gint i = 0; i < max; i++)
-    {
-        GtChannel* channel;
-        GtChannelRawData* raw = g_new0(GtChannelRawData, 1);;
-        gboolean live;
-
-        json_reader_read_element(reader, i);
-
-        json_reader_read_member(reader, "live");
-
-        if (json_reader_get_null_value(reader))
-        {
-            json_reader_end_member(reader);
-            json_reader_read_member(reader, "channel");
-            parse_channel(self, reader, raw);
-            raw->online = FALSE;
-        }
-        else
-        {
-            json_reader_end_member(reader);
-            json_reader_read_member(reader, "stream");
-            parse_stream(self, reader, raw);
-            raw->online = TRUE;
-        }
-
-        json_reader_end_member(reader);
-
-        channel = gt_channel_new(raw->name, raw->id);
-        g_object_force_floating(G_OBJECT(channel));
-        gt_channel_update_from_raw_data(channel, raw);
-
-        json_reader_end_element(reader);
-
-        ret = g_list_append(ret, channel);
-
-        gt_twitch_channel_raw_data_free(raw);
-    }
-
-    json_reader_end_member(reader);
-
-    g_object_unref(parser);
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
-    g_free(uri);
-
-    return ret;
-}
-
-static void
-follows_async_cb(GTask* task, gpointer source,
-    gpointer task_data, GCancellable* cancel)
-{
-    g_assert(GT_IS_TWITCH(source));
-    g_assert(G_IS_TASK(task));
-    g_assert_nonnull(task_data);
-
-    GenericTaskData* data = task_data;
-    GList* ret = NULL;
-    GError* err = NULL;
-
-    if (g_task_return_error_if_cancelled(task))
-        return;
-
-    ret = gt_twitch_follows(GT_TWITCH(source), data->str_1, data->int_1, data->int_2);
-
-    //TODO:
-    /* if (!ret) */
-    /*     g_task_return_new_error(task, GT_TWITCH_ERROR, GT_TWITCH_ERROR_FOLLOWS, */
-    /*                             "Error getting follows"); */
-    /* else */
-    /*     g_task_return_pointer(task, ret, (GDestroyNotify) gt_channel_list_free); */
-}
-
-void
-gt_twitch_follows_async(GtTwitch* self, const gchar* user_name,
-    gint limit, gint offset, GCancellable* cancel,
-    GAsyncReadyCallback cb, gpointer udata)
+//TODO: Need to rewrite this to fetch both streams and channels
+static GList*
+fetch_followed_streams(GtTwitch* self, const gchar* oauth_token,
+    gint limit, gint offset, gint* total, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
-    g_assert_false(utils_str_empty(user_name));
-    g_assert_cmpint(limit, >=, 0);
-    g_assert_cmpint(limit, <=, 100);
+    g_assert_cmpint(limit, >, 0);
     g_assert_cmpint(offset, >=, 0);
+    g_assert_false(utils_str_empty(oauth_token));
 
-    GTask* task = NULL;
-    GenericTaskData* data = NULL;
-
-    task = g_task_new(self, cancel, cb, udata);
-    g_task_set_return_on_cancel(task, FALSE);
-
-    data = generic_task_data_new();
-    data->int_1 = limit;
-    data->int_2 = offset;
-    data->str_1 = g_strdup(user_name);
-
-    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
-
-    g_task_run_in_thread(task, follows_async_cb);
-
-    g_object_unref(task);
-}
-
-GList*
-gt_twitch_follows_all(GtTwitch* self, const gchar* user_name, GError** error)
-{
-    g_assert(GT_IS_TWITCH(self));
-    g_assert_false(utils_str_empty(user_name));
-
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    JsonReader* reader = NULL;
+    g_autoptr(SoupMessage) msg;
+    g_autoptr(JsonReader) reader;
+    g_autofree gchar* uri;
     GList* ret = NULL;
-    gint64 total;
     GError* err = NULL;
 
-    uri = g_strdup_printf(FOLLOWS_URI, user_name, 99, 0);
+    uri = g_strdup_printf(FOLLOWED_STREAMS_URI, limit, offset, oauth_token);
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed streams with oauth token '%s', limit '%d' and offset '%d'",
+        oauth_token, limit, offset);
+
+    READ_JSON_VALUE("_total", *total);
+
+    READ_JSON_MEMBER("streams");
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        WARNINGF("Error fetching follows for user '%s' because: %s",
-            user_name, err->message);
+        GtChannelData* data = NULL;
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to fetch follows for user '%s' because: ", user_name);
+        READ_JSON_ELEMENT(i);
 
-        goto finish;
+        data = parse_stream(reader, &err);
+
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed streams with oauth token '%s', limit '%d' and offset '%d'",
+            oauth_token, limit, offset);
+
+        ret = g_list_append(ret, data);
+
+        END_JSON_ELEMENT();
     }
 
-    json_reader_read_member(reader, "_total");
-    total = json_reader_get_int_value(reader);
-    json_reader_end_member(reader);
+    return ret;
 
-    json_reader_read_member(reader, "follows");
+error:
+json_error:
+    gt_channel_data_list_free(ret);
 
-    gint max = json_reader_count_elements(reader);
+    return NULL;
+}
 
-    for (gint i = 0; i < max; i++)
+static GList*
+fetch_followed_channels(GtTwitch* self, gint64 id,
+    gint limit, gint offset, gint* total, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_cmpint(limit, >, 0);
+    g_assert_cmpint(offset, >=, 0);
+
+    g_autoptr(SoupMessage) msg;
+    g_autoptr(JsonReader) reader;
+    g_autofree gchar* uri;
+    GList* ret = NULL;
+    GError* err = NULL;
+
+    uri = g_strdup_printf(FOLLOWED_CHANNELS_URI, id, limit, offset);
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    reader = new_send_message_json(self, msg, &err);
+
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed channels with id '%ld', limit '%d' and offset '%d'",
+        id, limit, offset);
+
+    READ_JSON_VALUE("_total", *total);
+
+    READ_JSON_MEMBER("follows");
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtChannel* channel;
-        GtChannelRawData* raw = g_new0(GtChannelRawData, 1);;
-        gboolean live;
+        GtChannelData* data = NULL;
 
-        json_reader_read_element(reader, i);
+        READ_JSON_ELEMENT(i);
+        READ_JSON_MEMBER("channel");
 
-        json_reader_read_member(reader, "live");
+        data = parse_channel(reader, &err);
 
-        if (json_reader_get_null_value(reader))
+        CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed channels with id '%ld', limit '%d' and offset '%d'",
+            id, limit, offset);
+
+        ret = g_list_append(ret, data);
+
+        END_JSON_MEMBER();
+        END_JSON_ELEMENT();
+    }
+
+    return ret;
+
+error:
+json_error:
+    gt_channel_data_list_free(ret);
+
+    return NULL;
+
+}
+
+GList*
+gt_twitch_fetch_all_followed_channels(GtTwitch* self,
+    gint64 id, const gchar* oauth_token, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+
+#define LIMIT 100
+
+    gint total = 0;
+    GList* chans = NULL;
+    GList* streams = NULL;
+    GList* ret = NULL;
+    GError* err = NULL;
+
+    streams = g_list_concat(streams,
+        fetch_followed_streams(self, oauth_token, LIMIT, 0, &total, &err));
+
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
+
+    if (total > 100)
+    {
+        for (gint i = 100; i < total; i += 100)
         {
-            json_reader_end_member(reader);
-            json_reader_read_member(reader, "channel");
-            parse_channel(self, reader, raw);
-            raw->online = FALSE;
+            streams = g_list_concat(streams,
+                fetch_followed_streams(self, oauth_token, LIMIT, 0, NULL, &err));
+
+            CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
+        }
+    }
+
+    chans = g_list_concat(chans,
+        fetch_followed_channels(self, id, LIMIT, 0, &total, &err));
+
+    CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
+
+    if (total > 100)
+    {
+        for (gint i = 100; i < total; i += 100)
+        {
+            chans = g_list_concat(chans,
+                fetch_followed_channels(self, id, LIMIT, 0, NULL, &err));
+
+            CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
+        }
+    }
+
+    //NOTE: Remove duplicates
+    for (GList* l = streams; l != NULL; l = l->next)
+    {
+        GList* found = g_list_find_custom(chans, l->data, (GCompareFunc) gt_channel_data_compare);
+
+        if (!found)
+        {
+            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_MISC, "Unable to fetch all followed channels with id '%ld' and oauth token '%s' because:"
+                "A followed stream did not exist as a followed channel", id, oauth_token);
+
+            goto error;
         }
         else
         {
-            json_reader_end_member(reader);
-            json_reader_read_member(reader, "stream");
-            parse_stream(self, reader, raw);
-            raw->online = TRUE;
+            g_assert_nonnull(found->data);
+            g_assert_false(((GtChannelData*) found->data)->online);
+
+            gt_channel_data_free(l->data);
+
+            chans = g_list_remove_link(chans, found);
         }
-
-        json_reader_end_member(reader);
-
-        channel = gt_channel_new(raw->name, raw->id);
-        g_object_force_floating(G_OBJECT(channel));
-        gt_channel_update_from_raw_data(channel, raw);
-
-        json_reader_end_element(reader);
-
-        ret = g_list_append(ret, channel);
-
-        gt_twitch_channel_raw_data_free(raw);
     }
 
-    if (total > 99)
+    chans = g_list_concat(chans, streams);
+
+    for (GList* l = chans; l != NULL; l = l ->next)
     {
-        for (gint j = 99; j < total; j += 99)
-            ret = g_list_concat(ret, gt_twitch_follows(self, user_name, 99, j));
+        GtChannelData* data = l->data;
+        GtChannel* chan = gt_channel_new(data->name, data->id);
+
+        gt_channel_update_from_raw_data(chan, data);
+
+        ret = g_list_append(ret, chan);
     }
 
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_object_unref(msg);
-    g_free(uri);
+    gt_channel_data_list_free(chans);
+    gt_channel_data_list_free(streams);
 
     return ret;
+
+error:
+    gt_channel_data_list_free(chans);
+    gt_channel_data_list_free(streams);
+
+    return NULL;
 }
 
 static void
-follows_all_async_cb(GTask* task, gpointer source,
+fetch_all_followed_channels_async_cb(GTask* task, gpointer source,
     gpointer task_data, GCancellable* cancel)
 {
     g_assert(GT_IS_TWITCH(source));
@@ -2076,12 +1946,13 @@ follows_all_async_cb(GTask* task, gpointer source,
     g_assert_nonnull(task_data);
 
     GenericTaskData* data = task_data;
+    GList* ret = NULL;
     GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    GList* ret = gt_twitch_follows_all(GT_TWITCH(source), data->str_1, &err);
+    ret = gt_twitch_fetch_all_followed_channels(GT_TWITCH(source), data->int_1, data->str_1, &err);
 
     if (err)
         g_task_return_error(task, err);
@@ -2090,11 +1961,12 @@ follows_all_async_cb(GTask* task, gpointer source,
 }
 
 void
-gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
-    GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
+gt_twitch_fetch_all_followed_channels_async(GtTwitch* self,
+    gint64 id, const gchar* oauth_token, GCancellable* cancel,
+    GAsyncReadyCallback cb, gpointer udata)
 {
     g_assert(GT_IS_TWITCH(self));
-    g_assert_false(utils_str_empty(user_name));
+    g_assert_false(utils_str_empty(oauth_token));
 
     GTask* task = NULL;
     GenericTaskData* data = NULL;
@@ -2103,17 +1975,18 @@ gt_twitch_follows_all_async(GtTwitch* self, const gchar* user_name,
     g_task_set_return_on_cancel(task, FALSE);
 
     data = generic_task_data_new();
-    data->str_1 = g_strdup(user_name);
+    data->int_1 = id;
+    data->str_1 = g_strdup(oauth_token);
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
-    g_task_run_in_thread(task, follows_all_async_cb);
+    g_task_run_in_thread(task, fetch_all_followed_channels_async_cb);
 
     g_object_unref(task);
 }
 
 GList*
-gt_twitch_follows_all_finish(GtTwitch* self,
+gt_twitch_fetch_all_followed_channels_finish(GtTwitch* self,
     GAsyncResult* result, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
@@ -2132,8 +2005,8 @@ gt_twitch_follow_channel(GtTwitch* self,
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(chan_name));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
     GError* err = NULL;
 
     uri = g_strdup_printf(FOLLOW_CHANNEL_URI,
@@ -2144,17 +2017,11 @@ gt_twitch_follow_channel(GtTwitch* self,
 
     new_send_message(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to follow channel '%s' because: %s",
-            chan_name, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to follow channel '%s'",
+        chan_name);
 
-        g_propagate_prefixed_error(error, err,
-            "Unable to follow channel '%s' because: ", chan_name);
-    }
-
-    g_free(uri);
-    g_object_unref(msg);
+error:
+    return;
 }
 
 static void
@@ -2217,9 +2084,8 @@ gt_twitch_unfollow_channel(GtTwitch* self,
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(chan_name));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    gboolean ret = TRUE;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
     GError* err = NULL;
 
     uri = g_strdup_printf(UNFOLLOW_CHANNEL_URI,
@@ -2230,15 +2096,11 @@ gt_twitch_unfollow_channel(GtTwitch* self,
 
     new_send_message(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to unfollow channel '%s' because: %s", chan_name, err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to unfollow channel '%s'",
+        chan_name);
 
-        g_propagate_prefixed_error(error, err, "Unable to unfollow channel '%s' because: ", chan_name);
-    }
-
-    g_free(uri);
-    g_object_unref(msg);
+error:
+    return;
 }
 
 static void
@@ -2300,11 +2162,11 @@ gt_twitch_emoticons(GtTwitch* self,
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(emotesets));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* uri = NULL;
+    g_auto(GStrv) sets;
     GList* ret = NULL;
-    JsonReader* reader = NULL;
-    gchar** sets = NULL;
     GError* err = NULL;
 
     uri = g_strdup_printf(EMOTICON_IMAGES_URI,
@@ -2314,64 +2176,45 @@ gt_twitch_emoticons(GtTwitch* self,
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to get emoticons for emote sets '%s' because: %s",
-            emotesets, err->message);
-
-        g_propagate_prefixed_error(error, err,
-            "Unable to get emoticons for emote sets '%s' because: ", emotesets);
-
-        goto finish;
-    }
+    CHECK_AND_PROPAGATE_ERROR("Unable to get emoticons for emote sets '%s'",
+        emotesets);
 
     sets = g_strsplit(emotesets, ",", 0);
 
-    json_reader_read_member(reader, "emoticon_sets");
+    READ_JSON_MEMBER("emoticon_sets");
 
     for (gchar** c = sets; *c != NULL; c++)
     {
-        json_reader_read_member(reader, *c);
+        READ_JSON_MEMBER(*c);
 
         for (gint i = 0; i < json_reader_count_elements(reader); i++)
         {
-            GtChatEmote* emote;
+            GtChatEmote* emote = gt_chat_emote_new();
 
-            emote = gt_chat_emote_new();
+            ret = g_list_append(ret, emote);
 
-            json_reader_read_element(reader, i);
-
-            json_reader_read_member(reader, "id");
-            emote->id = json_reader_get_int_value(reader);
-            json_reader_end_member(reader);
-
-            json_reader_read_member(reader, "code");
-            emote->code = g_strdup(json_reader_get_string_value(reader));
-            json_reader_end_member(reader);
+            READ_JSON_ELEMENT(i);
+            READ_JSON_VALUE("id", emote->id);
+            READ_JSON_VALUE("code", emote->code);
+            END_JSON_ELEMENT();
 
             emote->set = atoi(*c);
 
             emote->pixbuf = gt_twitch_download_emote(self, emote->id);
-
-            ret = g_list_append(ret, emote);
-
-            json_reader_end_element(reader);
         }
 
-        json_reader_end_member(reader);
+        END_JSON_MEMBER();
     }
 
-    g_strfreev(sets);
-
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_free(uri);
-    g_object_unref(msg);
+    END_JSON_MEMBER();
 
     return ret;
+
+error:
+json_error:
+    gt_chat_emote_list_free(ret);
+
+    return NULL;
 }
 
 static void
@@ -2416,119 +2259,98 @@ gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets,
     g_object_unref(task);
 }
 
-void
-gt_twitch_oauth_info_free(GtTwitchOAuthInfo* info)
-{
-    g_free(info->user_name);
-    g_list_free_full(info->scopes, g_free);
-    g_free(info);
-}
-
-GtTwitchOAuthInfo*
-gt_twitch_oauth_info(GtTwitch* self,
-                     GError** error)
+GtUserInfo*
+gt_twitch_fetch_user_info(GtTwitch* self,
+    GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
 
-    SoupMessage* msg = NULL;
-    gchar* uri = NULL;
-    GtTwitchOAuthInfo* ret = NULL;
-    JsonReader* reader;
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader;
+    g_autofree gchar* uri = NULL;
+    GtUserInfo* ret = NULL;
     GError* err = NULL;
 
-    uri = g_strdup_printf(OAUTH_INFO_URI,
-        gt_app_get_oauth_token(main_app));
+    uri = g_strdup_printf(USER_INFO_URI,
+        gt_app_get_user_info(main_app)->oauth_token);
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
     reader = new_send_message_json(self, msg, &err);
 
-    if (err)
-    {
-        WARNINGF("Unable to get oauth info because: %s", err->message);
+    CHECK_AND_PROPAGATE_ERROR("Unable to get oauth info");
 
-        g_propagate_prefixed_error(error, err, "Unable to get oauth info because: ");
+    ret = gt_user_info_new();
 
-        goto finish;
-    }
-
-    ret = g_new0(GtTwitchOAuthInfo, 1);
-
-    json_reader_read_member(reader, "token");
-
-    json_reader_read_member(reader, "user_name");
-    ret->user_name = g_strdup(json_reader_get_string_value(reader));
-    json_reader_end_member(reader);
-
-    json_reader_read_member(reader, "scopes");
-
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
-    {
-        json_reader_read_element(reader, i);
-        ret->scopes = g_list_append(ret->scopes,
-                                    g_strdup(json_reader_get_string_value(reader)));
-        json_reader_end_element(reader);
-    }
-
-    json_reader_end_member(reader);
-
-    json_reader_end_member(reader);
-
-    g_object_unref(reader);
-
-finish:
-    g_free(uri);
-    g_object_unref(msg);
+    READ_JSON_VALUE("_id", ret->id);
+    READ_JSON_VALUE("name", ret->name);
+    READ_JSON_VALUE("bio", ret->bio);
+    READ_JSON_VALUE("display_name", ret->display_name);
+    READ_JSON_VALUE("email", ret->email);
+    READ_JSON_VALUE("email_verified", ret->email);
+    READ_JSON_VALUE("logo", ret->logo_url);
+    READ_JSON_MEMBER("notifications");
+    READ_JSON_VALUE("email", ret->notifications.email);
+    READ_JSON_VALUE("push", ret->notifications.push);
+    END_JSON_MEMBER();
+    READ_JSON_VALUE("partnered", ret->partnered);
+    READ_JSON_VALUE("twitter_connected", ret->twitter_connected);
+    READ_JSON_VALUE("type", ret->type);
+    READ_JSON_VALUE("updated_at", ret->created_at);
+    READ_JSON_VALUE("updated_at", ret->updated_at);
 
     return ret;
 
+error:
+json_error:
+    gt_user_info_free(ret);
+
+    return NULL;
 }
 
 static void
-oauth_info_async_cb(GTask* task, gpointer source,
+fetch_user_info_async_cb(GTask* task, gpointer source,
     gpointer task_data, GCancellable* cancel)
 {
     g_assert(GT_IS_TWITCH(source));
     g_assert(G_IS_TASK(task));
-    g_assert_nonnull(task_data);
 
     GError* err = NULL;
 
-    GtTwitchOAuthInfo* ret = gt_twitch_oauth_info(GT_TWITCH(source), &err);
+    GtUserInfo* ret = gt_twitch_fetch_user_info(GT_TWITCH(source), &err);
 
     if (err)
         g_task_return_error(task, err);
     else
-        g_task_return_pointer(task, ret, (GDestroyNotify) gt_twitch_oauth_info_free);
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_user_info_free);
 }
 
 void
-gt_twitch_oauth_info_async(GtTwitch* self,
+gt_twitch_fetch_user_info_async(GtTwitch* self,
     GAsyncReadyCallback cb, GCancellable* cancel,
     gpointer udata)
 {
     g_assert(GT_IS_TWITCH(self));
 
     GTask* task = NULL;
-    GenericTaskData* data = NULL;
 
     task = g_task_new(self, cancel, cb, udata);
 
     g_task_set_task_data(task, NULL, NULL);
 
-    g_task_run_in_thread(task, oauth_info_async_cb);
+    g_task_run_in_thread(task, fetch_user_info_async_cb);
 
     g_object_unref(task);
 }
 
-GtTwitchOAuthInfo*
-gt_twitch_oauth_info_finish(GtTwitch* self,
+GtUserInfo*
+gt_twitch_fetch_user_info_finish(GtTwitch* self,
     GAsyncResult* result, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert(G_IS_ASYNC_RESULT(result));
 
-    GtTwitchOAuthInfo* ret = g_task_propagate_pointer(G_TASK(error), error);
+    GtUserInfo* ret = g_task_propagate_pointer(G_TASK(result), error);
 
     return ret;
 }

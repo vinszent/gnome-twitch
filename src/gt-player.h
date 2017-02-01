@@ -2,13 +2,15 @@
 #define GT_PLAYER_H
 
 #include <gtk/gtk.h>
-#include "gt-channel.h"
 
 G_BEGIN_DECLS
 
 #define GT_TYPE_PLAYER (gt_player_get_type())
 
 G_DECLARE_FINAL_TYPE(GtPlayer, gt_player, GT, PLAYER, GtkEventBox)
+
+#include "gt-channel.h"
+#include "gt-twitch.h"
 
 struct _GtPlayer
 {

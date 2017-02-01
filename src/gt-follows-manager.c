@@ -433,7 +433,7 @@ follows_all_cb(GObject* source,
     GList* list = NULL;
     gchar* fp = FAV_CHANNELS_FILE;
 
-    list = gt_twitch_follows_all_finish(GT_TWITCH(source), res, &err);
+    list = gt_twitch_fetch_all_followed_channels_finish(GT_TWITCH(source), res, &err);
 
     g_clear_pointer(&self->follow_channels,
         (GDestroyNotify) gt_channel_list_free);
@@ -496,9 +496,10 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 {
     g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
-    gt_twitch_follows_all_async(main_app->twitch,
-        gt_app_get_user_name(main_app),
-        NULL, follows_all_cb, self);
+    const GtUserInfo* info = gt_app_get_user_info(main_app);
+
+    gt_twitch_fetch_all_followed_channels_async(main_app->twitch,
+        info->id, info->oauth_token, NULL, follows_all_cb, self);
 }
 
 void

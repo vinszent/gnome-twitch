@@ -19,9 +19,7 @@ typedef struct
 {
     GtWin* win;
 
-    gchar* oauth_token;
-    gchar* user_name;
-
+    GtUserInfo* user_info;
     GMenuItem* login_item;
     GMenuModel* app_menu;
 } GtAppPrivate;
@@ -35,8 +33,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 enum
 {
     PROP_0,
-    PROP_OAUTH_TOKEN,
-    PROP_USER_NAME,
     NUM_PROPS
 };
 
@@ -224,7 +220,7 @@ oauth_token_set_cb(GObject* src,
     GtApp* self = GT_APP(udata);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    if (priv->oauth_token && strlen(priv->oauth_token) > 0)
+    if (!utils_str_empty(priv->user_info->oauth_token))
     {
         g_menu_remove(G_MENU(priv->app_menu), 0);
         g_menu_item_set_label(priv->login_item, _("Refresh login"));
@@ -349,12 +345,12 @@ startup(GApplication* app)
 
     g_object_unref(menu_bld);
 
-    g_settings_bind(self->settings, "user-name",
-                    self, "user-name",
-                    G_SETTINGS_BIND_DEFAULT);
-    g_settings_bind(self->settings, "oauth-token",
-                    self, "oauth-token",
-                    G_SETTINGS_BIND_DEFAULT);
+    /* g_settings_bind(self->settings, "user-name", */
+    /*                 self, "user-name", */
+    /*                 G_SETTINGS_BIND_DEFAULT); */
+    /* g_settings_bind(self->settings, "oauth-token", */
+    /*                 self, "oauth-token", */
+    /*                 G_SETTINGS_BIND_DEFAULT); */
 
     gtk_settings = gtk_settings_get_default();
 
@@ -415,12 +411,6 @@ get_property (GObject*    obj,
 
     switch (prop)
     {
-        case PROP_OAUTH_TOKEN:
-            g_value_set_string(val, priv->oauth_token);
-            break;
-        case PROP_USER_NAME:
-            g_value_set_string(val, priv->user_name);
-            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -437,14 +427,6 @@ set_property(GObject*      obj,
 
     switch (prop)
     {
-        case PROP_OAUTH_TOKEN:
-            g_free(priv->oauth_token);
-            priv->oauth_token = g_value_dup_string(val);
-            break;
-        case PROP_USER_NAME:
-            g_free(priv->user_name);
-            priv->user_name = g_value_dup_string(val);
-            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -462,25 +444,14 @@ gt_app_class_init(GtAppClass* klass)
     object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
-
-    props[PROP_OAUTH_TOKEN] = g_param_spec_string("oauth-token",
-                                                  "Oauth token",
-                                                  "Twitch Oauth token",
-                                                  NULL,
-                                                  G_PARAM_READWRITE);
-    props[PROP_USER_NAME] = g_param_spec_string("user-name",
-                                                "User name",
-                                                "User name",
-                                                NULL,
-                                                G_PARAM_READWRITE);
-
-    g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
 static void
 gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    priv->user_info = NULL;
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
@@ -515,20 +486,44 @@ gt_app_init(GtApp* self)
     g_signal_connect(self, "handle-local-options", G_CALLBACK(handle_command_line_cb), self);
 }
 
+//TODO: Turn this into a property
+void
+gt_app_set_user_info(GtApp* self, GtUserInfo* info)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    if (priv->user_info)
+        gt_user_info_free(priv->user_info);
+
+    priv->user_info = info;
+}
+
+const GtUserInfo*
+gt_app_get_user_info(GtApp* self)
+{
+    g_assert(GT_IS_APP(self));
+
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return priv->user_info;
+}
+
+G_DEPRECATED
 const gchar*
 gt_app_get_user_name(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    return priv->user_name;
+    return priv->user_info->name;
 }
 
+G_DEPRECATED
 const gchar*
 gt_app_get_oauth_token(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    return priv->oauth_token;
+    return priv->user_info->oauth_token;
 }
 
 gboolean
@@ -537,8 +532,28 @@ gt_app_credentials_valid(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     return
-        priv->oauth_token             &&
-        priv->user_name               &&
-        strlen(priv->oauth_token) > 1 &&
-        strlen(priv->user_name) > 1;
+        priv->user_info &&
+        !utils_str_empty(priv->user_info->oauth_token) &&
+        !utils_str_empty(priv->user_info->name);
+}
+
+GtUserInfo* gt_user_info_new()
+{
+    return g_slice_new0(GtUserInfo);
+}
+void
+gt_user_info_free(GtUserInfo* info)
+{
+    g_free(info->name);
+    g_free(info->oauth_token);
+    g_free(info->display_name);
+    g_free(info->bio);
+    g_free(info->logo_url);
+    g_free(info->type);
+    g_free(info->email);
+
+    g_date_time_unref(info->created_at);
+    g_date_time_unref(info->updated_at);
+
+    g_slice_free(GtUserInfo, info);
 }

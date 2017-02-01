@@ -97,39 +97,37 @@ gt_twitch_login_dlg_class_init(GtTwitchLoginDlgClass* klass)
 }
 
 static void
-oauth_info_cb(GObject* source,
+fetch_user_info_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
     GtTwitchLoginDlg* self = GT_TWITCH_LOGIN_DLG(udata);
     GError* err = NULL;
 
-    GtTwitchOAuthInfo* oauth_info = gt_twitch_oauth_info_finish(main_app->twitch, res, &err);
+    GtUserInfo* user_info = gt_twitch_fetch_user_info_finish(main_app->twitch, res, &err);
 
     if (err)
     {
-        GtWin* win;
+        GtkWindow* win = gtk_window_get_transient_for(GTK_WINDOW(self));
 
         gtk_widget_destroy(GTK_WIDGET(self));
 
-        win = GT_WIN_TOPLEVEL(self);
-
         g_assert(GT_IS_WIN(win));
 
-        gt_win_show_error_message(win, "Unable to get oauth info", err->message);
+        gt_win_show_error_message(GT_WIN(win), "Unable to get oauth info", err->message);
 
         g_error_free(err);
 
         return;
     }
 
-    MESSAGEF("Successfully got username '%s'", oauth_info->user_name);
+    MESSAGEF("Successfully got username '%s'", user_info->name);
 
-    g_object_set(main_app, "user-name", oauth_info->user_name, NULL);
+    gt_app_set_user_info(main_app, user_info);
 
     gt_win_show_info_message(GT_WIN(gtk_window_get_transient_for(GTK_WINDOW(self))),
                              _("Successfully logged in to Twitch!"));
 
-    g_free(oauth_info);
+    g_free(user_info);
     gtk_widget_destroy(GTK_WIDGET(self));
 }
 
@@ -179,7 +177,7 @@ redirect_cb(WebKitWebView* web_view,
 
         MESSAGEF("Successfully got OAuth token '%s'", token);
 
-        gt_twitch_oauth_info_async(main_app->twitch, oauth_info_cb, NULL, self);
+        gt_twitch_fetch_user_info_async(main_app->twitch, fetch_user_info_cb, NULL, self);
 
         g_free(token);
 
@@ -197,7 +195,7 @@ gt_twitch_login_dlg_init(GtTwitchLoginDlg* self)
 {
     GtTwitchLoginDlgPrivate* priv = gt_twitch_login_dlg_get_instance_private(self);
 
-    priv->token_redirect_regex = g_regex_new("http://localhost/#access_token=(\\S+)&scope=chat_login", 0, 0, NULL);
+    priv->token_redirect_regex = g_regex_new("http:\\/\\/localhost\\/#access_token=(\\S+)&scope=chat_login\\+user_follows_edit\\+user_read", 0, 0, NULL);
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
@@ -207,7 +205,7 @@ gt_twitch_login_dlg_init(GtTwitchLoginDlg* self)
     g_signal_connect(priv->web_view, "decide-policy", G_CALLBACK(redirect_cb), self);
 #endif
 
-    const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login+user_follows_edit");
+    const gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=%s&redirect_uri=%s&scope=%s", "afjnp6n4ufzott4atb3xpb8l5a31aav", "http://localhost", "chat_login+user_follows_edit+user_read");
 
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(priv->web_view), uri);
 }

@@ -528,6 +528,9 @@ parse_line(GtIrc* self, gchar* line)
     return msg;
 }
 
+
+//TODO: Although clunky this would be cleaner if it's split up into
+//two functions one for sending and one for receiving
 static gboolean
 handle_message(GtIrc* self, GOutputStream* ostream, GtIrcMessage* msg)
 {
@@ -956,6 +959,8 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
     gint pos = 0;
     gchar host[20];
     gint port;
+    const GtUserInfo* info = NULL;
+    GError* err = NULL;
 
     g_assert(priv->state == GT_IRC_STATE_DISCONNECTED);
 
@@ -964,10 +969,13 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     priv->chan = g_object_ref(chan);
 
-    //TODO: Use an error here
-    gt_twitch_load_chat_badge_sets_for_channel(main_app->twitch, gt_channel_get_id(priv->chan), NULL);
+    gt_twitch_load_chat_badge_sets_for_channel(main_app->twitch, gt_channel_get_id(priv->chan), &err);
 
-    servers = gt_twitch_chat_servers(main_app->twitch, gt_channel_get_name(chan));
+    g_assert_no_error(err); //TODO: Propagate error further
+
+    servers = gt_twitch_chat_servers(main_app->twitch, gt_channel_get_name(chan), &err);
+
+    g_assert_no_error(err); //TODO: Propagate error further
 
     pos = g_random_int() % g_list_length(servers);
 
@@ -975,9 +983,11 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     g_signal_connect(self, "notify::state", G_CALLBACK(logged_in_cb), self);
 
+    info = gt_app_get_user_info(main_app);
+
     gt_irc_connect(self, host, port,
-        gt_app_get_oauth_token(main_app),
-        gt_app_get_user_name(main_app));
+        info ? info->oauth_token : NULL,
+        info ? info->name : NULL);
 
     g_list_free_full(servers, g_free);
 }

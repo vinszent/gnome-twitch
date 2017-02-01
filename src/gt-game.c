@@ -326,7 +326,7 @@ gt_game_init(GtGame* self)
 }
 
 void
-gt_game_update_from_raw_data(GtGame* self, GtGameRawData* data)
+gt_game_update_from_raw_data(GtGame* self, GtGameData* data)
 {
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
@@ -364,4 +364,21 @@ gt_game_get_updating(GtGame* self)
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     return priv->updating;
+}
+
+GtGameData*
+gt_game_data_new()
+{
+    return g_slice_new0(GtGameData);
+}
+
+void
+gt_game_data_free(GtGameData* data)
+{
+    if (!data) return;
+
+    g_free(data->name);
+    g_free(data->preview_url);
+    g_free(data->logo_url);
+    g_slice_free(GtGameData, data);
 }

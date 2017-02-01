@@ -138,7 +138,7 @@ update_set_cb(gpointer udata)
 {
     GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    GtChannelRawData* raw = g_object_get_data(G_OBJECT(self), "raw-data");
+    GtChannelData* raw = g_object_get_data(G_OBJECT(self), "raw-data");
 
     if (!raw)
     {
@@ -150,7 +150,7 @@ update_set_cb(gpointer udata)
 
     gt_channel_update_from_raw_data(self, raw);
 
-    gt_twitch_channel_raw_data_free(raw);
+    gt_channel_data_free(raw);
     g_object_set_data(G_OBJECT(self), "raw-data", NULL);
 
 finish:
@@ -168,8 +168,11 @@ update_cb(gpointer data,
 
     GtChannel* self = GT_CHANNEL(data);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    GError* err = NULL;
 
-    GtChannelRawData* raw = gt_twitch_channel_with_stream_raw_data(main_app->twitch, priv->name);
+    GtChannelData* raw = gt_twitch_fetch_channel_data(main_app->twitch, priv->id, &err);
+
+    g_assert_no_error(err); //FIXME: Propagate this further
 
     if (!raw || priv->update_set_id)
         return; //Most likely error getting data or already running update
@@ -528,7 +531,7 @@ gt_channel_class_init(GtChannelClass* klass)
                                            "Name",
                                            "Name of channel",
                                            NULL,
-                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     props[PROP_STATUS] = g_param_spec_string("status",
                                              "Status",
                                              "Status of channel",
@@ -640,7 +643,7 @@ json_serializable_iface_init(JsonSerializableIface* iface)
 }
 
 void
-gt_channel_update_from_raw_data(GtChannel* self, GtChannelRawData* data)
+gt_channel_update_from_raw_data(GtChannel* self, GtChannelData* data)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
@@ -741,4 +744,44 @@ gt_channel_update(GtChannel* self)
     g_thread_pool_push(update_pool, self, NULL);
 
     return TRUE;
+}
+
+GtChannelData*
+gt_channel_data_new()
+{
+    return g_slice_new0(GtChannelData);
+}
+
+void
+gt_channel_data_free(GtChannelData* data)
+{
+    if (!data) return;
+
+    g_free(data->game);
+    g_free(data->status);
+    g_free(data->display_name);
+    g_free(data->preview_url);
+    g_free(data->video_banner_url);
+    if (data->stream_started_time)
+        g_date_time_unref(data->stream_started_time);
+
+    g_slice_free(GtChannelData, data);
+}
+
+void
+gt_channel_data_list_free(GList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_channel_data_free);
+}
+
+gint
+gt_channel_data_compare(GtChannelData* a, GtChannelData* b)
+{
+    if (!a || !b)
+        return -1;
+
+    if (a->id == b->id)
+        return 0;
+
+    return -1;
 }
