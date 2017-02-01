@@ -1215,9 +1215,9 @@ gt_twitch_fetch_channel_data(GtTwitch* self, gint64 id, GError** error)
 
         CHECK_AND_PROPAGATE_ERROR("Unable to fetch channel data with id %ld",
             id);
-    }
 
-    END_JSON_MEMBER();
+        END_JSON_MEMBER();
+    }
 
     return ret;
 
