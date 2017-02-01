@@ -213,6 +213,113 @@ save_chat_settings(GtApp* self)
 }
 
 static void
+load_user_info(GtApp* self)
+{
+#define CHECK_ERROR                                                     \
+    if (err)                                                            \
+    {                                                                   \
+        WARNINGF("Unable to load user info because: %s", err->message); \
+        gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to load user info", err->message); \
+        g_error_free(err);                                              \
+        gt_user_info_free(priv->user_info);                             \
+        return;                                                         \
+    }                                                                   \
+
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+    g_autofree gchar* fp = NULL;
+    g_autoptr(GKeyFile) key_file = NULL;
+    g_autofree gchar* created_at_str = NULL;
+    g_autofree gchar* updated_at_str = NULL;
+    GError* err = NULL;
+
+    fp = g_build_filename(g_get_user_data_dir(),
+        "gnome-twitch", "user_info.ini", NULL);
+
+    if (g_file_test(fp, G_FILE_TEST_EXISTS))
+    {
+        if (priv->user_info) gt_user_info_free(priv->user_info);
+
+        priv->user_info = gt_user_info_new();
+
+        g_key_file_load_from_file(key_file, fp, G_KEY_FILE_NONE, &err);
+
+        CHECK_ERROR;
+
+        priv->user_info->id = g_key_file_get_int64(key_file, "UserInfo", "ID", &err); CHECK_ERROR;
+        priv->user_info->name = g_key_file_get_string(key_file, "UserInfo", "Name", &err); CHECK_ERROR;
+        priv->user_info->oauth_token = g_key_file_get_string(key_file, "UserInfo", "OAuthToken", &err); CHECK_ERROR;
+        priv->user_info->display_name = g_key_file_get_string(key_file, "UserInfo", "DisplayName", &err); CHECK_ERROR;
+        priv->user_info->bio = g_key_file_get_string(key_file, "UserInfo", "Bio", &err); CHECK_ERROR;
+        priv->user_info->logo_url = g_key_file_get_string(key_file, "UserInfo", "LogoURL", &err); CHECK_ERROR;
+        priv->user_info->type = g_key_file_get_string(key_file, "UserInfo", "Type", &err); CHECK_ERROR;
+        priv->user_info->email = g_key_file_get_string(key_file, "UserInfo", "Email", &err); CHECK_ERROR;
+        priv->user_info->email_verified = g_key_file_get_boolean(key_file, "UserInfo", "EmailVerified", &err); CHECK_ERROR;
+        priv->user_info->partnered = g_key_file_get_boolean(key_file, "UserInfo", "Partnered", &err); CHECK_ERROR;
+        priv->user_info->twitter_connected = g_key_file_get_boolean(key_file, "UserInfo", "TwitterConncted", &err); CHECK_ERROR;
+
+        created_at_str = g_key_file_get_string(key_file, "UserInfo", "CreatedAt", &err); CHECK_ERROR;
+        priv->user_info->created_at = utils_parse_time_iso_8601(created_at_str, &err); CHECK_ERROR;
+
+        updated_at_str = g_key_file_get_string(key_file, "UserInfo", "UpdatedAt", &err); CHECK_ERROR;
+        priv->user_info->updated_at = utils_parse_time_iso_8601(updated_at_str, &err); CHECK_ERROR;
+
+        priv->user_info->notifications.push = g_key_file_get_boolean(key_file, "Notifications", "Push", &err); CHECK_ERROR;
+        priv->user_info->notifications.email = g_key_file_get_boolean(key_file, "Notifications", "Email", &err); CHECK_ERROR;
+    }
+    else
+        MESSAGEF("No user info file found at '%s', assuming user hasn't logged in yet", fp);
+}
+
+static void
+save_user_info(GtApp* self)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+    g_autofree gchar* fp = NULL;
+    g_autoptr(GKeyFile) key_file = NULL;
+    g_autofree gchar* created_time_str = NULL;
+    g_autofree gchar* updated_time_str = NULL;
+    GError* err = NULL;
+
+    fp = g_build_filename(g_get_user_data_dir(),
+        "gnome-twitch", "user_info.ini", NULL);
+
+    key_file = g_key_file_new();
+
+    g_key_file_set_int64(key_file, "UserInfo", "ID", priv->user_info->id);
+    g_key_file_set_string(key_file, "UserInfo", "Name", priv->user_info->name);
+    g_key_file_set_string(key_file, "UserInfo", "OAuthToken", priv->user_info->oauth_token);
+    g_key_file_set_string(key_file, "UserInfo", "DisplayName", priv->user_info->name);
+    g_key_file_set_string(key_file, "UserInfo", "Bio", priv->user_info->bio);
+    g_key_file_set_string(key_file, "UserInfo", "LogoURL", priv->user_info->logo_url);
+    g_key_file_set_string(key_file, "UserInfo", "Type", priv->user_info->type);
+    g_key_file_set_string(key_file, "UserInfo", "Email", priv->user_info->email);
+    g_key_file_set_boolean(key_file, "UserInfo", "EmailVerified", priv->user_info->email_verified);
+    g_key_file_set_boolean(key_file, "UserInfo", "Partnered", priv->user_info->partnered);
+    g_key_file_set_boolean(key_file, "UserInfo", "TwitterConnected", priv->user_info->twitter_connected);
+
+    created_time_str = g_date_time_format(priv->user_info->created_at, "%Y-%m-%dT%H:%M:%SZ");
+    updated_time_str = g_date_time_format(priv->user_info->updated_at, "%Y-%m-%dT%H:%M:%SZ");
+
+    g_key_file_set_string(key_file, "UserInfo", "CreatedAt", created_time_str);
+    g_key_file_set_string(key_file, "UserInfo", "UpdatedAt", updated_time_str);
+
+    g_key_file_set_boolean(key_file, "Notifications", "Push", priv->user_info->notifications.push);
+    g_key_file_set_boolean(key_file, "Notifications", "Email", priv->user_info->notifications.email);
+
+    g_key_file_save_to_file(key_file, fp, &err);
+
+    if (err)
+    {
+        WARNINGF("Unable to save user info because: %s", err->message);
+
+        //TODO: Add an option to try again or something
+        gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to save user info", err->message);
+
+        g_error_free(err);
+    }
+}
+
+static void
 oauth_token_set_cb(GObject* src,
                    GParamSpec* pspec,
                    gpointer udata)
@@ -328,6 +435,7 @@ startup(GApplication* app)
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
     load_chat_settings(self);
+    load_user_info(self);
     init_dirs();
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
@@ -380,6 +488,8 @@ shutdown(GApplication* app)
     MESSAGE("{GtApp} Shutting down");
 
     save_chat_settings(self);
+
+    save_user_info(self);
 
     //TODO: Add a setting to allow user to use local follows even when logged in
     if (!gt_app_credentials_valid(self))
