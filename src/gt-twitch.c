@@ -47,10 +47,12 @@
 #define READ_JSON_MEMBER(name) \
     if (!json_reader_read_member(reader, name))                         \
     {                                                                   \
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
-            "Unable to read JSON member with name %s", #name);          \
+        const GError* e = json_reader_get_error(reader);                \
                                                                         \
-        WARNINGF("Unable to read JSON member with name %s", #name);     \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON member with name '%s' because: %s", name, e->message); \
+                                                                        \
+        WARNINGF("Unable to read JSON member with name '%s' because: %s", name, e->message);   \
                                                                         \
         goto json_error;                                                \
     }                                                                   \
@@ -58,10 +60,12 @@
 #define READ_JSON_ELEMENT(i)                                            \
     if (!json_reader_read_element(reader, i))                           \
     {                                                                   \
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
-            "Unable to read JSON element with position %d", i);         \
+        const GError* e = json_reader_get_error(reader);                \
                                                                         \
-        WARNINGF("Unable to read JSON element with position %d", i);    \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON element with position '%d' because: %s", i, e->message); \
+                                                                        \
+        WARNINGF("Unable to read JSON element with position '%d' because: %s", i, e->message); \
                                                                         \
         goto json_error;                                                \
     }                                                                   \
@@ -78,10 +82,12 @@
     }                                                                   \
     else                                                                \
     {                                                                   \
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
-            "Unable to read JSON member with name %s", #name);          \
+        const GError* e = json_reader_get_error(reader);                \
                                                                         \
-        WARNINGF("Unable to read JSON member with name %s", #name);     \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON member with name '%s' because: %s", name, e->message); \
+                                                                        \
+        WARNINGF("Unable to read JSON member with name '%s' because: %s", name, e->message); \
                                                                         \
         goto json_error;                                                \
     }                                                                   \
@@ -109,9 +115,9 @@
     else                                                                \
     {                                                                   \
         g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
-            "Unable to read JSON member with name %s", #name);          \
+            "Unable to read JSON member with name '%s'", name);          \
                                                                         \
-        WARNINGF("Unable to read JSON member with name %s", #name);     \
+        WARNINGF("Unable to read JSON member with name '%s'", name);     \
                                                                         \
         goto json_error;                                                \
     }                                                                   \
@@ -1415,7 +1421,9 @@ gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GErro
                 chan_id);                                               \
                                                                         \
             g_propagate_prefixed_error(error, err,                      \
-                "Unable to load chat badge sets for channel '%ld'", chan_id); \
+                "Unable to load chat badge sets for channel '%ld' because: ", chan_id); \
+                                                                        \
+            return;                                                     \
         }                                                               \
     }                                                                   \
 
