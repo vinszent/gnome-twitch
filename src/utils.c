@@ -276,11 +276,31 @@ utils_signal_connect_oneshot(gpointer instance,
                           G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 }
 
-void inline
+inline void
 utils_refresh_cancellable(GCancellable** cancel)
 {
     if (*cancel && !g_cancellable_is_cancelled(*cancel))
         g_cancellable_cancel(*cancel);
     g_clear_object(cancel);
     *cancel = g_cancellable_new();
+}
+
+GDateTime*
+utils_parse_time_iso_8601(const gchar* time, GError** error)
+{
+    GDateTime* ret = NULL;
+
+    gint year, month, day, hour, min, sec;
+
+    gint scanned = sscanf(time, "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &min, &sec);
+
+    if (scanned != 6)
+    {
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING,
+            "Unable to parse time from input '%s'", time);
+    }
+    else
+        ret = g_date_time_new_utc(year, month, day, hour, min, sec);
+
+    return ret;
 }

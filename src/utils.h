@@ -10,6 +10,13 @@
 #define PRINT_BOOL(b) b ? "true" : "false"
 #define STRING_EQUALS(a, b) g_strcmp0(a, b) == 0
 
+#define GT_UTILS_ERROR g_quark_from_static_string("gt-utils-error-quark")
+
+typedef enum
+{
+    GT_UTILS_ERROR_PARSING,
+} GtUtilsError;
+
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
 void utils_container_clear(GtkContainer* cont);
@@ -24,5 +31,6 @@ void utils_connect_link(GtkWidget* widget, const gchar* link);
 gboolean utils_str_empty(const gchar* str);
 void utils_signal_connect_oneshot(gpointer instance, const gchar* signal, GCallback cb, gpointer udata);
 void utils_refresh_cancellable(GCancellable** cancel);
+GDateTime* utils_parse_time_iso_8601(const gchar* time, GError** error);
 
 #endif
