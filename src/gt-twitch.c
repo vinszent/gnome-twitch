@@ -2269,9 +2269,10 @@ gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets,
 
 GtUserInfo*
 gt_twitch_fetch_user_info(GtTwitch* self,
-    GError** error)
+    const gchar* oauth_token, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(oauth_token));
 
     g_autoptr(SoupMessage) msg = NULL;
     g_autoptr(JsonReader) reader;
@@ -2279,8 +2280,7 @@ gt_twitch_fetch_user_info(GtTwitch* self,
     GtUserInfo* ret = NULL;
     GError* err = NULL;
 
-    uri = g_strdup_printf(USER_INFO_URI,
-        gt_app_get_user_info(main_app)->oauth_token);
+    uri = g_strdup_printf(USER_INFO_URI, oauth_token);
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
@@ -2290,12 +2290,18 @@ gt_twitch_fetch_user_info(GtTwitch* self,
 
     ret = gt_user_info_new();
 
-    READ_JSON_VALUE("_id", ret->id);
+    ret->oauth_token = g_strdup(oauth_token);
+
+    //TODO: Replace id with a string, Twitch docs were wrong again...
+    READ_JSON_MEMBER("_id");
+    ret->id = atol(json_reader_get_string_value(reader));
+    END_JSON_MEMBER();
+    /* READ_JSON_VALUE("_id", ret->id); */
     READ_JSON_VALUE("name", ret->name);
     READ_JSON_VALUE("bio", ret->bio);
     READ_JSON_VALUE("display_name", ret->display_name);
     READ_JSON_VALUE("email", ret->email);
-    READ_JSON_VALUE("email_verified", ret->email);
+    READ_JSON_VALUE("email_verified", ret->email_verified);
     READ_JSON_VALUE("logo", ret->logo_url);
     READ_JSON_MEMBER("notifications");
     READ_JSON_VALUE("email", ret->notifications.email);
@@ -2304,7 +2310,7 @@ gt_twitch_fetch_user_info(GtTwitch* self,
     READ_JSON_VALUE("partnered", ret->partnered);
     READ_JSON_VALUE("twitter_connected", ret->twitter_connected);
     READ_JSON_VALUE("type", ret->type);
-    READ_JSON_VALUE("updated_at", ret->created_at);
+    READ_JSON_VALUE("created_at", ret->created_at);
     READ_JSON_VALUE("updated_at", ret->updated_at);
 
     return ret;
@@ -2322,10 +2328,12 @@ fetch_user_info_async_cb(GTask* task, gpointer source,
 {
     g_assert(GT_IS_TWITCH(source));
     g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
 
     GError* err = NULL;
+    GenericTaskData* data = task_data;
 
-    GtUserInfo* ret = gt_twitch_fetch_user_info(GT_TWITCH(source), &err);
+    GtUserInfo* ret = gt_twitch_fetch_user_info(GT_TWITCH(source), data->str_1, &err);
 
     if (err)
         g_task_return_error(task, err);
@@ -2335,16 +2343,19 @@ fetch_user_info_async_cb(GTask* task, gpointer source,
 
 void
 gt_twitch_fetch_user_info_async(GtTwitch* self,
-    GAsyncReadyCallback cb, GCancellable* cancel,
-    gpointer udata)
+    const gchar* oauth_token, GAsyncReadyCallback cb,
+    GCancellable* cancel, gpointer udata)
 {
     g_assert(GT_IS_TWITCH(self));
 
     GTask* task = NULL;
+    GenericTaskData* data = generic_task_data_new();
 
     task = g_task_new(self, cancel, cb, udata);
 
-    g_task_set_task_data(task, NULL, NULL);
+    data->str_1 = g_strdup(oauth_token);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
     g_task_run_in_thread(task, fetch_user_info_async_cb);
 

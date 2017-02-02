@@ -142,8 +142,8 @@ void                       gt_chat_badge_list_free(GList* list);
 GtChatEmote*               gt_chat_emote_new();
 void                       gt_chat_emote_free(GtChatEmote* emote);
 void                       gt_chat_emote_list_free(GList* list);
-GtUserInfo*                gt_twitch_fetch_user_info(GtTwitch* self, GError** error);
-void                       gt_twitch_fetch_user_info_async(GtTwitch* self, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
+GtUserInfo*                gt_twitch_fetch_user_info(GtTwitch* self, const gchar* oauth_token, GError** error);
+void                       gt_twitch_fetch_user_info_async(GtTwitch* self, const gchar* oauth_token, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
 GtUserInfo*                gt_twitch_fetch_user_info_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 
 G_END_DECLS
