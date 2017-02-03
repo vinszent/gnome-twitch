@@ -39,6 +39,10 @@
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
+#define TWITCH_API_VERSION_3 "3"
+#define TWITCH_API_VERSION_4 "4"
+#define TWITCH_API_VERSION_5 "5"
+
 #define GT_TWITCH_ERROR gt_spawn_twitch_error_quark()
 
 #define END_JSON_MEMBER() json_reader_end_member(reader) // Just for consistency's sake
@@ -314,14 +318,15 @@ new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
 }
 
 static JsonReader*
-new_send_message_json(GtTwitch* self, SoupMessage* msg, GError** error)
+new_send_message_json_with_version(GtTwitch* self, SoupMessage* msg, const gchar* version, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert(SOUP_IS_MESSAGE(msg));
 
     JsonReader* ret = NULL;
+    g_autofree gchar* accept_header = g_strdup_printf("application/vnd.twitchtv.v%s+json", version);
 
-    soup_message_headers_append(msg->request_headers, "Accept", "application/vnd.twitchtv.v5+json");
+    soup_message_headers_append(msg->request_headers, "Accept", accept_header);
 
     new_send_message(self, msg, error);
 
@@ -355,6 +360,11 @@ finish:
     return ret;
 }
 
+static JsonReader*
+new_send_message_json(GtTwitch* self, SoupMessage* msg, GError** error)
+{
+    return new_send_message_json_with_version(self, msg, TWITCH_API_VERSION_5, error);
+}
 static GDateTime*
 parse_time(const gchar* time)
 {
