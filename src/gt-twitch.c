@@ -450,7 +450,7 @@ parse_channel(JsonReader* reader, GError** error)
 
     READ_JSON_VALUE("_id", data->id);
     READ_JSON_VALUE("name", data->name);
-    READ_JSON_VALUE("display_name", data->display_name);
+    READ_JSON_VALUE_NULL("display_name", data->display_name, NULL);
     READ_JSON_VALUE_NULL("status", data->status, _("Untitled broadcast"));
     READ_JSON_VALUE_NULL("video_banner", data->video_banner_url, NULL);
     READ_JSON_VALUE_NULL("logo", data->logo_url, NULL);
