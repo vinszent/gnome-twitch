@@ -204,7 +204,7 @@ constructed(GObject* obj)
     //TODO: Need to refresh everytime a channel is followed or unfollowed
     g_signal_connect(main_app->fav_mgr, "finished-loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
-    g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_followed_cb), self);
+    g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
 }
