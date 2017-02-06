@@ -215,7 +215,7 @@ load_user_info(GtApp* self)
         WARNINGF("Unable to load user info because: %s", err->message); \
         gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to load user info", err->message); \
         g_error_free(err);                                              \
-        gt_user_info_free(priv->user_info);                             \
+        g_clear_pointer(&priv->user_info, (GDestroyNotify) gt_user_info_free); \
         return;                                                         \
     }                                                                   \
 
@@ -229,17 +229,21 @@ load_user_info(GtApp* self)
     fp = g_build_filename(g_get_user_data_dir(),
         "gnome-twitch", "user_info.ini", NULL);
 
+    MESSAGEF("Loading user info from path '%s'", fp);
+
     if (g_file_test(fp, G_FILE_TEST_EXISTS))
     {
         if (priv->user_info) gt_user_info_free(priv->user_info);
 
         priv->user_info = gt_user_info_new();
 
+        key_file = g_key_file_new();
+
         g_key_file_load_from_file(key_file, fp, G_KEY_FILE_NONE, &err);
 
         CHECK_ERROR;
 
-        priv->user_info->id = g_key_file_get_int64(key_file, "UserInfo", "ID", &err); CHECK_ERROR;
+        priv->user_info->id = g_key_file_get_string(key_file, "UserInfo", "ID", &err); CHECK_ERROR;
         priv->user_info->name = g_key_file_get_string(key_file, "UserInfo", "Name", &err); CHECK_ERROR;
         priv->user_info->oauth_token = g_key_file_get_string(key_file, "UserInfo", "OAuthToken", &err); CHECK_ERROR;
         priv->user_info->display_name = g_key_file_get_string(key_file, "UserInfo", "DisplayName", &err); CHECK_ERROR;
@@ -249,7 +253,7 @@ load_user_info(GtApp* self)
         priv->user_info->email = g_key_file_get_string(key_file, "UserInfo", "Email", &err); CHECK_ERROR;
         priv->user_info->email_verified = g_key_file_get_boolean(key_file, "UserInfo", "EmailVerified", &err); CHECK_ERROR;
         priv->user_info->partnered = g_key_file_get_boolean(key_file, "UserInfo", "Partnered", &err); CHECK_ERROR;
-        priv->user_info->twitter_connected = g_key_file_get_boolean(key_file, "UserInfo", "TwitterConncted", &err); CHECK_ERROR;
+        priv->user_info->twitter_connected = g_key_file_get_boolean(key_file, "UserInfo", "TwitterConnected", &err); CHECK_ERROR;
 
         created_at_str = g_key_file_get_string(key_file, "UserInfo", "CreatedAt", &err); CHECK_ERROR;
         priv->user_info->created_at = utils_parse_time_iso_8601(created_at_str, &err); CHECK_ERROR;
@@ -261,7 +265,7 @@ load_user_info(GtApp* self)
         priv->user_info->notifications.email = g_key_file_get_boolean(key_file, "Notifications", "Email", &err); CHECK_ERROR;
     }
     else
-        MESSAGEF("No user info file found at '%s', assuming user hasn't logged in yet", fp);
+        MESSAGE("No user info file found, assuming user hasn't logged in yet");
 }
 
 static void
