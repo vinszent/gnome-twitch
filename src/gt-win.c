@@ -306,16 +306,8 @@ show_twitch_login_cb(GSimpleAction* action,
 {
     GtWin* self = GT_WIN(udata);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
-    gchar* oauth_token;
-    gchar* user_name;
 
-    g_object_get(main_app,
-                 "oauth-token", &oauth_token,
-                 "user-name", &user_name,
-                 NULL);
-
-    if (oauth_token && user_name &&
-        strlen(oauth_token) > 0 && strlen(user_name) > 0)
+    if (gt_app_credentials_valid(main_app))
     {
         gt_win_ask_question(self, _("Already logged into Twitch, refresh login?"),
                             G_CALLBACK(refresh_login_cb), self);
