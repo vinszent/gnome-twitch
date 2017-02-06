@@ -30,23 +30,23 @@ typedef enum
 #ifndef TAG
 #error Tag not defined
 #else
-#define LOG(lvl, msg) g_log(NULL, (GLogLevelFlags) lvl, "{%s} %s", TAG, msg)
-#define LOGF(lvl, fmt, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s} " fmt, TAG, __VA_ARGS__)
-#define FATAL(msg) LOG(GT_LOG_LEVEL_WARNING, msg)
+#define LOG(lvl, msg, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d} %s", TAG, __LINE__, msg, ##__VA_ARGS__)
+#define LOGF(lvl, fmt, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d} " fmt, TAG, __LINE__, ##__VA_ARGS__)
+#define FATAL(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define FATALF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define ERROR(msg) LOG(GT_LOG_LEVEL_WARNING, msg)
+#define ERROR(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define ERRORF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define CRITICAL(msg) LOG(GT_LOG_LEVEL_WARNING, msg)
+#define CRITICAL(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define CRITICALF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define WARNING(msg) LOG(GT_LOG_LEVEL_WARNING, msg)
+#define WARNING(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define WARNINGF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define MESSAGE(msg) LOG(GT_LOG_LEVEL_MESSAGE, msg)
+#define MESSAGE(msg, ...) LOGF(GT_LOG_LEVEL_MESSAGE, msg, ##__VA_ARGS__)
 #define MESSAGEF(fmt, ...) LOGF(GT_LOG_LEVEL_MESSAGE, fmt, __VA_ARGS__)
-#define INFO(msg) LOG(GT_LOG_LEVEL_INFO, msg)
+#define INFO(msg, ...) LOGF(GT_LOG_LEVEL_INFO, msg, ##__VA_ARGS__)
 #define INFOF(fmt, ...) LOGF(GT_LOG_LEVEL_INFO, fmt, __VA_ARGS__)
-#define DEBUG(msg) LOG(GT_LOG_LEVEL_DEBUG, msg)
+#define DEBUG(msg, ...) LOGF(GT_LOG_LEVEL_DEBUG, msg, ##__VA_ARGS__)
 #define DEBUGF(fmt, ...) LOGF(GT_LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
-#define TRACE(msg) LOG(GT_LOG_LEVEL_TRACE, msg)
+#define TRACE(msg, ...) LOGF(GT_LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
 #define TRACEF(fmt, ...) LOGF(GT_LOG_LEVEL_TRACE, fmt, __VA_ARGS__)
 #endif
 
