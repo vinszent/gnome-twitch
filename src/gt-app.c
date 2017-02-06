@@ -407,6 +407,8 @@ activate(GApplication* app)
     priv->win = gt_win_new(self);
 
     gtk_window_present(GTK_WINDOW(priv->win));
+
+    load_chat_settings(self);
 }
 
 static void
@@ -435,7 +437,6 @@ startup(GApplication* app)
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
-    load_chat_settings(self);
     load_user_info(self);
     init_dirs();
 
