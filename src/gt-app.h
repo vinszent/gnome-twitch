@@ -15,7 +15,7 @@ G_DECLARE_FINAL_TYPE(GtApp, gt_app, GT, APP, GtkApplication)
 
 typedef struct
 {
-    gint64 id;
+    gchar* id;
     gchar* name;
     gchar* oauth_token;
     gchar* display_name;
