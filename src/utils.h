@@ -8,7 +8,7 @@
 #define ADD_STYLE_CLASS(w, n) gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)
 #define ROUND(x) ((guint) ((x) + 0.5))
 #define PRINT_BOOL(b) b ? "true" : "false"
-#define STRING_EQUALS(a, b) g_strcmp0(a, b) == 0
+#define STRING_EQUALS(a, b) (g_strcmp0(a, b) == 0)
 
 #define GT_UTILS_ERROR g_quark_from_static_string("gt-utils-error-quark")
 
