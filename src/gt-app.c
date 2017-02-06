@@ -38,13 +38,6 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-enum
-{
-    NUM_SIGS
-};
-
-static guint sigs[NUM_SIGS];
-
 static gboolean
 set_log_level(const gchar* name,
               const gchar* arg,
@@ -453,13 +446,6 @@ startup(GApplication* app)
 
     g_object_unref(menu_bld);
 
-    /* g_settings_bind(self->settings, "user-name", */
-    /*                 self, "user-name", */
-    /*                 G_SETTINGS_BIND_DEFAULT); */
-    /* g_settings_bind(self->settings, "oauth-token", */
-    /*                 self, "oauth-token", */
-    /*                 G_SETTINGS_BIND_DEFAULT); */
-
     gtk_settings = gtk_settings_get_default();
 
     gt_app_prefer_dark_theme_changed_cb(self->settings,
@@ -498,18 +484,7 @@ shutdown(GApplication* app)
     G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
 }
 
-
 static void
-finalize(GObject* object)
-{
-    GtApp* self = (GtApp*) object;
-    GtAppPrivate* priv = gt_app_get_instance_private(self);
-
-    DEBUG("{GtApp} Finalise");
-
-    G_OBJECT_CLASS(gt_app_parent_class)->finalize(object);
-}
-
 static void
 get_property (GObject*    obj,
               guint       prop,
@@ -532,9 +507,6 @@ set_property(GObject*      obj,
              const GValue* val,
              GParamSpec*   pspec)
 {
-    GtApp* self = GT_APP(obj);
-    GtAppPrivate* priv = gt_app_get_instance_private(self);
-
     switch (prop)
     {
         default:
@@ -616,24 +588,6 @@ gt_app_get_user_info(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     return priv->user_info;
-}
-
-G_DEPRECATED
-const gchar*
-gt_app_get_user_name(GtApp* self)
-{
-    GtAppPrivate* priv = gt_app_get_instance_private(self);
-
-    return priv->user_info->name;
-}
-
-G_DEPRECATED
-const gchar*
-gt_app_get_oauth_token(GtApp* self)
-{
-    GtAppPrivate* priv = gt_app_get_instance_private(self);
-
-    return priv->user_info->oauth_token;
 }
 
 gboolean
