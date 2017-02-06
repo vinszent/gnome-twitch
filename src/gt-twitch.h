@@ -111,8 +111,7 @@ void                       gt_twitch_search_games_async(GtTwitch* self, const gc
 GList*                     gt_twitch_search_games_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 void                       gt_twitch_stream_data_free(GtTwitchStreamData* data);
 void                       gt_twitch_stream_data_list_free(GList* list);
-GtChannelData*             gt_twitch_fetch_channel_data(GtTwitch* self, gint64 id, GError** error);
-GtChannelData*             gt_twitch_fetch_channel_with_stream_raw_data(GtTwitch* self, const gchar* name);
+GtChannelData*             gt_twitch_fetch_channel_data(GtTwitch* self, const gchar* id, GError** error);
 void                       gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GtGameData*                gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
 GdkPixbuf*                 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp);
@@ -122,8 +121,8 @@ GList*                     gt_twitch_channel_info(GtTwitch* self, const gchar* c
 void                       gt_twitch_channel_info_panel_free(GtTwitchChannelInfoPanel* panel);
 void                       gt_twitch_channel_info_async(GtTwitch* self, const gchar* chan, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_chat_servers(GtTwitch* self, const gchar* chan, GError** error);
-GList*                     gt_twitch_fetch_all_followed_channels(GtTwitch* self, gint64 id, const gchar* oauth_token, GError** error);
-void                       gt_twitch_fetch_all_followed_channels_async(GtTwitch* self, gint64 id, const gchar* oauth_token, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList*                     gt_twitch_fetch_all_followed_channels(GtTwitch* self, const gchar* id, const gchar* oauth_token, GError** error);
+void                       gt_twitch_fetch_all_followed_channels_async(GtTwitch* self, const gchar* id, const gchar* oauth_token, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_fetch_all_followed_channels_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 void                       gt_twitch_follow_channel(GtTwitch* self, const gchar* chan_name, GError** error);
 void                       gt_twitch_follow_channel_async(GtTwitch* self, const gchar* chan_name, GAsyncReadyCallback cb, gpointer udata);
@@ -133,10 +132,10 @@ void                       gt_twitch_unfollow_channel_async(GtTwitch* self, cons
 void                       gt_twitch_unfollow_channel_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 GList*                     gt_twitch_emoticons(GtTwitch* self, const gchar* emotesets, GError** error);
 void                       gt_twitch_emoticons_async(GtTwitch* self, const char* emotesets, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
-GtChatBadge*               gt_twitch_fetch_chat_badge(GtTwitch* self, gint64 chan_id, const gchar* badge_name, const gchar* version, GError** err);
-void                       gt_twitch_fetch_chat_badge_async(GtTwitch* self, gint64 chan_id, const gchar* badge_name, const gchar* version, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GtChatBadge*               gt_twitch_fetch_chat_badge(GtTwitch* self, const gchar* chan_id, const gchar* badge_name, const gchar* version, GError** err);
+void                       gt_twitch_fetch_chat_badge_async(GtTwitch* self, const gchar* chan_id, const gchar* badge_name, const gchar* version, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GtChatBadge*               gt_twitch_fetch_chat_badge_finish(GtTwitch* self, GAsyncResult* result, GError** err);
-void                       gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, gint64 chan_id, GError** err);
+void                       gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, const gchar* chan_id, GError** err);
 void                       gt_chat_badge_free(GtChatBadge* badge);
 void                       gt_chat_badge_list_free(GList* list);
 GtChatEmote*               gt_chat_emote_new();
