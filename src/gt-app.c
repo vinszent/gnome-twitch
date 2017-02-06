@@ -619,9 +619,12 @@ GtUserInfo* gt_user_info_new()
 {
     return g_slice_new0(GtUserInfo);
 }
+
 void
 gt_user_info_free(GtUserInfo* info)
 {
+    if (!info) return;
+
     g_free(info->name);
     g_free(info->oauth_token);
     g_free(info->display_name);
@@ -630,8 +633,8 @@ gt_user_info_free(GtUserInfo* info)
     g_free(info->type);
     g_free(info->email);
 
-    g_date_time_unref(info->created_at);
-    g_date_time_unref(info->updated_at);
+    g_clear_pointer(&info->created_at, (GDestroyNotify) info->created_at);
+    g_clear_pointer(&info->updated_at, (GDestroyNotify) info->created_at);
 
     g_slice_free(GtUserInfo, info);
 }
