@@ -33,6 +33,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 enum
 {
     PROP_0,
+    PROP_LOGGED_IN,
     NUM_PROPS
 };
 
@@ -313,14 +314,15 @@ save_user_info(GtApp* self)
 }
 
 static void
-oauth_token_set_cb(GObject* src,
-                   GParamSpec* pspec,
-                   gpointer udata)
+logged_in_cb(GObject* src,
+    GParamSpec* pspec, gpointer udata)
 {
-    GtApp* self = GT_APP(udata);
+    g_assert(GT_IS_APP(src));
+
+    GtApp* self = GT_APP(src);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    if (!utils_str_empty(priv->user_info->oauth_token))
+    if (gt_app_credentials_valid(self))
     {
         g_menu_remove(G_MENU(priv->app_menu), 0);
         g_menu_item_set_label(priv->login_item, _("Refresh login"));
@@ -485,27 +487,25 @@ shutdown(GApplication* app)
 }
 
 static void
-static void
-get_property (GObject*    obj,
-              guint       prop,
-              GValue*     val,
-              GParamSpec* pspec)
+get_property (GObject* obj, guint prop,
+    GValue* val, GParamSpec* pspec)
 {
     GtApp* self = GT_APP(obj);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     switch (prop)
     {
+        case PROP_LOGGED_IN:
+            g_value_set_boolean(val, priv->user_info != NULL);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
 }
 
 static void
-set_property(GObject*      obj,
-             guint         prop,
-             const GValue* val,
-             GParamSpec*   pspec)
+set_property(GObject* obj, guint prop,
+    const GValue* val, GParamSpec* pspec)
 {
     switch (prop)
     {
@@ -523,9 +523,13 @@ gt_app_class_init(GtAppClass* klass)
     G_APPLICATION_CLASS(klass)->startup = startup;
     G_APPLICATION_CLASS(klass)->shutdown = shutdown;
 
-    object_class->finalize = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
+
+    props[PROP_LOGGED_IN] = g_param_spec_boolean("logged-in",
+        "Logged in", "Whether logged in", FALSE, G_PARAM_READABLE);
+
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
 static void
@@ -564,7 +568,7 @@ gt_app_init(GtApp* self)
                     self->players_engine, "loaded-plugins",
                     G_SETTINGS_BIND_DEFAULT);
 
-    g_signal_connect(self, "notify::oauth-token", G_CALLBACK(oauth_token_set_cb), self);
+    g_signal_connect(self, "notify::logged-in", G_CALLBACK(logged_in_cb), self);
     g_signal_connect(self, "handle-local-options", G_CALLBACK(handle_command_line_cb), self);
 }
 
@@ -578,6 +582,8 @@ gt_app_set_user_info(GtApp* self, GtUserInfo* info)
         gt_user_info_free(priv->user_info);
 
     priv->user_info = info;
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 }
 
 const GtUserInfo*
@@ -590,6 +596,7 @@ gt_app_get_user_info(GtApp* self)
     return priv->user_info;
 }
 
+//TODO: Rename this to gt_app_is_logged_in
 gboolean
 gt_app_credentials_valid(GtApp* self)
 {
