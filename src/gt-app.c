@@ -281,9 +281,11 @@ save_user_info(GtApp* self)
     fp = g_build_filename(g_get_user_data_dir(),
         "gnome-twitch", "user_info.ini", NULL);
 
+    MESSAGEF("Saving user info to path '%s'", fp);
+
     key_file = g_key_file_new();
 
-    g_key_file_set_int64(key_file, "UserInfo", "ID", priv->user_info->id);
+    g_key_file_set_string(key_file, "UserInfo", "ID", priv->user_info->id);
     g_key_file_set_string(key_file, "UserInfo", "Name", priv->user_info->name);
     g_key_file_set_string(key_file, "UserInfo", "OAuthToken", priv->user_info->oauth_token);
     g_key_file_set_string(key_file, "UserInfo", "DisplayName", priv->user_info->name);
