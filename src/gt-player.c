@@ -76,10 +76,6 @@ enum
     PROP_PLAYING,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
-    PROP_CHAT_WIDTH,
-    PROP_CHAT_HEIGHT,
-    PROP_CHAT_X,
-    PROP_CHAT_Y,
     PROP_CHAT_DARK_THEME,
     PROP_CHAT_OPACITY,
     PROP_DOCKED_HANDLE_POSITION,
@@ -204,21 +200,6 @@ update_volume(GtPlayer* self)
 
     priv->muted = !(priv->volume > 0);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_MUTED]);
-}
-
-static void
-scale_chat_cb(GtkWidget* widget,
-              GtkAllocation* alloc,
-              gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    if (priv->chat_settings->docked)
-    {
-        g_object_notify_by_pspec(G_OBJECT(self),
-                                 props[PROP_DOCKED_HANDLE_POSITION]);
-    }
 }
 
 static gboolean
@@ -573,25 +554,9 @@ set_property(GObject* obj,
             g_clear_object(&priv->channel);
             priv->channel = g_value_dup_object(val);
             break;
-        case PROP_CHAT_WIDTH:
-            priv->chat_settings->width = g_value_get_double(val);
-            gtk_widget_queue_allocate(priv->player_overlay);
-            break;
-        case PROP_CHAT_HEIGHT:
-            priv->chat_settings->height = g_value_get_double(val);
-            gtk_widget_queue_allocate(priv->player_overlay);
-            break;
         case PROP_CHAT_DOCKED:
             priv->chat_settings->docked = g_value_get_boolean(val);
             update_docked(self);
-            break;
-        case PROP_CHAT_X:
-            priv->chat_settings->x_pos = g_value_get_double(val);
-            gtk_widget_queue_allocate(priv->player_overlay);
-            break;
-        case PROP_CHAT_Y:
-            priv->chat_settings->y_pos = g_value_get_double(val);
-            gtk_widget_queue_allocate(priv->player_overlay);
             break;
         case PROP_CHAT_OPACITY:
             priv->chat_settings->opacity = g_value_get_double(val);
@@ -638,20 +603,8 @@ get_property(GObject* obj,
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
             break;
-        case PROP_CHAT_WIDTH:
-            g_value_set_double(val, priv->chat_settings->width);
-            break;
-        case PROP_CHAT_HEIGHT:
-            g_value_set_double(val, priv->chat_settings->height);
-            break;
         case PROP_CHAT_DOCKED:
             g_value_set_boolean(val, priv->chat_settings->docked);
-            break;
-        case PROP_CHAT_X:
-            g_value_set_double(val, priv->chat_settings->x_pos);
-            break;
-        case PROP_CHAT_Y:
-            g_value_set_double(val, priv->chat_settings->y_pos);
             break;
         case PROP_CHAT_OPACITY:
             g_value_set_double(val, priv->chat_settings->opacity);
@@ -921,26 +874,6 @@ gt_player_class_init(GtPlayerClass* klass)
                                                    "Whether chat docked",
                                                    TRUE,
                                                    G_PARAM_READWRITE);
-    props[PROP_CHAT_WIDTH] = g_param_spec_double("chat-width",
-                                                 "Chat Width",
-                                                 "Current chat width",
-                                                 0, 1.0, 0.2,
-                                                 G_PARAM_READWRITE);
-    props[PROP_CHAT_HEIGHT] = g_param_spec_double("chat-height",
-                                                  "Chat Height",
-                                                  "Current chat height",
-                                                  0, 1.0, 1.0,
-                                                  G_PARAM_READWRITE);
-    props[PROP_CHAT_X] = g_param_spec_double("chat-x",
-                                             "Chat X",
-                                             "Current chat x",
-                                             0, 1.0, 0.2,
-                                             G_PARAM_READWRITE);
-    props[PROP_CHAT_Y] = g_param_spec_double("chat-y",
-                                             "Chat Y",
-                                             "Current chat y",
-                                             0, 1.0, 0.2,
-                                             G_PARAM_READWRITE);
     props[PROP_CHAT_DARK_THEME] = g_param_spec_boolean("chat-dark-theme",
                                                        "Chat Dark Theme",
                                                        "Whether chat dark theme",
@@ -1065,7 +998,6 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(self, "motion-notify-event", G_CALLBACK(motion_cb), self);
-    utils_signal_connect_oneshot(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
@@ -1157,14 +1089,10 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
                             g_strdup(name), priv->chat_settings);
     }
 
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_X]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_Y]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_OPACITY]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_DOCKED]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_WIDTH]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_HEIGHT]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_DARK_THEME]);
 
     update_docked(self);
