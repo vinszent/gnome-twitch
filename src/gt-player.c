@@ -13,6 +13,17 @@
 #include "gnome-twitch/gt-log.h"
 
 #define FULLSCREEN_BAR_REVEAL_HEIGHT 50
+#define CHAT_RESIZE_HANDLE_SIZE 10
+
+typedef enum
+{
+    MOUSE_POS_LEFT_HANDLE,
+    MOUSE_POS_RIGHT_HANDLE,
+    MOUSE_POS_TOP_HANDLE,
+    MOUSE_POS_BOTTOM_HANDLE,
+    MOUSE_POS_INSIDE,
+    MOUSE_POS_OUTSIDE,
+} MousePos;
 
 typedef struct
 {
@@ -41,6 +52,14 @@ typedef struct
     gdouble prev_volume;
     gdouble muted;
     gboolean playing;
+    gboolean edit_chat;
+
+    MousePos start_mouse_pos;
+    gboolean mouse_pressed;
+
+    guint mouse_pressed_handler_id;
+    guint mouse_released_handler_id;
+    guint mouse_moved_handler_id;
 
     guint inhibitor_cookie;
     guint mouse_source;
@@ -110,7 +129,7 @@ update_docked(GtPlayer* self)
     {
         gdouble width;
 
-        if (gtk_widget_get_parent(priv->chat_view))
+        if (gtk_widget_get_parent(priv->chat_view) == priv->player_overlay)
             gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->chat_view);
 
         gtk_paned_pack2(GTK_PANED(priv->docking_pane), priv->chat_view, FALSE, TRUE);
@@ -118,72 +137,48 @@ update_docked(GtPlayer* self)
         width = gtk_widget_get_allocated_width(GTK_WIDGET(self));
 
         gtk_paned_set_position(GTK_PANED(priv->docking_pane),
-                               priv->chat_settings->docked_handle_pos*width);
+            priv->chat_settings->docked_handle_pos*width);
 
-        g_object_set(priv->chat_view, "opacity", 1.0, NULL);
+        g_object_set(priv->chat_view,
+            "opacity", 1.0,
+            "width-request", -1,
+            "height-request", -1,
+            "margin-start", 0,
+            "margin-top", 0,
+            "valign", GTK_ALIGN_FILL,
+            "halign", GTK_ALIGN_FILL,
+            NULL);
     }
     else
     {
-        if (gtk_widget_get_parent(priv->chat_view))
+        GtkAllocation alloc;
+        gint width_request;
+        gint height_request;
+        gint margin_top;
+        gint margin_start;
+
+        if (gtk_widget_get_parent(priv->chat_view) == priv->docking_pane)
             gtk_container_remove(GTK_CONTAINER(priv->docking_pane), priv->chat_view);
 
         gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
 
-        g_object_set(priv->chat_view, "opacity", priv->chat_settings->opacity, NULL);
+        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
+
+        width_request = ROUND(priv->chat_settings->width*alloc.width);
+        height_request = ROUND(priv->chat_settings->height*alloc.height);
+        margin_start = ROUND(priv->chat_settings->x_pos*(alloc.width - width_request));
+        margin_top = ROUND(priv->chat_settings->y_pos*(alloc.height - height_request));
+
+        g_object_set(priv->chat_view,
+            "opacity", priv->chat_settings->opacity,
+            "valign", GTK_ALIGN_START,
+            "halign", GTK_ALIGN_START,
+            "margin-start", margin_start,
+            "margin-top", margin_top,
+            "width-request", width_request,
+            "height-request", height_request,
+            NULL);
     }
-}
-
-static gboolean
-chat_position_cb(GtkOverlay* overlay,
-                 GtkWidget* widget,
-                 GdkRectangle* alloc,
-                 gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    if (widget == priv->chat_view)
-    {
-        GtkAllocation self_alloc;
-        GtkAllocation chat_alloc;
-
-        gtk_widget_get_allocation(GTK_WIDGET(self), &self_alloc);
-
-        if (self_alloc.x == -1 && self_alloc.y == -1)
-            return FALSE;
-
-        gtk_widget_get_preferred_size(widget, NULL, NULL); //To shut GTK up
-
-        gtk_widget_get_allocation(widget, &chat_alloc);
-
-        // Wait until chat properly allocated space
-        if (chat_alloc.width > 1 && chat_alloc.height > 1)
-        {
-            gdouble dx = 0.0;
-            gdouble dy = 0.0;
-
-            dx = 0.5*(priv->chat_settings->width*self_alloc.width - chat_alloc.width)
-                / (gdouble) self_alloc.width;
-            dy = 0.5*(priv->chat_settings->height*self_alloc.height - chat_alloc.height)
-                / (gdouble) self_alloc.height;
-
-            priv->chat_settings->x_pos -= ABS(dx*0.5) < 1e-3 ? 0.0 : dx*0.5;
-            priv->chat_settings->y_pos -= ABS(dy*0.5) < 1e-3 ? 0.0 : dy*0.5;
-
-            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_X]);
-            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_Y]);
-        }
-
-
-        alloc->x = (gint) (priv->chat_settings->x_pos*self_alloc.width);
-        alloc->y = (gint) (priv->chat_settings->y_pos*self_alloc.height);
-        alloc->width = (gint) (priv->chat_settings->width*self_alloc.width);
-        alloc->height = (gint) (priv->chat_settings->height*self_alloc.height);
-
-        return TRUE;
-    }
-    else
-        return FALSE;
 }
 
 static void
@@ -244,7 +239,7 @@ motion_cb(GtkWidget* widget,
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
     }
 
-    return GDK_EVENT_STOP;
+    return GDK_EVENT_PROPAGATE;
 }
 
 static gboolean
@@ -310,6 +305,246 @@ fullscreen_cb(GObject* source,
 
     if (!gt_win_is_fullscreen(GT_WIN_TOPLEVEL(self)))
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
+}
+
+static MousePos
+get_mouse_pos(GtPlayer* self, gint x, gint y)
+{
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GtkAllocation alloc;
+
+    gtk_widget_get_allocation(priv->chat_view, &alloc);
+
+    gtk_widget_translate_coordinates(priv->chat_view, GTK_WIDGET(self),
+        alloc.x, alloc.y, &alloc.x, &alloc.y);
+
+    gboolean inside_horizontally = alloc.x < x && x < alloc.x + alloc.width;
+    gboolean inside_vertically = alloc.y < y && y < alloc.y + alloc.height;
+
+    if (alloc.x - CHAT_RESIZE_HANDLE_SIZE < x &&
+        x < alloc.x + CHAT_RESIZE_HANDLE_SIZE &&
+        inside_vertically)
+    {
+        return MOUSE_POS_LEFT_HANDLE;
+    }
+    else if (alloc.x + alloc.width - CHAT_RESIZE_HANDLE_SIZE < x &&
+        x < alloc.x + alloc.width + CHAT_RESIZE_HANDLE_SIZE &&
+        inside_vertically)
+    {
+        return MOUSE_POS_RIGHT_HANDLE;
+    }
+    else if (alloc.y - CHAT_RESIZE_HANDLE_SIZE < y &&
+        y < alloc.y + CHAT_RESIZE_HANDLE_SIZE &&
+        inside_horizontally)
+    {
+        return MOUSE_POS_TOP_HANDLE;
+    }
+    else if (alloc.y + alloc.height - CHAT_RESIZE_HANDLE_SIZE < y &&
+        y < alloc.y + alloc.height + CHAT_RESIZE_HANDLE_SIZE &&
+        inside_horizontally)
+    {
+        return MOUSE_POS_BOTTOM_HANDLE;
+    }
+    else if (inside_horizontally && inside_vertically)
+    {
+        return MOUSE_POS_INSIDE;
+    }
+    else
+    {
+        return MOUSE_POS_OUTSIDE;
+    }
+}
+
+static gboolean
+mouse_pressed_cb(GtkWidget* widget,
+    GdkEvent* evt, gpointer udata)
+{
+    g_assert(GT_IS_PLAYER(udata));
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    GtkAllocation alloc;
+
+    gtk_widget_get_allocation(priv->chat_view, &alloc);
+
+    priv->start_mouse_pos = get_mouse_pos(self, evt->button.x, evt->button.y);
+
+    if (priv->start_mouse_pos != MOUSE_POS_OUTSIDE)
+        priv->mouse_pressed = TRUE;
+
+    return GDK_EVENT_PROPAGATE;
+}
+
+static gboolean
+mouse_released_cb(GtkWidget* widget,
+    GdkEvent* evt, gpointer udata)
+{
+    g_assert(GT_IS_PLAYER(udata));
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    priv->mouse_pressed = FALSE;
+    priv->start_mouse_pos = MOUSE_POS_OUTSIDE;
+
+    return GDK_EVENT_PROPAGATE;
+}
+
+static gboolean
+mouse_moved_cb(GtkWidget* widget,
+    GdkEvent* evt, gpointer udata)
+{
+    g_assert(GT_IS_PLAYER(udata));
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    MousePos pos;
+    gint x, y;
+
+    x = ROUND(evt->button.x);
+    y = ROUND(evt->button.y);
+
+    pos = get_mouse_pos(self, x, y);
+
+    g_print("Position %d %d\n", pos, priv->start_mouse_pos);
+
+    if (priv->mouse_pressed)
+    {
+        GtkAllocation alloc;
+        gint margin_top;
+        gint margin_start;
+        gint width_request;
+        gint height_request;
+
+        g_object_get(priv->chat_view,
+            "margin-top", &margin_top,
+            "margin-start", &margin_start,
+            "width-request", &width_request,
+            "height-request", &height_request,
+            NULL);
+
+        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
+
+        //TODO: Implement dragging
+        if (priv->start_mouse_pos == MOUSE_POS_LEFT_HANDLE && x >= 0)
+        {
+            width_request += margin_start - x;
+            margin_start = x;
+
+            g_object_set(priv->chat_view,
+                "width-request", width_request,
+                "margin-start", margin_start,
+                NULL);
+        }
+        else if (priv->start_mouse_pos == MOUSE_POS_RIGHT_HANDLE &&
+            x <= gtk_widget_get_allocated_width(GTK_WIDGET(self)))
+        {
+            width_request += x - margin_start - width_request;
+
+            g_object_set(priv->chat_view,
+                "width-request", width_request,
+                NULL);
+        }
+        else if (priv->start_mouse_pos == MOUSE_POS_TOP_HANDLE && y >= 0)
+        {
+            height_request += margin_top - y;
+            margin_top = y;
+
+            g_object_set(priv->chat_view,
+                "height-request", height_request,
+                "margin-top", y,
+                NULL);
+        }
+        else if (priv->start_mouse_pos == MOUSE_POS_BOTTOM_HANDLE &&
+            y <= gtk_widget_get_allocated_height(GTK_WIDGET(self)))
+        {
+            height_request += y - margin_top - height_request;
+
+            g_object_set(priv->chat_view,
+                "height-request", height_request,
+                NULL);
+        }
+        else if (priv->start_mouse_pos == MOUSE_POS_INSIDE)
+        {
+            margin_start = MIN(gtk_widget_get_allocated_width(GTK_WIDGET(self)) - width_request,
+                MAX(0, x - width_request / 2));
+
+            margin_top = MIN(gtk_widget_get_allocated_height(GTK_WIDGET(self)) - height_request,
+                MAX(0, y - height_request / 2));
+
+            g_object_set(priv->chat_view,
+                "margin-start", margin_start,
+                "margin-top", margin_top,
+                NULL);
+        }
+
+        priv->chat_settings->x_pos = margin_start / (gdouble) (alloc.width - width_request);
+        priv->chat_settings->y_pos = margin_top / (gdouble) (alloc.height - height_request);
+        priv->chat_settings->width = width_request / (gdouble) alloc.width;
+        priv->chat_settings->height = height_request / (gdouble) alloc.height;
+
+        /* g_print("%d %d %d %d %d %d\n", x, y, priv->chat_margin_start, priv->chat_margin_top, priv->chat_width_request, priv->chat_height_request); */
+    }
+    else
+    {
+        g_autoptr(GdkCursor) cursor = NULL;
+
+        switch (pos)
+        {
+            case MOUSE_POS_LEFT_HANDLE:
+                cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_LEFT_SIDE);
+                break;
+            case MOUSE_POS_RIGHT_HANDLE:
+                cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_RIGHT_SIDE);
+                break;
+            case MOUSE_POS_TOP_HANDLE:
+                cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_TOP_SIDE);
+                break;
+            case MOUSE_POS_BOTTOM_HANDLE:
+                cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_BOTTOM_SIDE);
+                break;
+            case MOUSE_POS_INSIDE:
+                cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_FLEUR);
+                break;
+            case MOUSE_POS_OUTSIDE:
+                cursor = NULL;
+                break;
+            default:
+                g_assert_not_reached();
+        }
+
+        gdk_window_set_cursor(evt->any.window, cursor);
+    }
+
+    return GDK_EVENT_PROPAGATE;
+}
+
+static void
+update_edit_chat(GtPlayer* self)
+{
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    g_object_set(self, "above-child", priv->edit_chat, NULL);
+
+    if (priv->edit_chat)
+    {
+        priv->mouse_pressed_handler_id = g_signal_connect(self, "button-press-event",
+            G_CALLBACK(mouse_pressed_cb), self);
+
+        priv->mouse_released_handler_id = g_signal_connect(self, "button-release-event",
+            G_CALLBACK(mouse_released_cb), self);
+
+        priv->mouse_moved_handler_id = g_signal_connect(self, "motion-notify-event",
+            G_CALLBACK(mouse_moved_cb), self);
+    }
+    else
+    {
+        g_signal_handler_disconnect(self, priv->mouse_pressed_handler_id);
+        g_signal_handler_disconnect(self, priv->mouse_released_handler_id);
+        g_signal_handler_disconnect(self, priv->mouse_moved_handler_id);
+    }
 }
 
 static void
@@ -786,6 +1021,9 @@ gt_player_init(GtPlayer* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
+    gtk_widget_add_events(GTK_WIDGET(self), GDK_POINTER_MOTION_MASK);
+
+    priv->mouse_pressed = FALSE;
     priv->chat_settings = gt_chat_view_settings_new();
 
     g_object_set(self, "volume",
@@ -813,6 +1051,10 @@ gt_player_init(GtPlayer* self)
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
     g_object_unref(action);
 
+    action = g_property_action_new("edit_chat", self, "edit-chat");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
+
     g_object_bind_property_full(self, "docked-handle-position",
                                 priv->docking_pane, "position",
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL,
@@ -823,7 +1065,6 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(self, "motion-notify-event", G_CALLBACK(motion_cb), self);
-    g_signal_connect(priv->player_overlay, "get-child-position", G_CALLBACK(chat_position_cb), self);
     utils_signal_connect_oneshot(priv->docking_pane, "size-allocate", G_CALLBACK(scale_chat_cb), self);
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
