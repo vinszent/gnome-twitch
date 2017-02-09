@@ -208,6 +208,17 @@
           </object>
         </child>
         <child>
+          <object class="GtkModelButton">
+            <property name="visible">true</property>
+            <property name="text" translatable="yes">Move &amp; resize chat</property>
+            <property name="action-name">player.edit_chat</property>
+            <property name="visible"
+                      bind-source="dock_chat_button"
+                      bind-property="active"
+                      bind-flags="default|sync-create|invert-boolean"/>
+          </object>
+        </child>
+        <child>
           <object class="GtkModelButton" id="dock_chat_button">
             <property name="visible">True</property>
             <property name="action-name">player.dock_chat</property>
