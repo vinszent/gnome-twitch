@@ -253,90 +253,6 @@
             <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
           </object>
         </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="label" translatable="yes">Width</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-            <style>
-              <class name="separator"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkScale">
-            <property name="visible">True</property>
-            <property name="orientation">horizontal</property>
-            <property name="adjustment">chat_view_width_adjustment</property>
-            <property name="draw-value">False</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="label" translatable="yes">Height</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-            <style>
-              <class name="separator"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkScale">
-            <property name="visible">True</property>
-            <property name="orientation">horizontal</property>
-            <property name="adjustment">chat_view_height_adjustment</property>
-            <property name="draw-value">False</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="label" translatable="yes">X position</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-            <style>
-              <class name="separator"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkScale">
-            <property name="visible">True</property>
-            <property name="orientation">horizontal</property>
-            <property name="adjustment">chat_view_x_adjustment</property>
-            <property name="draw-value">False</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-          </object>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="label" translatable="yes">Y position</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-            <style>
-              <class name="separator"/>
-            </style>
-          </object>
-        </child>
-        <child>
-          <object class="GtkScale">
-            <property name="visible">True</property>
-            <property name="orientation">horizontal</property>
-            <property name="adjustment">chat_view_y_adjustment</property>
-            <property name="draw-value">False</property>
-            <property name="visible" bind-source="dock_chat_button" bind-property="active" bind-flags="default|sync-create|invert-boolean"/>
-          </object>
-        </child>
       </object>
       <packing>
         <property name="submenu">edit_chat_menu</property>
@@ -406,26 +322,6 @@
     <property name="lower">0.0</property>
     <property name="upper">1.0</property>
     <property name="value">1.0</property>
-  </object>
-  <object class="GtkAdjustment" id="chat_view_height_adjustment">
-    <property name="lower">0.0</property>
-    <property name="upper">1.0</property>
-    <property name="value">1.0</property>
-  </object>
-  <object class="GtkAdjustment" id="chat_view_width_adjustment">
-    <property name="lower">0.0</property>
-    <property name="upper">1.0</property>
-    <property name="value">0.2</property>
-  </object>
-  <object class="GtkAdjustment" id="chat_view_x_adjustment">
-    <property name="lower">0.0</property>
-    <property name="upper">1.0</property>
-    <property name="value">0.0</property>
-  </object>
-  <object class="GtkAdjustment" id="chat_view_y_adjustment">
-    <property name="lower">0.0</property>
-    <property name="upper">1.0</property>
-    <property name="value">0.0</property>
   </object>
   <object class="GtkImage" id="show_chat_image">
     <property name="visible">True</property>
