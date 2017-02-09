@@ -64,6 +64,7 @@ enum
     PROP_CHAT_DARK_THEME,
     PROP_CHAT_OPACITY,
     PROP_DOCKED_HANDLE_POSITION,
+    PROP_EDIT_CHAT,
     NUM_PROPS
 };
 
@@ -369,6 +370,10 @@ set_property(GObject* obj,
         case PROP_DOCKED_HANDLE_POSITION:
             priv->chat_settings->docked_handle_pos = g_value_get_double(val);
             break;
+        case PROP_EDIT_CHAT:
+            priv->edit_chat = g_value_get_boolean(val);
+            update_edit_chat(self);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 
@@ -424,6 +429,9 @@ get_property(GObject* obj,
             break;
         case PROP_DOCKED_HANDLE_POSITION:
             g_value_set_double(val, priv->chat_settings->docked_handle_pos);
+            break;
+        case PROP_EDIT_CHAT:
+            g_value_set_boolean(val, priv->edit_chat);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -713,6 +721,9 @@ gt_player_class_init(GtPlayerClass* klass)
                                                              "Current docked handle position",
                                                              0, 1.0, 0,
                                                              G_PARAM_READWRITE);
+
+    props[PROP_EDIT_CHAT] = g_param_spec_boolean("edit-chat", "Edit chat", "Whether to edit chat",
+        FALSE, G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 
