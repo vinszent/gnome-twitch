@@ -274,6 +274,8 @@ player_button_press_cb(GtkWidget* widget,
     if (evt->button == 1 && evt->type == GDK_2BUTTON_PRESS)
         gt_win_toggle_fullscreen(GT_WIN_TOPLEVEL(widget));
 
+    gtk_widget_grab_focus(widget);
+
     return GDK_EVENT_PROPAGATE;
 }
 
@@ -854,6 +856,7 @@ plugin_loaded_cb(PeasEngine* engine,
 
         priv->player_widget = gt_player_backend_get_widget(priv->backend);
         gtk_widget_add_events(priv->player_widget, GDK_POINTER_MOTION_MASK);
+        gtk_widget_set_can_focus(priv->player_widget, TRUE);
         gtk_container_add(GTK_CONTAINER(priv->player_overlay), priv->player_widget);
         gtk_widget_show_all(priv->player_overlay);
 
