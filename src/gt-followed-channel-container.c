@@ -54,13 +54,18 @@ create_child(gpointer data)
 
 static void
 activate_child(GtItemContainer* item_container,
-    gpointer child)
+    gpointer _child)
 {
     g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
-    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(child));
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child));
 
-    gt_win_open_channel(GT_WIN_ACTIVE,
-        GT_CHANNELS_CONTAINER_CHILD(child)->channel);
+    GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
+
+    if (gt_channel_is_online(child->channel))
+    {
+        gt_win_open_channel(GT_WIN_ACTIVE,
+            GT_CHANNELS_CONTAINER_CHILD(child)->channel);
+    }
 }
 
 static void
