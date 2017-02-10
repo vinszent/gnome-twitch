@@ -283,7 +283,7 @@ update_from_data(GtChannel* self, GtChannelData* data)
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    GtChannelData* old_data = priv->data;
+    g_autoptr(GtChannelData) old_data = priv->data;
 
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
@@ -340,6 +340,8 @@ update_from_data(GtChannel* self, GtChannelData* data)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_VIEWERS]);
         if (g_date_time_compare(old_data->stream_started_time, data->stream_started_time) != 0)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_STARTED_TIME]);
+
+        gt_channel_data_free(old_data);
     }
 
     update_preview(self);
