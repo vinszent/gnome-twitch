@@ -3,7 +3,8 @@ project('gnome-twitch', 'c',
         meson_version : '>= 0.36.0',
         license : 'GPL3',
         default_options: [
-          'c_std=gnu11'
+          'c_std=gnu11',
+          'b_lundef=false',
         ])
 
 # Used in config.h

@@ -9,6 +9,13 @@ custom_target('desktop-file',
     install : true,
     install_dir : join_paths(datadir, 'applications'))
 
+custom_target('appdata-file',
+    input : 'com.vinszent.GnomeTwitch.appdata.xml.in',
+    output : 'com.vinszent.GnomeTwitch.appdata.xml',
+    command : [msgfmt, '--xml', '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@'],
+    install : true,
+    install_dir : join_paths(datadir, 'appdata'))
+
 icondir = join_paths(datadir, 'icons', 'hicolor')
 icon_sizes = ['16x16', '24x24', '32x32', '48x48', '256x256', '512x512']
 
