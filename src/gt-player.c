@@ -44,6 +44,7 @@ typedef struct
     GtkWidget* buffer_revealer;
     GtkWidget* buffer_label;
     GtkWidget* player_widget;
+    GtkWidget* reload_button;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -718,6 +719,8 @@ streams_list_cb(GObject* source,
 
         gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
 
+        gt_chat_disconnect(GT_CHAT(priv->chat_view));
+
         return;
     }
 
@@ -729,6 +732,17 @@ streams_list_cb(GObject* source,
 
     priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
         GTK_WINDOW(GTK_WINDOW(GT_WIN_TOPLEVEL(self))), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
+}
+
+static void
+reload_button_cb(GtkButton* button,
+    GtPlayer* self)
+{
+    g_assert(GT_IS_PLAYER(self));
+
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    gt_player_open_channel(self, priv->channel);
 }
 
 static void
@@ -949,6 +963,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, reload_button);
 }
 
 static GActionEntry actions[] =
@@ -1047,6 +1062,7 @@ gt_player_init(GtPlayer* self)
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
+    g_signal_connect(priv->reload_button, "clicked", G_CALLBACK(reload_button_cb), self);
 
     gchar** c;
     gchar** _c;

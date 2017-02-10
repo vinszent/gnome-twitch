@@ -94,7 +94,7 @@
               </object>
             </child>
             <child>
-              <object class="GtkLinkButton">
+              <object class="GtkLinkButton" id="reload_button">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Click here to reload</property>
                 <property name="name">empty-link-button</property>
