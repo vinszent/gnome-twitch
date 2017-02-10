@@ -24,7 +24,7 @@
 #define FETCH_STREAM_URI       "https://api.twitch.tv/kraken/streams/%s"
 #define FETCH_CHANNEL_URI      "https://api.twitch.tv/kraken/channels/%s"
 #define CHAT_BADGES_URI        "https://api.twitch.tv/kraken/chat/%s/badges/"
-#define TWITCH_EMOTE_URI       "http://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
+#define TWITCH_EMOTE_URI       "https://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
 #define CHANNEL_INFO_URI       "http://api.twitch.tv/api/channels/%s/panels"
 #define CHAT_SERVERS_URI       "https://api.twitch.tv/api/channels/%s/chat_properties"
 #define FOLLOWED_STREAMS_URI   "https://api.twitch.tv/kraken/streams/followed?limit=%d&offset=%d&oauth_token=%s&stream_type=live"
@@ -2219,7 +2219,7 @@ gt_twitch_emoticons(GtTwitch* self,
     GError* err = NULL;
 
     uri = g_strdup_printf(EMOTICON_IMAGES_URI,
-                          emotesets);
+        emotesets);
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 

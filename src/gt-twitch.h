@@ -63,7 +63,7 @@ typedef struct
 
 typedef struct
 {
-    gint id;
+    gint64 id;
     gchar* code;
     gint set;
     GdkPixbuf* pixbuf;

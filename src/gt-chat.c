@@ -352,8 +352,7 @@ irc_source_cb(GtIrcMessage* msg,
         const gchar* emote_sets = utils_search_key_value_strv(msg->tags, "emote-sets");
 
         gt_twitch_emoticons_async(main_app->twitch, emote_sets,
-                                  (GAsyncReadyCallback) emoticons_cb,
-                                  NULL, self);
+            (GAsyncReadyCallback) emoticons_cb, NULL, self);
     }
 
     gt_irc_message_free(msg);
