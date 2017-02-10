@@ -107,19 +107,21 @@
     border-color: rgba(81, 81, 85, 1.0);
 }
 
-.empty-link-button
+.gt-player #empty-link-button
 {
     padding-left: 0px;
     padding-right: 0px;
 }
 
-.gt-item-container #empty-label
+.gt-item-container #empty-label,
+.gt-player #empty-label
 {
     font-weight: bold;
     font-size: large;
 }
 
-.gt-item-container #empty-sub-label
+.gt-item-container #empty-sub-label,
+.gt-player #empty-sub-label
 {
     font-weight: lighter;
     font-size: small;

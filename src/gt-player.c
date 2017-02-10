@@ -33,6 +33,7 @@ typedef struct
 
     GtChatViewSettings* chat_settings;
 
+    GtkWidget* player_box;
     GtkWidget* empty_box;
     GtkWidget* player_overlay;
     GtkWidget* docking_pane;
@@ -65,7 +66,7 @@ typedef struct
     guint mouse_source;
 } GtPlayerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_EVENT_BOX)
+G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_STACK)
 
 enum
 {
@@ -548,7 +549,7 @@ update_edit_chat(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    g_object_set(self, "above-child", priv->edit_chat, NULL);
+    g_object_set(priv->player_box, "above-child", priv->edit_chat, NULL);
 
     if (priv->edit_chat)
     {
@@ -852,7 +853,7 @@ plugin_loaded_cb(PeasEngine* engine,
             priv->chat_view, "visible",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-        gtk_container_remove(GTK_CONTAINER(priv->player_overlay), priv->empty_box);
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
 
         priv->player_widget = gt_player_backend_get_widget(priv->backend);
         gtk_widget_add_events(priv->player_widget, GDK_POINTER_MOTION_MASK);
@@ -881,9 +882,9 @@ plugin_unloaded_cb(PeasEngine* engine,
         MESSAGEF("Unloaded player backend '%s'", peas_plugin_info_get_name(info));
 
         gtk_container_remove(GTK_CONTAINER(priv->player_overlay),
-                             gt_player_backend_get_widget(priv->backend));
-        gtk_container_add(GTK_CONTAINER(priv->player_overlay),
-                          priv->empty_box);
+            gt_player_backend_get_widget(priv->backend));
+
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
 
         priv->player_widget = NULL;
 
@@ -943,6 +944,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
 }
 
 static GActionEntry actions[] =
@@ -1037,7 +1039,7 @@ gt_player_init(GtPlayer* self)
     utils_signal_connect_oneshot_swapped(priv->docking_pane, "size-allocate", G_CALLBACK(update_docked), self);
     g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
-    g_signal_connect(self, "motion-notify-event", G_CALLBACK(motion_cb), self);
+    g_signal_connect(priv->player_box, "motion-notify-event", G_CALLBACK(motion_cb), self);
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
     g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);

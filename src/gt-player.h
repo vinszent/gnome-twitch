@@ -7,14 +7,14 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_PLAYER (gt_player_get_type())
 
-G_DECLARE_FINAL_TYPE(GtPlayer, gt_player, GT, PLAYER, GtkEventBox)
+G_DECLARE_FINAL_TYPE(GtPlayer, gt_player, GT, PLAYER, GtkStack)
 
 #include "gt-channel.h"
 #include "gt-twitch.h"
 
 struct _GtPlayer
 {
-    GtkEventBox parent_instance;
+    GtkStack parent_instance;
 };
 
 void gt_player_open_channel(GtPlayer* self, GtChannel* chan);
