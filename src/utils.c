@@ -276,6 +276,27 @@ utils_signal_connect_oneshot(gpointer instance,
                           G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 }
 
+void
+utils_signal_connect_oneshot_swapped(gpointer instance,
+    const gchar* signal, GCallback cb, gpointer udata)
+{
+
+    OneshotData* data = g_new(OneshotData, 1);
+
+    data->instance = instance;
+    data->cb = cb;
+    data->udata = udata;
+
+    g_signal_connect_swapped(instance, signal, cb, udata);
+
+    g_signal_connect_data(instance,
+                          signal,
+                          G_CALLBACK(oneshot_cb),
+                          data,
+                          (GClosureNotify) g_free,
+                          G_CONNECT_AFTER | G_CONNECT_SWAPPED);
+}
+
 inline void
 utils_refresh_cancellable(GCancellable** cancel)
 {

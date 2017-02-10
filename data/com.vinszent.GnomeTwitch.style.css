@@ -135,3 +135,18 @@
 {
     transition: 300ms ease-in-out;
 }
+
+@keyframes blinker
+{
+	0% { border-color: black; }
+	50% { border-color: red; }
+	100% { border-color: black; }
+}
+
+.gt-player.edit-chat .gt-chat
+{
+    border-style: solid;
+	border-width: 4px;
+    borde-color: red;
+	animation: blinker 1s linear infinite;
+}

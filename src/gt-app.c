@@ -92,9 +92,9 @@ gt_chat_view_settings_new()
     ret->visible = TRUE;
     ret->docked = TRUE;
     ret->width = 0.2;
-    ret->height = 1.0;
-    ret->x_pos = 0;
-    ret->y_pos = 0;
+    ret->height = 0.7;
+    ret->x_pos = 1.0;
+    ret->y_pos = 0.5;
     ret->docked_handle_pos = 0.75;
 
     return ret;
