@@ -34,6 +34,7 @@ typedef struct
     GtChatViewSettings* chat_settings;
 
     GtkWidget* player_box;
+    GtkWidget* error_box;
     GtkWidget* empty_box;
     GtkWidget* player_overlay;
     GtkWidget* docking_pane;
@@ -715,6 +716,8 @@ streams_list_cb(GObject* source,
 
         g_error_free(err);
 
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
+
         return;
     }
 
@@ -945,6 +948,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
 }
 
 static GActionEntry actions[] =
@@ -1103,8 +1107,13 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     if (!priv->backend)
     {
         MESSAGE("Can't open channel, no backend loaded");
+
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+
         return;
     }
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
 
     gtk_label_set_label(GTK_LABEL(priv->buffer_label), _("Loading stream"));
 

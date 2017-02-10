@@ -12,7 +12,7 @@
         <property name="valign">center</property>
         <property name="spacing">7</property>
         <child>
-          <object class="GtkImage" id="empty_image">
+          <object class="GtkImage">
             <property name="visible">True</property>
             <property name="icon-name">application-x-addon-symbolic</property>
             <property name="icon-size">6</property>
@@ -53,6 +53,52 @@
                 <property name="visible">True</property>
                 <property name="label" translatable="yes"> to load one</property>
                 <property name="name">empty-sub-label</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="error_box">
+        <property name="visible">true</property>
+        <property name="orientation">vertical</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="spacing">7</property>
+        <property name="name">error-box</property>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">face-crying-symbolic</property>
+            <property name="icon-size">6</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">There was an error opening the stream</property>
+            <property name="name">empty-label</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="orientation">horizontal</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Please check the error message above. </property>
+                <property name="name">empty-sub-label</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLinkButton">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Click here to reload</property>
+                <property name="name">empty-link-button</property>
+                <signal name="activate-link" handler="gtk_true"/>
               </object>
             </child>
           </object>

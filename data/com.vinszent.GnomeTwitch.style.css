@@ -121,7 +121,8 @@
 }
 
 .gt-item-container #empty-sub-label,
-.gt-player #empty-sub-label
+.gt-player #empty-sub-label,
+.gt-player #empty-link-button
 {
     font-weight: lighter;
     font-size: small;
