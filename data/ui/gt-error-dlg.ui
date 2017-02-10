@@ -1,23 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface domain="gnome-twitch">
-  <object class="GtkMessageDialog" id="dlg">
+  <object class="GtkDialog" id="dlg">
     <property name="modal">True</property>
-    <property name="buttons">close</property>
     <property name="default-width">490</property>
     <property name="default-height">295</property>
     <property name="resizable">False</property>
-    <child internal-child="message_area">
+    <property name="use-header-bar">1</property>
+    <property name="title" translatable="yes">Something went wrong</property>
+    <style>
+      <class name="gt-error-dlg"/>
+    </style>
+    <child internal-child="headerbar">
+      <object class="GtkHeaderBar">
+        <property name="show-close-button">false</property>
+        <child>
+          <object class="GtkButton" id="report_button">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Report error</property>
+            <property name="can-default">true</property>
+            <property name="has-default">true</property>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="pack-type">end</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="close_button">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Close</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="vbox">
       <object class="GtkBox">
         <property name="height-request">100</property>
+        <property name="width-request">400</property>
+        <property name="orientation">vertical</property>
+        <property name="margin">7</property>
+        <child>
+          <object class="GtkLabel" id="error_label">
+            <property name="visible">true</property>
+            <property name="halign">start</property>
+            <property name="use-markup">true</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">true</property>
+            <property name="halign">start</property>
+            <property name="use-markup">true</property>
+            <property name="label" translatable="yes">&lt;b&gt;Details:&lt;/b&gt; </property>
+          </object>
+        </child>
         <child>
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="min-content-height">100</property>
+            <property name="max-content-width">400</property>
             <property name="hscrollbar-policy">never</property>
+            <property name="vexpand">true</property>
             <child>
               <object class="GtkTextView" id="details_text_view">
                 <property name="visible">True</property>
-                <property name="wrap-mode">word</property>
+                <property name="wrap-mode">char</property>
                 <property name="monospace">true</property>
               </object>
             </child>

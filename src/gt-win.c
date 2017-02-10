@@ -195,17 +195,23 @@ show_error_dialogue_cb(GtkInfoBar* info_bar,
     GtkBuilder* builder = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/gt-error-dlg.ui");
     GtkWidget* dlg = GTK_WIDGET(gtk_builder_get_object(builder, "dlg"));
     GtkTextView* details_text_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "details_text_view"));
+    GtkLabel* sub_label = GTK_LABEL(gtk_builder_get_object(builder, "error_label"));
+    GtkWidget* close_button = GTK_WIDGET(gtk_builder_get_object(builder, "close_button"));
+    GtkWidget* report_button = GTK_WIDGET(gtk_builder_get_object(builder, "report_button"));
+    g_autofree gchar* info_text = NULL;
 
     if (res != GTK_RESPONSE_OK) goto cleanup;
 
     gtk_text_buffer_set_text(gtk_text_view_get_buffer(details_text_view),
                              *(udata+1), -1);
 
-    g_object_set(dlg,
-                 "text", _("Something went wrong"),
-                 "secondary-text", *udata,
-                 NULL);
-    g_signal_connect(dlg, "response", G_CALLBACK(gtk_widget_destroy), NULL);
+    info_text = g_strdup_printf(_("<b>Error message:</b> %s"), *udata);
+
+    gtk_label_set_label(sub_label, info_text);
+
+    g_signal_connect_swapped(close_button, "clicked", G_CALLBACK(gtk_widget_destroy), dlg);
+
+    //TODO: Hook up report button
 
     gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(GT_WIN_ACTIVE));
     gtk_widget_show(dlg);

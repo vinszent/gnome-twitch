@@ -153,3 +153,9 @@
     border-color: red;
 	animation: blinker 1s linear infinite;
 }
+
+.gt-error-dlg #info-label,
+.gt-error-dlg #error-label
+{
+    font-weight: bold;
+}
