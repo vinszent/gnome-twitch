@@ -147,6 +147,6 @@
 {
     border-style: solid;
 	border-width: 4px;
-    borde-color: red;
+    border-color: red;
 	animation: blinker 1s linear infinite;
 }
