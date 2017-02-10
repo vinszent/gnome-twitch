@@ -148,6 +148,42 @@ filter_by_name(GtkFlowBoxChild* _child,
     return ret;
 }
 
+static gint
+sort_by_name_and_online(GtkFlowBoxChild* _child1,
+    GtkFlowBoxChild* _child2, gpointer udata)
+{
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child1));
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child2));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
+    GtChannelsContainerChild* child1 = GT_CHANNELS_CONTAINER_CHILD(_child1);
+    GtChannelsContainerChild* child2 = GT_CHANNELS_CONTAINER_CHILD(_child2);
+    gboolean online1;
+    gboolean online2;
+    g_autofree gchar* name1;
+    g_autofree gchar* name2;
+    gint ret = 0;
+
+    g_object_get(child1->channel,
+                 "online", &online1,
+                 "name", &name1,
+                 NULL);
+    g_object_get(child2->channel,
+                 "online", &online2,
+                 "name", &name2,
+                 NULL);
+
+    if(online1 && !online2)
+        ret = -1;
+    else if (!online1 && online2)
+        ret = 1;
+    else
+        ret = g_strcmp0(name1, name2);
+
+    return ret;
+}
+
 static void
 get_property(GObject* obj,
     guint prop,
@@ -195,11 +231,12 @@ constructed(GObject* obj)
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(obj);
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
-    G_OBJECT_CLASS(gt_followed_channel_container_parent_class)->constructed(obj);
-
     gtk_flow_box_set_filter_func(GTK_FLOW_BOX(priv->item_flow),
         (GtkFlowBoxFilterFunc) filter_by_name,
         self, NULL);
+
+    gtk_flow_box_set_sort_func(GTK_FLOW_BOX(priv->item_flow),
+        (GtkFlowBoxSortFunc) sort_by_name_and_online, self, NULL);
 
     //TODO: Need to refresh everytime a channel is followed or unfollowed
     g_signal_connect(main_app->fav_mgr, "finished-loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
@@ -207,6 +244,8 @@ constructed(GObject* obj)
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+
+    G_OBJECT_CLASS(gt_followed_channel_container_parent_class)->constructed(obj);
 }
 
 static void
