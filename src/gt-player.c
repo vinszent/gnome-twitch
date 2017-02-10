@@ -555,12 +555,16 @@ update_edit_chat(GtPlayer* self)
 
         priv->mouse_moved_handler_id = g_signal_connect(self, "motion-notify-event",
             G_CALLBACK(mouse_moved_cb), self);
+
+        ADD_STYLE_CLASS(self, "edit-chat");
     }
     else
     {
         g_signal_handler_disconnect(self, priv->mouse_pressed_handler_id);
         g_signal_handler_disconnect(self, priv->mouse_released_handler_id);
         g_signal_handler_disconnect(self, priv->mouse_moved_handler_id);
+
+        REMOVE_STYLE_CLASS(self, "edit-chat");
     }
 }
 
