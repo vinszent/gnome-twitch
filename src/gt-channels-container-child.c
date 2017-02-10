@@ -282,11 +282,8 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/vinszent/GnomeTwitch/ui/gt-channels-container-child.ui");
 
-    props[PROP_CHANNEL] = g_param_spec_object("channel",
-                                              "Channel",
-                                              "Associated channel",
-                                              GT_TYPE_CHANNEL,
-                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    props[PROP_CHANNEL] = g_param_spec_object("channel", "Channel", "Associated channel",
+        GT_TYPE_CHANNEL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,

@@ -26,7 +26,6 @@ typedef struct
     uint offset;
 } FetchItemsData;
 
-
 GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self);
 void gt_item_container_append_items(GtItemContainer* self, GList* items);
 void gt_item_container_refresh(GtItemContainer* self);

@@ -1887,7 +1887,6 @@ json_error:
     gt_channel_data_list_free(ret);
 
     return NULL;
-
 }
 
 GList*

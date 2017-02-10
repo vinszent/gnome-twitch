@@ -442,7 +442,6 @@ chat_view_motion_cb(GtkWidget* widget,
 
     g_object_unref(cursor);
 
-
     return GDK_EVENT_PROPAGATE;
 }
 
