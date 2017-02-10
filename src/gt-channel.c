@@ -338,10 +338,9 @@ update_from_data(GtChannel* self, GtChannelData* data)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ONLINE]);
         if (old_data->viewers != data->viewers)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_VIEWERS]);
-        if (g_date_time_compare(old_data->stream_started_time, data->stream_started_time) != 0)
+        if (data->stream_started_time && old_data->stream_started_time &&
+            g_date_time_compare(old_data->stream_started_time, data->stream_started_time) != 0)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_STARTED_TIME]);
-
-        gt_channel_data_free(old_data);
     }
 
     update_preview(self);
