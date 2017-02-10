@@ -75,8 +75,6 @@ fetch_items_cb(GObject* source,
     if (priv->num_items == 0)
         gtk_stack_set_visible_child_name(GTK_STACK(self), "empty");
 
-    gtk_widget_show_all(GTK_WIDGET(self));
-
     priv->fetching_items = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
 }

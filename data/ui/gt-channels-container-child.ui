@@ -20,6 +20,7 @@
 
 <interface domain="GnomeTwitch">
   <template class="GtChannelsContainerChild" parent="GtkFlowBoxChild">
+    <property name="visible">true</property>
     <property name="width-request">350</property>
     <property name="height-request">230</property>
     <property name="valign">start</property>
@@ -86,7 +87,7 @@
                             </child>
                             <child>
                               <object class="GtkImage" id="play_image">
-                                <property name="visible">True</property>
+                                <property name="visible">true</property>
                                 <property name="icon-name">media-playback-start</property>
                                 <property name="icon-size">5</property>
                                 <property name="halign">center</property>
