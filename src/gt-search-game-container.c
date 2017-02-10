@@ -42,7 +42,7 @@ get_properties(GtItemContainer* self,
     *empty_label_text = g_strdup(_("No games found"));
     *empty_sub_label_text = g_strdup(_("Try a different search"));
     *empty_image_name = g_strdup("edit-find-symbolic");
-    *fetching_label_text = g_strdup("Fetching channels");
+    *fetching_label_text = g_strdup(_("Fetching games"));
 }
 
 static void
