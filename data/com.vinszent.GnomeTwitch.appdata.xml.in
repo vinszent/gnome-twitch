@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.vinszent.GnomeTwitch.desktop</id>
+  <translation type="gettext">gnome-twitch</translation>
+  <name>GNOME Twitch</name>
+  <developer_name>GNOME Twitch</developer_name>
+  <summary>Twitch desktop client</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <description>
+    <p>
+      Allows searching for and watching Twitch streams from the desktop.
+    </p>
+    <p>Notable Features:</p>
+    <ul>
+      <li>Watch your favourite streams natively with fully accelerated video</li>
+      <li>Built in chat which can even be overlayed over the video</li>
+      <li>Easy favourites/follows management and receive notifications when they are online</li>
+    </ul>
+  </description>
+  <url type="homepage">http://gnome-twitch.vinszent.com/</url>
+  <url type="bugtracker">https://github.com/vinszent/gnome-twitch/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_player.png</image>
+      <_caption>Watching a stream including chat</_caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_streams.png</image>
+      <_caption>Viewing live channels</_caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release date="2016-10-15" version="0.3.1">
+      <description>
+        <p>This is a minor release to fix an error getting follows.</p>
+      </description>
+    </release>
+  </releases>
+  <kudos>
+    <kudo>AppMenu</kudo>
+    <kudo>HiDpiIcon</kudo>
+    <kudo>ModernToolkit</kudo>
+    <kudo>Notifications</kudo>
+  </kudos>
+  <update_contact>vinszent_at_vinszent.com</update_contact>
+</component>
