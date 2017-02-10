@@ -689,6 +689,16 @@ gt_channel_get_id(GtChannel* self)
 }
 
 gboolean
+gt_channel_is_online(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->data->online;
+}
+
+gboolean
 gt_channel_update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
