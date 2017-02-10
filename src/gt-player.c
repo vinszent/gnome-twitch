@@ -541,7 +541,6 @@ mouse_moved_cb(GtkWidget* widget,
 
     return GDK_EVENT_PROPAGATE;
 }
-
 static void
 update_edit_chat(GtPlayer* self)
 {

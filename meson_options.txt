@@ -1,4 +1,3 @@
-option('do-post-install', type : 'boolean', value : true, description : 'Run post-install script')
 option('use-deprecated-webkit', type : 'boolean', value : false, descritpion : 'Use deprecated WebKit1 API')
 option('with-player-mpv-opengl', type : 'boolean', value : false, description : 'Compile MPV OpenGL player backend')
 option('with-player-gstreamer-clutter', type : 'boolean', value : false, description : 'Compile GStreamer player backend')

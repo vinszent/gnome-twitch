@@ -5,12 +5,14 @@ ver = vcs_tag(input : 'version.h.in', output : 'version.h',
               fallback : meson.project_version())
 
 conf_data = configuration_data()
-conf_data.set('LOCALE_DIR', LOCALE_DIR)
-conf_data.set('LIB_DIR', LIB_DIR)
+conf_data.set_quoted('GT_LOCALE_DIR', LOCALE_DIR)
+conf_data.set_quoted('GT_LIB_DIR', LIB_DIR)
 conf_data.set('USE_DEPRECATED_WEBKIT', get_option('use-deprecated-webkit'))
 configure_file(input : 'config.h.in', output : 'config.h', configuration : conf_data)
 
-deps_gt = [dependency('gtk+-3.0', version : '>=3.20'),
+libgtk_dep = dependency('gtk+-3.0', version : '>=3.20')
+
+deps_gt = [libgtk_dep,
            dependency('libsoup-2.4'),
            dependency('json-glib-1.0'),
            dependency('libpeas-1.0'),
@@ -22,11 +24,12 @@ else
    deps_gt += dependency('webkit2gtk-4.0')
 endif
 
-r = run_command('pkg-config', '--variable', 'targets', 'gdk-3.0')
-
-if (r.stdout().contains('x11'))
+if libgtk_dep.get_pkgconfig_variable('targets').contains('x11')
    deps_gt += dependency('x11')
 endif
+
+cc = meson.get_compiler('c')
+deps_gt += cc.find_library('m', required: false)
 
 res = gnome.compile_resources('gt-resources', '../data/com.vinszent.GnomeTwitch.gresource.xml', source_dir : '../data')
 
@@ -68,5 +71,4 @@ executable('gnome-twitch', src_gt,
            include_directories : include_dir,
            dependencies : deps_gt,
            install : true,
-           c_args : '-Wno-unused-variable',
-           link_args : '-lm')
+           c_args : '-Wno-unused-variable')
