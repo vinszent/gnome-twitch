@@ -177,6 +177,10 @@ update_docked(GtPlayer* self)
             "halign", GTK_ALIGN_FILL,
             NULL);
 
+        g_object_set(self,
+            "edit-chat", FALSE,
+            NULL);
+
         gtk_paned_set_position(GTK_PANED(priv->docking_pane),
             ROUND(priv->chat_settings->docked_handle_pos*width));
     }
@@ -560,9 +564,23 @@ update_edit_chat(GtPlayer* self)
     }
     else
     {
-        g_signal_handler_disconnect(self, priv->mouse_pressed_handler_id);
-        g_signal_handler_disconnect(self, priv->mouse_released_handler_id);
-        g_signal_handler_disconnect(self, priv->mouse_moved_handler_id);
+        if (priv->mouse_pressed_handler_id > 0)
+        {
+            g_signal_handler_disconnect(self, priv->mouse_pressed_handler_id);
+            priv->mouse_moved_handler_id = 0;
+        }
+
+        if (priv->mouse_pressed_handler_id > 0)
+        {
+            g_signal_handler_disconnect(self, priv->mouse_released_handler_id);
+            priv->mouse_pressed_handler_id = 0;
+        }
+
+        if (priv->mouse_moved_handler_id > 0)
+        {
+            g_signal_handler_disconnect(self, priv->mouse_moved_handler_id);
+            priv->mouse_moved_handler_id = 0;
+        }
 
         REMOVE_STYLE_CLASS(self, "edit-chat");
     }
@@ -1127,7 +1145,10 @@ gt_player_close_channel(GtPlayer* self)
 
     gt_chat_disconnect(GT_CHAT(priv->chat_view));
 
-    g_object_set(self, "channel", NULL, NULL);
+    g_object_set(self,
+        "channel", NULL,
+        "edit-chat", FALSE,
+        NULL);
 
     gt_player_stop(self);
 
