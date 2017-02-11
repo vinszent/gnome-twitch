@@ -2335,8 +2335,8 @@ gt_twitch_fetch_user_info(GtTwitch* self,
 
     READ_JSON_VALUE("_id", ret->id);
     READ_JSON_VALUE("name", ret->name);
-    READ_JSON_VALUE("bio", ret->bio);
-    READ_JSON_VALUE("display_name", ret->display_name);
+    READ_JSON_VALUE_NULL("bio", ret->bio, NULL);
+    READ_JSON_VALUE_NULL("display_name", ret->display_name, NULL);
     READ_JSON_VALUE("email", ret->email);
     READ_JSON_VALUE("email_verified", ret->email_verified);
     READ_JSON_VALUE("logo", ret->logo_url);
