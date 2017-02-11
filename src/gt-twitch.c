@@ -1278,20 +1278,82 @@ json_error:
 }
 
 GdkPixbuf*
-gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp)
+gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, GError** error)
 {
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(url));
+
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
+    GError* err = NULL;
+    GdkPixbuf* ret = NULL;
+    GInputStream* input_stream = NULL;
 
-    DEBUGF("Downloading picture from url='%s'", url);
-
-    //TODO: Shouldn't this be a programming error?
-    if (utils_str_empty(url))
-        return NULL;
+    DEBUG("Downloading picture from url '%s'", url);
 
     if (timestamp)
-        return utils_download_picture_if_newer(priv->soup, url, timestamp);
-    else
-        return utils_download_picture(priv->soup, url);
+    {
+        msg = soup_message_new(SOUP_METHOD_HEAD, url);
+        soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+        soup_session_send_message(priv->soup, msg);
+
+        if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code))
+        {
+            const gchar* last_modified;
+
+            if ((last_modified = soup_message_headers_get_one(msg->response_headers, "Last-Modified")) != NULL &&
+                utils_http_full_date_to_timestamp(last_modified) < timestamp)
+            {
+                INFO("No new content at url '%s'", url);
+
+                return NULL;
+            }
+        }
+        else
+        {
+            WARNING("Unable to download picture from url '%s' because received unsuccessful response with code '%d' and body '%s'",
+                url, msg->status_code, msg->response_body->data);
+
+            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP,
+                "Unable to download picture from url '%s' because received unsuccessful response with code '%d' and body '%s'",
+                url, msg->status_code, msg->response_body->data);
+
+            return NULL;
+        }
+    }
+
+#define CHECK_ERROR                                                     \
+    if (err)                                                            \
+    {                                                                   \
+        WARNINGF("Error downloading picture for url '%s' because: %s",  \
+            url, err->message);                                         \
+                                                                        \
+        g_propagate_prefixed_error(error, err, "Unable to download picture for url '%s' because: ", \
+            url);                                                       \
+                                                                        \
+        goto finish;                                                    \
+    }                                                                   \
+
+
+    msg = soup_message_new(SOUP_METHOD_GET, url);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+    input_stream = soup_session_send(priv->soup, msg, NULL, &err);
+
+    CHECK_ERROR;
+
+    ret = gdk_pixbuf_new_from_stream(input_stream, NULL, &err);
+
+    CHECK_ERROR;
+
+    //TODO: Need to free ret if an error is encountered here
+    g_input_stream_close(input_stream, NULL, &err);
+
+    CHECK_ERROR;
+
+finish:
+    g_object_unref(input_stream);
+
+    return ret;
 }
 
 static void
@@ -1302,13 +1364,17 @@ download_picture_async_cb(GTask* task,
 {
     GenericTaskData* data = (GenericTaskData*) task_data;
     GdkPixbuf* ret = NULL;
+    GError* err = NULL;
 
     if (g_task_return_error_if_cancelled(task))
         return;
 
-    ret = gt_twitch_download_picture(GT_TWITCH(source), data->str_1, data->int_1);
+    ret = gt_twitch_download_picture(GT_TWITCH(source), data->str_1, data->int_1, &err);
 
-    g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
 }
 
 void
@@ -1319,7 +1385,6 @@ gt_twitch_download_picture_async(GtTwitch* self,
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_false(utils_str_empty(url));
-    g_assert_cmpint(timestamp, >=, 0);
 
     GTask* task = NULL;
     GenericTaskData* data = NULL;
@@ -1347,14 +1412,17 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
     if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
     {
         gchar* url = NULL;
+        GError* err = NULL;
 
         url = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
 
         DEBUGF("Downloading emote form url='%s'", url);
 
-        g_hash_table_insert(priv->emote_table,
-            GINT_TO_POINTER(id),
-            utils_download_picture(priv->soup, url));
+        g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
+            gt_twitch_download_picture(self, url, NO_TIMESTAMP, &err));
+
+        //TODO: Propagate this error further
+        g_assert_no_error(err);
 
         g_free(url);
     }
@@ -1407,6 +1475,7 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
         {
             GtChatBadge* badge = g_new(GtChatBadge, 1);
             gchar* key = NULL;
+            GError* err = NULL;
 
             READ_JSON_ELEMENT(j);
 
@@ -1415,8 +1484,11 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
             //TODO: Handle this in READ_JSON_VALUE once priv->soup has been moved to GtApp
             json_reader_read_member(reader, "image_url_1x");
-            badge->pixbuf = utils_download_picture(priv->soup, json_reader_get_string_value(reader));
+            badge->pixbuf = gt_twitch_download_picture(self, json_reader_get_string_value(reader), NO_TIMESTAMP, &err);
             json_reader_end_member(reader);
+
+            //TODO: Propagate this error further
+            g_assert_no_error(err);
 
             END_JSON_ELEMENT();
 
@@ -1667,7 +1739,7 @@ gt_twitch_channel_info(GtTwitch* self, const gchar* chan)
         json_reader_end_member(reader);
 
         json_reader_read_member(reader, "image");
-        panel->image = gt_twitch_download_picture(self, json_reader_get_string_value(reader), 0);
+        /* panel->image = gt_twitch_download_picture(self, json_reader_get_string_value(reader), 0); */
         json_reader_end_member(reader);
 
         if (json_reader_read_member(reader, "description"))

@@ -147,13 +147,26 @@ cache_update_cb(gpointer data,
 
     GtChannel* self = GT_CHANNEL(g_object_get_data(G_OBJECT(cancel), "chan"));
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    GError* err = NULL;
 
     GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch,
-        priv->data->video_banner_url, priv->cache_timestamp);
+        priv->data->video_banner_url, priv->cache_timestamp, &err);
+
+    if (err)
+    {
+        WARNING("Unable to update cache entry for channel with name '%s'", priv->data->name);
+
+        g_error_free(err);
+
+        //TODO: Put channel in some kind of error state
+        return;
+    }
+
     if (pic)
     {
         set_banner(self, pic, TRUE);
-        g_info("{GtChannel} Updated cache entry for channel '%s'", priv->data->name);
+
+        INFO("Updated cache entry for channel with name '%s'", priv->data->name);
     }
 
     g_clear_object(&cancel);

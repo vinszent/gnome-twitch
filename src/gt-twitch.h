@@ -14,6 +14,7 @@ G_DECLARE_FINAL_TYPE(GtTwitch, gt_twitch, GT, TWITCH, GObject)
 #include "gt-game.h"
 
 #define NO_GAME ""
+#define NO_TIMESTAMP -1
 
 typedef enum _GtTwitchError
 {
@@ -114,7 +115,7 @@ void                       gt_twitch_stream_data_list_free(GList* list);
 GtChannelData*             gt_twitch_fetch_channel_data(GtTwitch* self, const gchar* id, GError** error);
 void                       gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GtGameData*                gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
-GdkPixbuf*                 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp);
+GdkPixbuf*                 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, GError** error);
 void                       gt_twitch_download_picture_async(GtTwitch* self, const gchar* url, gint64 timestamp, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GdkPixbuf*                 gt_twitch_download_emote(GtTwitch* self, gint id);
 GList*                     gt_twitch_channel_info(GtTwitch* self, const gchar* chan);

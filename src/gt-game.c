@@ -1,9 +1,10 @@
 #include "gt-game.h"
 #include "gt-app.h"
+#include "utils.h"
 #include <glib/gi18n.h>
 
 #define TAG "GtGame"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 typedef struct
 {
@@ -76,14 +77,26 @@ update_func(gpointer data, gpointer udata)
 
     GtGame* self = GT_GAME(data);
     GtGamePrivate* priv = gt_game_get_instance_private(self);
+    GError* err = NULL;
 
     GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch,
-        priv->preview_url, priv->preview_timestamp);
+        priv->preview_url, priv->preview_timestamp, &err);
+
+    if (err)
+    {
+        WARNING("Unable to update preview for game '%s'", priv->name);
+
+        g_error_free(err);
+
+        //TODO: Put game in some kind of error state
+        return;
+    }
 
     if (pic)
     {
         set_preview(self, pic, TRUE);
-        g_info("{GtGame} Updated preview for game '%s'", priv->name);
+
+        INFO("Updated preview for game '%s'", priv->name);
     }
 
     g_object_unref(self);
