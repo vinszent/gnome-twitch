@@ -1,6 +1,7 @@
 #include "gt-follows-manager.h"
 #include "gt-app.h"
 #include "gt-win.h"
+#include "utils.h"
 #include <json-glib/json-glib.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
@@ -11,6 +12,8 @@
 
 #define OLD_FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "favourite-channels.json", NULL);
 #define FAV_CHANNELS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "followed-channels.json", NULL);
+
+#define FOLLOWED_CHANNELS_FILE_VERSION 1
 
 typedef struct
 {
@@ -505,38 +508,113 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 void
 gt_follows_manager_load_from_file(GtFollowsManager* self)
 {
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    JsonParser* parse = json_parser_new();
-    JsonNode* root;
-    JsonArray* jarr;
-    gchar* fp = FAV_CHANNELS_FILE;
-    GError* err = NULL;
+    g_assert(GT_IS_FOLLOWS_MANAGER(self));
+
+    g_autoptr(JsonParser) parser = json_parser_new();
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GError) err = NULL;
+    g_autofree gchar* fp = FAV_CHANNELS_FILE;
 
     g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
     g_clear_pointer(&self->follow_channels,
-                    (GDestroyNotify) gt_channel_list_free);
+        (GDestroyNotify) gt_channel_list_free);
 
     if (!g_file_test(fp, G_FILE_TEST_EXISTS))
-        goto finish;
+        return;
 
-    json_parser_load_from_file(parse, fp, &err);
+    json_parser_load_from_file(parser, fp, &err);
 
     if (err)
     {
-        g_warning("{GtFollowsManager} Error loading follow channels '%s'", err->message);
-        goto finish;
+        GtWin* win = GT_WIN_ACTIVE;
+
+        g_assert(GT_IS_WIN(win));
+
+        WARNING("Error loading followed channels from file because: %s", err->message);
+
+        gt_win_show_error_message(win, "Unable to load followed channels from file",
+            "Unable to load followed channels from file because: %s", err->message);
+
+        return;
     }
 
-    root = json_parser_get_root(parse);
-    jarr = json_node_get_array(root);
+    reader = json_reader_new(json_parser_get_root(parser));
 
-    for (GList* l = json_array_get_elements(jarr); l != NULL; l = l->next)
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        GtChannel* chan = GT_CHANNEL(json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
+        const gchar* id;
+        const gchar* name;
 
-        g_assert(GT_IS_CHANNEL(chan));
-        g_assert(g_object_is_floating(chan));
+        if (!json_reader_read_element(reader, i))
+        {
+            GtWin* win = GT_WIN_ACTIVE;
+
+            g_assert(GT_IS_WIN(win));
+
+            const GError* e = json_reader_get_error(reader);
+
+            WARNING("Unable to load followed channels from file because: %s",
+                e->message);
+
+            gt_win_show_error_message(win, "Unable to load followed channels from file",
+                "Unable to load followed channels from file because: %s", e->message);
+
+            goto error;
+        }
+
+        if (!json_reader_read_member(reader, "id"))
+        {
+            GtWin* win = GT_WIN_ACTIVE;
+
+            g_assert(GT_IS_WIN(win));
+
+            const GError* e = json_reader_get_error(reader);
+
+            WARNING("Unable to load followed channels from file because: %s",
+                e->message);
+
+            gt_win_show_error_message(win, "Unable to load followed channels from file",
+                "Unable to load followed channels from file because: %s", e->message);
+
+            goto error;
+        }
+
+        JsonNode* id_node = json_reader_get_value(reader);
+
+        if (STRING_EQUALS(json_node_type_name(id_node), "Integer"))
+            id = g_strdup_printf("%ld", json_reader_get_int_value(reader));
+        else if (STRING_EQUALS(json_node_type_name(id_node), "String"))
+            id = g_strdup(json_reader_get_string_value(reader));
+        else
+            g_assert_not_reached();
+
+        json_reader_end_element(reader);
+
+        if (!json_reader_read_member(reader, "name"))
+        {
+            GtWin* win = GT_WIN_ACTIVE;
+
+            g_assert(GT_IS_WIN(win));
+
+            const GError* e = json_reader_get_error(reader);
+
+            WARNING("Unable to load followed channels from file because: %s",
+                e->message);
+
+            gt_win_show_error_message(win, "Unable to load followed channels from file",
+                "Unable to load followed channels from file because: %s", e->message);
+
+            goto error;
+        }
+
+        name = json_reader_get_string_value(reader);
+
+        json_reader_end_member(reader);
+
+        json_reader_end_element(reader);
+
+        GtChannel* chan = gt_channel_new_from_id_and_name(id, name);
 
         g_object_ref_sink(chan);
 
@@ -546,25 +624,27 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
                      "auto-update", TRUE,
                      "followed", TRUE,
                      NULL);
-        gt_channel_update(chan);
         g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
 
         g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
 
-finish:
-
     g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
 
-    g_object_unref(parse);
-    g_free(fp);
+    return;
+
+error:
+    gt_channel_list_free(self->follow_channels);
+
+    return;
 }
 
 void
 gt_follows_manager_save(GtFollowsManager* self)
 {
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    gchar* fp = FAV_CHANNELS_FILE;
+    g_assert(GT_IS_FOLLOWS_MANAGER(self));
+
+    g_autofree gchar* fp = FAV_CHANNELS_FILE;
 
     if (g_list_length(self->follow_channels) == 0)
     {
@@ -577,27 +657,40 @@ gt_follows_manager_save(GtFollowsManager* self)
         return;
     }
 
-    JsonArray* jarr = json_array_new();
-    JsonGenerator* gen = json_generator_new();
-    JsonNode* final = json_node_new(JSON_NODE_ARRAY);
+    g_autoptr(JsonBuilder) builder = json_builder_new();
+    g_autoptr(JsonGenerator) gen = json_generator_new();
+    g_autoptr(JsonNode) final = NULL;
+
+    /* json_builder_begin_object(builder); */
+
+    /* json_builder_set_member_name(builder, "version"); */
+    /* json_builder_add_int_value(builder, FOLLOWED_CHANNELS_FILE_VERSION); */
+    /* json_builder_end_object(builder); */
+
+    /* json_builder_set_member_name(builder, "followed-channels"); */
+    json_builder_begin_array(builder);
 
     for (GList* l = self->follow_channels; l != NULL; l = l->next)
     {
-        JsonNode* node = json_gobject_serialize(l->data);
-        json_array_add_element(jarr, node);
+        json_builder_begin_object(builder);
+
+        json_builder_set_member_name(builder, "id");
+        json_builder_add_string_value(builder, gt_channel_get_id(l->data));
+
+        json_builder_set_member_name(builder, "name");
+        json_builder_add_string_value(builder, gt_channel_get_name(l->data));
+
+        json_builder_end_object(builder);
     }
 
+    json_builder_end_array(builder);
 
-    final = json_node_init_array(final, jarr);
-    json_array_unref(jarr);
+    /* json_builder_end_object(builder); */
+
+    final = json_builder_get_root(builder);
 
     json_generator_set_root(gen, final);
     json_generator_to_file(gen, fp, NULL);
-
-    json_node_free(final);
-    g_object_unref(gen);
-
-    g_free(fp);
 }
 
 gboolean

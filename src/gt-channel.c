@@ -650,6 +650,29 @@ gt_channel_new(GtChannelData* data)
     return channel;
 }
 
+GtChannel*
+gt_channel_new_from_id_and_name(const gchar* id, const gchar* name)
+{
+    g_assert_false(utils_str_empty(id));
+
+    GtChannel* channel = g_object_new(GT_TYPE_CHANNEL, NULL);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(channel);
+    GtChannelData* data = gt_channel_data_new();
+
+    data->id = g_strdup(id);
+    data->name = g_strdup(name);
+
+    priv->data = data;
+
+    gt_channel_update(channel);
+
+    priv->followed = gt_follows_manager_is_channel_followed(main_app->fav_mgr, channel);
+    priv->cache_filename = g_build_filename(g_get_user_cache_dir(),
+        "gnome-twitch", "channels", priv->data->id, NULL);
+
+    return channel;
+}
+
 void
 gt_channel_toggle_followed(GtChannel* self)
 {

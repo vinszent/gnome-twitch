@@ -31,6 +31,7 @@ typedef struct
 } GtChannelData;
 
 GtChannel*     gt_channel_new(GtChannelData* data);
+GtChannel*     gt_channel_new_from_id_and_name(const gchar* id, const gchar* name);
 void           gt_channel_toggle_followed(GtChannel* self);
 void           gt_channel_list_free(GList* list);
 gboolean       gt_channel_compare(GtChannel* self, gpointer other);
