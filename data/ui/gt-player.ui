@@ -77,7 +77,7 @@
         <child>
           <object class="GtkLabel">
             <property name="visible">True</property>
-            <property name="label" translatable="yes">There was an error opening the stream</property>
+            <property name="label" translatable="yes">An error occurred when opening the stream</property>
             <property name="name">empty-label</property>
           </object>
         </child>
