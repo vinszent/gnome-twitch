@@ -107,7 +107,8 @@
     border-color: rgba(81, 81, 85, 1.0);
 }
 
-.gt-player #empty-link-button
+.gt-player #empty-link-button,
+.gt-item-container #empty-link-button
 {
     padding-left: 0px;
     padding-right: 0px;
@@ -121,6 +122,7 @@
 }
 
 .gt-item-container #empty-sub-label,
+.gt-item-container #empty-link-button,
 .gt-player #empty-sub-label,
 .gt-player #empty-link-button
 {

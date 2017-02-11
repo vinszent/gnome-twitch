@@ -23,13 +23,15 @@ G_DEFINE_TYPE_WITH_PRIVATE(GtTopChannelContainer, gt_top_channel_container, GT_T
 static void
 get_properties(GtItemContainer* self,
     gint* child_width, gint* child_height, gboolean* append_extra,
-    gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name, gchar** fetching_label_text)
+    gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name,
+    gchar** error_label_text, gchar** fetching_label_text)
 {
     *child_width = CHILD_WIDTH;
     *child_height = CHILD_HEIGHT;
     *append_extra = APPEND_EXTRA;
     *empty_label_text = g_strdup(_("No channels found"));
     *empty_sub_label_text = g_strdup(_("Probably an error occurred, try refreshing"));
+    *error_label_text = g_strdup(_("An error occurred when fetching the channels"));
     *empty_image_name = g_strdup("view-refresh-symbolic");
     *fetching_label_text = g_strdup(_("Fetching channels"));
 }

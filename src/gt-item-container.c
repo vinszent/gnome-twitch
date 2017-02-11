@@ -1,5 +1,6 @@
 #include "gt-item-container.h"
 #include "utils.h"
+#include "gt-win.h"
 
 #define TAG "GtItemContainer"
 #include "gnome-twitch/gt-log.h"
@@ -12,6 +13,10 @@ typedef struct
     GtkWidget* empty_label;
     GtkWidget* empty_sub_label;
     GtkWidget* empty_image;
+    GtkWidget* empty_box;
+    GtkWidget* error_box;
+    GtkWidget* error_label;
+    GtkWidget* reload_button;
 
     gint child_width;
     gint child_height;
@@ -20,6 +25,7 @@ typedef struct
     gchar* empty_sub_label_text;
     gchar* empty_image_name;
     gchar* fetching_label_text;
+    gchar* error_label_text;
 
     guint num_items;
     gboolean fetching_items;
@@ -51,13 +57,23 @@ fetch_items_cb(GObject* source,
 
     GList* items = g_task_propagate_pointer(G_TASK(res), &err);
 
-    //TODO: Show error message to user
-    if (err)
+     if (err)
     {
-        if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-            TRACE("Search was cancelled");
-        else
-            WARNINGF("Unable to fetch items because: %s", err->message);
+        if (!g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+            GtWin* win = GT_WIN_TOPLEVEL(self);
+
+            g_assert(GT_IS_WIN(win));
+
+            if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+                TRACE("Search was cancelled");
+            else
+                WARNINGF("Unable to fetch items because: %s", err->message);
+
+            gt_win_show_error_message(win, "Unable to fetch channels", err->message);
+
+            gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
+        }
 
         g_error_free(err);
 
@@ -73,7 +89,7 @@ fetch_items_cb(GObject* source,
     }
 
     if (priv->num_items == 0)
-        gtk_stack_set_visible_child_name(GTK_STACK(self), "empty");
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
 
     priv->fetching_items = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
@@ -104,7 +120,7 @@ fetch_items(GtItemContainer* self)
     priv->fetching_items = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
 
-    gtk_stack_set_visible_child_name(GTK_STACK(self), "main");
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 
     guint columns = width / priv->child_width;
     guint rows = height / priv->child_height;
@@ -241,11 +257,13 @@ constructed(GObject* obj)
 
     GT_ITEM_CONTAINER_GET_CLASS(self)->get_properties(self,
         &priv->child_width, &priv->child_height, &priv->append_extra,
-        &priv->empty_label_text, &priv->empty_sub_label_text, &priv->empty_image_name, &priv->fetching_label_text);
+        &priv->empty_label_text, &priv->empty_sub_label_text, &priv->empty_image_name,
+        &priv->error_label_text, &priv->fetching_label_text);
 
     gtk_label_set_text(GTK_LABEL(priv->empty_label), priv->empty_label_text);
     gtk_label_set_text(GTK_LABEL(priv->empty_sub_label), priv->empty_sub_label_text);
     gtk_label_set_text(GTK_LABEL(priv->fetching_label), priv->fetching_label_text);
+    gtk_label_set_text(GTK_LABEL(priv->error_label), priv->error_label_text);
     gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), priv->empty_image_name, GTK_ICON_SIZE_DIALOG);
 
     //TODO: This should probably be connected to the window's size-allocate
@@ -283,6 +301,10 @@ gt_item_container_class_init(GtItemContainerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_sub_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, fetching_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, empty_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, error_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, error_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtItemContainer, reload_button);
 }
 
 static void
@@ -296,6 +318,9 @@ gt_item_container_init(GtItemContainer* self)
     priv->alloc->height = 0;
 
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    g_signal_connect_swapped(priv->reload_button, "clicked",
+        G_CALLBACK(gt_item_container_refresh), self);
 }
 
 GtkWidget*
