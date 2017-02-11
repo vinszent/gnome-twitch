@@ -51,6 +51,14 @@
         and other Twitch services.
       </description>
     </key>
+    <key name="user-id" type="s">
+      <default>''</default>
+      <summary>Twitch user id</summary>
+      <description>
+        User id that is used in conjunction with the OAuth token
+        to authenticate to the Twitch API.
+      </description>
+    </key>
     <key name="loaded-plugins" type="as">
       <default>[]</default>
       <summary>Loaded plugins</summary>
