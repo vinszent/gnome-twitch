@@ -513,7 +513,17 @@ parse_game(JsonReader* reader, GError** error)
 {
     GtGameData* data = gt_game_data_new();
 
-    READ_JSON_VALUE("_id", data->id);
+    //NOTE: Same hack as above for channel
+    READ_JSON_MEMBER("_id");
+    JsonNode* node = json_reader_get_value(reader);
+    if (STRING_EQUALS(json_node_type_name(node), "Integer"))
+        data->id = g_strdup_printf("%ld", json_reader_get_int_value(reader));
+    else if (STRING_EQUALS(json_node_type_name(node), "String"))
+        data->id = g_strdup(json_reader_get_string_value(reader));
+    else
+        g_assert_not_reached();
+    END_JSON_MEMBER();
+
     READ_JSON_VALUE("name", data->name);
     READ_JSON_MEMBER("box");
     READ_JSON_VALUE("large", data->preview_url);
@@ -828,7 +838,7 @@ gt_twitch_top_games(GtTwitch* self,
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game = NULL;
-        g_autoptr(GtGameData) data = NULL;
+        GtGameData* data = NULL;
 
         READ_JSON_ELEMENT(i);
 
@@ -836,19 +846,16 @@ gt_twitch_top_games(GtTwitch* self,
 
         data = parse_game(reader, &err);
 
-        game = gt_game_new(data->name, data->id);
-        gt_game_update_from_raw_data(game, data);
+        CHECK_AND_PROPAGATE_ERROR("Unable to get top games with amount '%d' and offset '%d'",
+            n, offset);
+
 
         END_JSON_MEMBER();
 
-        //TODO: Put these fields in GtGameData
-        json_reader_read_member(reader, "viewers");
-        g_object_set(game, "viewers", json_reader_get_int_value(reader), NULL);
-        json_reader_end_member(reader);
+        READ_JSON_VALUE("viewers", data->viewers);
+        READ_JSON_VALUE("channels", data->channels);
 
-        json_reader_read_member(reader, "channels");
-        g_object_set(game, "channels", json_reader_get_int_value(reader), NULL);
-        json_reader_end_member(reader);
+        game = gt_game_new(data);
 
         END_JSON_ELEMENT();
 
@@ -1105,7 +1112,7 @@ gt_twitch_search_games(GtTwitch* self,
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
         GtGame* game;
-        g_autoptr(GtGameData) data = NULL;
+        GtGameData* data = NULL;
 
         READ_JSON_ELEMENT(i);
 
@@ -1114,8 +1121,7 @@ gt_twitch_search_games(GtTwitch* self,
         CHECK_AND_PROPAGATE_ERROR("Unable to search games with query '%s', amount '%d' and offset '%d'",
             query, n, offset);
 
-        game = gt_game_new(data->name, data->id);
-        gt_game_update_from_raw_data(game, data);
+        game = gt_game_new(data);
 
         END_JSON_ELEMENT();
 

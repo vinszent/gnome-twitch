@@ -20,6 +20,8 @@ typedef struct
     gboolean auto_update;
     gboolean updating;
 
+    gboolean error;
+
     gchar* cache_filename;
     gint64 cache_timestamp;
     gint64 preview_timestamp;
@@ -28,18 +30,13 @@ typedef struct
     guint update_set_id;
 
     GCancellable* cancel;
-    GCancellable* cache_cancel;
 } GtChannelPrivate;
 
 static GThreadPool* update_pool;
 static GThreadPool* cache_update_pool;
 
-static void
-json_serializable_iface_init(JsonSerializableIface* iface);
-
 G_DEFINE_TYPE_WITH_CODE(GtChannel, gt_channel, G_TYPE_INITIALLY_UNOWNED,
-    G_ADD_PRIVATE(GtChannel)
-    G_IMPLEMENT_INTERFACE(JSON_TYPE_SERIALIZABLE, json_serializable_iface_init))
+    G_ADD_PRIVATE(GtChannel))
 
 enum
 {
@@ -60,6 +57,7 @@ enum
     PROP_ONLINE,
     PROP_AUTO_UPDATE,
     PROP_UPDATING,
+    PROP_ERROR,
     NUM_PROPS
 };
 
@@ -73,12 +71,13 @@ set_banner(GtChannel* self, GdkPixbuf* banner, gboolean save)
     priv->preview = banner;
 
     if (save)
+    {
         gdk_pixbuf_save(priv->preview, priv->cache_filename,
                         "jpeg", NULL, NULL);
+    }
 
     utils_pixbuf_scale_simple(&priv->preview,
-                              320, 180,
-                              GDK_INTERP_BILINEAR);
+        320, 180, GDK_INTERP_BILINEAR);
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
 }
@@ -136,18 +135,11 @@ static void
 cache_update_cb(gpointer data,
                 gpointer udata)
 {
-    GCancellable* cancel = G_CANCELLABLE(data);
+    g_assert(GT_IS_CHANNEL(data));
 
-    if (g_cancellable_is_cancelled(cancel))
-    {
-        g_debug("{GtChannel} Unrefed while waiting to update cache");
-        g_clear_object(&cancel);
-        return;
-    }
-
-    GtChannel* self = GT_CHANNEL(g_object_get_data(G_OBJECT(cancel), "chan"));
+    g_autoptr(GtChannel) self = data;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    GError* err = NULL;
+    g_autoptr(GError) err = NULL;
 
     GdkPixbuf* pic = gt_twitch_download_picture(main_app->twitch,
         priv->data->video_banner_url, priv->cache_timestamp, &err);
@@ -168,8 +160,6 @@ cache_update_cb(gpointer data,
 
         INFO("Updated cache entry for channel with name '%s'", priv->data->name);
     }
-
-    g_clear_object(&cancel);
 }
 
 static void
@@ -177,6 +167,10 @@ download_preview_cb(GObject* source,
                     GAsyncResult* res,
                     gpointer udata)
 {
+    g_assert(GT_IS_CHANNEL(udata));
+
+    g_autoptr(GtChannel) self = udata;
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     GError* error = NULL;
 
     GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
@@ -186,8 +180,6 @@ download_preview_cb(GObject* source,
         g_error_free(error);
         return;
     }
-    GtChannel* self = GT_CHANNEL(udata);
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     if (pic)
     {
@@ -209,18 +201,20 @@ download_banner_cb(GObject* source,
                    GAsyncResult* res,
                    gpointer udata)
 {
-    GError* error = NULL;
+    g_assert(GT_IS_CHANNEL(udata));
+
+    g_autoptr(GtChannel) self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+    g_autoptr(GError) error = NULL;
 
     GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
 
     if (error)
     {
-        g_error_free(error);
+        WARNING("Unable to download banner for channel with name '%s'", priv->data->name);
+
         return;
     }
-
-    GtChannel* self = GT_CHANNEL(udata);
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     set_banner(self, pic, TRUE);
 
@@ -238,24 +232,22 @@ download_banner(GtChannel* self)
         GdkPixbuf* banner = NULL;
 
         if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
-            g_info("{GtChannel} Cache miss for channel '%s'", priv->data->name);
+            INFO("Chache miss for channel with name '%s'", priv->data->name);
         else
         {
-            g_info("{GtChannel} Cache hit for channel '%s'", priv->data->name);
+            INFO("Cache hit for channel with name '%s'", priv->data->name);
             banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
             priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
         }
 
         if (!banner)
-            gt_twitch_download_picture_async(main_app->twitch, priv->data->video_banner_url, 0, priv->cancel,
-                                             download_banner_cb, self);
+        {
+            gt_twitch_download_picture_async(main_app->twitch, priv->data->video_banner_url,
+                0, priv->cancel, download_banner_cb, g_object_ref(self));
+        }
         else
         {
-            g_clear_object(&priv->cache_cancel);
-            priv->cache_cancel = g_cancellable_new();
-            g_object_ref(G_OBJECT(priv->cache_cancel));
-            g_object_set_data(G_OBJECT(priv->cache_cancel), "chan", self);
-            g_thread_pool_push(cache_update_pool, priv->cache_cancel, NULL);
+            g_thread_pool_push(cache_update_pool, g_object_ref(self), NULL);
 
             set_banner(self, banner, FALSE);
 
@@ -278,17 +270,18 @@ update_preview(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_cancellable_cancel(priv->cancel);
-    g_clear_object(&priv->cancel);
-    priv->cancel = g_cancellable_new();
+    utils_refresh_cancellable(&priv->cancel);
 
     if (priv->data->online)
-        gt_twitch_download_picture_async(main_app->twitch, priv->data->preview_url, priv->preview_timestamp,
-            priv->cancel, download_preview_cb, self);
+    {
+        gt_twitch_download_picture_async(main_app->twitch, priv->data->preview_url,
+            priv->preview_timestamp, priv->cancel, download_preview_cb, g_object_ref(self));
+    }
     else
         download_banner(self);
 }
-static inline void
+
+static void
 update_from_data(GtChannel* self, GtChannelData* data)
 {
     g_assert(GT_IS_CHANNEL(self));
@@ -307,28 +300,38 @@ update_from_data(GtChannel* self, GtChannelData* data)
     {
         if (!STRING_EQUALS(old_data->id, data->id))
         {
-            g_autofree gchar* msg =
-                g_strdup_printf("Unable to update channel with id '%s' and name '%s' because: "
+            GtWin* win = GT_WIN_ACTIVE;
+
+            WARNING("Unable to update channel with id '%s' and name '%s' because: "
+                "New data with id '%s' does not match the current one",
+                old_data->id, old_data->name, data->id);
+
+            if (GT_IS_WIN(win))
+            {
+                gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to update channel '%s'",
+                    "Unable to update channel with id '%s' and name '%s' because: "
                     "New data with id '%s' does not match the current one",
                     old_data->id, old_data->name, data->id);
-
-            WARNING("%s", msg);
-
-            gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to update channel '%s'", msg);
+            }
 
             return;
         }
 
         if (!STRING_EQUALS(old_data->name, data->name))
         {
-            g_autofree gchar* msg =
-                g_strdup_printf("Unable to update channel with id '%s' and name '%s' because: "
+            GtWin* win = GT_WIN_ACTIVE;
+
+            WARNING("Unable to update channel with id '%s' and name '%s' because: "
+                "New data with name '%s' does not match the current one",
+                old_data->id, old_data->name, data->name);
+
+            if (GT_IS_WIN(win))
+            {
+                gt_win_show_error_message(win, "Unable to update channel '%s'",
+                    "Unable to update channel with id '%s' and name '%s' because: "
                     "New data with name '%s' does not match the current one",
                     old_data->id, old_data->name, data->name);
-
-            WARNING("%s", msg);
-
-            gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to update channel '%s'", msg);
+            }
 
             return;
         }
@@ -370,6 +373,7 @@ update_set_cb(gpointer udata)
     if (!data)
     {
         WARNING("Unable to set update data");
+
         goto finish;
     }
 
@@ -389,23 +393,33 @@ static void
 update_cb(gpointer data,
           gpointer udata)
 {
-    if(!GT_IS_CHANNEL(data)) // We were probably unrefed during wait time.
-        return;
+    g_assert(GT_IS_CHANNEL(data));
 
-    GtChannel* self = GT_CHANNEL(data);
+    g_autoptr(GtChannel) self = data;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    GError* err = NULL;
+    g_autoptr(GError) err = NULL;
 
     GtChannelData* chan_data = gt_twitch_fetch_channel_data(main_app->twitch, priv->data->id, &err);
 
     g_assert_no_error(err); //FIXME: Propagate this further
 
-    if (!chan_data || priv->update_set_id)
-        return; //Most likely error getting data or already running update
-
     g_object_set_data(G_OBJECT(self), "data", chan_data);
 
     priv->update_set_id = g_idle_add((GSourceFunc) update_set_cb, self); //Needs to be run on main thread.
+}
+
+static void
+dispose(GObject* object)
+{
+    GtChannel* self = GT_CHANNEL(object);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    g_cancellable_cancel(priv->cancel);
+
+    g_clear_object(&priv->cancel);
+    g_clear_object(&priv->preview);
+
+    G_OBJECT_CLASS(gt_channel_parent_class)->dispose(object);
 }
 
 static void
@@ -414,14 +428,7 @@ finalize(GObject* object)
     GtChannel* self = (GtChannel*) object;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    g_cancellable_cancel(priv->cancel);
-    g_cancellable_cancel(priv->cache_cancel);
-
     gt_channel_data_free(priv->data);
-
-    g_clear_object(&priv->preview);
-    g_clear_object(&priv->cancel);
-    g_clear_object(&priv->cache_cancel);
 
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
@@ -493,6 +500,9 @@ get_property (GObject*    obj,
         case PROP_PREVIEW:
             g_value_set_object(val, priv->preview);
             break;
+        case PROP_ERROR:
+            g_value_set_boolean(val, priv->error);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -521,21 +531,12 @@ set_property(GObject*      obj,
 }
 
 static void
-constructed(GObject* obj)
-{
-    GtChannel* self = GT_CHANNEL(obj);
-    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-
-    G_OBJECT_CLASS(gt_channel_parent_class)->constructed(obj);
-}
-
-static void
 gt_channel_class_init(GtChannelClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
-    object_class->constructed = constructed;
     object_class->finalize = finalize;
+    object_class->dispose = dispose;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 
@@ -588,6 +589,9 @@ gt_channel_class_init(GtChannelClass* klass)
     props[PROP_AUTO_UPDATE] = g_param_spec_boolean("auto-update", "Auto Update", "Whether it should update itself automatically",
         FALSE, G_PARAM_READWRITE);
 
+    props[PROP_ERROR] = g_param_spec_boolean("error", "Error", "Whether in error state",
+        FALSE, G_PARAM_READABLE);
+
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
@@ -600,6 +604,7 @@ gt_channel_init(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
+    priv->data = NULL;
     priv->updating = FALSE;
     priv->cancel = g_cancellable_new();
 
@@ -613,26 +618,6 @@ gt_channel_init(GtChannel* self)
     gt_follows_manager_attach_to_channel(main_app->fav_mgr, self);
 }
 
-static GParamSpec**
-json_list_props(JsonSerializable* json,
-                guint* n_pspecs)
-{
-    GParamSpec** json_props = g_malloc_n(N_JSON_PROPS, sizeof(GParamSpec*));
-
-    json_props[0] = props[PROP_NAME];
-    json_props[1] = props[PROP_ID];
-
-    *n_pspecs = N_JSON_PROPS;
-
-    return json_props;
-}
-
-static void
-json_serializable_iface_init(JsonSerializableIface* iface)
-{
-    iface->list_properties = json_list_props;
-}
-
 GtChannel*
 gt_channel_new(GtChannelData* data)
 {
@@ -641,11 +626,13 @@ gt_channel_new(GtChannelData* data)
     GtChannel* channel = g_object_new(GT_TYPE_CHANNEL, NULL);
     GtChannelPrivate* priv = gt_channel_get_instance_private(channel);
 
+    priv->cache_filename = g_build_filename(g_get_user_cache_dir(),
+        "gnome-twitch", "channels", data->id, NULL);
+    priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
+
     update_from_data(channel, data);
 
     priv->followed = gt_follows_manager_is_channel_followed(main_app->fav_mgr, channel);
-    priv->cache_filename = g_build_filename(g_get_user_cache_dir(),
-        "gnome-twitch", "channels", priv->data->id, NULL);
 
     return channel;
 }
@@ -664,11 +651,13 @@ gt_channel_new_from_id_and_name(const gchar* id, const gchar* name)
 
     priv->data = data;
 
+    priv->cache_filename = g_build_filename(g_get_user_cache_dir(),
+        "gnome-twitch", "channels", data->id, NULL);
+    priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
+
     gt_channel_update(channel);
 
     priv->followed = gt_follows_manager_is_channel_followed(main_app->fav_mgr, channel);
-    priv->cache_filename = g_build_filename(g_get_user_cache_dir(),
-        "gnome-twitch", "channels", priv->data->id, NULL);
 
     return channel;
 }
@@ -746,7 +735,7 @@ gt_channel_update(GtChannel* self)
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
-    g_thread_pool_push(update_pool, self, NULL);
+    g_thread_pool_push(update_pool, g_object_ref(self), NULL);
 
     return TRUE;
 }

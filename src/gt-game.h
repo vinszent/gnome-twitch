@@ -16,7 +16,7 @@ struct _GtGame
 
 typedef struct
 {
-    gint64 id;
+    gchar* id;
     gchar* name;
     gchar* preview_url;
     gchar* logo_url;
@@ -24,7 +24,7 @@ typedef struct
     gint64 channels;
 } GtGameData;
 
-GtGame*      gt_game_new(const gchar* name, gint64 id);
+GtGame*      gt_game_new(GtGameData* data);
 void         gt_game_update_from_raw_data(GtGame* self, GtGameData* data);
 void         gt_game_list_free(GList* self);
 const gchar* gt_game_get_name(GtGame* self);
