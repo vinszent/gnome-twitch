@@ -873,7 +873,12 @@ gt_irc_disconnect(GtIrc* self)
 
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    g_assert(priv->state > GT_IRC_STATE_DISCONNECTED);
+    if (priv->state < GT_IRC_STATE_CONNECTED)
+    {
+        WARNING("Trying to disconnect when not connected");
+
+        return;
+    }
 
     if (priv->state >= GT_IRC_STATE_LOGGED_IN)
         gt_irc_part(self);
@@ -911,7 +916,12 @@ gt_irc_join(GtIrc* self, const gchar* channel)
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     gchar* chan = NULL;
 
-    g_assert(priv->state == GT_IRC_STATE_LOGGED_IN);
+    if (priv->state != GT_IRC_STATE_LOGGED_IN)
+    {
+        WARNING("Trying to join channel with name '%s' when not logged in", channel);
+
+        return;
+    }
 
     if (channel[0] != '#')
         chan = g_strdup_printf("#%s", channel);
@@ -935,7 +945,12 @@ gt_irc_part(GtIrc* self)
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     const gchar* name;
 
-    g_assert_true(priv->state >= GT_IRC_STATE_JOINED);
+    if (priv->state < GT_IRC_STATE_JOINED)
+    {
+        WARNING("Trying to part channel when not joined");
+
+        return;
+    }
 
     name = gt_channel_get_name(priv->chan);
 
@@ -962,7 +977,12 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
     const GtUserInfo* info = NULL;
     GError* err = NULL;
 
-    g_assert(priv->state == GT_IRC_STATE_DISCONNECTED);
+    if (priv->state != GT_IRC_STATE_DISCONNECTED)
+    {
+        WARNING("Trying to connect before being disconnected");
+
+        return;
+    }
 
     priv->state = GT_IRC_STATE_CONNECTING;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
@@ -1018,10 +1038,7 @@ gt_irc_connect_and_join_channel_async(GtIrc* self, GtChannel* chan,
     g_assert(GT_IS_IRC(self));
     g_assert(GT_IS_CHANNEL(chan));
 
-    GtIrcPrivate* priv = gt_irc_get_instance_private(self);
     GTask* task = NULL;
-
-    g_assert_false(priv->state == GT_IRC_STATE_CONNECTED);
 
     task = g_task_new(self, cancel, cb, udata);
     g_task_set_return_on_cancel(task, FALSE);
@@ -1036,7 +1053,12 @@ gt_irc_privmsg(GtIrc* self, const gchar* msg)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
 
-    g_assert(priv->state >= GT_IRC_STATE_JOINED);
+    if (priv->state < GT_IRC_STATE_JOINED)
+    {
+        WARNING("Trying to privmsg when not joined");
+
+        return;
+    }
 
     send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "%s :%s",
         gt_channel_get_name(priv->chan), msg);
