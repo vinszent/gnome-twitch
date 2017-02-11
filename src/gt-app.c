@@ -317,6 +317,7 @@ static GActionEntry app_actions[] =
 static void
 activate(GApplication* app)
 {
+    static gboolean once = FALSE;
 
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
@@ -329,7 +330,18 @@ activate(GApplication* app)
 
     gtk_window_present(GTK_WINDOW(priv->win));
 
-    load_chat_settings(self);
+    if (!once)
+    {
+        load_chat_settings(self);
+
+        //TODO: Add a setting to allow user to use local follows even when logged in
+        if (gt_app_credentials_valid(self))
+            gt_follows_manager_load_from_twitch(self->fav_mgr);
+        else
+            gt_follows_manager_load_from_file(self->fav_mgr);
+
+        once = TRUE;
+    }
 }
 
 static void
@@ -387,11 +399,6 @@ startup(GApplication* app)
 
     self->fav_mgr = gt_follows_manager_new();
 
-    //TODO: Add a setting to allow user to use local follows even when logged in
-    if (gt_app_credentials_valid(self))
-        gt_follows_manager_load_from_twitch(self->fav_mgr);
-    else
-        gt_follows_manager_load_from_file(self->fav_mgr);
 }
 
 static void
