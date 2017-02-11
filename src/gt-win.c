@@ -691,16 +691,20 @@ gt_win_show_info_message(GtWin* self, const gchar* msg)
 }
 
 void
-gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details)
+gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     QueuedInfoData* data = g_new(QueuedInfoData, 1);
     gchar** udata = g_malloc(sizeof(gchar*)*3);
     // Translators: Please keep the markup tags
     gchar* msg = g_strdup_printf(_("<b>Something went wrong:</b> %s."), secondary);
+    va_list details_list;
 
     *udata = g_strdup(secondary);
-    *(udata+1) = g_strdup(details);
+
+    va_start(details_list, details_fmt);
+    *(udata+1) = g_strdup_vprintf(details_fmt, details_list);
+    va_end(details_list);
     *(udata+2) = NULL;
 
     gt_win_ask_question(self, msg, G_CALLBACK(show_error_dialogue_cb), udata);
