@@ -183,13 +183,13 @@ state_changed_cb(GtChannelsContainerChild* self)
 }
 
 static void
-finalize(GObject* object)
+dispose(GObject* object)
 {
-    GtChannelsContainerChild* self = (GtChannelsContainerChild*) object;
+    GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(object);
 
-    g_object_unref(self->channel);
+    g_clear_object(&self->channel);
 
-    G_OBJECT_CLASS(gt_channels_container_child_parent_class)->finalize(object);
+    G_OBJECT_CLASS(gt_channels_container_child_parent_class)->dispose(object);
 }
 
 static void
@@ -291,7 +291,7 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
-    object_class->finalize = finalize;
+    object_class->dispose = dispose;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
     object_class->constructed = constructed;
