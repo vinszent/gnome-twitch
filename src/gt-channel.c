@@ -2,6 +2,7 @@
 #include "gt-app.h"
 #include "gt-win.h"
 #include <json-glib/json-glib.h>
+#include <glib/gi18n.h>
 
 #define TAG "GtChannel"
 #include "gnome-twitch/gt-log.h"
@@ -21,6 +22,8 @@ typedef struct
     gboolean updating;
 
     gboolean error;
+    gchar* error_message;
+    gchar* error_details;
 
     gchar* cache_filename;
     gint64 cache_timestamp;
@@ -146,11 +149,15 @@ cache_update_cb(gpointer data,
 
     if (err)
     {
-        WARNING("Unable to update cache entry for channel with name '%s'", priv->data->name);
+        WARNING("Unable to update cache for channel with name '%s'", priv->data->name);
 
-        g_error_free(err);
+        priv->error_message = g_strdup("Unable to update cache");
+        priv->error_details = g_strdup_printf("Unable to update cache for channel with name '%s' because: %s",
+            priv->data->name, err->message);
 
-        //TODO: Put channel in some kind of error state
+        priv->error = TRUE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
+
         return;
     }
 
@@ -158,7 +165,7 @@ cache_update_cb(gpointer data,
     {
         set_banner(self, pic, TRUE);
 
-        INFO("Updated cache entry for channel with name '%s'", priv->data->name);
+        INFO("Updated cache for channel with name '%s'", priv->data->name);
     }
 }
 
@@ -171,13 +178,22 @@ download_preview_cb(GObject* source,
 
     g_autoptr(GtChannel) self = udata;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    GError* error = NULL;
+    g_autoptr(GError) err = NULL;
 
-    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
+    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &err);
 
-    if (error)
+    if (err)
     {
-        g_error_free(error);
+        WARNING("Unable to update preview for channel with name '%s'",
+            priv->data->name);
+
+        priv->error_message = g_strdup("Unable to update preview");
+        priv->error_details = g_strdup_printf("Unable to update preview for channel with name '%s' because: %s",
+            priv->data->name, err->message);
+
+        priv->error = TRUE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
+
         return;
     }
 
@@ -187,8 +203,7 @@ download_preview_cb(GObject* source,
         priv->preview_timestamp = utils_timestamp_now();
         priv->preview = pic;
         utils_pixbuf_scale_simple(&priv->preview,
-                                  320, 180,
-                                  GDK_INTERP_BILINEAR);
+            320, 180, GDK_INTERP_BILINEAR);
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
     }
 
@@ -205,13 +220,21 @@ download_banner_cb(GObject* source,
 
     g_autoptr(GtChannel) self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    g_autoptr(GError) error = NULL;
+    g_autoptr(GError) err = NULL;
 
-    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &error);
+    GdkPixbuf* pic = g_task_propagate_pointer(G_TASK(res), &err);
 
-    if (error)
+    if (err)
     {
-        WARNING("Unable to download banner for channel with name '%s'", priv->data->name);
+        WARNING("Unable to update banner for channel with name '%s'",
+            priv->data->name);
+
+        priv->error_message = g_strdup("Unable to update banner");
+        priv->error_details = g_strdup_printf("Unable to update banner for channel with name '%s' because: %s",
+            priv->data->name, err->message);
+
+        priv->error = TRUE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
 
         return;
     }
@@ -300,38 +323,34 @@ update_from_data(GtChannel* self, GtChannelData* data)
     {
         if (!STRING_EQUALS(old_data->id, data->id))
         {
-            GtWin* win = GT_WIN_ACTIVE;
-
             WARNING("Unable to update channel with id '%s' and name '%s' because: "
                 "New data with id '%s' does not match the current one",
                 old_data->id, old_data->name, data->id);
 
-            if (GT_IS_WIN(win))
-            {
-                gt_win_show_error_message(GT_WIN_ACTIVE, "Unable to update channel '%s'",
-                    "Unable to update channel with id '%s' and name '%s' because: "
-                    "New data with id '%s' does not match the current one",
-                    old_data->id, old_data->name, data->id);
-            }
+            priv->error_message = g_strdup("Unable to update data");
+            priv->error_details = g_strdup_printf("Unable to update data for channel with id '%s' and name '%s' because: "
+                "New data with id '%s' does not match the current one",
+                old_data->id, old_data->name, data->id);
+
+            priv->error = TRUE;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
 
             return;
         }
 
         if (!STRING_EQUALS(old_data->name, data->name))
         {
-            GtWin* win = GT_WIN_ACTIVE;
-
             WARNING("Unable to update channel with id '%s' and name '%s' because: "
                 "New data with name '%s' does not match the current one",
                 old_data->id, old_data->name, data->name);
 
-            if (GT_IS_WIN(win))
-            {
-                gt_win_show_error_message(win, "Unable to update channel '%s'",
-                    "Unable to update channel with id '%s' and name '%s' because: "
-                    "New data with name '%s' does not match the current one",
-                    old_data->id, old_data->name, data->name);
-            }
+            priv->error_message = g_strdup("Unable to update data");
+            priv->error_details = g_strdup_printf("Unable to update data for channel with id '%s' and name '%s' because: "
+                "New data with name '%s' does not match the current one",
+                old_data->id, old_data->name, data->name);
+
+            priv->error = TRUE;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
 
             return;
         }
@@ -401,7 +420,19 @@ update_cb(gpointer data,
 
     GtChannelData* chan_data = gt_twitch_fetch_channel_data(main_app->twitch, priv->data->id, &err);
 
-    g_assert_no_error(err); //FIXME: Propagate this further
+    if (err)
+    {
+        WARNING("Unable to fetch channel data because: %s", err->message);
+
+        priv->error_message = g_strdup("Unable to fetch data");
+        priv->error_details = g_strdup_printf("Unable to fetch data for channel name '%s' because: %s",
+            priv->data->name, err->message);
+
+        priv->error = TRUE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
+
+        return;
+    }
 
     g_object_set_data(G_OBJECT(self), "data", chan_data);
 
@@ -725,6 +756,26 @@ gt_channel_is_online(GtChannel* self)
 }
 
 gboolean
+gt_channel_is_error(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->error;
+}
+
+gboolean
+gt_channel_is_updating(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->updating;
+}
+
+gboolean
 gt_channel_update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
@@ -732,12 +783,38 @@ gt_channel_update(GtChannel* self)
     INFO("Initiating update for channel with id '%s' and name '%s'",
         priv->data->id, priv->data->name);
 
+    g_free(priv->error_message);
+    g_free(priv->error_details);
+
+    priv->error = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
+
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
     g_thread_pool_push(update_pool, g_object_ref(self), NULL);
 
     return TRUE;
+}
+
+const gchar*
+gt_channel_get_error_message(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->error_message;
+}
+
+const gchar*
+gt_channel_get_error_details(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->error_details;
 }
 
 GtChannelData*
