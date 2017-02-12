@@ -245,8 +245,37 @@ irc_source_cb(GtIrcMessage* msg,
 
         gtk_text_buffer_get_end_iter(priv->chat_buffer, &iter);
 
-        if (!(sender = privmsg->display_name) || strlen(sender) < 1)
-            sender = msg->nick;
+        //FIXME: Ideally the display name should be bold and the nick name should be normal,
+        //will do this later
+        if (utils_str_empty(privmsg->display_name))
+            sender = g_strdup(msg->nick);
+        else
+        {
+            g_assert(g_utf8_validate(privmsg->display_name, -1, NULL));
+
+            for (const gchar* next_unichar = privmsg->display_name; *next_unichar; next_unichar = g_utf8_next_char(next_unichar))
+            {
+                GUnicodeScript script = g_unichar_get_script(g_utf8_get_char(next_unichar));
+
+                switch (script)
+                {
+                    case G_UNICODE_SCRIPT_HIRAGANA:
+                    case G_UNICODE_SCRIPT_KATAKANA:
+                    case G_UNICODE_SCRIPT_HANGUL:
+                    case G_UNICODE_SCRIPT_HAN:
+                    {
+                        sender = g_strdup_printf("%s (%s)", privmsg->display_name, msg->nick);
+                            goto done;
+                    }
+                    default:
+                        break;
+                }
+            }
+
+            sender = g_strdup(privmsg->display_name);
+        }
+
+    done:
 
         if (!privmsg->colour || strlen(privmsg->colour) < 1)
             privmsg->colour = g_strdup(get_default_chat_colour(msg->nick));
