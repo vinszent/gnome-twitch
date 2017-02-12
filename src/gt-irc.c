@@ -435,7 +435,25 @@ parse_line(GtIrc* self, gchar* line)
                 GtChatBadge* badge = gt_twitch_fetch_chat_badge(main_app->twitch,
                     gt_channel_get_id(priv->chan), name, version, &err);
 
-                g_assert_null(err); //TODO: Propagate the error further
+                if (err)
+                {
+                    WARNING("Unable to add chat badge because: %s", err->message);
+
+                    //TODO: Add some frontend ui to show the error message
+                    g_error_free(err);
+                    err = NULL;
+
+                    g_autoptr(GtkIconInfo) icon_info;
+
+                    icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),
+                        "software-update-urgent-symbolic", 1, 0);
+
+                    badge = gt_chat_badge_new();
+                    badge->pixbuf = gtk_icon_info_load_icon(icon_info, &err);
+
+                    //NOTE: At this point we're fucked, maybe we can just set an empty icon?
+                    g_assert_no_error(err);
+                }
 
                 msg->cmd.privmsg->badges = g_list_append(msg->cmd.privmsg->badges, badge);
 
