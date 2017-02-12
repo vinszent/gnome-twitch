@@ -43,8 +43,6 @@ typedef struct
     gdouble opacity;
     gchar* cur_theme;
 
-    gboolean joined_channel;
-
     GtkWidget* emote_popover;
     GtkWidget* emote_flow;
 
@@ -796,7 +794,6 @@ gt_chat_init(GtChat* self)
     priv->irc_disconnected_source = 0;
     priv->chan = NULL;
 
-    priv->joined_channel = FALSE;
     priv->chat_sticky = TRUE;
 
     priv->url_regex = g_regex_new("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)",
@@ -856,9 +853,10 @@ gt_chat_connect(GtChat* self, GtChannel* chan)
     g_assert(GT_IS_CHAT(self));
     g_assert(GT_IS_CHANNEL(chan));
 
+    INFO("Connecting to channel %s", gt_channel_get_name(chan));
+
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    priv->joined_channel = TRUE;
     priv->chat_sticky = TRUE;
 
     priv->chan = g_object_ref(chan);
@@ -867,7 +865,7 @@ gt_chat_connect(GtChat* self, GtChannel* chan)
 
     utils_refresh_cancellable(&priv->irc_cancel);
 
-    if (state == GT_IRC_STATE_CONNECTING)
+    if (state >= GT_IRC_STATE_CONNECTING)
     {
         if (priv->irc_disconnected_source > 0)
             g_signal_handler_disconnect(priv->irc, priv->irc_disconnected_source);
@@ -889,16 +887,26 @@ gt_chat_disconnect(GtChat* self)
 
     GtChatPrivate* priv = gt_chat_get_instance_private(self);
 
-    priv->joined_channel = FALSE;
-
     GtIrcState state = gt_irc_get_state(priv->irc);
 
-    if (state == GT_IRC_STATE_CONNECTING)
+    if (priv->irc_disconnected_source > 0)
+    {
+        g_signal_handler_disconnect(priv->irc, priv->irc_disconnected_source);
+        priv->irc_disconnected_source = 0;
+    }
+
+    if (state < GT_IRC_STATE_CONNECTING)
+    {
+        g_assert_null(priv->chan);
+
+        return;
+    }
+    else if (state == GT_IRC_STATE_CONNECTING)
         g_cancellable_cancel(priv->irc_cancel);
     else if (state > GT_IRC_STATE_CONNECTING)
         gt_irc_disconnect(priv->irc);
 
-    g_object_unref(priv->chan);
+    g_clear_object(&priv->chan);
 
     gtk_text_buffer_set_text(priv->chat_buffer, "", -1);
 }
