@@ -28,6 +28,7 @@ gboolean gt_win_is_fullscreen(GtWin* self);
 void gt_win_toggle_fullscreen(GtWin* self);
 void gt_win_show_info_message(GtWin* self, const gchar* msg);
 void gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
+void gt_win_show_error_dialogue(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
 void gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata);
 
 G_END_DECLS

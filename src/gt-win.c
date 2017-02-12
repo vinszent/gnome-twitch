@@ -189,8 +189,7 @@ refresh_login_cb(GtkInfoBar* info_bar,
 
 static void
 show_error_dialogue_cb(GtkInfoBar* info_bar,
-                       gint res,
-                       gchar** udata)
+    gint res, gchar** udata)
 {
     GtkBuilder* builder = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/gt-error-dlg.ui");
     GtkWidget* dlg = GTK_WIDGET(gtk_builder_get_object(builder, "dlg"));
@@ -693,8 +692,8 @@ gt_win_show_info_message(GtWin* self, const gchar* msg)
 void
 gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...)
 {
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
-    QueuedInfoData* data = g_new(QueuedInfoData, 1);
+    g_assert(GT_IS_WIN(self));
+
     gchar** udata = g_malloc(sizeof(gchar*)*3);
     // Translators: Please keep the markup tags
     gchar* msg = g_strdup_printf(_("<b>Something went wrong:</b> %s."), secondary);
@@ -708,6 +707,24 @@ gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* deta
     *(udata+2) = NULL;
 
     gt_win_ask_question(self, msg, G_CALLBACK(show_error_dialogue_cb), udata);
+}
+
+void
+gt_win_show_error_dialogue(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...)
+{
+    g_assert(GT_IS_WIN(self));
+
+    gchar** udata = g_malloc(sizeof(gchar*)*3);
+    va_list details_list;
+
+    *udata = g_strdup(secondary);
+
+    va_start(details_list, details_fmt);
+    *(udata+1) = g_strdup_vprintf(details_fmt, details_list);
+    va_end(details_list);
+    *(udata+2) = NULL;
+
+    show_error_dialogue_cb(NULL, GTK_RESPONSE_OK, udata);
 }
 
 void
