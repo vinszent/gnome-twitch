@@ -742,7 +742,11 @@ reload_button_cb(GtkButton* button,
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    gt_player_open_channel(self, priv->channel);
+    //NOTE: Need to do this because of the way open_channel works
+    //it will dereference channel before referencing it again
+    gt_player_open_channel(self, g_object_ref(priv->channel));
+
+    g_object_unref(priv->channel);
 }
 
 static void
