@@ -34,17 +34,85 @@
         <child>
           <object class="GtkStack" id="preview_stack">
             <property name="visible">true</property>
+            <property name="vexpand">true</property>
             <child>
-              <object class="GtkSpinner">
+              <object class="GtkSpinner" id="updating_spinner">
                 <property name="visible">true</property>
                 <property name="active">true</property>
               </object>
-              <packing>
-                <property name="name">load-spinner</property>
-              </packing>
             </child>
             <child>
-              <object class="GtkEventBox" id="preview_event_box">
+              <object class="GtkGrid" id="error_box">
+                <property name="visible">true</property>
+                <property name="width-request">320</property>
+                <property name="height-request">180</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="column-spacing">10</property>
+                <property name="name">error-box</property>
+                <child>
+                  <object class="GtkButton" id="error_reload_button">
+                    <property name="visible">true</property>
+                    <property name="expand">true</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <style>
+                      <class name="image-button"/>
+                    </style>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="icon-name">view-refresh-symbolic</property>
+                        <property name="icon-size">6</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="top-attach">1</property>
+                    <property name="left-attach">0</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">true</property>
+                    <property name="icon-name">face-crying-symbolic</property>
+                    <property name="icon-size">5</property>
+                    <property name="halign">end</property>
+                  </object>
+                  <packing>
+                    <property name="top-attach">0</property>
+                    <property name="left-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="error_label">
+                    <property name="visible">true</property>
+                    <property name="label" translatable="yes">An error occurred.</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="top-attach">0</property>
+                    <property name="left-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLinkButton" id="error_link_button">
+                    <property name="visible">true</property>
+                    <property name="name">error-link-button</property>
+                    <property name="label" translatable="yes">Show error</property>
+                    <signal name="activate-link" handler="gtk_true"/>
+                  </object>
+                  <packing>
+                    <property name="top-attach">2</property>
+                    <property name="left-attach">0</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEventBox" id="preview_box">
                 <property name="visible">true</property>
                 <property name="halign">center</property>
                 <property name="valign">center</property>
@@ -160,11 +228,13 @@
         <child>
           <object class="GtkLabel" id="name_label">
             <property name="visible">true</property>
+            <property name="name">name-label</property>
           </object>
         </child>
         <child>
           <object class="GtkLabel" id="game_label">
             <property name="visible">true</property>
+            <property name="name">game-label</property>
           </object>
         </child>
       </object>

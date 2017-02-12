@@ -1,4 +1,5 @@
 #include "gt-channels-container-child.h"
+#include "gt-win.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
 
@@ -10,7 +11,7 @@ typedef struct
     GtkWidget* preview_image;
     GtkWidget* name_label;
     GtkWidget* game_label;
-    GtkWidget* preview_event_box;
+    GtkWidget* preview_box;
     GtkWidget* preview_overlay_revealer;
     GtkWidget* viewers_label;
     GtkWidget* viewers_image;
@@ -19,6 +20,11 @@ typedef struct
     GtkWidget* follow_button;
     GtkWidget* preview_stack;
     GtkWidget* play_image;
+    GtkWidget* error_box;
+    GtkWidget* error_label;
+    GtkWidget* error_reload_button;
+    GtkWidget* error_link_button;
+    GtkWidget* updating_spinner;
 } GtChannelsContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtChannelsContainerChild, gt_channels_container_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -38,20 +44,6 @@ gt_channels_container_child_new(GtChannel* chan)
     return g_object_new(GT_TYPE_CHANNELS_CONTAINER_CHILD,
                         "channel", chan,
                         NULL);
-}
-
-static gboolean
-updating_converter(GBinding* bind,
-                   const GValue* from,
-                   GValue* to,
-                   gpointer udata)
-{
-    if (g_value_get_boolean(from))
-        g_value_set_string(to, "load-spinner");
-    else
-        g_value_set_string(to, "preview");
-
-    return TRUE;
 }
 
 static void
@@ -149,19 +141,45 @@ time_converter(GBinding* bind,
 }
 
 static void
-online_cb(GObject* source,
-          GParamSpec* pspec,
-          gpointer udata)
+error_link_clicked_cb(GtkButton* button,
+    gpointer udata)
 {
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(udata));
+
     GtChannelsContainerChild* self = GT_CHANNELS_CONTAINER_CHILD(udata);
-    gboolean online;
 
-    g_object_get(self->channel, "online", &online, NULL);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
 
-    if (online)
+    g_assert(GT_IS_WIN(win));
+
+    gt_win_show_error_dialogue(win, gt_channel_get_error_message(self->channel),
+        gt_channel_get_error_details(self->channel));
+}
+
+static void
+online_cb(GtChannelsContainerChild* self)
+{
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(self));
+
+    if (gt_channel_is_online(self->channel))
         REMOVE_STYLE_CLASS(self, "gt-channels-container-child-offline");
     else
         ADD_STYLE_CLASS(self, "gt-channels-container-child-offline");
+}
+
+static void
+state_changed_cb(GtChannelsContainerChild* self)
+{
+    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(self));
+
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
+
+    if (gt_channel_is_error(self->channel))
+        gtk_stack_set_visible_child(GTK_STACK(priv->preview_stack), priv->error_box);
+    else if (gt_channel_is_updating(self->channel))
+        gtk_stack_set_visible_child(GTK_STACK(priv->preview_stack), priv->updating_spinner);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(priv->preview_stack), priv->preview_box);
 }
 
 static void
@@ -241,11 +259,6 @@ constructed(GObject* obj)
                                 G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
                                 (GBindingTransformFunc) time_converter,
                                 NULL, NULL, NULL);
-    g_object_bind_property_full(self->channel, "updating",
-                                priv->preview_stack, "visible-child-name",
-                                G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE,
-                                (GBindingTransformFunc) updating_converter,
-                                NULL, NULL, NULL);
     g_object_bind_property(self->channel, "online",
                            priv->viewers_label, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
@@ -262,9 +275,13 @@ constructed(GObject* obj)
                            priv->play_image, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    g_signal_connect(self->channel, "notify::online", G_CALLBACK(online_cb), self);
+    g_signal_connect_swapped(self->channel, "notify::online", G_CALLBACK(online_cb), self);
+    g_signal_connect_swapped(self->channel, "notify::error", G_CALLBACK(state_changed_cb), self);
+    g_signal_connect_swapped(self->channel, "notify::updating", G_CALLBACK(state_changed_cb), self);
+    g_signal_connect_swapped(priv->error_reload_button, "clicked", G_CALLBACK(gt_channel_update), self->channel);
 
-    online_cb(NULL, NULL, self);
+    state_changed_cb(self);
+    online_cb(self);
 
     G_OBJECT_CLASS(gt_channels_container_child_parent_class)->constructed(obj);
 }
@@ -280,14 +297,12 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     object_class->constructed = constructed;
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
-                                                "/com/vinszent/GnomeTwitch/ui/gt-channels-container-child.ui");
+        "/com/vinszent/GnomeTwitch/ui/gt-channels-container-child.ui");
 
     props[PROP_CHANNEL] = g_param_spec_object("channel", "Channel", "Associated channel",
         GT_TYPE_CHANNEL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
-    g_object_class_install_properties(object_class,
-                                      NUM_PROPS,
-                                      props);
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
 
     //TODO: Move these binds into code?
     gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(klass), motion_enter_cb);
@@ -297,7 +312,7 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, name_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, game_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_overlay_revealer);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_event_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, viewers_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, viewers_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, time_label);
@@ -305,12 +320,20 @@ gt_channels_container_child_class_init(GtChannelsContainerChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, follow_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, preview_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, play_image);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, error_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, error_link_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, error_reload_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelsContainerChild, updating_spinner);
 }
 
 static void
 gt_channels_container_child_init(GtChannelsContainerChild* self)
 {
+    GtChannelsContainerChildPrivate* priv = gt_channels_container_child_get_instance_private(self);
+
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    g_signal_connect(priv->error_link_button, "clicked", G_CALLBACK(error_link_clicked_cb), self);
 }
 
 void

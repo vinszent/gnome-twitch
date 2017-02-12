@@ -53,7 +53,9 @@
     -gtk-icon-effect: dim;
 }
 
-.gt-channels-container-child-offline label
+.gt-channels-container-child-offline name-label,
+.gt-channels-container-child-offline game-label
+
 {
     color: alpha(currentColor,0.55);
 }
@@ -108,7 +110,8 @@
 }
 
 .gt-player #empty-link-button,
-.gt-item-container #empty-link-button
+.gt-item-container #empty-link-button,
+.gt-channels-container-child #error-link-button
 {
     padding-left: 0px;
     padding-right: 0px;
@@ -124,7 +127,8 @@
 .gt-item-container #empty-sub-label,
 .gt-item-container #empty-link-button,
 .gt-player #empty-sub-label,
-.gt-player #empty-link-button
+.gt-player #empty-link-button,
+.gt-channels-container-child #error-link-button
 {
     font-weight: lighter;
     font-size: small;
@@ -160,4 +164,11 @@
 .gt-error-dlg #error-label
 {
     font-weight: bold;
+}
+
+.gt-channels-container-child #error-box
+{
+    border-color: black;
+    border-width: 1px;
+    border-style: solid;
 }
