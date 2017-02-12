@@ -149,15 +149,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
-//TODO: Remove unecessary code
-enum
-{
-    PROP_0,
-    NUM_PROPS
-};
-
-static GParamSpec* props[NUM_PROPS];
-
 typedef struct
 {
     gint64 int_1;
@@ -254,7 +245,7 @@ gt_twitch_init(GtTwitch* self)
     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self);
 
     priv->soup = soup_session_new();
-    priv->emote_table = g_hash_table_new(g_direct_hash, g_direct_equal); //TODO: Use the full version of this
+    priv->emote_table = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) g_object_unref);
     priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
 }
 
@@ -1292,7 +1283,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, G
     g_autoptr(SoupMessage) msg = NULL;
     GError* err = NULL;
     GdkPixbuf* ret = NULL;
-    GInputStream* input_stream = NULL;
+    g_autoptr(GInputStream) input_stream = NULL;
 
     DEBUG("Downloading picture from url '%s'", url);
 
@@ -1336,7 +1327,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, G
         g_propagate_prefixed_error(error, err, "Unable to download picture for url '%s' because: ", \
             url);                                                       \
                                                                         \
-        goto finish;                                                    \
+        return NULL;                                                    \
     }                                                                   \
 
 
@@ -1354,9 +1345,6 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, G
     g_input_stream_close(input_stream, NULL, &err);
 
     CHECK_ERROR;
-
-finish:
-    g_object_unref(input_stream);
 
     return ret;
 }
@@ -1480,20 +1468,29 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
         {
             GtChatBadge* badge = gt_chat_badge_new();
             gchar* key = NULL;
-            GError* err = NULL;
 
             READ_JSON_ELEMENT(j);
 
             badge->name = g_strdup(badge_name);
             badge->version = g_strdup(json_reader_get_member_name(reader));
 
-            //TODO: Handle this in READ_JSON_VALUE once priv->soup has been moved to GtApp
-            json_reader_read_member(reader, "image_url_1x");
-            badge->pixbuf = gt_twitch_download_picture(self, json_reader_get_string_value(reader), NO_TIMESTAMP, &err);
-            json_reader_end_member(reader);
+            READ_JSON_MEMBER("image_url_1x");
+            badge->pixbuf = gt_twitch_download_picture(self,
+                json_reader_get_string_value(reader), NO_TIMESTAMP, &err);
+            END_JSON_MEMBER();
 
-            //TODO: Propagate this error further
-            g_assert_no_error(err);
+            if (err)
+            {
+                WARNING("Unable to fetch chat badge set with name '%s' because: %s",
+                    set_name, err->message);
+
+                g_propagate_prefixed_error(error, err, "Unable to fetch chat badge set with name '%s' because: ",
+                    set_name);
+
+                gt_chat_badge_free(badge);
+
+                return;
+            }
 
             END_JSON_ELEMENT();
 
@@ -1858,7 +1855,6 @@ json_error:
     return NULL;
 }
 
-//TODO: Need to rewrite this to fetch both streams and channels
 static GList*
 fetch_followed_streams(GtTwitch* self, const gchar* oauth_token,
     gint limit, gint offset, gint* total, GError** error)
@@ -2119,7 +2115,6 @@ gt_twitch_fetch_all_followed_channels_finish(GtTwitch* self,
     return ret;
 }
 
-//TODO: Don't return anything use the error instead to check if something went wrong
 void
 gt_twitch_follow_channel(GtTwitch* self,
     const gchar* chan_name, GError** error)
@@ -2200,7 +2195,6 @@ gt_twitch_follow_channel_finish(GtTwitch* self,
     g_task_propagate_pointer(G_TASK(result), error);
 }
 
-//TODO: Don't return anything use the error instead to check if something went wrong
 void
 gt_twitch_unfollow_channel(GtTwitch* self,
     const gchar* chan_name, GError** error)
