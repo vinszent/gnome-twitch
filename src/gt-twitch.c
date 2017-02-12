@@ -929,6 +929,9 @@ gt_twitch_top_games_finish(GtTwitch* self,
     return ret;
 }
 
+//NOTE: Twitch's stream search API is retarted (see https://github.com/justintv/Twitch-API/issues/513)
+//so we need to do this hack to get anything remotely usable. It will return duplicates unless
+//amount=offset*k where k is some multiple, i.e. it works in 'pages'
 GList*
 gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset, GError** error)
 {
@@ -938,11 +941,11 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     g_assert_cmpint(offset, >=, 0);
     g_assert_false(utils_str_empty(query));
 
-#define PAGE_AMOUNT 100
+#define PAGE_AMOUNT 90
+#define SEARCH_AMOUNT 100
 
-    g_print("Wuuut %d %d\n", n, offset);
-
-    MESSAGEF("Searching for channels with query '%s', amount '%d' and offset '%d'", query, PAGE_AMOUNT, ((offset + 10) / PAGE_AMOUNT) * PAGE_AMOUNT);
+    MESSAGEF("Searching for channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
+        query, 100, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * 100, offset);
 
     g_autoptr(SoupMessage) msg = NULL;
     g_autoptr(JsonReader) reader = NULL;
@@ -951,31 +954,20 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     GList* ret = NULL;
     GError* err = NULL;
 
-    uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, PAGE_AMOUNT, ((offset + 10) / PAGE_AMOUNT) * PAGE_AMOUNT);
+    uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * SEARCH_AMOUNT);
 
     msg = soup_message_new("GET", uri);
 
     reader = new_send_message_json(self, msg, &err);
 
-    CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' and offset '%d'",
-        query, PAGE_AMOUNT, (offset / PAGE_AMOUNT) * PAGE_AMOUNT);
-
-    gint64 ttotal;
-
-    READ_JSON_VALUE("_total", ttotal);
+    CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
+        query, PAGE_AMOUNT, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * PAGE_AMOUNT, offset);
 
     READ_JSON_MEMBER("streams");
 
-    if (json_reader_count_elements(reader) == 0 && offset < ttotal)
-    {
-        return gt_twitch_search_channels(self, query, n, PAGE_AMOUNT, error);
-    }
+    total = MIN(n + offset % PAGE_AMOUNT, json_reader_count_elements(reader));
 
-    total = MIN(json_reader_count_elements(reader), n + offset);
-
-    g_print("hahah %d %d %d %ld\n", json_reader_count_elements(reader), total, n + offset, ttotal);
-
-    for (gint i = offset; i < total; i++)
+    for (gint i = offset % PAGE_AMOUNT; i < total; i++)
     {
         GtChannel* channel = NULL;
         GtChannelData* data = NULL;
@@ -986,8 +978,8 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
         g_print("Viewers %ld\n", data->viewers);
 
-        CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' and offset '%d'",
-            query, n, offset);
+        CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
+            query, PAGE_AMOUNT, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * PAGE_AMOUNT, offset);
 
         channel = gt_channel_new(data);
 
