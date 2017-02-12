@@ -849,7 +849,6 @@ gt_twitch_top_games(GtTwitch* self,
         CHECK_AND_PROPAGATE_ERROR("Unable to get top games with amount '%d' and offset '%d'",
             n, offset);
 
-
         END_JSON_MEMBER();
 
         READ_JSON_VALUE("viewers", data->viewers);
@@ -1479,7 +1478,7 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
         for (gint j = 0; j < json_reader_count_members(reader); j++)
         {
-            GtChatBadge* badge = g_new(GtChatBadge, 1);
+            GtChatBadge* badge = gt_chat_badge_new();
             gchar* key = NULL;
             GError* err = NULL;
 
@@ -2489,6 +2488,12 @@ gt_twitch_fetch_user_info_finish(GtTwitch* self,
     return ret;
 }
 
+GtChatBadge*
+gt_chat_badge_new()
+{
+    return g_slice_new0(GtChatBadge);
+}
+
 void
 gt_chat_badge_free(GtChatBadge* badge)
 {
@@ -2497,7 +2502,7 @@ gt_chat_badge_free(GtChatBadge* badge)
     g_free(badge->name);
     g_free(badge->version);
     g_object_unref(badge->pixbuf);
-    g_free(badge);
+    g_slice_free(GtChatBadge, badge);
 }
 
 void

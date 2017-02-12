@@ -137,6 +137,7 @@ GtChatBadge*               gt_twitch_fetch_chat_badge(GtTwitch* self, const gcha
 void                       gt_twitch_fetch_chat_badge_async(GtTwitch* self, const gchar* chan_id, const gchar* badge_name, const gchar* version, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GtChatBadge*               gt_twitch_fetch_chat_badge_finish(GtTwitch* self, GAsyncResult* result, GError** err);
 void                       gt_twitch_load_chat_badge_sets_for_channel(GtTwitch* self, const gchar* chan_id, GError** err);
+GtChatBadge*               gt_chat_badge_new();
 void                       gt_chat_badge_free(GtChatBadge* badge);
 void                       gt_chat_badge_list_free(GList* list);
 GtChatEmote*               gt_chat_emote_new();
