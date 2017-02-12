@@ -901,9 +901,6 @@ gt_irc_disconnect(GtIrc* self)
     if (priv->state >= GT_IRC_STATE_LOGGED_IN)
         gt_irc_part(self);
 
-    priv->state = GT_IRC_STATE_DISCONNECTED;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
-
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_recv), NULL, NULL); //TODO: Error handling
 //        g_io_stream_close(G_IO_STREAM(priv->irc_conn_send), NULL, NULL); //TODO: Error handling
     g_clear_object(&priv->irc_conn_recv);
@@ -926,6 +923,8 @@ gt_irc_disconnect(GtIrc* self)
     priv->recv_logged_in = FALSE;
     priv->send_logged_in = FALSE;
 
+    priv->state = GT_IRC_STATE_DISCONNECTED;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 }
 
 void
