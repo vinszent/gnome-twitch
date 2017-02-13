@@ -3,17 +3,14 @@
     <gresource prefix="/com/vinszent/GnomeTwitch">
       <file preprocess="xml-stripblanks">ui/gt-win.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-channels-view.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-item-container.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-container-view.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channels-container.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channels-container-child.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-player-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-browse-header-bar.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-games-view.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-games-container.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-games-container-child.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-follows-view.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-settings-dlg.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-chat.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-twitch-login-dlg.ui</file>
