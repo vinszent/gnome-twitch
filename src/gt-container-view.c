@@ -11,6 +11,7 @@ typedef struct
 
     GtkWidget* search_bar;
     GtkWidget* search_entry;
+    GtkWidget* menu_button;
     GtkWidget* container_stack;
 } GtContainerViewPrivate;
 
@@ -72,21 +73,8 @@ set_property(GObject* obj,
 
 
 static void
-constructed(GObject* obj)
-{
-    GtContainerView* self = GT_CONTAINER_VIEW(obj);
-
-    GtContainerViewPrivate* priv = gt_container_view_get_instance_private(self);
-
-    g_object_bind_property(self, "search-active",
-        priv->search_bar, "search-mode-enabled",
-        G_BINDING_DEFAULT);
-}
-
-static void
 gt_container_view_class_init(GtContainerViewClass* klass)
 {
-    G_OBJECT_CLASS(klass)->constructed = constructed;
     G_OBJECT_CLASS(klass)->get_property = get_property;
     G_OBJECT_CLASS(klass)->set_property = set_property;
 
@@ -112,12 +100,22 @@ gt_container_view_class_init(GtContainerViewClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtContainerView, container_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtContainerView, search_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtContainerView, search_entry);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtContainerView, menu_button);
 }
 
 static void
 gt_container_view_init(GtContainerView* self)
 {
+    GtContainerViewPrivate* priv = gt_container_view_get_instance_private(self);
+
     gtk_widget_init_template(GTK_WIDGET(self));
+
+    gtk_search_bar_connect_entry(GTK_SEARCH_BAR(priv->search_bar),
+        GTK_ENTRY(priv->search_entry));
+
+    g_object_bind_property(self, "search-active",
+        priv->search_bar, "search-mode-enabled",
+        G_BINDING_DEFAULT);
 }
 
 /* Should only be used by children */
@@ -130,6 +128,23 @@ gt_container_view_add_container(GtContainerView* self, GtItemContainer* containe
         GTK_WIDGET(container));
 
     gtk_widget_show_all(GTK_WIDGET(container));
+}
+
+void
+gt_container_view_set_search_popover_widget(GtContainerView* self, GtkWidget* widget)
+{
+    g_assert(GT_IS_CONTAINER_VIEW(self));
+    g_assert(GTK_IS_WIDGET(widget));
+
+    GtContainerViewPrivate* priv = gt_container_view_get_instance_private(self);
+    GtkWidget* popover = gtk_popover_new(priv->menu_button);
+
+    gtk_container_add(GTK_CONTAINER(popover), widget);
+
+    gtk_menu_button_set_popover(GTK_MENU_BUTTON(priv->menu_button), GTK_WIDGET(popover));
+
+    gtk_widget_show_all(priv->menu_button);
+    gtk_widget_show_all(widget);
 }
 
 void

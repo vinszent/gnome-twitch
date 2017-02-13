@@ -6,15 +6,29 @@
       <object class="GtkSearchBar" id="search_bar">
         <property name="visible">True</property>
         <child>
-          <object class="GtkSearchEntry" id="search_entry">
+          <object class="GtkBox" id="search_box">
             <property name="visible">true</property>
-
+            <property name="width-request">300</property>
+            <style>
+              <class name="linked"/>
+            </style>
+            <child>
+              <object class="GtkSearchEntry" id="search_entry">
+                <property name="visible">true</property>
+              </object>
+              <packing>
+                <property name="fill">true</property>
+                <property name="expand">true</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton" id="menu_button">
+                <property name="visible">false</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
-      <packing>
-        <property name="fill">false</property>
-      </packing>
     </child>
     <child>
       <object class="GtkStack" id="container_stack">
