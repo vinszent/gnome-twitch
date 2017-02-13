@@ -14,6 +14,8 @@
 
 #define FULLSCREEN_BAR_REVEAL_HEIGHT 50
 #define CHAT_RESIZE_HANDLE_SIZE 10
+#define CHAT_MIN_WIDTH 290
+#define CHAT_MIN_HEIGHT 200
 
 typedef enum
 {
@@ -458,7 +460,10 @@ mouse_moved_cb(GtkWidget* widget,
         if (priv->start_mouse_pos == MOUSE_POS_LEFT_HANDLE && x >= 0)
         {
             width_request += margin_start - x;
-            margin_start = x;
+
+            width_request = MAX(width_request, CHAT_MIN_WIDTH);
+
+            margin_start = width_request == CHAT_MIN_WIDTH ? margin_start : x;
 
             g_object_set(priv->chat_view,
                 "width-request", width_request,
@@ -470,6 +475,8 @@ mouse_moved_cb(GtkWidget* widget,
         {
             width_request += x - margin_start - width_request;
 
+            width_request = MAX(width_request, CHAT_MIN_WIDTH);
+
             g_object_set(priv->chat_view,
                 "width-request", width_request,
                 NULL);
@@ -477,17 +484,22 @@ mouse_moved_cb(GtkWidget* widget,
         else if (priv->start_mouse_pos == MOUSE_POS_TOP_HANDLE && y >= 0)
         {
             height_request += margin_top - y;
-            margin_top = y;
+
+            height_request = MAX(height_request, CHAT_MIN_HEIGHT);
+
+            margin_top = height_request == CHAT_MIN_HEIGHT ? margin_top : y;
 
             g_object_set(priv->chat_view,
                 "height-request", height_request,
-                "margin-top", y,
+                "margin-top", margin_top,
                 NULL);
         }
         else if (priv->start_mouse_pos == MOUSE_POS_BOTTOM_HANDLE &&
             y <= gtk_widget_get_allocated_height(GTK_WIDGET(self)))
         {
             height_request += y - margin_top - height_request;
+
+            height_request = MAX(height_request, CHAT_MIN_HEIGHT);
 
             g_object_set(priv->chat_view,
                 "height-request", height_request,
