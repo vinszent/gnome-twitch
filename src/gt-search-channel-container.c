@@ -19,6 +19,7 @@
 
 typedef struct
 {
+    gboolean search_offline;
     gchar* query;
     GMutex mutex;
     GCond cond;
@@ -30,6 +31,7 @@ enum
 {
     PROP_0,
     PROP_QUERY,
+    PROP_SEARCH_OFFLINE,
     NUM_PROPS
 };
 
@@ -104,7 +106,11 @@ fetch_items(GTask* task, gpointer source, gpointer task_data, GCancellable* canc
             GError* err = NULL;
 
             GList* items = gt_twitch_search_channels(main_app->twitch,
-                priv->query, data->amount, data->offset, &err);
+                priv->query, data->amount, data->offset, priv->search_offline, &err);
+
+            //NOTE: This is so online channels will be displayed as online
+            if (priv->search_offline)
+                g_list_foreach(items, (GFunc) gt_channel_update, NULL);
 
             if (err)
                 g_task_return_error(task, err);
@@ -138,8 +144,11 @@ activate_child(GtItemContainer* item_container,
     g_assert(GT_IS_SEARCH_CHANNEL_CONTAINER(item_container));
     g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(child));
 
-    gt_win_open_channel(GT_WIN_ACTIVE,
-        GT_CHANNELS_CONTAINER_CHILD(child)->channel);
+    if (gt_channel_is_online(GT_CHANNELS_CONTAINER_CHILD(child)->channel))
+    {
+        gt_win_open_channel(GT_WIN_ACTIVE,
+            GT_CHANNELS_CONTAINER_CHILD(child)->channel);
+    }
 }
 
 static void
@@ -155,6 +164,9 @@ get_property(GObject* obj,
     {
         case PROP_QUERY:
             g_value_set_string(val, priv->query);
+            break;
+        case PROP_SEARCH_OFFLINE:
+            g_value_set_boolean(val, priv->search_offline);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -178,6 +190,11 @@ set_property(GObject* obj,
 
             gt_item_container_refresh(GT_ITEM_CONTAINER(self));
             break;
+        case PROP_SEARCH_OFFLINE:
+            priv->search_offline = g_value_get_boolean(val);
+
+            gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -194,7 +211,11 @@ gt_search_channel_container_class_init(GtSearchChannelContainerClass* klass)
     GT_ITEM_CONTAINER_CLASS(klass)->fetch_items = fetch_items;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
 
-    props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query", NULL, G_PARAM_READWRITE);
+    props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query",
+        NULL, G_PARAM_READWRITE);
+
+    props[PROP_SEARCH_OFFLINE] = g_param_spec_boolean("search-offline", "Search offline", "Whether to search offline channels",
+        FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(G_OBJECT_CLASS(klass), NUM_PROPS, props);
 }
