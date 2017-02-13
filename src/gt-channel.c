@@ -226,8 +226,15 @@ download_banner_cb(GObject* source,
 
     if (err)
     {
-        WARNING("Unable to update banner for channel with name '%s'",
-            priv->data->name);
+        if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+            DEBUG("Updating banner cancelled");
+
+            goto finish;
+        }
+
+        WARNING("Unable to update banner for channel with name '%s' because; %s",
+            priv->data->name, err->message);
 
         priv->error_message = g_strdup("Unable to update banner");
         priv->error_details = g_strdup_printf("Unable to update banner for channel with name '%s' because: %s",
@@ -241,6 +248,7 @@ download_banner_cb(GObject* source,
 
     set_banner(self, pic, TRUE);
 
+finish:
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 }
@@ -385,7 +393,7 @@ update_from_data(GtChannel* self, GtChannelData* data)
 static gboolean
 update_set_cb(gpointer udata)
 {
-    GtChannel* self = GT_CHANNEL(udata);
+    g_autoptr(GtChannel) self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     GtChannelData* data = g_object_get_data(G_OBJECT(self), "data");
 
@@ -400,7 +408,7 @@ update_set_cb(gpointer udata)
 
     update_from_data(self, data);
 
-    g_object_set_data(G_OBJECT(self), "raw-data", NULL);
+    g_object_set_data(G_OBJECT(self), "data", NULL);
 
 finish:
     priv->update_set_id = 0;
@@ -436,7 +444,7 @@ update_cb(gpointer data,
 
     g_object_set_data(G_OBJECT(self), "data", chan_data);
 
-    priv->update_set_id = g_idle_add((GSourceFunc) update_set_cb, self); //Needs to be run on main thread.
+    priv->update_set_id = g_idle_add((GSourceFunc) update_set_cb, g_object_ref(self)); //Needs to be run on main thread.
 }
 
 static void

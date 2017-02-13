@@ -275,9 +275,9 @@ constructed(GObject* obj)
                            priv->play_image, "visible",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-    g_signal_connect_swapped(self->channel, "notify::online", G_CALLBACK(online_cb), self);
-    g_signal_connect_swapped(self->channel, "notify::error", G_CALLBACK(state_changed_cb), self);
-    g_signal_connect_swapped(self->channel, "notify::updating", G_CALLBACK(state_changed_cb), self);
+    g_signal_connect_object(self->channel, "notify::online", G_CALLBACK(online_cb), self, G_CONNECT_SWAPPED);
+    g_signal_connect_object(self->channel, "notify::error", G_CALLBACK(state_changed_cb), self, G_CONNECT_SWAPPED);
+    g_signal_connect_object(self->channel, "notify::updating", G_CALLBACK(state_changed_cb), self, G_CONNECT_SWAPPED);
     g_signal_connect_swapped(priv->error_reload_button, "clicked", G_CALLBACK(gt_channel_update), self->channel);
 
     state_changed_cb(self);
