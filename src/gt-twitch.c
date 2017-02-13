@@ -19,7 +19,8 @@
 #define STREAM_PLAYLIST_URI    "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
 #define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s"
 #define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
-#define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
+#define SEARCH_STREAMS_URI     "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
+#define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/channels?query=%s&limit=%d&offset=%d"
 #define SEARCH_GAMES_URI       "https://api.twitch.tv/kraken/search/games?query=%s&type=suggest"
 #define FETCH_STREAM_URI       "https://api.twitch.tv/kraken/streams/%s"
 #define FETCH_CHANNEL_URI      "https://api.twitch.tv/kraken/channels/%s"
@@ -933,7 +934,7 @@ gt_twitch_top_games_finish(GtTwitch* self,
 //so we need to do this hack to get anything remotely usable. It will return duplicates unless
 //amount=offset*k where k is some multiple, i.e. it works in 'pages'
 GList*
-gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset, GError** error)
+gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offset, gboolean offline, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_cmpint(n, >=, 0);
@@ -941,8 +942,9 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     g_assert_cmpint(offset, >=, 0);
     g_assert_false(utils_str_empty(query));
 
-#define PAGE_AMOUNT 90
 #define SEARCH_AMOUNT 100
+
+    const gint PAGE_AMOUNT = offline ? 100 : 90;
 
     MESSAGEF("Searching for channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
         query, 100, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * 100, offset);
@@ -954,7 +956,8 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     GList* ret = NULL;
     GError* err = NULL;
 
-    uri = g_strdup_printf(SEARCH_CHANNELS_URI, query, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * SEARCH_AMOUNT);
+    uri = g_strdup_printf(offline ? SEARCH_CHANNELS_URI : SEARCH_STREAMS_URI,
+        query, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * SEARCH_AMOUNT);
 
     msg = soup_message_new("GET", uri);
 
@@ -963,7 +966,7 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
         query, PAGE_AMOUNT, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * PAGE_AMOUNT, offset);
 
-    READ_JSON_MEMBER("streams");
+    READ_JSON_MEMBER(offline ? "channels" : "streams");
 
     total = MIN(n + offset % PAGE_AMOUNT, json_reader_count_elements(reader));
 
@@ -974,9 +977,7 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
 
         READ_JSON_ELEMENT(i);
 
-        data = parse_stream(reader, &err);
-
-        g_print("Viewers %ld\n", data->viewers);
+        data = offline ? parse_channel(reader, &err) : parse_stream(reader, &err);
 
         CHECK_AND_PROPAGATE_ERROR("Unable to search channels with query '%s', amount '%d' ('%d') and offset '%d' ('%d')",
             query, PAGE_AMOUNT, SEARCH_AMOUNT, (offset / PAGE_AMOUNT) * PAGE_AMOUNT, offset);
@@ -1013,7 +1014,8 @@ search_channels_async_cb(GTask* task, gpointer source,
         return;
 
     GError* err = NULL;
-    GList* ret = gt_twitch_search_channels(GT_TWITCH(source), data->str_1, data->int_1, data->int_2, &err);
+    GList* ret = gt_twitch_search_channels(GT_TWITCH(source), data->str_1,
+        data->int_1, data->int_2, data->bool_1, &err);
 
     if (err)
         g_task_return_error(task, err);
@@ -1023,7 +1025,7 @@ search_channels_async_cb(GTask* task, gpointer source,
 
 void
 gt_twitch_search_channels_async(GtTwitch* self,
-    const gchar* query, gint n, gint offset,
+    const gchar* query, gint n, gint offset, gboolean offline,
     GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata)
 {
     g_assert(GT_IS_TWITCH(self));
@@ -1042,6 +1044,7 @@ gt_twitch_search_channels_async(GtTwitch* self,
     data->int_1 = n;
     data->int_2 = offset;
     data->str_1 = g_strdup(query);
+    data->bool_1 = offline;
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
