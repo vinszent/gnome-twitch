@@ -1,5 +1,4 @@
 #include "gt-win.h"
-#include <gdk/gdkx.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
 #include "gt-twitch.h"
