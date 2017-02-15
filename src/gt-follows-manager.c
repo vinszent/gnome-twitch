@@ -583,7 +583,7 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
         JsonNode* id_node = json_reader_get_value(reader);
 
         if (STRING_EQUALS(json_node_type_name(id_node), "Integer"))
-            id = g_strdup_printf("%ld", json_reader_get_int_value(reader));
+            id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
         else if (STRING_EQUALS(json_node_type_name(id_node), "String"))
             id = g_strdup(json_reader_get_string_value(reader));
         else

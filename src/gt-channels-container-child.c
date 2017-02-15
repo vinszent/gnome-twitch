@@ -2,6 +2,7 @@
 #include "gt-win.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+#include <inttypes.h>
 
 #define TAG "GtChannelsContainerChild"
 #include "utils.h"
@@ -97,7 +98,7 @@ viewers_converter(GBinding* bind,
         else
             // Translators: Used for when viewers < 1000
             // No need to translate, just future-proofing
-            label = g_strdup_printf(_("%ld"), viewers);
+            label = g_strdup_printf(_("%" PRId64), viewers);
     }
 
     g_value_take_string(to, label);
@@ -130,7 +131,7 @@ time_converter(GBinding* bind,
         else
             // Translators: Used when stream time <= 60min
             // Ex (English): 45 minutes = 45m
-            label  = g_strdup_printf(_("%ldm"), dif / G_TIME_SPAN_MINUTE);
+            label  = g_strdup_printf(_("%" PRId64 "m"), dif / G_TIME_SPAN_MINUTE);
 
         g_date_time_unref(now_time);
     }
