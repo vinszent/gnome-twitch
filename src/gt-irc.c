@@ -342,6 +342,37 @@ emote_compare(const GtChatEmote* a, const GtChatEmote* b)
         return 0;
 }
 
+//NOTE: Taken from https://opensource.apple.com/source/xnu/xnu-2422.115.4/bsd/libkern/strsep.c
+#ifdef G_OS_WIN32
+char *
+strsep(stringp, delim)
+       register char **stringp;
+       register const char *delim;
+{
+       register char *s;
+       register const char *spanp;
+       register int c, sc;
+       char *tok;
+
+       if ((s = *stringp) == NULL)
+               return (NULL);
+       for (tok = s;;) {
+               c = *s++;
+               spanp = delim;
+               do {
+                       if ((sc = *spanp++) == c) {
+                               if (c == 0)
+                                       s = NULL;
+                               else
+                                       s[-1] = 0;
+                               *stringp = s;
+                               return (tok);
+                       }
+               } while (sc != 0);
+       }
+}
+#endif
+
 
 static GtIrcMessage*
 parse_line(GtIrc* self, gchar* line)
