@@ -1,24 +1,23 @@
-project('player-backend-gstreamer-cairo', 'c',
-        version : '0.2.0',
-        meson_version : '>= 0.36.0',
-        license : 'GPL3',
-        default_options : ['b_lundef=false', 'c_std=gnu11'])
 
-include_dir = include_directories('../../include/')
-install_dir = join_paths(get_option('libdir'), 'gnome-twitch/plugins/player-backends')
+gstreamer_dep = dependency('gstreamer-1.0')
 
-deps_gstreamer_cairo = [dependency('gtk+-3.0'),
-                        dependency('libpeas-1.0'),
-                        dependency('gstreamer-1.0')]
+deps_gstreamer_cairo = [
+  libgtk_dep,
+  libpeas_dep,
+  gstreamer_dep
+]
 
-src_gstreamer_cairo = ['gt-player-backend-gstreamer-cairo.c']
+src_gstreamer_cairo = [
+  'gt-player-backend-gstreamer-cairo.c'
+]
 
 lib_gstreamer_cairo = shared_library('player-backend-gstreamer-cairo', src_gstreamer_cairo,
-                                     dependencies : deps_gstreamer_cairo,
-                                     include_directories : include_dir,
-                                     c_args : ['-Wno-unused-variable'],
-                                     install_dir : install_dir,
-                                     install : true)
+  dependencies : deps_gstreamer_cairo,
+  link_with : gt_library,
+  include_directories : include_dir,
+  c_args : ['-Wno-unused-variable'],
+  install_dir : player_backend_install_dir,
+  install : true)
 
 install_data(sources : 'player-backend-gstreamer-cairo.plugin',
-             install_dir : install_dir)
+  install_dir : player_backend_install_dir)
