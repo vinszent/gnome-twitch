@@ -6,6 +6,8 @@
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channel-container-view.h"
+#include "gt-followed-container-view.h"
+#include "gt-game-container-view.h"
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
 #include "gt-twitch-channel-info-dlg.h"
@@ -591,6 +593,14 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_details_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_close_button);
+
+    GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
+    GT_TYPE_PLAYER_HEADER_BAR;
+    GT_TYPE_BROWSE_HEADER_BAR;
+    GT_TYPE_CHANNEL_CONTAINER_VIEW;
+    GT_TYPE_FOLLOWED_CONTAINER_VIEW;
+    GT_TYPE_GAME_CONTAINER_VIEW;
+    GT_TYPE_CHAT;
 }
 
 static void
@@ -598,12 +608,6 @@ gt_win_init(GtWin* self)
 {
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     GPropertyAction* action;
-
-    GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
-    GT_TYPE_PLAYER_HEADER_BAR;
-    GT_TYPE_BROWSE_HEADER_BAR;
-    GT_TYPE_CHANNEL_CONTAINER_VIEW;
-    GT_TYPE_CHAT;
 
     gtk_window_set_application(GTK_WINDOW(self), GTK_APPLICATION(main_app));
 
