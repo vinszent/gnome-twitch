@@ -483,21 +483,21 @@ gt_app_init(GtApp* self)
 #ifdef G_OS_WIN32
     plugin_dir = g_build_filename(
         g_win32_get_package_installation_directory_of_module(NULL),
-        "lib", "gnome-twitch", "plugins", "player-backends", NULL);
+        "lib", "gnome-twitch", "player-backends", NULL);
 
     peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
 
     g_free(plugin_dir);
 #else
     plugin_dir = g_build_filename(GT_LIB_DIR "gnome-twitch",
-        "plugins", "player-backends", NULL);
+        "player-backends", NULL);
 
     peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
 
     g_free(plugin_dir);
 
     plugin_dir = g_build_filename(g_get_user_data_dir(), "gnome-twitch",
-        "plugins", "player-backends", NULL);
+        "player-backends", NULL);
 
     peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
 
