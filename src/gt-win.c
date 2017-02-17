@@ -623,6 +623,8 @@ gt_win_init(GtWin* self)
 
     gtk_window_set_default_icon_name("com.vinszent.GnomeTwitch");
 
+    gtk_window_set_icon_name(GTK_WINDOW(self), "com.vinszent.GnomeTwitch");
+
     GdkScreen* screen = gdk_screen_get_default();
     GtkCssProvider* css = gtk_css_provider_new();
     gtk_css_provider_load_from_resource(css, "/com/vinszent/GnomeTwitch/com.vinszent.GnomeTwitch.style.css");
