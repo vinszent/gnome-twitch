@@ -40,7 +40,9 @@ deps_gt_library = [
 cc = meson.get_compiler('c')
 deps_gt += cc.find_library('m', required: false)
 
-res = gnome.compile_resources('gt-resources', '../data/com.vinszent.GnomeTwitch.gresource.xml', source_dir : '../data')
+res = gnome.compile_resources('gt-resources',
+  '../data/com.vinszent.GnomeTwitch.gresource.xml',
+  source_dir : '../data')
 
 src_gt_executable = [
   'main.c',
@@ -81,12 +83,24 @@ src_gt_library = [
   'gt-player-backend.c'
 ]
 
+gt_executable_c_args = [
+  '-Wno-unused-variable'
+]
+
+gt_executable_link_args = []
+
+gt_library_c_args = gt_executable_c_args
+
+if build_machine.system() == 'windows'
+  gt_executable_link_args += '-mwindows'
+endif
+
 if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
   gt_library = shared_library('gnome-twitch', src_gt_library,
     include_directories : include_dir,
     dependencies : deps_gt_library,
     install : true,
-    c_args : ['-Wno-unused-variable'])
+    c_args : gt_library_c_args)
 endif
 
 
@@ -95,4 +109,5 @@ executable('gnome-twitch', src_gt_executable,
   dependencies : deps_gt,
   install : true,
   link_with : gt_library,
-  c_args : '-Wno-unused-variable')
+  link_args : gt_executable_link_args,
+  c_args : gt_executable_c_args)
