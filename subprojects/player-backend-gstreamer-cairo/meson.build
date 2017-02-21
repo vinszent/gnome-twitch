@@ -1,4 +1,3 @@
-
 gstreamer_dep = dependency('gstreamer-1.0')
 
 deps_gstreamer_cairo = [
