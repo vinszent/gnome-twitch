@@ -583,8 +583,8 @@ gt_user_info_free(GtUserInfo* info)
     g_free(info->type);
     g_free(info->email);
 
-    g_clear_pointer(&info->created_at, (GDestroyNotify) info->created_at);
-    g_clear_pointer(&info->updated_at, (GDestroyNotify) info->created_at);
+    if (info->created_at) g_date_time_unref(info->created_at);
+    if (info->updated_at) g_date_time_unref(info->updated_at);
 
     g_slice_free(GtUserInfo, info);
 }
