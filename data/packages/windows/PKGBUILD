@@ -1,3 +1,21 @@
+#
+# This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+# Copyright © 2016 Vincent Szolnoky <vinszent@vinszent.com>
+#
+# GNOME Twitch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GNOME Twitch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+#
+
 _realname=gnome-twitch-git
 pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
@@ -35,8 +53,6 @@ pkgver() {
 }
 
 prepare() {
-  echo "Hellloooo $CARCH"
-
   rm -rf "${srcdir}/${_realname}"
 
   git clone -b windows https://github.com/vinszent/gnome-twitch "${srcdir}/${_realname}"
@@ -49,8 +65,7 @@ build() {
   cd build-${MINGW_CHOST}
   meson.py --prefix "C:/${MINGW_PREFIX}" \
            -Duse-deprecated-webkit=true \
-           -Dbuild-player-backend-gstreamer-cairo=true \
-           -Dbuild-player-backend-gstreamer-opengl=true ..
+           -Dbuild-player-backend-gstreamer-cairo=true ..
   ninja
 }
 
