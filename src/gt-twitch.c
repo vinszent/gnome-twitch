@@ -304,7 +304,7 @@ new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
                  uri, msg->status_code, msg->response_body->data);
 
         g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP,
-            _("Received unsuccessful response from url '%s' with code '%d' and body '%s'"),
+            "Received unsuccessful response from url '%s' with code '%d' and body '%s'",
             uri, msg->status_code, msg->response_body->data);
     }
 
@@ -448,7 +448,7 @@ parse_channel(JsonReader* reader, GError** error)
     READ_JSON_MEMBER("_id");
     JsonNode* node = json_reader_get_value(reader);
     if (STRING_EQUALS(json_node_type_name(node), "Integer"))
-        data->id = g_strdup_printf("%ld", json_reader_get_int_value(reader));
+        data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
     else if (STRING_EQUALS(json_node_type_name(node), "String"))
         data->id = g_strdup(json_reader_get_string_value(reader));
     else
@@ -509,7 +509,7 @@ parse_game(JsonReader* reader, GError** error)
     READ_JSON_MEMBER("_id");
     JsonNode* node = json_reader_get_value(reader);
     if (STRING_EQUALS(json_node_type_name(node), "Integer"))
-        data->id = g_strdup_printf("%ld", json_reader_get_int_value(reader));
+        data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
     else if (STRING_EQUALS(json_node_type_name(node), "String"))
         data->id = g_strdup(json_reader_get_string_value(reader));
     else

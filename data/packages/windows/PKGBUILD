@@ -1,0 +1,75 @@
+#
+# This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+# Copyright © 2016 Vincent Szolnoky <vinszent@vinszent.com>
+#
+# GNOME Twitch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GNOME Twitch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+#
+
+_realname=gnome-twitch-git
+pkgbase=mingw-w64-${_realname}
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=r897.028500f
+pkgrel=1
+arch=('any')
+pkgdesc="Enjoy Twitch on your GNU/Linux desktop (mingw-w64)"
+url="https://github.com/vinszent/gnome-twitch"
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-adwaita-icon-theme"
+  "${MINGW_PACKAGE_PREFIX}-gtk3"
+  "${MINGW_PACKAGE_PREFIX}-json-glib"
+  "${MINGW_PACKAGE_PREFIX}-libpeas"
+  "${MINGW_PACKAGE_PREFIX}-libsoup"
+  "${MINGW_PACKAGE_PREFIX}-gst-plugins-good"
+  "${MINGW_PACKAGE_PREFIX}-gst-plugins-base"
+  "${MINGW_PACKAGE_PREFIX}-gst-plugins-bad"
+  "${MINGW_PACKAGE_PREFIX}-gst-libav"
+  "${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+  "${MINGW_PACKAGE_PREFIX}-webkitgtk3"
+)
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+  "${MINGW_PACKAGE_PREFIX}-pkg-config"
+  "${MINGW_PACKAGE_PREFIX}-python3"
+  "${MINGW_PACKAGE_PREFIX}-meson"
+  "gettext"
+  "git"
+)
+install=${_realname}-${MSYSTEM_CARCH}.install
+options=('strip')
+
+pkgver() {
+  cd "${_realname}"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  rm -rf "${srcdir}/${_realname}"
+
+  git clone -b windows https://github.com/vinszent/gnome-twitch "${srcdir}/${_realname}"
+}
+
+build() {
+  cd "${srcdir}/${_realname}"
+  rm -rf build-${MINGW_CHOST}
+  mkdir -p build-${MINGW_CHOST}
+  cd build-${MINGW_CHOST}
+  meson.py --prefix "C:/${MINGW_PREFIX}" \
+           -Duse-deprecated-webkit=true \
+           -Dbuild-player-backend-gstreamer-cairo=true ..
+  ninja
+}
+
+package() {
+  cd "${srcdir}/${_realname}/build-${MINGW_CHOST}"
+  DESTDIR="${pkgdir}" ninja install
+}

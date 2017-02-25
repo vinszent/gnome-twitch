@@ -24,8 +24,8 @@ struct _GtItemContainerClass
 
 typedef struct
 {
-    uint amount;
-    uint offset;
+    gint amount;
+    gint offset;
 } FetchItemsData;
 
 GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self);

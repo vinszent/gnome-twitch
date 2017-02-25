@@ -36,18 +36,36 @@ utils_container_clear(GtkContainer* cont)
     }
 }
 
-gint64
+guint64
 utils_timestamp_file(const gchar* filename)
 {
-    int ret;
-    GStatBuf file_stat;
+    g_assert_nonnull(filename);
 
-    ret = g_stat(filename, &file_stat);
+    g_autoptr(GError) err = NULL;
 
-    if (ret)
-        return 0;
+    if (g_file_test(filename, G_FILE_TEST_EXISTS))
+    {
+        GTimeVal time;
 
-    return file_stat.st_mtim.tv_sec;
+        g_autoptr(GFile) file = g_file_new_for_path(filename);
+
+        g_autoptr(GFileInfo) info = g_file_query_info(file,
+            G_FILE_ATTRIBUTE_TIME_MODIFIED, G_FILE_QUERY_INFO_NONE,
+            NULL, &err);
+
+        if (err)
+        {
+            WARNING("Could not timestamp file because: %s", err->message);
+
+            return 0;
+        }
+
+        g_file_info_get_modification_time(info, &time);
+
+        return time.tv_sec;
+    }
+
+    return 0;
 }
 
 gint64

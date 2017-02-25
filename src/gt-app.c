@@ -480,21 +480,29 @@ gt_app_init(GtApp* self)
 
     gchar* plugin_dir;
 
-#define ADD_PLUGINS_PATH(root, type)                                    \
-    plugin_dir = g_build_filename(root,                                 \
-                                  "gnome-twitch",                       \
-                                  "plugins",                            \
-                                  type,                                 \
-                                  NULL);                                \
-    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL); \
-    g_free(plugin_dir)                                                  \
+#ifdef G_OS_WIN32
+    plugin_dir = g_build_filename(
+        g_win32_get_package_installation_directory_of_module(NULL),
+        "lib", "gnome-twitch", "player-backends", NULL);
 
-    ADD_PLUGINS_PATH(GT_LIB_DIR, "player-backends");
-    ADD_PLUGINS_PATH(g_get_user_data_dir(), "player-backends");
-//    ADD_PLUGINS_PATH(GT_LIB_DIR, "recorder-backends");
-//    ADD_PLUGINS_PATH(g_get_user_data_dir(), "recorder-backends");
+    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
 
-#undef ADD_PLUGINS_PATH
+    g_free(plugin_dir);
+#else
+    plugin_dir = g_build_filename(GT_LIB_DIR "gnome-twitch",
+        "player-backends", NULL);
+
+    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
+
+    g_free(plugin_dir);
+
+    plugin_dir = g_build_filename(g_get_user_data_dir(), "gnome-twitch",
+        "player-backends", NULL);
+
+    peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
+
+    g_free(plugin_dir);
+#endif
 
     g_settings_bind(self->settings, "loaded-plugins",
                     self->players_engine, "loaded-plugins",
