@@ -650,6 +650,9 @@ gt_channel_init(GtChannel* self)
     priv->update_id = 0;
     priv->update_set_id = 0;
 
+    priv->error_message = NULL;
+    priv->error_details = NULL;
+
     g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
