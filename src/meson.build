@@ -1,4 +1,5 @@
 gnome = import('gnome')
+pkg = import('pkgconfig')
 
 ver = vcs_tag(input : 'version.h.in', output : 'version.h',
   command : ['sh', '../print_git_version.sh'],
@@ -101,13 +102,28 @@ if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
     dependencies : deps_gt_library,
     install : true,
     c_args : gt_library_c_args)
+
+  gt_library_dep = declare_dependency(
+    include_directories : include_dir,
+    link_with : gt_library)
+
+  pkg.generate(
+    libraries : gt_library,
+    name : 'gnome-twitch',
+    description : 'Library used for building GNOME Twitch plugins',
+    requires : ['gtk+-3.0', 'libpeas-1.0'],
+    version : meson.project_version())
+else
+    gt_library_dep = dependency('gnome-twitch')
 endif
 
+deps_gt += gt_library_dep
 
-executable('gnome-twitch', src_gt_executable,
-  include_directories : include_dir,
-  dependencies : deps_gt,
-  install : true,
-  link_with : gt_library,
-  link_args : gt_executable_link_args,
-  c_args : gt_executable_c_args)
+if BUILD_GNOME_TWITCH_EXECUTABLE
+  executable('gnome-twitch', src_gt_executable,
+    include_directories : include_dir,
+    dependencies : deps_gt,
+    install : true,
+    link_args : gt_executable_link_args,
+    c_args : gt_executable_c_args)
+endif

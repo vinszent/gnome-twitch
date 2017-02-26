@@ -3,7 +3,8 @@ gstreamer_dep = dependency('gstreamer-1.0')
 deps_gstreamer_cairo = [
   libgtk_dep,
   libpeas_dep,
-  gstreamer_dep
+  gstreamer_dep,
+  gt_library_dep
 ]
 
 src_gstreamer_cairo = [
@@ -12,7 +13,6 @@ src_gstreamer_cairo = [
 
 lib_gstreamer_cairo = shared_library('player-backend-gstreamer-cairo', src_gstreamer_cairo,
   dependencies : deps_gstreamer_cairo,
-  link_with : gt_library,
   include_directories : include_dir,
   c_args : ['-Wno-unused-variable'],
   install_dir : player_backend_install_dir,

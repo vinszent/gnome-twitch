@@ -16,19 +16,27 @@ BUILD_PLAYER_BACKEND_MPV_OPENGL = get_option('build-player-backend-mpv-opengl')
 BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO = get_option('build-player-backend-gstreamer-cairo')
 BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL = get_option('build-player-backend-gstreamer-opengl')
 
-meson.add_install_script('meson_post_install.sh')
+include_dir = include_directories('./include')
 
 # Common dependencies
 libgtk_dep = dependency('gtk+-3.0', version : '>=3.20')
 libpeas_dep = dependency('libpeas-1.0')
 
-subdir('include')
+if BUILD_GNOME_TWITCH_EXECUTABLE
+  subdir('data')
+  subdir('po')
+
+  meson.add_install_script('meson_post_install.sh')
+endif
+
+if BUILD_GNOME_TWITCH_LIBRARY
+  subdir('include')
+endif
+
 subdir('src')
-subdir('data')
-subdir('po')
 
 player_backend_install_dir = join_paths(get_option('libdir'),
-  'gnome-twitch/player-backends')
+  'gnome-twitch', 'player-backends')
 
 if BUILD_PLAYER_BACKEND_GSTREAMER_CLUTTER
   subdir('subprojects/player-backend-gstreamer-clutter')
