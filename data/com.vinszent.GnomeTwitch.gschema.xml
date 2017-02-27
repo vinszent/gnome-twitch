@@ -57,10 +57,10 @@
         to authenticate to the Twitch API.
       </description>
     </key>
-    <key name="loaded-plugins" type="as">
+    <key name="player-backend" type="as">
       <default>[]</default>
-      <summary>Loaded plugins</summary>
-      <description>Currently loaded plugins</description>
+      <summary>Loaded player backend</summary>
+      <description>Currently loaded player backend</description>
     </key>
   </schema>
 </schemalist>

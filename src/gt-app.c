@@ -520,7 +520,7 @@ gt_app_init(GtApp* self)
     g_free(plugin_dir);
 #endif
 
-    g_settings_bind(self->settings, "loaded-plugins",
+    g_settings_bind(self->settings, "player-backend",
         self->players_engine, "loaded-plugins",
         G_SETTINGS_BIND_DEFAULT);
     g_settings_bind(self->settings, "language-filter",
