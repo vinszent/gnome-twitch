@@ -76,6 +76,7 @@ extern gboolean NO_FANCY_LOGGING;
 gboolean gt_app_credentials_valid(GtApp* self);
 void gt_app_set_user_info(GtApp* self, GtUserInfo* info);
 const GtUserInfo* gt_app_get_user_info(GtApp* self);
+const gchar* gt_app_get_language_filter(GtApp* self);
 
 GtUserInfo*       gt_user_info_new();
 void              gt_user_info_free(GtUserInfo* info);

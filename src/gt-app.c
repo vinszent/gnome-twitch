@@ -22,6 +22,8 @@ typedef struct
     GtUserInfo* user_info;
     GMenuItem* login_item;
     GMenuModel* app_menu;
+
+    gchar* language_filter;
 } GtAppPrivate;
 
 gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
@@ -34,6 +36,7 @@ enum
 {
     PROP_0,
     PROP_LOGGED_IN,
+    PROP_LANGUAGE_FILTER,
     NUM_PROPS
 };
 
@@ -430,6 +433,9 @@ get_property (GObject* obj, guint prop,
         case PROP_LOGGED_IN:
             g_value_set_boolean(val, priv->user_info != NULL);
             break;
+        case PROP_LANGUAGE_FILTER:
+            g_value_set_string(val, priv->language_filter);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -439,8 +445,15 @@ static void
 set_property(GObject* obj, guint prop,
     const GValue* val, GParamSpec* pspec)
 {
+    GtApp* self = GT_APP(obj);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
     switch (prop)
     {
+        case PROP_LANGUAGE_FILTER:
+            g_free(priv->language_filter);
+            priv->language_filter = g_value_dup_string(val);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -460,6 +473,9 @@ gt_app_class_init(GtAppClass* klass)
 
     props[PROP_LOGGED_IN] = g_param_spec_boolean("logged-in",
         "Logged in", "Whether logged in", FALSE, G_PARAM_READABLE);
+
+    props[PROP_LANGUAGE_FILTER] = g_param_spec_string("language-filter", "Language filter", "Current language filter",
+        "", G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
@@ -505,8 +521,11 @@ gt_app_init(GtApp* self)
 #endif
 
     g_settings_bind(self->settings, "loaded-plugins",
-                    self->players_engine, "loaded-plugins",
-                    G_SETTINGS_BIND_DEFAULT);
+        self->players_engine, "loaded-plugins",
+        G_SETTINGS_BIND_DEFAULT);
+    g_settings_bind(self->settings, "language-filter",
+        self, "language-filter",
+        G_SETTINGS_BIND_GET);
 
     priv->user_info->oauth_token = g_settings_get_string(self->settings, "oauth-token");
     priv->user_info->id = g_settings_get_string(self->settings, "user-id");
@@ -562,6 +581,16 @@ gt_app_credentials_valid(GtApp* self)
         !utils_str_empty(priv->user_info->oauth_token) &&
         !utils_str_empty(priv->user_info->name) &&
         !utils_str_empty(priv->user_info->id);
+}
+
+const gchar*
+gt_app_get_language_filter(GtApp* self)
+{
+    g_assert(GT_IS_APP(self));
+
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return priv->language_filter;
 }
 
 GtUserInfo*
