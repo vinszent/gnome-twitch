@@ -73,7 +73,7 @@ extern gchar* ORIGINAL_LOCALE;
 extern gint LOG_LEVEL;
 extern gboolean NO_FANCY_LOGGING;
 
-gboolean gt_app_credentials_valid(GtApp* self);
+gboolean gt_app_is_logged_in(GtApp* self);
 void gt_app_set_user_info(GtApp* self, GtUserInfo* info);
 const GtUserInfo* gt_app_get_user_info(GtApp* self);
 const gchar* gt_app_get_language_filter(GtApp* self);

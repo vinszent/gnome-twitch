@@ -252,7 +252,7 @@ logged_in_cb(GObject* src,
     GtApp* self = GT_APP(src);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    if (gt_app_credentials_valid(self))
+    if (gt_app_is_logged_in(self))
     {
         g_menu_remove(G_MENU(priv->app_menu), 0);
         g_menu_item_set_label(priv->login_item, _("Refresh login"));
@@ -338,7 +338,7 @@ activate(GApplication* app)
         load_chat_settings(self);
 
         //TODO: Add a setting to allow user to use local follows even when logged in
-        if (gt_app_credentials_valid(self))
+        if (gt_app_is_logged_in(self))
             gt_follows_manager_load_from_twitch(self->fav_mgr);
         else
             gt_follows_manager_load_from_file(self->fav_mgr);
@@ -415,7 +415,7 @@ shutdown(GApplication* app)
     save_chat_settings(self);
 
     //TODO: Add a setting to allow user to use local follows even when logged in
-    if (!gt_app_credentials_valid(self))
+    if (!gt_app_is_logged_in(self))
         gt_follows_manager_save(self->fav_mgr);
 
     G_APPLICATION_CLASS(gt_app_parent_class)->shutdown(app);
@@ -531,7 +531,7 @@ gt_app_init(GtApp* self)
     priv->user_info->id = g_settings_get_string(self->settings, "user-id");
     priv->user_info->name = g_settings_get_string(self->settings, "user-name");
 
-    if (gt_app_credentials_valid(self))
+    if (gt_app_is_logged_in(self))
     {
         gt_twitch_fetch_user_info_async(self->twitch, priv->user_info->oauth_token,
             user_info_cb, NULL, self);
@@ -556,7 +556,7 @@ gt_app_set_user_info(GtApp* self, GtUserInfo* info)
     g_settings_set_string(self->settings, "user-id", info->id);
     g_settings_set_string(self->settings, "user-name", info->name);
 
-    if (gt_app_credentials_valid(self))
+    if (gt_app_is_logged_in(self))
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 }
 
@@ -570,9 +570,8 @@ gt_app_get_user_info(GtApp* self)
     return priv->user_info;
 }
 
-//TODO: Rename this to gt_app_is_logged_in
 gboolean
-gt_app_credentials_valid(GtApp* self)
+gt_app_is_logged_in(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 

@@ -89,7 +89,7 @@ logged_in_cb(GObject* source,
 {
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
 
-    if (gt_app_credentials_valid(main_app))
+    if (gt_app_is_logged_in(main_app))
         gt_follows_manager_load_from_twitch(self);
 }
 
@@ -125,7 +125,7 @@ channel_followed_cb(GObject* source,
 
     if (followed)
     {
-        if (gt_app_credentials_valid(main_app))
+        if (gt_app_is_logged_in(main_app))
         {
             GError* error = NULL;
 
@@ -166,7 +166,7 @@ channel_followed_cb(GObject* source,
 
 //        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
 
-        if (gt_app_credentials_valid(main_app))
+        if (gt_app_is_logged_in(main_app))
         {
             GError* error = NULL;
 //            gt_twitch_unfollow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling

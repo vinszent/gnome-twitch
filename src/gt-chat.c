@@ -599,9 +599,9 @@ after_connected_cb(GObject* source,
     if (state == GT_IRC_STATE_CONNECTED)
     {
         gtk_widget_set_sensitive(priv->chat_entry,
-            gt_app_credentials_valid(main_app));
+            gt_app_is_logged_in(main_app));
         gtk_entry_set_placeholder_text(GTK_ENTRY(priv->chat_entry),
-            gt_app_credentials_valid(main_app)
+            gt_app_is_logged_in(main_app)
             ? _("Send a message") : _("Please login to chat"));
     }
 }
@@ -621,7 +621,7 @@ irc_state_changed_cb(GObject* source,
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->connecting_revealer),
         state != GT_IRC_STATE_JOINED);
     gtk_widget_set_sensitive(priv->chat_entry,
-        state == GT_IRC_STATE_JOINED && gt_app_credentials_valid(main_app));
+        state == GT_IRC_STATE_JOINED && gt_app_is_logged_in(main_app));
 }
 
 static gboolean
