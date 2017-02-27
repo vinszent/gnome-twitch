@@ -77,7 +77,7 @@
                                                                         \
         WARNINGF("Unable to read JSON member with name '%s' because: %s", name, e->message);   \
                                                                         \
-        goto json_error;                                                \
+        goto error;                                                     \
     }                                                                   \
 
 #define READ_JSON_ELEMENT(i)                                            \
@@ -90,7 +90,7 @@
                                                                         \
         WARNINGF("Unable to read JSON element with position '%d' because: %s", i, e->message); \
                                                                         \
-        goto json_error;                                                \
+        goto error;                                                     \
     }                                                                   \
 
 #define READ_JSON_VALUE(name, p)                                        \
@@ -112,7 +112,7 @@
                                                                         \
         WARNINGF("Unable to read JSON member with name '%s' because: %s", name, e->message); \
                                                                         \
-        goto json_error;                                                \
+        goto error;                                                     \
     }                                                                   \
     json_reader_end_member(reader);                                     \
 
@@ -142,7 +142,7 @@
                                                                         \
         WARNINGF("Unable to read JSON member with name '%s'", name);    \
                                                                         \
-        goto json_error;                                                \
+        goto error;                                                     \
     }                                                                   \
     json_reader_end_member(reader);                                     \
 
@@ -489,7 +489,7 @@ parse_channel(JsonReader* reader, GError** error)
 
     return data;
 
-json_error:
+error:
     gt_channel_data_free(data);
 
     return NULL;
@@ -504,7 +504,7 @@ parse_stream(JsonReader* reader, GError** error)
     data = parse_channel(reader, error);
     END_JSON_MEMBER();
 
-    if (*error) goto json_error;
+    if (*error) goto error;
 
     READ_JSON_VALUE_NULL("game", data->game, NULL);
     READ_JSON_VALUE("viewers", data->viewers);
@@ -517,7 +517,7 @@ parse_stream(JsonReader* reader, GError** error)
 
     return data;
 
-json_error:
+error:
     gt_channel_data_free(data);
 
     return NULL;
@@ -549,7 +549,7 @@ parse_game(JsonReader* reader, GError** error)
 
     return data;
 
-json_error:
+error:
     gt_game_data_free(data);
 
     return NULL;
@@ -581,10 +581,9 @@ gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** err
     READ_JSON_VALUE("sig", ret->sig);
     READ_JSON_VALUE("token", ret->token);
 
-error:
     return ret;
 
-json_error:
+error:
     gt_twitch_stream_access_token_free(ret);
 
     return NULL;
@@ -757,7 +756,6 @@ gt_twitch_top_channels(GtTwitch* self, gint n, gint offset,
     return ret;
 
 error:
-json_error:
     gt_channel_list_free(ret);
 
     return NULL;
@@ -887,7 +885,6 @@ gt_twitch_top_games(GtTwitch* self,
     return ret;
 
 error:
-json_error:
     gt_game_list_free(ret);
 
     return NULL;
@@ -1023,7 +1020,6 @@ gt_twitch_search_channels(GtTwitch* self, const gchar* query, gint n, gint offse
     return ret;
 
 error:
-json_error:
     gt_channel_list_free(ret);
 
     return NULL;
@@ -1147,7 +1143,6 @@ gt_twitch_search_games(GtTwitch* self,
     return ret;
 
 error:
-json_error:
     gt_game_list_free(ret);
 
     return NULL;
@@ -1291,7 +1286,6 @@ gt_twitch_fetch_channel_data(GtTwitch* self, const gchar* id, GError** error)
     return ret;
 
 error:
-json_error:
 
     gt_channel_data_free(ret);
 
@@ -1537,7 +1531,6 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
     END_JSON_MEMBER();
 
 error:
-json_error:
     return;
 }
 
@@ -1874,7 +1867,6 @@ gt_twitch_chat_servers(GtTwitch* self,
     return ret;
 
 error:
-json_error:
     g_list_free_full(ret, g_free);
 
     return NULL;
@@ -1927,7 +1919,6 @@ fetch_followed_streams(GtTwitch* self, const gchar* oauth_token,
     return ret;
 
 error:
-json_error:
     gt_channel_data_list_free(ret);
 
     return NULL;
@@ -1981,7 +1972,6 @@ fetch_followed_channels(GtTwitch* self, const gchar* id,
     return ret;
 
 error:
-json_error:
     gt_channel_data_list_free(ret);
 
     return NULL;
@@ -2356,7 +2346,6 @@ gt_twitch_emoticons(GtTwitch* self,
     return ret;
 
 error:
-json_error:
     gt_chat_emote_list_free(ret);
 
     return NULL;
@@ -2449,7 +2438,6 @@ gt_twitch_fetch_user_info(GtTwitch* self,
     return ret;
 
 error:
-json_error:
     gt_user_info_free(ret);
 
     return NULL;
