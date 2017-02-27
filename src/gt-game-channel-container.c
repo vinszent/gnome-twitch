@@ -63,7 +63,8 @@ fetch_items(GTask* task,
 
     //TODO: Check for error
     GList* items = gt_twitch_top_channels(main_app->twitch,
-        data->amount, data->offset, priv->game, &err);
+        data->amount, data->offset, priv->game,
+        gt_app_get_language_filter(main_app), &err);
 
     if (err)
         g_task_return_error(task, err);

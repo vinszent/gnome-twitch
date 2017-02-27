@@ -15,6 +15,7 @@ G_DECLARE_FINAL_TYPE(GtTwitch, gt_twitch, GT, TWITCH, GObject)
 
 #define NO_GAME ""
 #define NO_TIMESTAMP -1
+#define ALL_LANGUAGES ""
 
 typedef enum _GtTwitchError
 {
@@ -99,8 +100,8 @@ const GtTwitchStreamData*        gt_twitch_stream_list_filter_quality(GList* lis
 GList*                     gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error);
 void                       gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_all_streams_finish(GtTwitch* self, GAsyncResult* result, GError** error);
-GList*                     gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, gchar* game, GError** error);
-void                       gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, gchar* game, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
+GList*                     gt_twitch_top_channels(GtTwitch* self, gint n, gint offset, const gchar* game, const gchar* language, GError** error);
+void                       gt_twitch_top_channels_async(GtTwitch* self, gint n, gint offset, const gchar* game, const gchar* language, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_top_games(GtTwitch* self, gint n, gint offset, GError** error);
 void                       gt_twitch_top_games_async(GtTwitch* self, gint n, gint offset, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_top_games_finish(GtTwitch* self, GAsyncResult* result, GError** error);
