@@ -198,6 +198,16 @@ utils_str_empty(const gchar* str)
     return !(str && strlen(str) > 0);
 }
 
+gchar*
+utils_str_capitalise(const gchar* str)
+{
+    g_assert_false(utils_str_empty(str));
+
+    gchar* ret = g_strdup_printf("%c%s", g_ascii_toupper(*str), str+1);
+
+    return ret;
+}
+
 typedef struct
 {
     gpointer instance;

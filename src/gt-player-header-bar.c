@@ -153,6 +153,7 @@ player_playing_cb(GObject* source,
         GtkWidget* button;
         GtTwitchStreamData* stream_data;
         GVariant* target_variant;
+        g_autofree gchar* quality_text;
 
         button = gtk_model_button_new();
 
@@ -162,12 +163,13 @@ player_playing_cb(GObject* source,
 
         target_variant = g_variant_new_string(stream_data->quality);
 
+        quality_text = utils_str_capitalise(stream_data->quality);
+
         g_object_set(button,
             "visible", TRUE,
             "action-name", "player.set_stream_quality",
             "action-target", target_variant,
-            "text", stream_data->quality,
-//            "text", g_dgettext("gnome-twitch", stream_data->quality), //TODO: This needs to be capitalised
+            "text", g_dgettext("gnome-twitch", quality_text),
             NULL);
 
         gtk_container_add(GTK_CONTAINER(priv->stream_quality_box), button);
