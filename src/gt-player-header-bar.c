@@ -18,6 +18,7 @@ typedef struct
     GtkWidget* back_button;
     GtkWidget* back_separator;
     GtkWidget* volume_button;
+    GtkWidget* stream_quality_box;
 
     GMenu* hamburger_menu;
 
@@ -100,8 +101,7 @@ mute_volume_cb(GtkWidget* button,
 
 static void
 player_channel_set_cb(GObject* source,
-                      GParamSpec* spec,
-                      gpointer udata)
+    GParamSpec* spec, gpointer udata)
 {
     GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
     GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
@@ -110,7 +110,9 @@ player_channel_set_cb(GObject* source,
     gchar* status;
     GtChannel* chan;
 
-    g_object_get(win->player, "channel", &chan, NULL);
+    g_assert(GT_IS_WIN(win));
+
+    chan = gt_player_get_channel(win->player);
 
     if (chan)
     {
@@ -122,9 +124,53 @@ player_channel_set_cb(GObject* source,
         gtk_label_set_label(GTK_LABEL(priv->status_label), status);
         gtk_label_set_label(GTK_LABEL(priv->name_label), name);
 
-        g_object_unref(chan);
         g_free(name);
         g_free(status);
+    }
+}
+
+static void
+player_playing_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    g_assert(GT_IS_PLAYER_HEADER_BAR(udata));
+
+    GtPlayerHeaderBar* self = GT_PLAYER_HEADER_BAR(udata);
+    GtPlayerHeaderBarPrivate* priv = gt_player_header_bar_get_instance_private(self);
+    GList* stream_qualities = NULL;
+    GtWin* win = GT_WIN_TOPLEVEL(self);
+
+    g_assert(GT_IS_WIN(win));
+
+    if (!gt_player_is_playing(win->player)) return;
+
+    stream_qualities = gt_player_get_available_stream_qualities(win->player);
+
+    utils_container_clear(GTK_CONTAINER(priv->stream_quality_box));
+
+    for (GList* l = stream_qualities; l != NULL; l = l->next)
+    {
+        GtkWidget* button;
+        GtTwitchStreamData* stream_data;
+        GVariant* target_variant;
+
+        button = gtk_model_button_new();
+
+        stream_data = l->data;
+
+        g_assert_nonnull(stream_data);
+
+        target_variant = g_variant_new_string(stream_data->quality);
+
+        g_object_set(button,
+            "visible", TRUE,
+            "action-name", "player.set_stream_quality",
+            "action-target", target_variant,
+            "text", stream_data->quality,
+//            "text", g_dgettext("gnome-twitch", stream_data->quality), //TODO: This needs to be capitalised
+            NULL);
+
+        gtk_container_add(GTK_CONTAINER(priv->stream_quality_box), button);
     }
 }
 
@@ -196,6 +242,7 @@ realise_cb(GtkWidget* widget,
 
     g_signal_connect(win->player, "notify::chat-visible", G_CALLBACK(chat_visible_cb), self);
     g_signal_connect(win->player, "notify::channel", G_CALLBACK(player_channel_set_cb), self);
+    g_signal_connect(win->player, "notify::playing", G_CALLBACK(player_playing_cb), self);
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 
     player_channel_set_cb(NULL, NULL, self);
@@ -227,6 +274,7 @@ gt_player_header_bar_class_init(GtPlayerHeaderBarClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, show_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, back_separator);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayerHeaderBar, stream_quality_box);
 }
 
 static void

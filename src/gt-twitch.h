@@ -23,15 +23,12 @@ typedef enum _GtTwitchError
     GT_TWITCH_ERROR_MISC,
 } GtTwitchError;
 
-typedef enum _GtTwitchStreamQuality
-{
-    GT_TWITCH_STREAM_QUALITY_SOURCE,
-    GT_TWITCH_STREAM_QUALITY_HIGH,
-    GT_TWITCH_STREAM_QUALITY_MEDIUM,
-    GT_TWITCH_STREAM_QUALITY_LOW,
-    GT_TWITCH_STREAM_QUALITY_MOBILE,
-    GT_TWITCH_STREAM_QUALITY_AUDIO_ONLY
-} GtTwitchStreamQuality;
+#define GT_TWITCH_STREAM_QUALITY_SOURCE "source"
+#define GT_TWITCH_STREAM_QUALITY_HIGH "high"
+#define GT_TWITCH_STREAM_QUALITY_MEDIUM "medium"
+#define GT_TWITCH_STREAM_QUALITY_LOW "low"
+#define GT_TWITCH_STREAM_QUALITY_MOBILE "mobile"
+#define GT_TWITCH_STREAM_QUALITY_AUDIO_ONLY "audio_only"
 
 struct _GtTwitch
 {
@@ -45,12 +42,15 @@ typedef struct _GtTwitchStreamAccessToken
     gchar* sig;
 } GtTwitchStreamAccessToken;
 
+//NOTE: Default qualities are source, high, medium, low, mobile,
+//audio_only
+
 typedef struct _GtTwitchStreamData
 {
     gint width;
     gint height;
     glong bandwidth;
-    GtTwitchStreamQuality quality;
+    gchar* quality;
     gchar* url;
 } GtTwitchStreamData;
 
@@ -95,7 +95,7 @@ GtTwitch*                  gt_twitch_new();
 void                       gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token);
 GtTwitchStreamAccessToken* gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** error);
 void                       gt_twitch_stream_access_token_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-GtTwitchStreamData*        gt_twitch_stream_list_filter_quality(GList* list, GtTwitchStreamQuality qual);
+const GtTwitchStreamData*        gt_twitch_stream_list_filter_quality(GList* list, const gchar* quality);
 GList*                     gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error);
 void                       gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_all_streams_finish(GtTwitch* self, GAsyncResult* result, GError** error);

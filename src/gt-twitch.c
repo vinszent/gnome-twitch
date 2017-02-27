@@ -378,20 +378,19 @@ static GList*
 parse_playlist(const gchar* playlist)
 {
     GList* ret = NULL;
-    gchar** lines = g_strsplit(playlist, "\n", 0);
+    g_auto(GStrv) lines = g_strsplit(playlist, "\n", 0);
 
     for (gchar** l = lines; *l != NULL; l++)
     {
         if (strncmp(*l, STREAM_INFO, strlen(STREAM_INFO)) == 0)
         {
             GtTwitchStreamData* stream = g_malloc0(sizeof(GtTwitchStreamData));
-            ret = g_list_append(ret, stream);
 
-            gchar** values = g_strsplit(*l, ",", 0);
+            g_auto(GStrv) values = g_strsplit(*l, ",", 0);
 
             for (gchar** m = values; *m != NULL; m++)
             {
-                gchar** split = g_strsplit(*m, "=", 0);
+                g_auto(GStrv) split = g_strsplit(*m, "=", 0);
 
                 if (strcmp(*split, "BANDWIDTH") == 0)
                 {
@@ -408,32 +407,38 @@ parse_playlist(const gchar* playlist)
                 }
                 else if (strcmp(*split, "VIDEO") == 0)
                 {
-                    if (strcmp(*(split+1), "\"chunked\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_SOURCE;
-                    else if (strcmp(*(split+1), "\"high\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_HIGH;
-                    else if (strcmp(*(split+1), "\"medium\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_MEDIUM;
-                    else if (strcmp(*(split+1), "\"low\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_LOW;
-                    else if (strcmp(*(split+1), "\"mobile\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_MOBILE;
-                    else if (strcmp(*(split+1), "\"audio_only\"") == 0)
-                        stream->quality = GT_TWITCH_STREAM_QUALITY_AUDIO_ONLY;
-                }
+                    //TODO: Replace these with an error
+                    g_assert(g_str_has_prefix(*(split+1), "\""));
+                    g_assert(g_str_has_suffix(*(split+1), "\""));
 
-                g_strfreev(split);
+                    //NOTE: quality isn't const but still shouldn't be freed,
+                    //it will be freed when split is freed.
+                    gchar* quality = *(split+1)+1;
+                    quality[strlen(quality) - 1] = '\0';
+
+                    if (STRING_EQUALS(quality, "chunked"))
+                        stream->quality = g_strdup("source");
+                    else if (STRING_EQUALS(quality, "audio_only")) //NOTE: Remove audio only streams
+                    {
+                        gt_twitch_stream_data_free(stream);
+
+                        stream = NULL;
+
+                        goto next;
+                    }
+                    else
+                        stream->quality = g_strdup(quality);
+                }
             }
 
             l++;
 
             stream->url = g_strdup(*l);
 
-            g_strfreev(values);
+        next:
+            if (stream) ret = g_list_append(ret, stream);
         }
     }
-
-    g_strfreev(lines);
 
     return ret;
 }
@@ -657,11 +662,9 @@ gt_twitch_all_streams_finish(GtTwitch* self, GAsyncResult* result, GError** erro
     return ret;
 }
 
-
-//TODO: Remove use of this function
-GtTwitchStreamData*
+const GtTwitchStreamData*
 gt_twitch_stream_list_filter_quality(GList* list,
-    GtTwitchStreamQuality qual)
+    const gchar* quality)
 {
     GtTwitchStreamData* ret = NULL;
 
@@ -669,12 +672,17 @@ gt_twitch_stream_list_filter_quality(GList* list,
     {
         ret = (GtTwitchStreamData*) l->data;
 
-        if (ret->quality == qual)
+        if (STRING_EQUALS(ret->quality, quality))
             break;
+        else
+            ret = NULL;
     }
 
-    list = g_list_remove(list, ret);
-    gt_twitch_stream_data_list_free(list);
+    if (!ret)
+    {
+        ret = list->data;
+        g_assert_nonnull(ret);
+    }
 
     return ret;
 }
@@ -1192,6 +1200,7 @@ gt_twitch_search_games_finish(GtTwitch* self,
 void
 gt_twitch_stream_data_free(GtTwitchStreamData* data)
 {
+    g_free(data->quality);
     g_free(data->url);
     g_free(data);
 }

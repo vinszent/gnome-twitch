@@ -273,43 +273,9 @@
           </object>
         </child>
         <child>
-          <object class="GtkModelButton">
-            <property name="visible">True</property>
-            <property name="action-name">player.set_quality</property>
-            <property name="action-target">'source'</property>
-            <property name="text" translatable="yes">Source</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="visible">True</property>
-            <property name="action-name">player.set_quality</property>
-            <property name="action-target">'high'</property>
-            <property name="text" translatable="yes">High</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="visible">True</property>
-            <property name="action-name">player.set_quality</property>
-            <property name="action-target">'medium'</property>
-            <property name="text" translatable="yes">Medium</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="visible">True</property>
-            <property name="action-name">player.set_quality</property>
-            <property name="action-target">'low'</property>
-            <property name="text" translatable="yes">Low</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="visible">True</property>
-            <property name="action-name">player.set_quality</property>
-            <property name="action-target">'mobile'</property>
-            <property name="text" translatable="yes">Mobile</property>
+          <object class="GtkBox" id="stream_quality_box">
+            <property name="visible">true</property>
+            <property name="orientation">vertical</property>
           </object>
         </child>
       </object>

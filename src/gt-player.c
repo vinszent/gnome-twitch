@@ -31,7 +31,7 @@ typedef struct
 {
     GSimpleActionGroup* action_group;
 
-    GtTwitchStreamQuality quality;
+    gchar* quality;
 
     GtChatViewSettings* chat_settings;
 
@@ -52,6 +52,8 @@ typedef struct
     PeasPluginInfo* backend_info;
 
     GtChannel* channel;
+
+    GList* stream_qualities;
 
     gdouble volume;
     gdouble prev_volume;
@@ -85,6 +87,7 @@ enum
     PROP_CHAT_OPACITY,
     PROP_DOCKED_HANDLE_POSITION,
     PROP_EDIT_CHAT,
+    PROP_STREAM_QUALITY,
     NUM_PROPS
 };
 
@@ -648,6 +651,9 @@ set_property(GObject* obj,
             priv->edit_chat = g_value_get_boolean(val);
             update_edit_chat(self);
             break;
+        case PROP_STREAM_QUALITY:
+            gt_player_set_quality(self, g_value_get_string(val));
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
 
@@ -695,6 +701,9 @@ get_property(GObject* obj,
         case PROP_EDIT_CHAT:
             g_value_set_boolean(val, priv->edit_chat);
             break;
+        case PROP_STREAM_QUALITY:
+            g_value_set_string(val, priv->quality);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -711,14 +720,11 @@ streams_list_cb(GObject* source,
 
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    GList* streams = NULL;
-    GtTwitchStreamData* stream;
-    GtTwitchStreamQuality default_quality;
+    const GtTwitchStreamData* stream_data;
     GError* err = NULL;
 
-    streams = gt_twitch_all_streams_finish(GT_TWITCH(source), res, &err);
+    priv->stream_qualities = gt_twitch_all_streams_finish(GT_TWITCH(source), res, &err);
 
-    //TODO: Replace player with some kind of error image
     if (err)
     {
         GtWin* win = GT_WIN_TOPLEVEL(self);
@@ -736,10 +742,16 @@ streams_list_cb(GObject* source,
         return;
     }
 
-    stream = gt_twitch_stream_list_filter_quality(streams, priv->quality);
+    stream_data = gt_twitch_stream_list_filter_quality(priv->stream_qualities, priv->quality);
+
+    //NOTE: Incase we get back a different quality from what we asked for
+    //eg. when then quality doesn't exist, so we get the first one (normally source)
+    g_free(priv->quality);
+    priv->quality = g_strdup(stream_data->quality);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_QUALITY]);
 
     g_object_set(self, "playing", FALSE, NULL);
-    g_object_set(priv->backend, "uri", stream->url, NULL);
+    g_object_set(priv->backend, "uri", stream_data->url, NULL);
     g_object_set(self, "playing", TRUE, NULL);
 
     priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
@@ -781,27 +793,6 @@ realize_cb(GtkWidget* widget,
 
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
     g_signal_connect(win, "size-allocate", G_CALLBACK(scale_chat_cb), self);
-}
-
-static void
-set_quality_action_cb(GSimpleAction* action,
-                      GVariant* arg,
-                      gpointer udata)
-{
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    GEnumClass* eclass;
-    GEnumValue* eval;
-
-    eclass = g_type_class_ref(GT_TYPE_TWITCH_STREAM_QUALITY);
-    eval = g_enum_get_value_by_nick(eclass, g_variant_get_string(arg, NULL));
-
-    if (eval->value != priv->quality)
-        gt_player_set_quality(self, eval->value);
-
-    g_simple_action_set_state(action, arg);
-
-    g_type_class_unref(eclass);
 }
 
 static gboolean
@@ -967,6 +958,9 @@ gt_player_class_init(GtPlayerClass* klass)
     props[PROP_EDIT_CHAT] = g_param_spec_boolean("edit-chat", "Edit chat", "Whether to edit chat",
         FALSE, G_PARAM_READWRITE);
 
+    props[PROP_STREAM_QUALITY] = g_param_spec_string("stream-quality", "Stream quality", "Current stream quality",
+        NULL, G_PARAM_READWRITE);
+
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-player.ui");
@@ -981,12 +975,6 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, reload_button);
 }
-
-static GActionEntry actions[] =
-{
-    //TODO: Make these GPropertyAction?
-    {"set_quality", NULL, "s", "'source'", set_quality_action_cb},
-};
 
 //Target -> source
 static gboolean
@@ -1046,8 +1034,6 @@ gt_player_init(GtPlayer* self)
     g_object_ref(priv->chat_view); //TODO: Unref in finalise
 
     priv->action_group = g_simple_action_group_new();
-    g_action_map_add_action_entries(G_ACTION_MAP(priv->action_group), actions,
-                                    G_N_ELEMENTS(actions), self);
 
     action = g_property_action_new("show_chat", self, "chat-visible");
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
@@ -1062,6 +1048,10 @@ gt_player_init(GtPlayer* self)
     g_object_unref(action);
 
     action = g_property_action_new("edit_chat", self, "edit-chat");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
+
+    action = g_property_action_new("set_stream_quality", self, "stream-quality");
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
     g_object_unref(action);
 
@@ -1129,10 +1119,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     const gchar* name = gt_channel_get_name(chan);
-    gchar* token;
-    gchar* sig;
-    GVariant* default_quality;
-    GAction* quality_action;
 
     g_object_set(self, "channel", chan, NULL);
 
@@ -1156,13 +1142,10 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     gt_chat_connect(GT_CHAT(priv->chat_view), chan);
 
-    default_quality = g_settings_get_value(main_app->settings, "default-quality");
-    priv->quality = g_settings_get_enum(main_app->settings, "default-quality");
+    g_object_set(self, "stream-quality",
+        g_settings_get_string(main_app->settings, "default-quality"), NULL);
 
-    MESSAGEF("Opening stream '%s' with quality '%s'", name, g_variant_get_string(default_quality, NULL));
-
-    quality_action = g_action_map_lookup_action(G_ACTION_MAP(priv->action_group), "set_quality");
-    g_action_change_state(quality_action, default_quality);
+    MESSAGEF("Opening stream '%s' with quality '%s'", name, priv->quality);
 
     priv->chat_settings = g_hash_table_lookup(main_app->chat_settings_table, name);
     if (!priv->chat_settings)
@@ -1180,7 +1163,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     update_docked(self);
 
-    gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
+    /* gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self); */
 }
 
 void
@@ -1205,22 +1188,21 @@ gt_player_close_channel(GtPlayer* self)
 }
 
 void
-gt_player_set_quality(GtPlayer* self, GtTwitchStreamQuality qual)
+gt_player_set_quality(GtPlayer* self, const gchar* quality)
 {
+    g_assert(GT_IS_PLAYER(self));
+    g_assert_nonnull(quality);
+
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    gchar* name;
-    GtTwitchStreamData* stream_data;
-    GtChannel* chan;
+    const gchar* name;
 
-    g_object_get(self, "channel", &chan, NULL);
-    g_object_get(chan, "name", &name, NULL);
+    name = gt_channel_get_name(priv->channel);
 
-    priv->quality = qual;
+    g_free(priv->quality);
+
+    priv->quality = g_strdup(quality);
 
     gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
-
-    g_free(name);
-    g_object_unref(chan);
 }
 
 void
@@ -1240,4 +1222,25 @@ gt_player_get_channel(GtPlayer* self)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     return priv->channel;
+}
+
+
+GList*
+gt_player_get_available_stream_qualities(GtPlayer* self)
+{
+    g_assert(GT_IS_PLAYER(self));
+
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    return priv->stream_qualities;
+}
+
+gboolean
+gt_player_is_playing(GtPlayer* self)
+{
+    g_assert(GT_IS_PLAYER(self));
+
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    return priv->playing;
 }
