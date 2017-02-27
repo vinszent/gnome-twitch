@@ -475,7 +475,7 @@ gt_app_class_init(GtAppClass* klass)
         "Logged in", "Whether logged in", FALSE, G_PARAM_READABLE);
 
     props[PROP_LANGUAGE_FILTER] = g_param_spec_string("language-filter", "Language filter", "Current language filter",
-        "", G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+        "", G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
