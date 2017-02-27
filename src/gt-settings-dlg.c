@@ -7,6 +7,7 @@ typedef struct
 {
     GtkWidget* prefer_dark_theme_button;
     GtkWidget* quality_combo;
+    GtkWidget* language_filter_combo;
     GtkWidget* settings_switcher;
     GtkWidget* players_view;
     GtkWidget* settings_stack;
@@ -101,6 +102,7 @@ gt_settings_dlg_class_init(GtSettingsDlgClass* klass)
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-settings-dlg.ui");
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, prefer_dark_theme_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, quality_combo);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, language_filter_combo);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_switcher);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, settings_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtSettingsDlg, players_view);
@@ -135,11 +137,14 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     priv->settings = g_settings_new("com.vinszent.GnomeTwitch");
 
     g_settings_bind(priv->settings, "prefer-dark-theme",
-                    priv->prefer_dark_theme_button, "active",
-                    G_SETTINGS_BIND_DEFAULT);
+        priv->prefer_dark_theme_button, "active",
+        G_SETTINGS_BIND_DEFAULT);
     g_settings_bind(priv->settings, "default-quality",
-                    priv->quality_combo, "active-id",
-                    G_SETTINGS_BIND_DEFAULT);
+        priv->quality_combo, "active-id",
+        G_SETTINGS_BIND_DEFAULT);
+    g_settings_bind(priv->settings, "language-filter",
+        priv->language_filter_combo, "active-id",
+        G_SETTINGS_BIND_DEFAULT);
 }
 
 void

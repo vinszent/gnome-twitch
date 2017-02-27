@@ -71,6 +71,55 @@
                     <property name="top-attach">1</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Language filter:</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="language_filter_combo">
+                    <property name="visible">true</property>
+                    <property name="halign">end</property>
+                    <items>
+                      <item id="" translatable="yes">All</item>
+                      <item id="da" translatable="no">Dansk</item>
+                      <item id="de" translatable="no">Deutsch</item>
+                      <item id="en" translatable="no">English</item>
+                      <item id="es" translatable="no">Español</item>
+                      <item id="es" translatable="no">Español</item>
+                      <item id="fr" translatable="no">Français</item>
+                      <item id="it" translatable="no">Italiano</item>
+                      <item id="ma" translatable="no">Magyar</item>
+                      <item id="no" translatable="no">Norsk</item>
+                      <item id="po" translatable="no">Polski</item>
+                      <item id="pt" translatable="no">Português</item>
+                      <item id="sk" translatable="no">Slovenčina</item>
+                      <item id="fi" translatable="no">Suomi</item>
+                      <item id="sv" translatable="no">Svenska</item>
+                      <item id="vi" translatable="no">Tiếng Việt</item>
+                      <item id="tr" translatable="no">Türkçe</item>
+                      <item id="cs" translatable="no">Čeština</item>
+                      <item id="el" translatable="no">Ελληνικά</item>
+                      <item id="bg" translatable="no">Български</item>
+                      <item id="ru" translatable="no">Русский</item>
+                      <item id="ar" translatable="no">العربية</item>
+                      <item id="th" translatable="no">ภาษาไทย</item>
+                      <item id="zh" translatable="no">中文 简体</item>
+                      <item id="jp" translatable="no">日本語</item>
+                      <item id="ko" translatable="no">한국어</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="name">general</property>
