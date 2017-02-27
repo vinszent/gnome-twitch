@@ -12,7 +12,7 @@
       <description>Default quality selected when opening a stream</description>
     </key>
     <key name="language-filter" type="s">
-      <default>'en'</default>
+      <default>''</default>
       <summary>Language filter</summary>
       <description>Language to filter by</description>
     </key>
