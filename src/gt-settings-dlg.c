@@ -145,8 +145,8 @@ gt_settings_dlg_init(GtSettingsDlg* self)
     GtkToolbar* toolbar = GTK_TOOLBAR(g_list_nth(children, 1)->data);
     GtkToolItem* item = gtk_tool_item_new();
     gtk_container_add(GTK_CONTAINER(item), gtk_link_button_new_with_label(
-            "https://github.com/vinszent/gnome-twitch/wiki/How-to-install-players",
-            _("How to install players")));
+            "https://github.com/vinszent/gnome-twitch/wiki/How-to-install-player-backends",
+            _("How to install player backends")));
     gtk_widget_show_all(GTK_WIDGET(item));
     gtk_toolbar_insert(toolbar, item, 0);
     g_list_free(children);
