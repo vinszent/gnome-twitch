@@ -523,7 +523,7 @@ gt_app_init(GtApp* self)
 
     g_free(plugin_dir);
 #else
-    plugin_dir = g_build_filename(GT_LIB_DIR "gnome-twitch",
+    plugin_dir = g_build_filename(GT_LIB_DIR, "gnome-twitch",
         "player-backends", NULL);
 
     peas_engine_add_search_path(self->players_engine, plugin_dir, NULL);
