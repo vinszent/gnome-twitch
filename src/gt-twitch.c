@@ -55,6 +55,7 @@
 #define USER_INFO_URI          "https://api.twitch.tv/kraken/user?oauth_token=%s"
 #define GLOBAL_CHAT_BADGES_URI "https://badges.twitch.tv/v1/badges/global/display"
 #define NEW_CHAT_BADGES_URI    "https://badges.twitch.tv/v1/badges/channels/%s/display"
+#define OAUTH_INFO_URI         "https://api.twitch.tv/kraken/?oauth_token=%s"
 
 #define STREAM_INFO "#EXT-X-STREAM-INF"
 
@@ -92,6 +93,30 @@
                                                                         \
         goto error;                                                     \
     }                                                                   \
+
+#define READ_JSON_ELEMENT_VALUE(i, p)                                   \
+    if (json_reader_read_element(reader, i))                            \
+    {                                                                   \
+        p = _Generic(p,                                                 \
+            gchar*: g_strdup(json_reader_get_string_value(reader)),     \
+            gint64: json_reader_get_int_value(reader),                  \
+            gdouble: json_reader_get_double_value(reader),              \
+            gboolean: json_reader_get_boolean_value(reader),            \
+            GDateTime*: parse_time(json_reader_get_string_value(reader))); \
+    }                                                                   \
+    else                                                                \
+    {                                                                   \
+        const GError* e = json_reader_get_error(reader);                \
+                                                                        \
+        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_JSON,       \
+            "Unable to read JSON element with position '%d' because: %s", i, e->message); \
+                                                                        \
+        WARNINGF("Unable to read JSON element with position '%d' because: %s", i, e->message); \
+                                                                        \
+        goto error;                                                     \
+    }                                                                   \
+    json_reader_end_element(reader);                                    \
+
 
 #define READ_JSON_VALUE(name, p)                                        \
     if (json_reader_read_member(reader, name))                          \
@@ -2139,13 +2164,13 @@ gt_twitch_follow_channel(GtTwitch* self,
 
     g_autoptr(SoupMessage) msg = NULL;
     g_autofree gchar* uri = NULL;
-    const GtUserInfo* user_info = NULL;
+    const GtOAuthInfo* oauth_info = NULL;
     GError* err = NULL;
 
-    user_info = gt_app_get_user_info(main_app);
+    oauth_info = gt_app_get_oauth_info(main_app);
 
     uri = g_strdup_printf(FOLLOW_CHANNEL_URI,
-        user_info->name, chan_name, user_info->oauth_token);
+        oauth_info->user_name, chan_name, oauth_info->oauth_token);
 
     msg = soup_message_new(SOUP_METHOD_PUT, uri);
 
@@ -2219,13 +2244,13 @@ gt_twitch_unfollow_channel(GtTwitch* self,
 
     g_autoptr(SoupMessage) msg = NULL;
     g_autofree gchar* uri = NULL;
-    const GtUserInfo* user_info = NULL;
+    const GtOAuthInfo* oauth_info = NULL;
     GError* err = NULL;
 
-    user_info = gt_app_get_user_info(main_app);
+    oauth_info = gt_app_get_oauth_info(main_app);
 
     uri = g_strdup_printf(UNFOLLOW_CHANNEL_URI,
-        user_info->name, chan_name, user_info->oauth_token);
+        oauth_info->user_name, chan_name, oauth_info->oauth_token);
 
     msg = soup_message_new(SOUP_METHOD_DELETE, uri);
 
@@ -2412,7 +2437,7 @@ gt_twitch_fetch_user_info(GtTwitch* self,
 
     reader = new_send_message_json(self, msg, &err);
 
-    CHECK_AND_PROPAGATE_ERROR("Unable to get oauth info");
+    CHECK_AND_PROPAGATE_ERROR("Unable to get user info");
 
     ret = gt_user_info_new();
 
@@ -2491,6 +2516,113 @@ gt_twitch_fetch_user_info_finish(GtTwitch* self,
     g_assert(G_IS_ASYNC_RESULT(result));
 
     GtUserInfo* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
+
+GtOAuthInfo*
+gt_twitch_fetch_oauth_info(GtTwitch* self,
+    const gchar* oauth_token, GError** error)
+
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(oauth_token));
+
+    g_autoptr(SoupMessage) msg = NULL;
+    g_autoptr(JsonReader) reader;
+    g_autofree gchar* uri = NULL;
+    GtOAuthInfo* ret = NULL;
+    GError* err = NULL;
+    gint num_scopes;
+
+    uri = g_strdup_printf(OAUTH_INFO_URI, oauth_token);
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    reader = new_send_message_json(self, msg, &err);
+
+    CHECK_AND_PROPAGATE_ERROR("Unable to get oauth info");
+
+    ret = gt_oauth_info_new();
+
+    ret->oauth_token = g_strdup(oauth_token);
+
+    READ_JSON_MEMBER("token");
+    READ_JSON_VALUE("user_id", ret->user_id);
+    READ_JSON_VALUE("user_name", ret->user_name);
+    READ_JSON_VALUE("client_id", ret->client_id);
+    READ_JSON_VALUE("valid", ret->valid);
+    READ_JSON_MEMBER("authorization");
+    READ_JSON_VALUE("created_at", ret->created_at);
+    READ_JSON_VALUE("created_at", ret->updated_at);
+    READ_JSON_MEMBER("scopes");
+    num_scopes = json_reader_count_elements(reader);
+    ret->scopes = g_malloc_n(num_scopes + 1, sizeof(gchar*));
+    for (gint i = 0; i < num_scopes; i++)
+    {
+        READ_JSON_ELEMENT_VALUE(i, *(ret->scopes + i));
+    }
+    *(ret->scopes + num_scopes) = NULL;
+    END_JSON_MEMBER();
+    END_JSON_MEMBER();
+    END_JSON_MEMBER();
+
+    return ret;
+
+error:
+    gt_oauth_info_free(ret);
+
+    return NULL;
+}
+
+static void
+fetch_oauth_info_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
+{
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GError* err = NULL;
+    GenericTaskData* data = task_data;
+
+    GtOAuthInfo* ret = gt_twitch_fetch_oauth_info(GT_TWITCH(source), data->str_1, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) gt_oauth_info_free);
+}
+
+void
+gt_twitch_fetch_oauth_info_async(GtTwitch* self,
+    const gchar* oauth_token, GAsyncReadyCallback cb,
+    GCancellable* cancel, gpointer udata)
+{
+    g_assert(GT_IS_TWITCH(self));
+
+    GTask* task = NULL;
+    GenericTaskData* data = generic_task_data_new();
+
+    task = g_task_new(self, cancel, cb, udata);
+
+    data->str_1 = g_strdup(oauth_token);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, fetch_oauth_info_async_cb);
+
+    g_object_unref(task);
+}
+
+GtOAuthInfo*
+gt_twitch_fetch_oauth_info_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GtOAuthInfo* ret = g_task_propagate_pointer(G_TASK(result), error);
 
     return ret;
 }

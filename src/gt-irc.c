@@ -1040,7 +1040,7 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
     gint pos = 0;
     gchar host[20];
     gint port;
-    const GtUserInfo* info = NULL;
+    const GtOAuthInfo* info = NULL;
     GError* err = NULL;
 
     if (priv->state != GT_IRC_STATE_DISCONNECTED)
@@ -1069,11 +1069,11 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     g_signal_connect(self, "notify::state", G_CALLBACK(logged_in_cb), self);
 
-    info = gt_app_get_user_info(main_app);
+    info = gt_app_get_oauth_info(main_app);
 
     gt_irc_connect(self, host, port,
         info ? info->oauth_token : NULL,
-        info ? info->name : NULL);
+        info ? info->user_name : NULL);
 
     g_list_free_full(servers, g_free);
 }

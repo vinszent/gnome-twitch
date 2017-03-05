@@ -54,6 +54,18 @@ typedef struct
     } notifications;
 } GtUserInfo;
 
+typedef struct
+{
+    gboolean valid;
+    gchar* oauth_token;
+    gchar* user_name;
+    gchar* user_id;
+    gchar* client_id;
+    GStrv scopes;
+    GDateTime* created_at;
+    GDateTime* updated_at;
+} GtOAuthInfo;
+
 #include "gt-twitch.h"
 
 struct _GtApp
@@ -90,14 +102,18 @@ extern GtApp* main_app;
 extern gchar* ORIGINAL_LOCALE;
 extern gint LOG_LEVEL;
 extern gboolean NO_FANCY_LOGGING;
+extern const gchar* TWITCH_AUTH_SCOPES[];
 
 gboolean gt_app_is_logged_in(GtApp* self);
-void gt_app_set_user_info(GtApp* self, GtUserInfo* info);
+void gt_app_set_oauth_info(GtApp* self, GtOAuthInfo* info);
 const GtUserInfo* gt_app_get_user_info(GtApp* self);
+const GtOAuthInfo* gt_app_get_oauth_info(GtApp* self);
 const gchar* gt_app_get_language_filter(GtApp* self);
 
 GtUserInfo*       gt_user_info_new();
 void              gt_user_info_free(GtUserInfo* info);
+GtOAuthInfo*      gt_oauth_info_new();
+void              gt_oauth_info_free(GtOAuthInfo* info);
 
 G_END_DECLS
 

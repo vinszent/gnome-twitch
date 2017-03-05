@@ -517,10 +517,10 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 {
     g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
 
-    const GtUserInfo* info = gt_app_get_user_info(main_app);
+    const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
 
     gt_twitch_fetch_all_followed_channels_async(main_app->twitch,
-        info->id, info->oauth_token, NULL, follows_all_cb, self);
+        info->user_id, info->oauth_token, NULL, follows_all_cb, self);
 }
 
 void

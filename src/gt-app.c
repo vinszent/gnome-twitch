@@ -38,6 +38,7 @@ typedef struct
     GtWin* win;
 
     GtUserInfo* user_info;
+    GtOAuthInfo* oauth_info;
     GMenuItem* login_item;
     GMenuModel* app_menu;
 
@@ -47,6 +48,15 @@ typedef struct
 gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
 gboolean NO_FANCY_LOGGING = FALSE;
 gboolean VERSION = FALSE;
+
+const gchar* TWITCH_AUTH_SCOPES[] =
+{
+    "chat_login",
+    "user_follows_edit",
+    "user_read",
+    NULL
+};
+
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtApp, gt_app, GTK_TYPE_APPLICATION)
 
@@ -122,6 +132,40 @@ gt_chat_view_settings_new()
 }
 
 static void
+oauth_info_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    g_assert(GT_IS_APP(udata));
+    g_assert(GT_IS_TWITCH(source));
+
+    GtApp* self = GT_APP(udata);
+    GError* err = NULL;
+
+    GtOAuthInfo* oauth_info = gt_twitch_fetch_oauth_info_finish(GT_TWITCH(source), res, &err);
+
+    if (err)
+    {
+        WARNING("Unable to update oauth info because: %s", err->message);
+
+        GtWin* win = GT_WIN_ACTIVE;
+
+        g_assert(GT_IS_WIN(win));
+
+        gt_win_show_error_message(win, "Unable to update oauth info",
+            "Unable to update oauth info because: %s", err->message);
+
+        g_error_free(err);
+
+        return;
+    }
+
+    gt_app_set_oauth_info(self, oauth_info);
+
+    MESSAGE("Succesfully fetched oauth info with name '%s', id '%s' and oauth token '%s'",
+        oauth_info->user_name, oauth_info->user_id, oauth_info->oauth_token);
+}
+
+static void
 user_info_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
@@ -129,6 +173,7 @@ user_info_cb(GObject* source,
     g_assert(GT_IS_TWITCH(source));
 
     GtApp* self = GT_APP(udata);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
     GError* err = NULL;
 
     GtUserInfo* user_info = gt_twitch_fetch_user_info_finish(GT_TWITCH(source), res, &err);
@@ -149,7 +194,7 @@ user_info_cb(GObject* source,
         return;
     }
 
-    gt_app_set_user_info(self, user_info);
+    priv->user_info = user_info;
 
     MESSAGE("Succesfully fetched user info with name '%s', id '%s' and oauth token '%s'",
         user_info->name, user_info->id, user_info->oauth_token);
@@ -449,7 +494,7 @@ get_property (GObject* obj, guint prop,
     switch (prop)
     {
         case PROP_LOGGED_IN:
-            g_value_set_boolean(val, priv->user_info != NULL);
+            g_value_set_boolean(val, priv->oauth_info != NULL);
             break;
         case PROP_LANGUAGE_FILTER:
             g_value_set_string(val, priv->language_filter);
@@ -503,7 +548,7 @@ gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    priv->user_info = gt_user_info_new();
+    priv->oauth_info = gt_oauth_info_new();
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
@@ -545,14 +590,15 @@ gt_app_init(GtApp* self)
         self, "language-filter",
         G_SETTINGS_BIND_GET);
 
-    priv->user_info->oauth_token = g_settings_get_string(self->settings, "oauth-token");
-    priv->user_info->id = g_settings_get_string(self->settings, "user-id");
-    priv->user_info->name = g_settings_get_string(self->settings, "user-name");
+    priv->oauth_info->oauth_token = g_settings_get_string(self->settings, "oauth-token");
+    priv->oauth_info->user_id = g_settings_get_string(self->settings, "user-id");
+    priv->oauth_info->user_name = g_settings_get_string(self->settings, "user-name");
 
+    //NOTE: Refresh oauth info
     if (gt_app_is_logged_in(self))
     {
-        gt_twitch_fetch_user_info_async(self->twitch, priv->user_info->oauth_token,
-            user_info_cb, NULL, self);
+        gt_twitch_fetch_oauth_info_async(self->twitch, priv->oauth_info->oauth_token,
+            oauth_info_cb, NULL, self);
     }
 
     g_signal_connect(self, "notify::logged-in", G_CALLBACK(logged_in_cb), self);
@@ -561,21 +607,42 @@ gt_app_init(GtApp* self)
 
 //TODO: Turn this into a property
 void
-gt_app_set_user_info(GtApp* self, GtUserInfo* info)
+gt_app_set_oauth_info(GtApp* self, GtOAuthInfo* info)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    if (priv->user_info)
-        gt_user_info_free(priv->user_info);
+    if (priv->oauth_info)
+        gt_oauth_info_free(priv->oauth_info);
 
-    priv->user_info = info;
+    priv->oauth_info = info;
+
+    for (gchar** s = (gchar**) TWITCH_AUTH_SCOPES; *s != NULL; s++)
+    {
+        if (!g_strv_contains((const gchar**) info->scopes, *s))
+        {
+            GtWin* win = GT_WIN_ACTIVE;
+
+            g_assert(GT_IS_WIN(win));
+
+            WARNING("Unable to update oauth info because the auth scope '%s' was not included", *s);
+
+            gt_win_show_error_message(win, "Unable to update oauth info, try refreshing your login",
+                "Unable to update oauth info because the auth scope '%s' was not included", *s);
+
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+
+            return;
+        }
+    }
 
     g_settings_set_string(self->settings, "oauth-token", info->oauth_token);
-    g_settings_set_string(self->settings, "user-id", info->id);
-    g_settings_set_string(self->settings, "user-name", info->name);
+    g_settings_set_string(self->settings, "user-id", info->user_id);
+    g_settings_set_string(self->settings, "user-name", info->user_name);
 
-    if (gt_app_is_logged_in(self))
-        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
+    gt_twitch_fetch_user_info_async(self->twitch, priv->oauth_info->oauth_token,
+        user_info_cb, NULL, self);
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 }
 
 const GtUserInfo*
@@ -588,16 +655,26 @@ gt_app_get_user_info(GtApp* self)
     return priv->user_info;
 }
 
+const GtOAuthInfo*
+gt_app_get_oauth_info(GtApp* self)
+{
+    g_assert(GT_IS_APP(self));
+
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    return priv->oauth_info;
+}
+
 gboolean
 gt_app_is_logged_in(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     return
-        priv->user_info &&
-        !utils_str_empty(priv->user_info->oauth_token) &&
-        !utils_str_empty(priv->user_info->name) &&
-        !utils_str_empty(priv->user_info->id);
+        priv->oauth_info &&
+        !utils_str_empty(priv->oauth_info->oauth_token) &&
+        !utils_str_empty(priv->oauth_info->user_name) &&
+        !utils_str_empty(priv->oauth_info->user_id);
 }
 
 const gchar*
@@ -633,4 +710,26 @@ gt_user_info_free(GtUserInfo* info)
     if (info->updated_at) g_date_time_unref(info->updated_at);
 
     g_slice_free(GtUserInfo, info);
+}
+
+GtOAuthInfo*
+gt_oauth_info_new()
+{
+    return g_slice_new0(GtOAuthInfo);
+}
+
+void
+gt_oauth_info_free(GtOAuthInfo* info)
+{
+    if (!info) return;
+
+    g_free(info->user_name);
+    g_free(info->user_id);
+    g_free(info->client_id);
+    g_strfreev(info->scopes);
+
+    if (info->created_at) g_date_time_unref(info->created_at);
+    if (info->updated_at) g_date_time_unref(info->updated_at);
+
+    g_slice_free(GtOAuthInfo, info);
 }

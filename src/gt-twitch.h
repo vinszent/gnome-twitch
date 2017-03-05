@@ -165,6 +165,9 @@ void                       gt_chat_emote_list_free(GList* list);
 GtUserInfo*                gt_twitch_fetch_user_info(GtTwitch* self, const gchar* oauth_token, GError** error);
 void                       gt_twitch_fetch_user_info_async(GtTwitch* self, const gchar* oauth_token, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
 GtUserInfo*                gt_twitch_fetch_user_info_finish(GtTwitch* self, GAsyncResult* result, GError** error);
+GtOAuthInfo*               gt_twitch_fetch_oauth_info(GtTwitch* self, const gchar* oauth_token, GError** error);
+void                       gt_twitch_fetch_oauth_info_async(GtTwitch* self, const gchar* oauth_token, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
+GtOAuthInfo*               gt_twitch_fetch_oauth_info_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 
 G_END_DECLS
 
