@@ -245,7 +245,7 @@ send_cmd_printf(GOutputStream* ostream, const gchar* cmd, const gchar* format, .
     va_end(args);
 
     DEBUGF("Sending command='%s' on ostream='%s' with parameter='%s'",
-           cmd, (gchar*) g_object_get_data(G_OBJECT(ostream), "type"), param);
+        cmd, (gchar*) g_object_get_data(G_OBJECT(ostream), "type"), param);
 
     g_output_stream_printf(ostream, NULL, NULL, NULL, "%s %s%s", cmd, param, CR_LF);
 
@@ -980,7 +980,7 @@ void
 gt_irc_join(GtIrc* self, const gchar* channel)
 {
     GtIrcPrivate* priv = gt_irc_get_instance_private(self);
-    gchar* chan = NULL;
+    g_autofree gchar* chan = NULL;
 
     if (priv->state != GT_IRC_STATE_LOGGED_IN)
     {
@@ -1126,7 +1126,7 @@ gt_irc_privmsg(GtIrc* self, const gchar* msg)
         return;
     }
 
-    send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "%s :%s",
+    send_cmd_printf(priv->ostream_send, CHAT_CMD_STR_PRIVMSG, "#%s :%s",
         gt_channel_get_name(priv->chan), msg);
 }
 
