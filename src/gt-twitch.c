@@ -2449,7 +2449,7 @@ gt_twitch_fetch_user_info(GtTwitch* self,
     READ_JSON_VALUE_NULL("display_name", ret->display_name, NULL);
     READ_JSON_VALUE("email", ret->email);
     READ_JSON_VALUE("email_verified", ret->email_verified);
-    READ_JSON_VALUE("logo", ret->logo_url);
+    READ_JSON_VALUE_NULL("logo", ret->logo_url, NULL);
     READ_JSON_MEMBER("notifications");
     READ_JSON_VALUE("email", ret->notifications.email);
     READ_JSON_VALUE("push", ret->notifications.push);
