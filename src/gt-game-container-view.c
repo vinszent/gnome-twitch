@@ -98,7 +98,6 @@ refresh(GtContainerView* view)
     g_assert(GT_IS_ITEM_CONTAINER(container));
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(container));
-
 }
 
 static void

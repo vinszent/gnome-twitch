@@ -183,7 +183,7 @@ cache_update_cb(gpointer data,
     {
         set_banner(self, pic, TRUE);
 
-        INFO("Updated cache for channel with name '%s'", priv->data->name);
+        DEBUG("Updated cache for channel with name '%s'", priv->data->name);
     }
 }
 
@@ -281,10 +281,10 @@ download_banner(GtChannel* self)
         GdkPixbuf* banner = NULL;
 
         if (!g_file_test(priv->cache_filename, G_FILE_TEST_EXISTS))
-            INFO("Chache miss for channel with name '%s'", priv->data->name);
+            DEBUG("Chache miss for channel '%s'", priv->data->name);
         else
         {
-            INFO("Cache hit for channel with name '%s'", priv->data->name);
+            DEBUG("Cache hit for channel '%s'", priv->data->name);
             banner = gdk_pixbuf_new_from_file(priv->cache_filename, NULL);
             priv->cache_timestamp = utils_timestamp_file(priv->cache_filename);
         }
@@ -809,7 +809,7 @@ gt_channel_update(GtChannel* self)
 {
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
-    INFO("Initiating update for channel with id '%s' and name '%s'",
+    DEBUG("Initiating update for channel with id '%s' and name '%s'",
         priv->data->id, priv->data->name);
 
     g_free(priv->error_message);

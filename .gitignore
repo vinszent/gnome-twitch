@@ -11,3 +11,4 @@ po/*.mo
 compile_commands.json
 data/packages/rpm/obs
 TODO.org
+/twitch_api.rest

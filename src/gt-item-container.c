@@ -153,6 +153,9 @@ fetch_items(GtItemContainer* self)
     data->amount = amount;
     data->offset = priv->num_items;
 
+    INFO("Fetching '%d' items at offset '%d', currently have '%d' items",
+        data->amount, data->offset, priv->num_items);
+
     GTask* task = g_task_new(self, priv->cancel, fetch_items_cb, NULL);
     g_task_set_task_data(task, data, g_free);
     g_task_set_return_on_cancel(task, FALSE);
@@ -221,8 +224,7 @@ edge_reached_cb(GtkScrolledWindow* scroll,
 
 static void
 child_activated_cb(GtkFlowBox* box,
-    GtkFlowBoxChild* child,
-    gpointer udata)
+    GtkFlowBoxChild* child, gpointer udata)
 {
     GtItemContainer* self = GT_ITEM_CONTAINER(udata);
 
@@ -365,7 +367,7 @@ gt_item_container_refresh(GtItemContainer* self)
 
     g_assert(GT_IS_ITEM_CONTAINER(self));
 
-    DEBUG("Refreshing");
+    INFO("Refreshing");
 
     utils_container_clear(GTK_CONTAINER(priv->item_flow));
 

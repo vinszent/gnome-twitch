@@ -1344,7 +1344,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, G
             if ((last_modified = soup_message_headers_get_one(msg->response_headers, "Last-Modified")) != NULL &&
                 utils_http_full_date_to_timestamp(last_modified) < timestamp)
             {
-                INFO("No new content at url '%s'", url);
+                DEBUG("No new content at url '%s'", url);
 
                 return NULL;
             }
