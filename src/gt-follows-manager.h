@@ -27,11 +27,15 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_FOLLOWS_MANAGER (gt_follows_manager_get_type())
 
-G_DECLARE_FINAL_TYPE(GtFollowsManager, gt_follows_manager, GT, FOLLOWS_MANAGER, GObject)
+G_DECLARE_FINAL_TYPE(GtFollowsManager, gt_follows_manager, GT, FOLLOWS_MANAGER, GObject);
+
+typedef struct _GtFollowsManagerPrivate GtFollowsManagerPrivate;
 
 struct _GtFollowsManager
 {
     GObject parent_instance;
+
+    GtFollowsManagerPrivate* priv;
 
     GList* follow_channels;
 };

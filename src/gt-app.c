@@ -396,15 +396,11 @@ activate(GApplication* app)
 
     gtk_window_present(GTK_WINDOW(priv->win));
 
+    //TODO: Rethink this, this needs to be done because we need a
+    //window when loading settings
     if (!once)
     {
         load_chat_settings(self);
-
-        //TODO: Add a setting to allow user to use local follows even when logged in
-        if (gt_app_is_logged_in(self))
-            gt_follows_manager_load_from_twitch(self->fav_mgr);
-        else
-            gt_follows_manager_load_from_file(self->fav_mgr);
 
         once = TRUE;
     }
@@ -465,6 +461,14 @@ startup(GApplication* app)
 
     self->fav_mgr = gt_follows_manager_new();
 
+    //NOTE: This is to refresh oauth info
+    if (gt_app_is_logged_in(self))
+    {
+        gt_twitch_fetch_oauth_info_async(self->twitch, priv->oauth_info->oauth_token,
+            oauth_info_cb, NULL, self);
+    }
+    else
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOGGED_IN]);
 }
 
 static void
@@ -537,8 +541,8 @@ gt_app_class_init(GtAppClass* klass)
     props[PROP_LOGGED_IN] = g_param_spec_boolean("logged-in",
         "Logged in", "Whether logged in", FALSE, G_PARAM_READABLE);
 
-    props[PROP_LANGUAGE_FILTER] = g_param_spec_string("language-filter", "Language filter", "Current language filter",
-        "", G_PARAM_READWRITE);
+    props[PROP_LANGUAGE_FILTER] = g_param_spec_string("language-filter",
+        "Language filter", "Current language filter", "", G_PARAM_READWRITE);
 
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
@@ -594,15 +598,9 @@ gt_app_init(GtApp* self)
     priv->oauth_info->user_id = g_settings_get_string(self->settings, "user-id");
     priv->oauth_info->user_name = g_settings_get_string(self->settings, "user-name");
 
-    //NOTE: Refresh oauth info
-    if (gt_app_is_logged_in(self))
-    {
-        gt_twitch_fetch_oauth_info_async(self->twitch, priv->oauth_info->oauth_token,
-            oauth_info_cb, NULL, self);
-    }
-
     g_signal_connect(self, "notify::logged-in", G_CALLBACK(logged_in_cb), self);
     g_signal_connect(self, "handle-local-options", G_CALLBACK(handle_command_line_cb), self);
+
 }
 
 //TODO: Turn this into a property

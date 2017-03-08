@@ -33,16 +33,17 @@
 
 #define FOLLOWED_CHANNELS_FILE_VERSION 1
 
-typedef struct
+struct _GtFollowsManagerPrivate
 {
-    void* tmp;
-} GtFollowsManagerPrivate;
+    gboolean loading_follows;
+};
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFollowsManager, gt_follows_manager, G_TYPE_OBJECT)
 
 enum
 {
     PROP_0,
+    PROP_LOADING_FOLLOWS,
     NUM_PROPS
 };
 
@@ -50,8 +51,6 @@ enum
 {
     SIG_CHANNEL_FOLLOWED,
     SIG_CHANNEL_UNFOLLOWED,
-    SIG_STARTED_LOADING_FOLLOWS,
-    SIG_FINISHED_LOADING_FOLLOWS,
     NUM_SIGS
 };
 
@@ -101,17 +100,6 @@ channel_online_cb(GObject* source,
 }
 
 static void
-logged_in_cb(GObject* source,
-             GParamSpec* pspec,
-             gpointer udata)
-{
-    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-
-    if (gt_app_is_logged_in(main_app))
-        gt_follows_manager_load_from_twitch(self);
-}
-
-static void
 channel_followed_cb(GObject* source,
                       GParamSpec* pspec,
                       gpointer udata);
@@ -134,7 +122,6 @@ channel_followed_cb(GObject* source,
                       gpointer udata)
 {
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
     GtChannel* chan = GT_CHANNEL(source);
 
     gboolean followed;
@@ -246,120 +233,113 @@ shutdown_cb(GApplication* app,
 //    gt_follows_manager_save(self);
 }
 
-static void
-finalize(GObject* object)
+static GList*
+load_from_file(const char* filepath, GError** error)
 {
-    GtFollowsManager* self = (GtFollowsManager*) object;
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(JsonParser) parser = json_parser_new();
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GError) err = NULL;
+    GList* ret = NULL;
 
-    G_OBJECT_CLASS(gt_follows_manager_parent_class)->finalize(object);
-}
-
-static void
-get_property (GObject*    obj,
-              guint       prop,
-              GValue*     val,
-              GParamSpec* pspec)
-{
-    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-
-    switch (prop)
+    if (!g_file_test(filepath, G_FILE_TEST_EXISTS))
     {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+        g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+            "File '%s' does not exist", filepath);
+
+        return NULL;
     }
-}
 
-static void
-set_property(GObject*      obj,
-             guint         prop,
-             const GValue* val,
-             GParamSpec*   pspec)
-{
-    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    json_parser_load_from_file(parser, filepath, error);
 
-    switch (prop)
+    reader = json_reader_new(json_parser_get_root(parser));
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+        const gchar* id;
+        const gchar* name;
+        JsonNode* id_node = NULL;
+        GtChannel* chan = NULL;
+
+        if (!json_reader_read_element(reader, i))
+        {
+            *error = g_error_copy(json_reader_get_error(reader));
+
+            goto error;
+        }
+
+        if (!json_reader_read_member(reader, "id"))
+        {
+            *error = g_error_copy(json_reader_get_error(reader));
+
+            goto error;
+        }
+
+        id_node = json_reader_get_value(reader); //NOTE: Owned by JsonReader, don't unref
+
+        //NOTE: Backwards compatability for when id's used to be integers
+        if (STRING_EQUALS(json_node_type_name(id_node), "Integer"))
+            id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
+        else if (STRING_EQUALS(json_node_type_name(id_node), "String"))
+            id = g_strdup(json_reader_get_string_value(reader));
+        else
+            g_assert_not_reached();
+
+        json_reader_end_element(reader);
+
+        if (!json_reader_read_member(reader, "name"))
+        {
+            *error = g_error_copy(json_reader_get_error(reader));
+
+            goto error;
+        }
+
+        name = json_reader_get_string_value(reader);
+
+        json_reader_end_member(reader);
+
+        json_reader_end_element(reader);
+
+        chan = gt_channel_new_from_id_and_name(id, name);
+
+        g_object_ref_sink(chan);
+
+        ret = g_list_append(ret, chan);
     }
+
+    return ret;
+
+error:
+    gt_channel_list_free(ret);
+
+    return ret;
 }
 
 static void
-gt_follows_manager_class_init(GtFollowsManagerClass* klass)
+follow_next_channel_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    GObjectClass* object_class = G_OBJECT_CLASS(klass);
+    g_assert(G_IS_ASYNC_RESULT(res));
+    g_assert_nonnull(udata);
 
-    object_class->finalize = finalize;
-    object_class->get_property = get_property;
-    object_class->set_property = set_property;
-
-    sigs[SIG_CHANNEL_FOLLOWED] = g_signal_new("channel-followed",
-                                                GT_TYPE_FOLLOWS_MANAGER,
-                                                G_SIGNAL_RUN_LAST,
-                                                0, NULL, NULL,
-                                                NULL,
-                                                G_TYPE_NONE,
-                                                1, GT_TYPE_CHANNEL);
-    sigs[SIG_CHANNEL_UNFOLLOWED] = g_signal_new("channel-unfollowed",
-                                                  GT_TYPE_FOLLOWS_MANAGER,
-                                                  G_SIGNAL_RUN_LAST,
-                                                  0, NULL, NULL,
-                                                  NULL,
-                                                  G_TYPE_NONE,
-                                                  1, GT_TYPE_CHANNEL);
-    sigs[SIG_STARTED_LOADING_FOLLOWS] = g_signal_new("started-loading-follows",
-                                                        GT_TYPE_FOLLOWS_MANAGER,
-                                                        G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-                                                        0, NULL, NULL, NULL,
-                                                        G_TYPE_NONE, 0, NULL);
-    sigs[SIG_FINISHED_LOADING_FOLLOWS] = g_signal_new("finished-loading-follows",
-                                                        GT_TYPE_FOLLOWS_MANAGER,
-                                                        G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-                                                        0, NULL, NULL, NULL,
-                                                        G_TYPE_NONE, 0, NULL);
-}
-
-static void
-gt_follows_manager_init(GtFollowsManager* self)
-{
-    gchar* old_fp = OLD_FAV_CHANNELS_FILE;
-    gchar* new_fp = FAV_CHANNELS_FILE;
-
-    g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
-//    g_signal_connect(main_app, "notify::oauth-token", G_CALLBACK(logged_in_cb), self);
-    g_signal_connect(main_app, "notify::user-name", G_CALLBACK(logged_in_cb), self);
-
-
-    //TODO: Remove this in a release or two
-    if (g_file_test(old_fp, G_FILE_TEST_EXISTS))
-        g_rename(old_fp, new_fp);
-
-    g_free(old_fp);
-    g_free(new_fp);
-}
-
-static void
-follow_channel_cb(GObject* source,
-                  GAsyncResult* res,
-                  gpointer udata)
-{
     GList* l = udata;
-    GError* error = NULL;
-    gboolean success = g_task_propagate_boolean(G_TASK(res), &error);
+    g_autoptr(GError) err = NULL;
+    g_task_propagate_pointer(G_TASK(res), &err); //NOTE: Doesn't return a value
 
-    if (error)
+    if (err)
     {
-        GtWin* self = g_list_last(l)->data;
+        GtFollowsManager* self = g_list_last(l)->data;
+        GtWin* win = NULL;
 
-        gt_win_show_error_message(GT_WIN_ACTIVE,
-                                  "Unable to move your follows to Twitch, try refreshing your login",
-                                  error->message);
-        g_error_free(error);
+        win = GT_WIN_ACTIVE;
 
-        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
+        g_assert(GT_IS_FOLLOWS_MANAGER(self));
+        g_assert(GT_IS_WIN(win));
+
+        gt_win_show_error_message(win, "Unable to move your local follows to Twitch",
+            "Unable to move your local follows to Twitch because: %s", err->message);
+
+        self->priv->loading_follows = TRUE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
 
         return;
     }
@@ -367,20 +347,17 @@ follow_channel_cb(GObject* source,
     if (GT_IS_CHANNEL(l->data))
     {
         gt_twitch_follow_channel_async(main_app->twitch,
-                                       gt_channel_get_name(GT_CHANNEL(l->data)),
-                                       follow_channel_cb, l->next);
+            gt_channel_get_name(GT_CHANNEL(l->data)),
+            follow_next_channel_cb, l->next);
     }
     else if (GT_IS_FOLLOWS_MANAGER(l->data))
     {
-        gchar* fp = FAV_CHANNELS_FILE;
-        gchar* new_fp = g_strconcat(fp, ".bak", NULL);
+        g_autofree gchar* fp = FAV_CHANNELS_FILE;
+        g_autofree gchar* new_fp = g_strconcat(fp, ".bak", NULL);
 
         g_rename(fp, new_fp);
 
         gt_follows_manager_load_from_twitch(GT_FOLLOWS_MANAGER(l->data));
-
-        g_free(fp);
-        g_free(new_fp);
     }
     else
         g_assert_not_reached();
@@ -388,71 +365,87 @@ follow_channel_cb(GObject* source,
 
 static void
 move_local_follows_cb(GtkInfoBar* bar,
-                         gint res,
-                         gpointer udata)
+    gint res, gpointer udata)
 {
+    g_assert(GT_IS_FOLLOWS_MANAGER(udata));
+
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
 
     if (res == GTK_RESPONSE_YES)
     {
-        gchar* fp = FAV_CHANNELS_FILE;
-        JsonParser* parse = json_parser_new();
-        JsonNode* root;
-        JsonArray* jarr;
-        GError* err = NULL;
-        GList* l = NULL;
+        g_autofree gchar* filepath = FAV_CHANNELS_FILE;
+        g_autoptr(GError) err = NULL;
         GList* channels = NULL;
 
-        json_parser_load_from_file(parse, fp, &err);
+        channels = load_from_file(filepath, &err);
 
         if (err)
         {
-            g_warning("{GtFollowsManager} Error moving local follow channels to twitch '%s'", err->message);
+            GtWin* win;
+
+            WARNING("Unable to move local follows to Twitch because: %s", err->message);
+
+            win = GT_WIN_ACTIVE;
+
+            g_assert(GT_IS_WIN(win));
+
+            gt_win_show_error_message(win, "Unable to move your local folllows to Twitch",
+                "Unable to move local follows to Twitch because: %s", err->message);
+
             return;
         }
 
-        root = json_parser_get_root(parse);
-        jarr = json_node_get_array(root);
-        l = json_array_get_elements(jarr);
-
-        g_assert(g_list_length(l) > 0);
-
-        for (; l != NULL; l = l->next)
-        {
-            channels = g_list_append(channels,
-                                     json_gobject_deserialize(GT_TYPE_CHANNEL, l->data));
-        }
-
         channels = g_list_append(channels, self);
-        gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(GT_CHANNEL(channels->data)),
-                                       follow_channel_cb, channels->next);
 
-        g_object_unref(parse);
-        g_free(fp);
+        gt_twitch_follow_channel_async(main_app->twitch,
+            gt_channel_get_name(GT_CHANNEL(channels->data)),
+            follow_next_channel_cb, channels->next);
     }
     else
     {
-        gchar* fp = FAV_CHANNELS_FILE;
-        gchar* new_fp = g_strconcat(fp, ".bak", NULL);
+        g_autofree gchar* fp = FAV_CHANNELS_FILE;
+        g_autofree gchar* new_fp = g_strconcat(fp, ".bak", NULL);
 
         g_rename(fp, new_fp);
 
         gt_follows_manager_load_from_twitch(self);
-
-        g_free(fp);
-        g_free(new_fp);
     }
 }
 
 static void
-follows_all_cb(GObject* source,
-               GAsyncResult* res,
-               gpointer udata)
+logged_in_cb(GObject* source,
+             GParamSpec* pspec,
+             gpointer udata)
 {
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    GError* err = NULL;
+
+    if (gt_app_is_logged_in(main_app))
+    {
+        g_autofree gchar* filepath = FAV_CHANNELS_FILE;
+
+        if (g_file_test(filepath, G_FILE_TEST_EXISTS))
+        {
+            gt_win_ask_question(GT_WIN_ACTIVE,
+                _("GNOME Twitch has detected local follows, would you like to move them to Twitch?"),
+                G_CALLBACK(move_local_follows_cb), self);
+        }
+        else
+            gt_follows_manager_load_from_twitch(self);
+    }
+    else
+        gt_follows_manager_load_from_file(self);
+}
+
+static void
+fetch_all_followed_channels_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    g_assert(GT_IS_FOLLOWS_MANAGER(udata));
+
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
+
+    g_autoptr(GError) err = NULL;
     GList* list = NULL;
-    gchar* fp = FAV_CHANNELS_FILE;
 
     list = gt_twitch_fetch_all_followed_channels_finish(GT_TWITCH(source), res, &err);
 
@@ -465,11 +458,11 @@ follows_all_cb(GObject* source,
 
         g_assert(GT_IS_WIN(win));
 
-        gt_win_show_error_message(GT_WIN_ACTIVE,
-            "Unable to get your Twitch follows",
-            err->message);
+        WARNING("Unable to fetch Twitch follows because: %s", err->message);
 
-        g_error_free(err);
+        gt_win_show_error_message(GT_WIN_ACTIVE,
+            _("Unable to fetch your Twitch follows"),
+            err->message);
 
         return;
     }
@@ -499,28 +492,104 @@ follows_all_cb(GObject* source,
 
     }
 
-    if (g_file_test(fp, G_FILE_TEST_EXISTS))
-    {
-        gt_win_ask_question(GT_WIN_ACTIVE,
-                            _("GNOME Twitch has detected local follows,"
-                              " would you like to move them to Twitch?"),
-                            G_CALLBACK(move_local_follows_cb), self);
-    }
-    else
-        g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
+    MESSAGE("Loaded '%d' follows from Twitch", g_list_length(self->follow_channels));
 
-    g_free(fp);
+    self->priv->loading_follows = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
+}
+
+static void
+finalize(GObject* object)
+{
+    GtFollowsManager* self = (GtFollowsManager*) object;
+
+    gt_channel_list_free(self->follow_channels);
+
+    G_OBJECT_CLASS(gt_follows_manager_parent_class)->finalize(object);
+}
+
+static void
+get_property (GObject*    obj,
+              guint       prop,
+              GValue*     val,
+              GParamSpec* pspec)
+{
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
+
+    switch (prop)
+    {
+        case PROP_LOADING_FOLLOWS:
+            g_value_set_boolean(val, self->priv->loading_follows);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+    }
+}
+
+static void
+set_property(GObject*      obj,
+             guint         prop,
+             const GValue* val,
+             GParamSpec*   pspec)
+{
+    GtFollowsManager* self = GT_FOLLOWS_MANAGER(obj);
+
+    switch (prop)
+    {
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
+    }
+}
+
+static void
+gt_follows_manager_class_init(GtFollowsManagerClass* klass)
+{
+    GObjectClass* object_class = G_OBJECT_CLASS(klass);
+
+    object_class->finalize = finalize;
+    object_class->get_property = get_property;
+    object_class->set_property = set_property;
+
+    props[PROP_LOADING_FOLLOWS] = g_param_spec_boolean("loading-follows",
+        "Loading follows", "Whether loading follows", FALSE, G_PARAM_READABLE);
+
+    sigs[SIG_CHANNEL_FOLLOWED] = g_signal_new("channel-followed",
+        GT_TYPE_FOLLOWS_MANAGER, G_SIGNAL_RUN_LAST, 0,
+        NULL, NULL, NULL, G_TYPE_NONE, 1, GT_TYPE_CHANNEL);
+
+    sigs[SIG_CHANNEL_UNFOLLOWED] = g_signal_new("channel-unfollowed",
+        GT_TYPE_FOLLOWS_MANAGER, G_SIGNAL_RUN_LAST, 0,
+        NULL, NULL, NULL, G_TYPE_NONE, 1, GT_TYPE_CHANNEL);
+}
+
+static void
+gt_follows_manager_init(GtFollowsManager* self)
+{
+    self->priv = gt_follows_manager_get_instance_private(self);
+
+    g_autofree gchar* old_fp = OLD_FAV_CHANNELS_FILE;
+    g_autofree gchar* new_fp = FAV_CHANNELS_FILE;
+
+    g_signal_connect(main_app, "shutdown", G_CALLBACK(shutdown_cb), self);
+    g_signal_connect(main_app, "notify::logged-in", G_CALLBACK(logged_in_cb), self);
+
+    //TODO: Remove this in a release or two
+    if (g_file_test(old_fp, G_FILE_TEST_EXISTS))
+        g_rename(old_fp, new_fp);
 }
 
 void
 gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 {
-    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
+    g_assert(GT_IS_FOLLOWS_MANAGER(self));
+
+    self->priv->loading_follows = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
 
     const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
 
     gt_twitch_fetch_all_followed_channels_async(main_app->twitch,
-        info->user_id, info->oauth_token, NULL, follows_all_cb, self);
+        info->user_id, info->oauth_token, NULL, fetch_all_followed_channels_cb, self);
 }
 
 void
@@ -528,115 +597,42 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
 {
     g_assert(GT_IS_FOLLOWS_MANAGER(self));
 
-    g_autoptr(JsonParser) parser = json_parser_new();
-    g_autoptr(JsonReader) reader = NULL;
+    g_autofree gchar* filepath = FAV_CHANNELS_FILE;
     g_autoptr(GError) err = NULL;
-    g_autofree gchar* fp = FAV_CHANNELS_FILE;
 
-    g_signal_emit(self, sigs[SIG_STARTED_LOADING_FOLLOWS], 0);
+    self->priv->loading_follows = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
 
     g_clear_pointer(&self->follow_channels,
         (GDestroyNotify) gt_channel_list_free);
 
-    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
-        return;
-
-    json_parser_load_from_file(parser, fp, &err);
+    self->follow_channels = load_from_file(filepath, &err);
 
     if (err)
     {
-        GtWin* win = GT_WIN_ACTIVE;
+        if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+            INFO("Followed channels file at '%s' doesn't exist", filepath);
+        else
+        {
+            GtWin* win = GT_WIN_ACTIVE;
 
-        g_assert(GT_IS_WIN(win));
+            g_assert(GT_IS_WIN(win));
 
-        WARNING("Error loading followed channels from file because: %s", err->message);
+            WARNING("Error loading followed channels from file because: %s", err->message);
 
-        gt_win_show_error_message(win, "Unable to load followed channels from file",
-            "Unable to load followed channels from file because: %s", err->message);
+            gt_win_show_error_message(win, "Unable to load followed channels from file",
+                "Unable to load followed channels from file because: %s", err->message);
+        }
 
         return;
     }
 
-    reader = json_reader_new(json_parser_get_root(parser));
-
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    for (GList* l = self->follow_channels; l != NULL; l = l->next)
     {
-        const gchar* id;
-        const gchar* name;
+        GtChannel* chan = l->data;
 
-        if (!json_reader_read_element(reader, i))
-        {
-            GtWin* win = GT_WIN_ACTIVE;
+        g_assert(GT_IS_CHANNEL(chan));
 
-            g_assert(GT_IS_WIN(win));
-
-            const GError* e = json_reader_get_error(reader);
-
-            WARNING("Unable to load followed channels from file because: %s",
-                e->message);
-
-            gt_win_show_error_message(win, "Unable to load followed channels from file",
-                "Unable to load followed channels from file because: %s", e->message);
-
-            goto error;
-        }
-
-        if (!json_reader_read_member(reader, "id"))
-        {
-            GtWin* win = GT_WIN_ACTIVE;
-
-            g_assert(GT_IS_WIN(win));
-
-            const GError* e = json_reader_get_error(reader);
-
-            WARNING("Unable to load followed channels from file because: %s",
-                e->message);
-
-            gt_win_show_error_message(win, "Unable to load followed channels from file",
-                "Unable to load followed channels from file because: %s", e->message);
-
-            goto error;
-        }
-
-        JsonNode* id_node = json_reader_get_value(reader);
-
-        if (STRING_EQUALS(json_node_type_name(id_node), "Integer"))
-            id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
-        else if (STRING_EQUALS(json_node_type_name(id_node), "String"))
-            id = g_strdup(json_reader_get_string_value(reader));
-        else
-            g_assert_not_reached();
-
-        json_reader_end_element(reader);
-
-        if (!json_reader_read_member(reader, "name"))
-        {
-            GtWin* win = GT_WIN_ACTIVE;
-
-            g_assert(GT_IS_WIN(win));
-
-            const GError* e = json_reader_get_error(reader);
-
-            WARNING("Unable to load followed channels from file because: %s",
-                e->message);
-
-            gt_win_show_error_message(win, "Unable to load followed channels from file",
-                "Unable to load followed channels from file because: %s", e->message);
-
-            goto error;
-        }
-
-        name = json_reader_get_string_value(reader);
-
-        json_reader_end_member(reader);
-
-        json_reader_end_element(reader);
-
-        GtChannel* chan = gt_channel_new_from_id_and_name(id, name);
-
-        g_object_ref_sink(chan);
-
-        self->follow_channels = g_list_append(self->follow_channels, chan);
         g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
         g_object_set(chan,
                      "auto-update", TRUE,
@@ -647,12 +643,10 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
         g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
     }
 
-    g_signal_emit(self, sigs[SIG_FINISHED_LOADING_FOLLOWS], 0);
+    MESSAGE("Loaded '%d' follows from file", g_list_length(self->follow_channels));
 
-    return;
-
-error:
-    gt_channel_list_free(self->follow_channels);
+    self->priv->loading_follows = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
 
     return;
 }
@@ -679,6 +673,9 @@ gt_follows_manager_save(GtFollowsManager* self)
     g_autoptr(JsonGenerator) gen = json_generator_new();
     g_autoptr(JsonNode) final = NULL;
 
+    //NOTE: I'll just leave this here in case I want to include
+    //a version tag in the future
+
     /* json_builder_begin_object(builder); */
 
     /* json_builder_set_member_name(builder, "version"); */
@@ -686,6 +683,7 @@ gt_follows_manager_save(GtFollowsManager* self)
     /* json_builder_end_object(builder); */
 
     /* json_builder_set_member_name(builder, "followed-channels"); */
+
     json_builder_begin_array(builder);
 
     for (GList* l = self->follow_channels; l != NULL; l = l->next)
@@ -715,6 +713,14 @@ gboolean
 gt_follows_manager_is_channel_followed(GtFollowsManager* self, GtChannel* chan)
 {
     return g_list_find_custom(self->follow_channels, chan, (GCompareFunc) gt_channel_compare) != NULL;
+}
+
+gboolean
+gt_follows_manager_is_loading_follows(GtFollowsManager* self)
+{
+    g_assert(GT_IS_FOLLOWS_MANAGER(self));
+
+    return self->priv->loading_follows;
 }
 
 void

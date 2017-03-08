@@ -106,13 +106,12 @@ fetch_items(GTask* task,
 }
 
 static void
-finished_loading_follows_cb(GtFollowsManager* mgr,
-    gpointer udata)
+finished_loading_follows_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
 {
     g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
-    GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
 }
@@ -264,7 +263,7 @@ constructed(GObject* obj)
         (GtkFlowBoxSortFunc) sort_by_name_and_online, self, NULL);
 
     //TODO: Need to refresh everytime a channel is followed or unfollowed
-    g_signal_connect(main_app->fav_mgr, "finished-loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
+    g_signal_connect(main_app->fav_mgr, "notify::loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
