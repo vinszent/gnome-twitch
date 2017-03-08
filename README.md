@@ -34,8 +34,7 @@ Same as above plus:
 ### From source
 
 ``` shell
-meson build -Dwith-player-gstreamer-cairo=true
-ninja -C build
+meson build
 sudo ninja -C build install
 ```
 
@@ -43,9 +42,10 @@ sudo ninja -C build install
 #### Root install
 
 ``` shell
-cd subprojects/${gt-player-backend-you-want}
-meson build
-ninja -C build
+meson build \
+    -Dbuild-gnome-twitch-executable=false \
+    -Dbuild-gnome-twitch-library=false \
+    -Dbuild-player-backend-${PLAYER_BACKEND_YOU_WANT}
 sudo ninja -C build install
 ```
 #### Local install
@@ -53,21 +53,22 @@ sudo ninja -C build install
 Same as the root install but instead change the last two lines to:
 
 ``` shell
-meson build --prefix=$HOME/.local
+meson build --prefix=$HOME/.local --libdir=share
 ninja -C build install
 ```
 
 ### Packages
+* [Flatpak (courtesy of @TingPing)](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-FlatPak-package)
 * [Arch linux](https://aur.archlinux.org/packages/gnome-twitch/)
-* [Arch linux (MPV player backend plugin)](https://aur.archlinux.org/packages/gnome-twitch-mpv/)
 * [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian (courtesy of @dengelt)](https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
-* [Flatpak](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-FlatPak-package)
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
-* [Ubuntu (courtesy of @Sunderland93)](https://launchpad.net/~samoilov-lex/+archive/ubuntu/gnome-twitch) (Same requirements as above)
-* [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/~nilarimogard/+archive/ubuntu/webupd8/+index?batch=75&memo=150&start=150) (Same requirements as above)
-* [Gentoo](https://github.com/TorArneThune/gnome-twitch-ebuild)
+* [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/%7Enilarimogard/+archive/ubuntu/webupd8/+index?batch=75&direction=backwards&memo=150&start=75) (Same requirements as above)
+* [Gentoo (courtesy of @TorArneThune)](https://github.com/TorArneThune/gnome-twitch-ebuild)
+
+To install extra backends, please refer to either instructions above or checkout the [wiki page](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-player-backends)
+for details on which packages to install for the common distros.
 
 ## Screenshots
 ![](/data/screenshots/scrot_player.png?raw=true)
