@@ -16,9 +16,13 @@
 
 project('gnome-twitch', 'c',
   version : '0.3.1',
-  meson_version : '>= 0.36.0',
+  meson_version : '>= 0.37.0',
   license : 'GPL3',
-  default_options: ['c_std=gnu11'])
+  default_options: [
+    'c_std=gnu11',
+    'warning_level=2',
+  ]
+)
 
 # Used in config.h
 LOCALE_DIR = join_paths(get_option('prefix'), get_option('localedir'))
@@ -32,7 +36,7 @@ BUILD_PLAYER_BACKEND_MPV_OPENGL = get_option('build-player-backend-mpv-opengl')
 BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO = get_option('build-player-backend-gstreamer-cairo')
 BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL = get_option('build-player-backend-gstreamer-opengl')
 
-include_dir = include_directories('./include')
+include_dir = include_directories('include')
 
 # Common dependencies
 libgtk_dep = dependency('gtk+-3.0', version : '>=3.20')
@@ -42,7 +46,7 @@ if BUILD_GNOME_TWITCH_EXECUTABLE
   subdir('data')
   subdir('po')
 
-  meson.add_install_script('meson_post_install.sh')
+  meson.add_install_script('meson_post_install.py')
 endif
 
 if BUILD_GNOME_TWITCH_LIBRARY
