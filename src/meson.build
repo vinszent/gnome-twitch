@@ -18,7 +18,7 @@ gnome = import('gnome')
 pkg = import('pkgconfig')
 
 ver = vcs_tag(input : 'version.h.in', output : 'version.h',
-  command : ['sh', '../print_git_version.sh'],
+  command : ['../print_git_version.py'],
   fallback : meson.project_version())
 
 conf_data = configuration_data()

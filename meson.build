@@ -46,7 +46,7 @@ if BUILD_GNOME_TWITCH_EXECUTABLE
   subdir('data')
   subdir('po')
 
-  meson.add_install_script('meson_post_install.sh')
+  meson.add_install_script('meson_post_install.py')
 endif
 
 if BUILD_GNOME_TWITCH_LIBRARY
