@@ -22,17 +22,15 @@ deps_gstreamer_clutter = [
   libpeas_dep,
   clutter_gst_dep,
   clutter_gtk_dep,
-  gt_library_dep
+  gt_module_dep
 ]
 
 src_gstreamer_clutter = [
   'gt-player-backend-gstreamer-clutter.c'
 ]
 
-lib_gstreamer_clutter = shared_library('player-backend-gstreamer-clutter', src_gstreamer_clutter,
+shared_module('player-backend-gstreamer-clutter', src_gstreamer_clutter,
   dependencies : deps_gstreamer_clutter,
-  include_directories : include_dir,
-  c_args : ['-Wno-unused-variable'],
   install_dir : player_backend_install_dir,
   install : true)
 

@@ -25,7 +25,8 @@ conf_data = configuration_data()
 conf_data.set_quoted('GT_LOCALE_DIR', LOCALE_DIR)
 conf_data.set_quoted('GT_LIB_DIR', LIB_DIR)
 conf_data.set('USE_DEPRECATED_WEBKIT', get_option('use-deprecated-webkit'))
-configure_file(input : 'config.h.in', output : 'config.h', configuration : conf_data)
+conf_data.set_quoted('CLIENT_ID', 'afjnp6n4ufzott4atb3xpb8l5a31aav')
+configure_file(output : 'config.h', configuration : conf_data)
 
 libsoup_dep = dependency('libsoup-2.4')
 json_glib_dep = dependency('json-glib-1.0')
@@ -100,15 +101,24 @@ src_gt_library = [
   'gt-player-backend.c'
 ]
 
-gt_executable_c_args = [
-  '-Wno-unused-variable'
+test_cflags = [
+  '-Wno-unused-variable',
+  '-Wno-unused-parameter',
+  '-Wno-missing-field-initializers'
 ]
+gt_executable_c_args = []
+cc = meson.get_compiler('c')
+foreach cflag : test_cflags
+  if cc.has_argument(cflag)
+    gt_executable_c_args += cflag
+  endif
+endforeach
 
 gt_executable_link_args = []
 
 gt_library_c_args = gt_executable_c_args
 
-if build_machine.system() == 'windows'
+if host_machine.system() == 'windows'
   gt_executable_link_args += '-mwindows'
 endif
 
@@ -123,6 +133,9 @@ if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
     include_directories : include_dir,
     link_with : gt_library)
 
+  gt_module_dep = declare_dependency(
+    include_directories : include_dir)
+
   pkg.generate(
     libraries : gt_library,
     name : 'gnome-twitch',
@@ -131,6 +144,7 @@ if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
     version : meson.project_version())
 else
     gt_library_dep = dependency('gnome-twitch')
+    gt_module_dep = gt_library_dep
 endif
 
 deps_gt += gt_library_dep

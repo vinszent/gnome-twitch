@@ -22,17 +22,15 @@ deps_mpv_opengl = [
   libpeas_dep,
   mpv_dep,
   epoxy_dep,
-  gt_library_dep
+  gt_module_dep
 ]
 
 src_mpv_opengl = [
   'gt-player-backend-mpv-opengl.c'
 ]
 
-lib_mpv_opengl = shared_library('player-backend-mpv-opengl', src_mpv_opengl,
+shared_module('player-backend-mpv-opengl', src_mpv_opengl,
   dependencies : deps_mpv_opengl,
-  include_directories : include_dir,
-  c_args : ['-Wno-unused-variable'],
   install_dir : player_backend_install_dir,
   install : true)
 
