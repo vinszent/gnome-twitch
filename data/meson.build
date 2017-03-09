@@ -14,22 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
 
-msgfmt = find_program('msgfmt')
-podir = join_paths(meson.source_root(), 'po')
 datadir = get_option('datadir')
 
-if (build_machine.system() == 'linux')
-  custom_target('desktop-file',
+if (host_machine.system() != 'windows')
+  i18n = import('i18n')
+
+  i18n.merge_file(
     input : 'com.vinszent.GnomeTwitch.desktop.in',
     output : 'com.vinszent.GnomeTwitch.desktop',
-    command : [msgfmt, '--desktop', '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@'],
+    po_dir : '../po',
+    type : 'desktop',
     install : true,
     install_dir : join_paths(datadir, 'applications'))
 
-  custom_target('appdata-file',
+  i18n.merge_file(
     input : 'com.vinszent.GnomeTwitch.appdata.xml.in',
     output : 'com.vinszent.GnomeTwitch.appdata.xml',
-    command : [msgfmt, '--xml', '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@'],
+    po_dir : '../po',
     install : true,
     install_dir : join_paths(datadir, 'appdata'))
 endif
