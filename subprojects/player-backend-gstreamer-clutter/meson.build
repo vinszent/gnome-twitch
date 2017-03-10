@@ -22,7 +22,7 @@ deps_gstreamer_clutter = [
   libpeas_dep,
   clutter_gst_dep,
   clutter_gtk_dep,
-  gt_module_dep
+  gt_library_dep
 ]
 
 src_gstreamer_clutter = [
@@ -30,6 +30,7 @@ src_gstreamer_clutter = [
 ]
 
 shared_module('player-backend-gstreamer-clutter', src_gstreamer_clutter,
+  include_directories : include_dir,
   dependencies : deps_gstreamer_clutter,
   install_dir : player_backend_install_dir,
   install : true)

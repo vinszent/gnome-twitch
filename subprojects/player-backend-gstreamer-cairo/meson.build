@@ -20,7 +20,7 @@ deps_gstreamer_cairo = [
   libgtk_dep,
   libpeas_dep,
   gstreamer_dep,
-  gt_module_dep
+  gt_library_dep
 ]
 
 src_gstreamer_cairo = [
@@ -28,6 +28,7 @@ src_gstreamer_cairo = [
 ]
 
 shared_module('player-backend-gstreamer-cairo', src_gstreamer_cairo,
+  include_directories : include_dir,
   dependencies : deps_gstreamer_cairo,
   install_dir : player_backend_install_dir,
   install : true)
