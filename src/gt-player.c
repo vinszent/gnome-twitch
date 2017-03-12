@@ -16,8 +16,6 @@
  *  along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <libpeas-gtk/peas-gtk.h>
-#include <glib/gi18n.h>
 #include "gt-player.h"
 #include "gt-twitch.h"
 #include "gt-win.h"
@@ -26,6 +24,9 @@
 #include "gt-chat.h"
 #include "gnome-twitch/gt-player-backend.h"
 #include "utils.h"
+#include <libpeas-gtk/peas-gtk.h>
+#include <glib/gi18n.h>
+#include <json-glib/json-glib.h>
 
 #define TAG "GtPlayer"
 #include "gnome-twitch/gt-log.h"
@@ -34,6 +35,9 @@
 #define CHAT_RESIZE_HANDLE_SIZE 10
 #define CHAT_MIN_WIDTH 290
 #define CHAT_MIN_HEIGHT 200
+
+#define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
+#define CHANNEL_SETTINGS_FILE_VERSION 1
 
 typedef enum
 {
@@ -51,7 +55,7 @@ typedef struct
 
     gchar* quality;
 
-    GtChatViewSettings* chat_settings;
+    GtPlayerChannelSettings* cur_channel_settings;
 
     GtkWidget* player_box;
     GtkWidget* error_box;
@@ -111,6 +115,190 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
+static GHashTable* channel_settings_table;
+
+static void
+load_channel_settings()
+{
+    g_autofree gchar* fp = CHANNEL_SETTINGS_FILE;
+    g_autoptr(JsonParser) parser = json_parser_new();
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GError) err = NULL;
+    gint version = 0;
+    gint count = 0;
+
+    g_hash_table_remove_all(channel_settings_table);
+
+    MESSAGE("Loading chat settings");
+
+    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
+    {
+        INFO("Chat settings file at '%s' doesn't exist", fp);
+        return;
+    }
+
+    json_parser_load_from_file(parser, fp, &err);
+
+    if (err)
+    {
+        WARNING("Unable to load chat settings because: %s", err->message);
+        return;
+    }
+
+    reader = json_reader_new(json_parser_get_root(parser));
+
+/* FIXME: Propagate errors to UI once GtApp implements a startup error queue */
+#define READ_JSON_VALUE(name, p)                                        \
+    if (json_reader_read_member(reader, name))                          \
+    {                                                                   \
+        p = _Generic(p,                                                 \
+            gboolean: json_reader_get_boolean_value(reader),            \
+            gdouble: json_reader_get_double_value(reader),              \
+            gint64: json_reader_get_int_value(reader));                 \
+    }                                                                   \
+    else                                                                \
+    {                                                                   \
+        WARNING("Couldn't read value '%s' from element '%d' in chat settings file." \
+            "Will assign default value.", name, i);                     \
+    }                                                                   \
+    json_reader_end_member(reader);                                     \
+
+    if (json_reader_read_member(reader, "version"))
+    {
+        version = json_reader_get_int_value(reader);
+        INFO("Found version number '%d' for chat settings file", version);
+    }
+    else
+        INFO("No version number found, assuming version 0 for chat settings file");
+    json_reader_end_member(reader);
+
+    if (version > 0) json_reader_read_member(reader, "chat-settings");
+
+    count = json_reader_count_elements(reader);
+
+    INFO("Reading '%d' elements from chat settings file", count);
+
+    for (gint i = 0; i < count; i++)
+    {
+        GtPlayerChannelSettings* settings = NULL;
+        gchar* id = NULL;
+
+        if (!json_reader_read_element(reader, i))
+        {
+            WARNING("Couldn't read element '%d' from chat settings file."
+                "This item will be removed on next save.", i);
+            continue;
+        }
+
+        if (json_reader_read_member(reader, version > 0 ? "id" : "name"))
+            id = g_strdup(json_reader_get_string_value(reader));
+        else
+        {
+            WARNING("Couldn't read value '%s' from element '%d' from chat settings file."
+                "This item will be removed on next save.", version > 0 ? "id" : "name", i);
+            continue;
+        }
+        json_reader_end_member(reader);
+
+        settings = gt_player_channel_settings_new();
+
+        READ_JSON_VALUE("dark-theme", settings->dark_theme);
+        READ_JSON_VALUE("visible", settings->visible);
+        READ_JSON_VALUE("docked", settings->docked);
+        READ_JSON_VALUE("opacity", settings->opacity);
+        READ_JSON_VALUE("width", settings->width);
+        READ_JSON_VALUE("height", settings->height);
+        READ_JSON_VALUE("x-pos", settings->x_pos);
+        READ_JSON_VALUE("y-pos", settings->y_pos);
+        READ_JSON_VALUE("docked-handle-pos", settings->docked_handle_pos);
+
+        json_reader_end_element(reader);
+
+        g_hash_table_insert(channel_settings_table, id, settings);
+    }
+
+    if (version > 0) json_reader_end_member(reader);
+
+#undef READ_JSON_VALUE
+}
+
+static void
+save_channel_settings()
+{
+    g_autofree gchar* fp = CHANNEL_SETTINGS_FILE;
+    g_autoptr(JsonBuilder) builder = json_builder_new();
+    g_autoptr(JsonGenerator) gen = json_generator_new();
+    g_autoptr(JsonNode) final = NULL;
+    g_autoptr(GError) err = NULL;
+    GHashTableIter iter;
+    gchar* key;
+    GtPlayerChannelSettings* settings;
+
+    MESSAGE("Saving chat settings");
+
+    json_builder_begin_object(builder);
+
+    json_builder_set_member_name(builder, "version");
+    json_builder_add_int_value(builder, CHANNEL_SETTINGS_FILE_VERSION);
+
+    json_builder_set_member_name(builder, "chat-settings");
+    json_builder_begin_array(builder);
+
+    g_hash_table_iter_init(&iter, channel_settings_table);
+
+    while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &settings))
+    {
+        json_builder_begin_object(builder);
+
+        json_builder_set_member_name(builder, "id");
+        json_builder_add_string_value(builder, key);
+
+        json_builder_set_member_name(builder, "dark-theme");
+        json_builder_add_boolean_value(builder, settings->dark_theme);
+
+        json_builder_set_member_name(builder, "visible");
+        json_builder_add_boolean_value(builder, settings->visible);
+
+        json_builder_set_member_name(builder, "docked");
+        json_builder_add_boolean_value(builder, settings->docked);
+
+        json_builder_set_member_name(builder, "opacity");
+        json_builder_add_double_value(builder, settings->opacity);
+
+        json_builder_set_member_name(builder, "width");
+        json_builder_add_double_value(builder, settings->width);
+
+        json_builder_set_member_name(builder, "height");
+        json_builder_add_double_value(builder, settings->height);
+
+        json_builder_set_member_name(builder, "x-pos");
+        json_builder_add_double_value(builder, settings->x_pos);
+
+        json_builder_set_member_name(builder, "y-pos");
+        json_builder_add_double_value(builder, settings->y_pos);
+
+        json_builder_set_member_name(builder, "docked-handle-pos");
+        json_builder_add_double_value(builder, settings->docked_handle_pos);
+
+        json_builder_end_object(builder);
+    }
+
+    json_builder_end_array(builder);
+
+    json_builder_end_object(builder);
+
+    final = json_builder_get_root(builder);
+
+    json_generator_set_root(gen, final);
+    json_generator_to_file(gen, fp, &err);
+
+    if (err)
+    {
+        WARNING("Unable to write chat settings file to '%s' because: %s",
+            fp, err->message);
+    }
+}
+
 static void
 finalise(GObject* obj)
 {
@@ -148,7 +336,7 @@ scale_chat_cb(GtkWidget* widget,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (!priv->chat_settings->docked)
+    if (!priv->cur_channel_settings->docked)
     {
         GtkAllocation alloc;
         gint width_request;
@@ -163,8 +351,8 @@ scale_chat_cb(GtkWidget* widget,
             "height_request", &height_request,
             NULL);
 
-        margin_start = ROUND(priv->chat_settings->x_pos*(alloc.width - width_request));
-        margin_top = ROUND(priv->chat_settings->y_pos*(alloc.height - height_request));
+        margin_start = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - width_request));
+        margin_top = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - height_request));
 
         g_object_set(priv->chat_view,
             "margin-start", margin_start,
@@ -178,7 +366,7 @@ update_docked(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (priv->chat_settings->docked)
+    if (priv->cur_channel_settings->docked)
     {
         gdouble width;
 
@@ -208,7 +396,7 @@ update_docked(GtPlayer* self)
             NULL);
 
         gtk_paned_set_position(GTK_PANED(priv->docking_pane),
-            ROUND(priv->chat_settings->docked_handle_pos*width));
+            ROUND(priv->cur_channel_settings->docked_handle_pos*width));
     }
     else
     {
@@ -229,13 +417,13 @@ update_docked(GtPlayer* self)
         if (gtk_widget_get_parent(priv->chat_view) == NULL)
             gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
 
-        width_request = ROUND(priv->chat_settings->width*alloc.width);
-        height_request = ROUND(priv->chat_settings->height*alloc.height);
-        margin_start = ROUND(priv->chat_settings->x_pos*(alloc.width - width_request));
-        margin_top = ROUND(priv->chat_settings->y_pos*(alloc.height - height_request));
+        width_request = ROUND(priv->cur_channel_settings->width*alloc.width);
+        height_request = ROUND(priv->cur_channel_settings->height*alloc.height);
+        margin_start = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - width_request));
+        margin_top = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - height_request));
 
         g_object_set(priv->chat_view,
-            "opacity", priv->chat_settings->opacity,
+            "opacity", priv->cur_channel_settings->opacity,
             "valign", GTK_ALIGN_START,
             "halign", GTK_ALIGN_START,
             "margin-start", margin_start,
@@ -540,10 +728,10 @@ mouse_moved_cb(GtkWidget* widget,
                 NULL);
         }
 
-        priv->chat_settings->x_pos = margin_start / (gdouble) (alloc.width - width_request);
-        priv->chat_settings->y_pos = margin_top / (gdouble) (alloc.height - height_request);
-        priv->chat_settings->width = width_request / (gdouble) alloc.width;
-        priv->chat_settings->height = height_request / (gdouble) alloc.height;
+        priv->cur_channel_settings->x_pos = margin_start / (gdouble) (alloc.width - width_request);
+        priv->cur_channel_settings->y_pos = margin_top / (gdouble) (alloc.height - height_request);
+        priv->cur_channel_settings->width = width_request / (gdouble) alloc.width;
+        priv->cur_channel_settings->height = height_request / (gdouble) alloc.height;
 
     }
     else
@@ -624,6 +812,15 @@ update_edit_chat(GtPlayer* self)
 }
 
 static void
+app_shutdown_cb(GApplication* app,
+    gpointer udata)
+{
+    g_assert_null(udata);
+
+    save_channel_settings();
+}
+
+static void
 set_property(GObject* obj,
              guint prop,
              const GValue* val,
@@ -650,20 +847,20 @@ set_property(GObject* obj,
             priv->channel = g_value_dup_object(val);
             break;
         case PROP_CHAT_DOCKED:
-            priv->chat_settings->docked = g_value_get_boolean(val);
+            priv->cur_channel_settings->docked = g_value_get_boolean(val);
             update_docked(self);
             break;
         case PROP_CHAT_OPACITY:
-            priv->chat_settings->opacity = g_value_get_double(val);
+            priv->cur_channel_settings->opacity = g_value_get_double(val);
             break;
         case PROP_CHAT_VISIBLE:
-            priv->chat_settings->visible = g_value_get_boolean(val);
+            priv->cur_channel_settings->visible = g_value_get_boolean(val);
             break;
         case PROP_CHAT_DARK_THEME:
-            priv->chat_settings->dark_theme = g_value_get_boolean(val);
+            priv->cur_channel_settings->dark_theme = g_value_get_boolean(val);
             break;
         case PROP_DOCKED_HANDLE_POSITION:
-            priv->chat_settings->docked_handle_pos = g_value_get_double(val);
+            priv->cur_channel_settings->docked_handle_pos = g_value_get_double(val);
             break;
         case PROP_EDIT_CHAT:
             priv->edit_chat = g_value_get_boolean(val);
@@ -702,19 +899,19 @@ get_property(GObject* obj,
             g_value_set_boolean(val, priv->playing);
             break;
         case PROP_CHAT_DOCKED:
-            g_value_set_boolean(val, priv->chat_settings->docked);
+            g_value_set_boolean(val, priv->cur_channel_settings->docked);
             break;
         case PROP_CHAT_OPACITY:
-            g_value_set_double(val, priv->chat_settings->opacity);
+            g_value_set_double(val, priv->cur_channel_settings->opacity);
             break;
         case PROP_CHAT_VISIBLE:
-            g_value_set_boolean(val, priv->chat_settings->visible);
+            g_value_set_boolean(val, priv->cur_channel_settings->visible);
             break;
         case PROP_CHAT_DARK_THEME:
-            g_value_set_boolean(val, priv->chat_settings->dark_theme);
+            g_value_set_boolean(val, priv->cur_channel_settings->dark_theme);
             break;
         case PROP_DOCKED_HANDLE_POSITION:
-            g_value_set_double(val, priv->chat_settings->docked_handle_pos);
+            g_value_set_double(val, priv->cur_channel_settings->docked_handle_pos);
             break;
         case PROP_EDIT_CHAT:
             g_value_set_boolean(val, priv->edit_chat);
@@ -992,6 +1189,10 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, reload_button);
+
+    channel_settings_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_player_channel_settings_free);
+
+    load_channel_settings();
 }
 
 //Target -> source
@@ -1040,7 +1241,7 @@ gt_player_init(GtPlayer* self)
     gtk_widget_add_events(GTK_WIDGET(self), GDK_POINTER_MOTION_MASK);
 
     priv->mouse_pressed = FALSE;
-    priv->chat_settings = gt_chat_view_settings_new();
+    priv->cur_channel_settings = gt_player_channel_settings_new();
 
     g_object_set(self, "volume",
                  g_settings_get_double(main_app->settings, "volume"),
@@ -1087,6 +1288,7 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(main_app->players_engine, "unload-plugin", G_CALLBACK(plugin_unloaded_cb), self);
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
     g_signal_connect(priv->reload_button, "clicked", G_CALLBACK(reload_button_cb), self);
+    g_signal_connect(main_app, "shutdown", G_CALLBACK(app_shutdown_cb), NULL);
 
     gchar** c;
     gchar** _c;
@@ -1136,7 +1338,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     g_assert(GT_IS_CHANNEL(chan));
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    const gchar* name = gt_channel_get_name(chan);
+    const gchar* id = gt_channel_get_id(chan);
 
     g_object_set(self, "channel", chan, NULL);
 
@@ -1163,14 +1365,15 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     g_object_set(self, "stream-quality",
         g_settings_get_string(main_app->settings, "default-quality"), NULL);
 
-    MESSAGEF("Opening stream '%s' with quality '%s'", name, priv->quality);
+    MESSAGEF("Opening stream '%s' with quality '%s'",
+        gt_channel_get_name(chan), priv->quality);
 
-    priv->chat_settings = g_hash_table_lookup(main_app->chat_settings_table, name);
-    if (!priv->chat_settings)
+    priv->cur_channel_settings = g_hash_table_lookup(channel_settings_table, id);
+    if (!priv->cur_channel_settings)
     {
-        priv->chat_settings = gt_chat_view_settings_new();
-        g_hash_table_insert(main_app->chat_settings_table,
-            g_strdup(name), priv->chat_settings);
+        priv->cur_channel_settings = gt_player_channel_settings_new();
+        g_hash_table_insert(channel_settings_table,
+            g_strdup(id), priv->cur_channel_settings);
     }
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
@@ -1261,4 +1464,31 @@ gt_player_is_playing(GtPlayer* self)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     return priv->playing;
+}
+
+GtPlayerChannelSettings*
+gt_player_channel_settings_new()
+{
+    GtPlayerChannelSettings* settings =  g_slice_new(GtPlayerChannelSettings);
+
+    settings->dark_theme = TRUE;
+    settings->opacity = 1.0;
+    settings->visible = TRUE;
+    settings->docked = TRUE;
+    settings->width = 0.2;
+    settings->height = 0.7;
+    settings->x_pos = 1.0;
+    settings->y_pos = 0.5;
+    settings->docked_handle_pos = 0.75;
+
+    return settings;
+}
+
+void
+gt_player_channel_settings_free(GtPlayerChannelSettings* settings)
+{
+    if (!settings)
+        return;
+
+    g_slice_free(GtPlayerChannelSettings, settings);
 }

@@ -35,15 +35,30 @@ struct _GtPlayer
     GtkStack parent_instance;
 };
 
-void gt_player_open_channel(GtPlayer* self, GtChannel* chan);
-void gt_player_close_channel(GtPlayer* self);
-void gt_player_play(GtPlayer* self);
-void gt_player_stop(GtPlayer* self);
-void gt_player_set_quality(GtPlayer* self, const gchar* quality);
-void gt_player_toggle_muted(GtPlayer* self);
-GtChannel* gt_player_get_channel(GtPlayer* self);
-GList* gt_player_get_available_stream_qualities(GtPlayer* self);
-gboolean gt_player_is_playing(GtPlayer* self);
+typedef struct
+{
+    gboolean visible;
+    gboolean docked;
+    gboolean dark_theme;
+    gdouble opacity;
+    gdouble width;
+    gdouble height;
+    gdouble x_pos;
+    gdouble y_pos;
+    gdouble docked_handle_pos;
+} GtPlayerChannelSettings;
+
+void                     gt_player_open_channel(GtPlayer* self, GtChannel* chan);
+void                     gt_player_close_channel(GtPlayer* self);
+void                     gt_player_play(GtPlayer* self);
+void                     gt_player_stop(GtPlayer* self);
+void                     gt_player_set_quality(GtPlayer* self, const gchar* quality);
+void                     gt_player_toggle_muted(GtPlayer* self);
+GtChannel*               gt_player_get_channel(GtPlayer* self);
+GList*                   gt_player_get_available_stream_qualities(GtPlayer* self);
+gboolean                 gt_player_is_playing(GtPlayer* self);
+GtPlayerChannelSettings* gt_player_channel_settings_new();
+void                     gt_player_channel_settings_free(GtPlayerChannelSettings* settings);
 
 G_END_DECLS
 

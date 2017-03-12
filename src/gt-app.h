@@ -74,15 +74,11 @@ struct _GtApp
 {
     GtkApplication parent_instance;
 
-    GtAppPrivate* priv;
-
     GtTwitch* twitch;
     GtFollowsManager* fav_mgr;
     GSettings* settings;
 
     PeasEngine* players_engine;
-
-    GHashTable* chat_settings_table; //TODO: Move this into GtChannelsManager when it's done
 };
 
 typedef struct

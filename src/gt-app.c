@@ -31,8 +31,6 @@
 #define TAG "GtApp"
 #include "gnome-twitch/gt-log.h"
 
-#define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
-
 struct _GtAppPrivate
 {
     GtWin* win;
@@ -115,24 +113,6 @@ gt_app_new(void)
                         NULL);
 }
 
-GtChatViewSettings*
-gt_chat_view_settings_new()
-{
-    GtChatViewSettings* ret = g_new0(GtChatViewSettings, 1);
-
-    ret->dark_theme = TRUE;
-    ret->opacity = 1.0;
-    ret->visible = TRUE;
-    ret->docked = TRUE;
-    ret->width = 0.2;
-    ret->height = 0.7;
-    ret->x_pos = 1.0;
-    ret->y_pos = 0.5;
-    ret->docked_handle_pos = 0.75;
-
-    return ret;
-}
-
 static void
 oauth_info_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
@@ -200,112 +180,6 @@ user_info_cb(GObject* source,
 
     MESSAGE("Succesfully fetched user info with name '%s', id '%s' and oauth token '%s'",
         user_info->name, user_info->id, user_info->oauth_token);
-}
-
-static void
-load_chat_settings(GtApp* self)
-{
-    gchar* fp = CHANNEL_SETTINGS_FILE;
-    JsonParser* parse = json_parser_new();
-    JsonNode* root = NULL;
-    JsonArray* array = NULL;
-    GList* ele = NULL;
-    GError* err = NULL;
-
-    MESSAGE("Loading chat settings");
-
-    if (!g_file_test(fp, G_FILE_TEST_EXISTS))
-        goto finish;
-
-    json_parser_load_from_file(parse, fp, &err);
-
-    if (err)
-    {
-        WARNINGF("Error loading chat settings '%s'", err->message);
-        goto finish;
-    }
-
-    root = json_parser_get_root(parse);
-    array = json_node_get_array(root);
-    ele = json_array_get_elements(array);
-
-    for (GList* l = ele; l != NULL; l = l->next)
-    {
-        JsonNode* node = l->data;
-        JsonObject* chan = json_node_get_object(node);
-        GtChatViewSettings* settings = gt_chat_view_settings_new();
-        const gchar* name;
-
-        name = json_object_get_string_member(chan, "name");
-        settings->dark_theme = json_object_get_boolean_member(chan, "dark-theme");
-        settings->visible = json_object_get_boolean_member(chan, "visible");
-        settings->docked = json_object_get_boolean_member(chan, "docked");
-        settings->opacity = json_object_get_double_member(chan, "opacity");
-        settings->width = json_object_get_double_member(chan, "width");
-        settings->height = json_object_get_double_member(chan, "height");
-        settings->x_pos = json_object_get_double_member(chan, "x-pos");
-        settings->y_pos = json_object_get_double_member(chan, "y-pos");
-        if (json_object_has_member(chan, "docked-handle-pos"))
-            settings->docked_handle_pos = json_object_get_double_member(chan, "docked-handle-pos");
-        else
-            settings->docked_handle_pos = 0.75;
-
-        g_hash_table_insert(self->chat_settings_table, g_strdup(name), settings);
-    }
-
-    g_list_free(ele);
-
-finish:
-    g_object_unref(parse);
-    g_free(fp);
-}
-
-static void
-save_chat_settings(GtApp* self)
-{
-    gchar* fp = CHANNEL_SETTINGS_FILE;
-    JsonArray* array = json_array_new();
-    JsonGenerator* generator = json_generator_new();
-    JsonNode* root = json_node_new(JSON_NODE_ARRAY);
-    GList* keys = g_hash_table_get_keys(self->chat_settings_table);
-    GError* err = NULL;
-
-    MESSAGE("{GtApp} Saving chat settings");
-
-    for (GList* l = keys; l != NULL; l = l->next)
-    {
-        JsonObject* obj = json_object_new();
-        JsonNode* node = json_node_new(JSON_NODE_OBJECT);
-        const gchar* key = l->data;
-        GtChatViewSettings* settings = g_hash_table_lookup(self->chat_settings_table, key);
-
-        json_object_set_string_member(obj, "name", key);
-        json_object_set_boolean_member(obj, "dark-theme", settings->dark_theme);
-        json_object_set_boolean_member(obj, "visible", settings->visible);
-        json_object_set_boolean_member(obj, "docked", settings->docked);
-        json_object_set_double_member(obj, "opacity", settings->opacity);
-        json_object_set_double_member(obj, "width", settings->width);
-        json_object_set_double_member(obj, "height", settings->height);
-        json_object_set_double_member(obj, "x-pos", settings->x_pos);
-        json_object_set_double_member(obj, "y-pos", settings->y_pos);
-        json_object_set_double_member(obj, "docked-handle-pos", settings->docked_handle_pos);
-
-        json_node_take_object(node, obj);
-        json_array_add_element(array, node);
-    }
-
-    json_node_take_array(root, array);
-
-    json_generator_set_root(generator, root);
-    json_generator_to_file(generator, fp, &err);
-
-    if (err)
-        WARNINGF("Error saving chat settings '%s'", err->message);
-
-    json_node_free(root);
-    g_object_unref(generator);
-    g_list_free(keys);
-    g_free(fp);
 }
 
 static void
@@ -409,14 +283,15 @@ open_channel_from_id_cb(GSimpleAction* action,
     g_assert(g_variant_is_of_type(var, G_VARIANT_TYPE_STRING));
 
     GtApp* self = GT_APP(udata);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
     const gchar* id = g_variant_get_string(var, NULL);
 
-    utils_refresh_cancellable(&self->priv->open_channel_cancel);
+    utils_refresh_cancellable(&priv->open_channel_cancel);
 
     MESSAGE("Opening channel from id '%s'", id);
 
     gt_twitch_fetch_channel_async(self->twitch, id,
-        open_channel_after_fetch_cb, self->priv->open_channel_cancel,
+        open_channel_after_fetch_cb, priv->open_channel_cancel,
         g_object_ref(self));
 }
 
@@ -453,8 +328,6 @@ static GActionEntry app_actions[] =
 static void
 activate(GApplication* app)
 {
-    static gboolean once = FALSE;
-
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
@@ -465,15 +338,6 @@ activate(GApplication* app)
     priv->win = gt_win_new(self);
 
     gtk_window_present(GTK_WINDOW(priv->win));
-
-    //TODO: Rethink this, this needs to be done because we need a
-    //window when loading settings
-    if (!once)
-    {
-        load_chat_settings(self);
-
-        once = TRUE;
-    }
 }
 
 static void
@@ -496,18 +360,18 @@ startup(GApplication* app)
     GtApp* self = GT_APP(app);
     GtAppPrivate* priv = gt_app_get_instance_private(self);
     GtkSettings* gtk_settings;
-    GtkBuilder* menu_bld;
+    g_autoptr(GtkBuilder) menu_bld;
+
+    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
     MESSAGE("Startup");
 
-    G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
+    self->fav_mgr = gt_follows_manager_new();
 
     init_dirs();
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
-                                    app_actions,
-                                    G_N_ELEMENTS(app_actions),
-                                    self);
+        app_actions, G_N_ELEMENTS(app_actions), self);
 
     menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
@@ -517,19 +381,13 @@ startup(GApplication* app)
 
     gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
 
-    g_object_unref(menu_bld);
-
     gtk_settings = gtk_settings_get_default();
 
     gt_app_prefer_dark_theme_changed_cb(self->settings,
-                                        "prefer-dark-theme",
-                                        gtk_settings);
-    g_signal_connect(self->settings,
-                     "changed::prefer-dark-theme",
-                     G_CALLBACK(gt_app_prefer_dark_theme_changed_cb),
-                     gtk_settings);
+        "prefer-dark-theme", gtk_settings);
 
-    self->fav_mgr = gt_follows_manager_new();
+    g_signal_connect(self->settings, "changed::prefer-dark-theme",
+        G_CALLBACK(gt_app_prefer_dark_theme_changed_cb), gtk_settings);
 
     //NOTE: This is to refresh oauth info
     if (gt_app_is_logged_in(self))
@@ -544,12 +402,9 @@ startup(GApplication* app)
 static void
 shutdown(GApplication* app)
 {
-
     GtApp* self = GT_APP(app);
 
-    MESSAGE("{GtApp} Shutting down");
-
-    save_chat_settings(self);
+    MESSAGE("Shutting down");
 
     //TODO: Add a setting to allow user to use local follows even when logged in
     if (!gt_app_is_logged_in(self))
@@ -622,14 +477,12 @@ gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
-    self->priv = gt_app_get_instance_private(self);
     priv->oauth_info = gt_oauth_info_new();
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
     self->twitch = gt_twitch_new();
     self->settings = g_settings_new("com.vinszent.GnomeTwitch");
-    self->chat_settings_table = g_hash_table_new(g_str_hash, g_str_equal);
     self->players_engine = peas_engine_get_default();
 
     gchar* plugin_dir;
