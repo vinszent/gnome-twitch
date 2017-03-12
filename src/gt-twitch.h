@@ -114,7 +114,7 @@ GtTwitch*                  gt_twitch_new();
 void                       gt_twitch_stream_access_token_free(GtTwitchStreamAccessToken* token);
 GtTwitchStreamAccessToken* gt_twitch_stream_access_token(GtTwitch* self, const gchar* channel, GError** error);
 void                       gt_twitch_stream_access_token_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
-const GtTwitchStreamData*        gt_twitch_stream_list_filter_quality(GList* list, const gchar* quality);
+const GtTwitchStreamData*  gt_twitch_stream_list_filter_quality(GList* list, const gchar* quality);
 GList*                     gt_twitch_all_streams(GtTwitch* self, const gchar* channel, GError** error);
 void                       gt_twitch_all_streams_async(GtTwitch* self, const gchar* channel, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GList*                     gt_twitch_all_streams_finish(GtTwitch* self, GAsyncResult* result, GError** error);
@@ -132,6 +132,9 @@ GList*                     gt_twitch_search_games_finish(GtTwitch* self, GAsyncR
 void                       gt_twitch_stream_data_free(GtTwitchStreamData* data);
 void                       gt_twitch_stream_data_list_free(GList* list);
 GtChannelData*             gt_twitch_fetch_channel_data(GtTwitch* self, const gchar* id, GError** error);
+GtChannel*                 gt_twitch_fetch_channel(GtTwitch* self, const gchar* id, GError** error);
+void                       gt_twitch_fetch_channel_async(GtTwitch* self, const gchar* id, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
+GtChannel*                 gt_twitch_fetch_channel_finish(GtTwitch* self, GAsyncResult* result, GError** error);
 void                       gt_twitch_channel_raw_data_async(GtTwitch* self, const gchar* name, GCancellable* cancel, GAsyncReadyCallback cb, gpointer udata);
 GtGameData*                gt_twitch_game_raw_data(GtTwitch* self, const gchar* name);
 GdkPixbuf*                 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, GError** error);

@@ -1317,6 +1317,84 @@ error:
     return NULL;
 }
 
+GtChannel*
+gt_twitch_fetch_channel(GtTwitch* self, const gchar* id, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(id));
+
+    GtChannelData* data = NULL;
+    GtChannel* channel = NULL;
+
+    DEBUG("Fetching channel with id '%s'", id);
+
+    data = gt_twitch_fetch_channel_data(self, id, error);
+
+    if (*error)
+        return NULL;
+
+    channel = gt_channel_new(data);
+
+    g_assert(g_object_is_floating(channel));
+
+    g_object_ref_sink(channel);
+
+    return channel;
+}
+
+static void
+fetch_channel_async_cb(GTask* task, gpointer source,
+    gpointer task_data, GCancellable* cancel)
+{
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_TASK(task));
+    g_assert_nonnull(task_data);
+
+    GError* err = NULL;
+    GenericTaskData* data = task_data;
+
+    GtChannel* ret = gt_twitch_fetch_channel(GT_TWITCH(source), data->str_1, &err);
+
+    if (err)
+        g_task_return_error(task, err);
+    else
+        g_task_return_pointer(task, ret, (GDestroyNotify) g_object_unref);
+}
+
+void
+gt_twitch_fetch_channel_async(GtTwitch* self,
+    const gchar* id, GAsyncReadyCallback cb,
+    GCancellable* cancel, gpointer udata)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert_false(utils_str_empty(id));
+
+    GTask* task = NULL;
+    GenericTaskData* data = generic_task_data_new();
+
+    task = g_task_new(self, cancel, cb, udata);
+
+    data->str_1 = g_strdup(id);
+
+    g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
+
+    g_task_run_in_thread(task, fetch_channel_async_cb);
+
+    g_object_unref(task);
+}
+
+GtChannel*
+gt_twitch_fetch_channel_finish(GtTwitch* self,
+    GAsyncResult* result, GError** error)
+{
+    g_assert(GT_IS_TWITCH(self));
+    g_assert(G_IS_ASYNC_RESULT(result));
+
+    GtChannel* ret = g_task_propagate_pointer(G_TASK(result), error);
+
+    return ret;
+}
+
 GdkPixbuf*
 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, GError** error)
 {

@@ -33,7 +33,7 @@
 
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 
-typedef struct
+struct _GtAppPrivate
 {
     GtWin* win;
 
@@ -43,7 +43,9 @@ typedef struct
     GMenuModel* app_menu;
 
     gchar* language_filter;
-} GtAppPrivate;
+
+    GCancellable* open_channel_cancel;
+};
 
 gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
 gboolean NO_FANCY_LOGGING = FALSE;
@@ -348,11 +350,79 @@ init_dirs()
     g_free(fp);
 }
 
+static void
+open_channel_after_fetch_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    g_assert(GT_IS_APP(udata));
+    g_assert(GT_IS_TWITCH(source));
+    g_assert(G_IS_ASYNC_RESULT(res));
+
+    GtApp* self = udata;
+    g_autoptr(GError) err = NULL;
+    //NOTE: autoptr because we want this unrefed as we won't be using it anymore
+    g_autoptr(GtChannel) channel = NULL;
+    GtWin* win = NULL;
+
+    channel = gt_twitch_fetch_channel_finish(GT_TWITCH(source),
+        res, &err);
+
+    win = GT_WIN_ACTIVE;
+
+    g_assert(GT_IS_WIN(win));
+
+    if (err)
+    {
+        WARNING("Couldn't open channel because: %s", err->message);
+
+        gt_win_show_error_message(win, "Couldn't open channel",
+            "Couldn't open channel because: %s", err->message);
+
+    }
+    else
+        gt_win_open_channel(win, channel); //NOTE: Win will take a reference to channel
+
+    g_object_unref(self);
+}
+
+static void
+open_channel_from_url_cb(GSimpleAction* action,
+    GVariant* var, gpointer udata)
+{
+    g_assert(G_IS_SIMPLE_ACTION(action));
+    g_assert(GT_IS_APP(udata));
+    g_assert(g_variant_is_of_type(var, G_VARIANT_TYPE_STRING));
+
+    GtWin* win;
+
+    win = GT_WIN_ACTIVE;
+
+    g_assert(GT_IS_WIN(win));
+}
+
+static void
+open_channel_from_id_cb(GSimpleAction* action,
+    GVariant* var, gpointer udata)
+{
+    g_assert(G_IS_SIMPLE_ACTION(action));
+    g_assert(GT_IS_APP(udata));
+    g_assert(g_variant_is_of_type(var, G_VARIANT_TYPE_STRING));
+
+    GtApp* self = GT_APP(udata);
+    const gchar* id = g_variant_get_string(var, NULL);
+
+    utils_refresh_cancellable(&self->priv->open_channel_cancel);
+
+    MESSAGE("Opening channel from id '%s'", id);
+
+    gt_twitch_fetch_channel_async(self->twitch, id,
+        open_channel_after_fetch_cb, self->priv->open_channel_cancel,
+        g_object_ref(self));
+}
 
 static void
 quit_cb(GSimpleAction* action,
-        GVariant* par,
-        gpointer udata)
+    GVariant* par, gpointer udata)
 {
     MESSAGE("Quitting");
 
@@ -363,8 +433,7 @@ quit_cb(GSimpleAction* action,
 
 static gint
 handle_command_line_cb(GApplication* self,
-                       GVariantDict* options,
-                       gpointer udata)
+    GVariantDict* options, gpointer udata)
 {
     if (VERSION)
     {
@@ -377,6 +446,7 @@ handle_command_line_cb(GApplication* self,
 
 static GActionEntry app_actions[] =
 {
+    {"open-channel-from-id", open_channel_from_id_cb, "s", NULL, NULL},
     {"quit", quit_cb, NULL, NULL, NULL}
 };
 
@@ -552,6 +622,7 @@ gt_app_init(GtApp* self)
 {
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
+    self->priv = gt_app_get_instance_private(self);
     priv->oauth_info = gt_oauth_info_new();
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);

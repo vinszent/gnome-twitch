@@ -67,35 +67,32 @@ gt_follows_manager_new(void)
 
 static void
 channel_online_cb(GObject* source,
-                  GParamSpec* pspe,
-                  gpointer udata)
+    GParamSpec* pspec, gpointer udata)
 {
-    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    gboolean online;
-    gchar* name;
-    gchar* game;
+    g_assert(GT_IS_CHANNEL(source));
+    g_assert(GT_IS_FOLLOWS_MANAGER(udata));
 
-    g_object_get(source,
-                 "online", &online,
-                 "name", &name,
-                 "game", &game,
-                 NULL);
+    GtChannel* chan = GT_CHANNEL(source);
 
-    if (online)
+    if (gt_channel_is_online(chan))
     {
-        GNotification* notification;
-        gchar title_str[100];
-        gchar body_str[100];
+        g_autoptr(GNotification) notification;
+        g_autofree gchar* title_str = NULL;
+        g_autofree gchar* body_str = NULL;
+        GVariant* var = NULL;
 
-        g_sprintf(title_str, _("Channel %s is now online"), name);
-        g_sprintf(body_str, _("Streaming %s"), game);
+        title_str = g_strdup_printf(_("%s started streaming %s"),
+            gt_channel_get_display_name(chan), gt_channel_get_game_name(chan));
+        body_str = g_strdup_printf(_("Click here to start watching"));
+
+        var = g_variant_new_string(gt_channel_get_id(chan));
 
         notification = g_notification_new(title_str);
         g_notification_set_body(notification, body_str);
-        g_application_send_notification(G_APPLICATION(main_app), NULL, notification);
+        g_notification_set_default_action_and_target_value(notification,
+            "app.open-channel-from-id", var);
 
-        g_object_unref(notification);
+        g_application_send_notification(G_APPLICATION(main_app), NULL, notification);
     }
 }
 
@@ -208,19 +205,22 @@ channel_followed_cb(GObject* source,
 }
 
 static void
-oneshot_updating_cb(GObject* source,
-                    GParamSpec* pspec,
-                    gpointer udata)
+channel_updating_oneshot_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
 {
+    g_assert(GT_IS_FOLLOWS_MANAGER(udata));
+    g_assert(GT_IS_CHANNEL(source));
+
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    gboolean updating;
+    GtChannel* chan = GT_CHANNEL(source);
 
-    g_object_get(source, "updating", &updating, NULL);
-
-    if (!updating)
+    if (!gt_channel_is_updating(chan))
     {
-//        g_signal_connect(source, "notify::online", G_CALLBACK(channel_online_cb), self);
-        g_signal_handlers_disconnect_by_func(source, oneshot_updating_cb, self); // Just run once after first update
+        g_signal_connect(chan, "notify::online",
+            G_CALLBACK(channel_online_cb), self);
+
+        g_signal_handlers_disconnect_by_func(source,
+            channel_updating_oneshot_cb, self);
     }
 }
 
@@ -480,13 +480,17 @@ fetch_all_followed_channels_cb(GObject* source,
 
             g_object_ref_sink(chan);
 
+            g_signal_connect(chan, "notify::updating",
+                G_CALLBACK(channel_updating_oneshot_cb), self);
+
             g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
+
             g_object_set(chan,
-                         "auto-update", TRUE,
-                         "followed", TRUE,
-                         NULL);
-            g_object_ref_sink(G_OBJECT(chan));
+                "auto-update", TRUE,
+                "followed", TRUE,
+                NULL);
             g_signal_emit(self, sigs[SIG_CHANNEL_FOLLOWED], 0, chan);
+
             g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
         }
 
@@ -634,13 +638,15 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
         g_assert(GT_IS_CHANNEL(chan));
 
         g_signal_handlers_block_by_func(chan, channel_followed_cb, self);
+
         g_object_set(chan,
-                     "auto-update", TRUE,
-                     "followed", TRUE,
-                     NULL);
+            "auto-update", TRUE,
+            "followed", TRUE,
+            NULL);
+
         g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
 
-        g_signal_connect(chan, "notify::updating", G_CALLBACK(oneshot_updating_cb), self);
+        g_signal_connect(chan, "notify::updating", G_CALLBACK(channel_updating_oneshot_cb), self);
     }
 
     MESSAGE("Loaded '%d' follows from file", g_list_length(self->follow_channels));

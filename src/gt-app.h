@@ -68,9 +68,13 @@ typedef struct
 
 #include "gt-twitch.h"
 
+typedef struct _GtAppPrivate GtAppPrivate;
+
 struct _GtApp
 {
     GtkApplication parent_instance;
+
+    GtAppPrivate* priv;
 
     GtTwitch* twitch;
     GtFollowsManager* fav_mgr;

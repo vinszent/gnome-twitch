@@ -765,6 +765,17 @@ gt_channel_get_name(GtChannel* self)
 }
 
 const gchar*
+gt_channel_get_display_name(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return utils_str_empty(priv->data->game) ?
+        priv->data->name : priv->data->display_name;
+}
+
+const gchar*
 gt_channel_get_id(GtChannel* self)
 {
     g_assert(GT_IS_CHANNEL(self));
@@ -772,6 +783,16 @@ gt_channel_get_id(GtChannel* self)
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     return priv->data->id;
+}
+
+const gchar*
+gt_channel_get_game_name(GtChannel* self)
+{
+    g_assert(GT_IS_CHANNEL(self));
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return utils_str_empty(priv->data->game) ? "" : priv->data->game;
 }
 
 gboolean
