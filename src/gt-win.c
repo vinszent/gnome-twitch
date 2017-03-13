@@ -672,7 +672,13 @@ gt_win_init(GtWin* self)
 void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
+    g_assert(GT_IS_WIN(self));
+    g_assert(GT_IS_CHANNEL(chan));
+
     GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (gt_player_is_playing(self->player))
+        gt_player_close_channel(self->player);
 
     gt_player_open_channel(GT_PLAYER(self->player), chan);
 
