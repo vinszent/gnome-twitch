@@ -81,14 +81,14 @@ player_backend_install_dir = join_paths(get_option('libdir'),
   'gnome-twitch', 'player-backends')
 
 if BUILD_PLAYER_BACKEND_GSTREAMER_CLUTTER
-  subdir('subprojects/player-backend-gstreamer-clutter')
+  subdir('player-backends/player-backend-gstreamer-clutter')
 endif
 if BUILD_PLAYER_BACKEND_MPV_OPENGL
-  subdir('subprojects/player-backend-mpv-opengl')
+  subdir('player-backends/player-backend-mpv-opengl')
 endif
 if BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO
-  subdir('subprojects/player-backend-gstreamer-cairo')
+  subdir('player-backends/player-backend-gstreamer-cairo')
 endif
 if BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL
-  subdir('subprojects/player-backend-gstreamer-opengl')
+  subdir('player-backends/player-backend-gstreamer-opengl')
 endif
