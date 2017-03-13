@@ -74,7 +74,7 @@ channel_online_cb(GObject* source,
 
     GtChannel* chan = GT_CHANNEL(source);
 
-    if (gt_channel_is_online(chan))
+    if (gt_channel_is_online(chan) && gt_app_should_show_notifications(main_app))
     {
         g_autoptr(GNotification) notification;
         g_autofree gchar* title_str = NULL;
