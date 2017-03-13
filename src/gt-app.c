@@ -609,6 +609,14 @@ gt_app_get_language_filter(GtApp* self)
     return priv->language_filter;
 }
 
+gboolean
+gt_app_should_show_notifications(GtApp* self)
+{
+    g_assert(GT_IS_APP(self));
+
+    return g_settings_get_boolean(main_app->settings, "show-notifications");
+}
+
 GtUserInfo*
 gt_user_info_new()
 {
