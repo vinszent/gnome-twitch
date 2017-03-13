@@ -62,5 +62,10 @@
       <summary>Loaded player backend</summary>
       <description>Currently loaded player backend</description>
     </key>
+    <key name="show-notifications" type="b">
+      <default>true</default>
+      <summary>Show notifications</summary>
+      <description>Whether to show notifications when channels start streaming</description>
+    </key>
   </schema>
 </schemalist>
