@@ -64,13 +64,34 @@
                 </child>
                 <child>
                   <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Default video quality:</property>
+                    <property name="visible">true</property>
+                    <property name="label" translatable="yes">Show notifications</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
                     <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="notifications_switch">
+                    <property name="visible">true</property>
+                    <property name="halign">end</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Default video quality</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
@@ -87,18 +108,18 @@
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">Language filter:</property>
+                    <property name="label" translatable="yes">Language filter</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
+                    <property name="top-attach">3</property>
                   </packing>
                 </child>
                 <child>
@@ -136,7 +157,7 @@
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
-                    <property name="top-attach">2</property>
+                    <property name="top-attach">3</property>
                   </packing>
                 </child>
               </object>
