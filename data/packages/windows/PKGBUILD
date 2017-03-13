@@ -55,7 +55,7 @@ pkgver() {
 prepare() {
   rm -rf "${srcdir}/${_realname}"
 
-  git clone -b windows https://github.com/vinszent/gnome-twitch "${srcdir}/${_realname}"
+  git clone -b update-build-files https://github.com/vinszent/gnome-twitch "${srcdir}/${_realname}"
 }
 
 build() {
@@ -65,7 +65,7 @@ build() {
   cd build-${MINGW_CHOST}
   meson.py --prefix "C:/${MINGW_PREFIX}" \
            -Duse-deprecated-webkit=true \
-           -Dbuild-player-backend-gstreamer-cairo=true ..
+           -Dbuild-player-backends=gstreamer-cairo ..
   ninja
 }
 

@@ -20,7 +20,7 @@ deps_gstreamer_opengl = [
   libgtk_dep,
   libpeas_dep,
   gstreamer_dep,
-  gt_module_dep
+  gt_library_dep
 ]
 
 src_gstreamer_opengl = [
@@ -28,6 +28,7 @@ src_gstreamer_opengl = [
 ]
 
 shared_module('player-backend-gstreamer-opengl', src_gstreamer_opengl,
+  include_directories : include_dir,
   dependencies : deps_gstreamer_opengl,
   install_dir : player_backend_install_dir,
   install : true)

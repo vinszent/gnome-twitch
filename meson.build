@@ -29,12 +29,13 @@ LOCALE_DIR = join_paths(get_option('prefix'), get_option('localedir'))
 LIB_DIR = join_paths(get_option('prefix'), get_option('libdir'))
 DATA_DIR = join_paths(get_option('prefix'), get_option('datadir'))
 
-BUILD_GNOME_TWITCH_EXECUTABLE = get_option('build-gnome-twitch-executable')
-BUILD_GNOME_TWITCH_LIBRARY = get_option('build-gnome-twitch-library')
-BUILD_PLAYER_BACKEND_GSTREAMER_CLUTTER = get_option('build-player-backend-gstreamer-clutter')
-BUILD_PLAYER_BACKEND_MPV_OPENGL = get_option('build-player-backend-mpv-opengl')
-BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO = get_option('build-player-backend-gstreamer-cairo')
-BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL = get_option('build-player-backend-gstreamer-opengl')
+player_backend_options = get_option('build-player-backends').split(',')
+
+BUILD_EXECUTABLE = get_option('build-executable')
+BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO = player_backend_options.contains('gstreamer-cairo')
+BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL = player_backend_options.contains('gstreamer-opengl')
+BUILD_PLAYER_BACKEND_GSTREAMER_CLUTTER = player_backend_options.contains('gstreamer-clutter')
+BUILD_PLAYER_BACKEND_MPV_OPENGL = player_backend_options.contains('mpv-opengl')
 
 include_dir = include_directories('include')
 
@@ -42,18 +43,25 @@ include_dir = include_directories('include')
 libgtk_dep = dependency('gtk+-3.0', version : '>=3.20')
 libpeas_dep = dependency('libpeas-1.0')
 
-if BUILD_GNOME_TWITCH_EXECUTABLE
+# This will possibly override later
+gt_library_dep = declare_dependency(
+  include_directories : include_dir)
+
+if BUILD_EXECUTABLE
   subdir('data')
   subdir('po')
+  subdir('include')
+  subdir('src')
 
   meson.add_install_script('meson_post_install.py')
+elif host_machine.system() == 'windows'
+  # We aren't building the main executable and we are on Windows
+  # but we still could possibly be building plugins.
+  # Therefore we need to declare the sub-library as a dep that
+  # should already exist on the system (otherwise why are you
+  # trying to build plugins for an app that you don't have installed).
+  gt_library_dep = dependency('gnome-twitch')
 endif
-
-if BUILD_GNOME_TWITCH_LIBRARY
-  subdir('include')
-endif
-
-subdir('src')
 
 player_backend_install_dir = join_paths(get_option('libdir'),
   'gnome-twitch', 'player-backends')

@@ -18,11 +18,12 @@ mpv_dep = dependency('mpv')
 epoxy_dep = dependency('epoxy')
 
 deps_mpv_opengl = [
+  libgtk_dep,
   mpv_dep,
   libpeas_dep,
   mpv_dep,
   epoxy_dep,
-  gt_module_dep
+  gt_library_dep
 ]
 
 src_mpv_opengl = [

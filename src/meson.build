@@ -120,9 +120,10 @@ gt_library_c_args = gt_executable_c_args
 
 if host_machine.system() == 'windows'
   gt_executable_link_args += '-mwindows'
-endif
 
-if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
+  # We need to do this because Windows doesn't allow DLLs to be linked
+  # with undefined references. Therefore we move all shared functionality into a
+  # sub-library that plugins can be linked against.
   gt_library = shared_library('gnome-twitch', src_gt_library,
     include_directories : include_dir,
     dependencies : deps_gt_library,
@@ -133,27 +134,23 @@ if BUILD_GNOME_TWITCH_LIBRARY or BUILD_GNOME_TWITCH_EXECUTABLE
     include_directories : include_dir,
     link_with : gt_library)
 
-  gt_module_dep = declare_dependency(
-    include_directories : include_dir)
-
   pkg.generate(
     libraries : gt_library,
     name : 'gnome-twitch',
     description : 'Library used for building GNOME Twitch plugins',
     requires : ['gtk+-3.0', 'libpeas-1.0'],
     version : meson.project_version())
+
+  deps_gt += gt_library_dep
 else
-    gt_library_dep = dependency('gnome-twitch')
-    gt_module_dep = gt_library_dep
+  # Otherwise we can just compile shared functionality
+  # straight into the main executable
+  src_gt_executable += src_gt_library
 endif
 
-deps_gt += gt_library_dep
-
-if BUILD_GNOME_TWITCH_EXECUTABLE
-  executable('gnome-twitch', src_gt_executable,
-    include_directories : include_dir,
-    dependencies : deps_gt,
-    install : true,
-    link_args : gt_executable_link_args,
-    c_args : gt_executable_c_args)
-endif
+executable('gnome-twitch', src_gt_executable,
+  include_directories : include_dir,
+  dependencies : deps_gt,
+  install : true,
+  link_args : gt_executable_link_args,
+  c_args : gt_executable_c_args)
