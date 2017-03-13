@@ -65,7 +65,6 @@ fetch_items(GTask* task,
     FetchItemsData* data = task_data;
     GError* err = NULL;
 
-    //TODO: Check for error
     GList* items = gt_twitch_top_channels(main_app->twitch,
         data->amount, data->offset, NO_GAME,
         gt_app_get_language_filter(main_app), &err);

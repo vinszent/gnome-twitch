@@ -22,6 +22,7 @@
 #include <string.h>
 #include "utils.h"
 #include "config.h"
+#include "gt-win.h"
 
 #define TAG "Utils"
 #include "gnome-twitch/gt-log.h"
@@ -183,13 +184,11 @@ utils_mouse_clicked_link_cb(GtkWidget* widget,
                             GdkEventButton* evt,
                             gpointer udata)
 {
-    GdkScreen* screen;
-
-    screen = gtk_widget_get_screen(widget);
-
     if (evt->button == 1 && evt->type == GDK_BUTTON_PRESS)
     {
-        gtk_show_uri(screen, (gchar*) udata, GDK_CURRENT_TIME, NULL);
+        GtWin* parent = GT_WIN_TOPLEVEL(widget);
+
+        gtk_show_uri_on_window(GTK_WINDOW(parent), (gchar*) udata, GDK_CURRENT_TIME, NULL);
     }
 
     return FALSE;
@@ -307,7 +306,7 @@ utils_parse_time_iso_8601(const gchar* time, GError** error)
 
     if (scanned != 6)
     {
-        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING,
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING_TIME,
             "Unable to parse time from input '%s'", time);
     }
     else

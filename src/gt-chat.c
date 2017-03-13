@@ -105,16 +105,8 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtChat*
-gt_chat_new()
-{
-    return g_object_new(GT_TYPE_CHAT,
-                        NULL);
-}
-
-
 //TODO: Use "unique" hash
-const gchar*
+static const gchar*
 get_default_chat_colour(const gchar* name)
 {
     gint total = 0;
@@ -439,9 +431,12 @@ chat_view_button_press_cb(GtkWidget* widget,
     for (GSList* l = tags; l != NULL; l = l->next)
     {
         gchar* url = g_object_get_data(G_OBJECT(l->data), "url");
+        GtWin* win = GT_WIN_TOPLEVEL(self);
 
-        if (url)
-            gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL);
+        g_assert(GT_IS_WIN(win));
+
+        if (!utils_str_empty(url))
+            gtk_show_uri_on_window(GTK_WINDOW(win), url, GDK_CURRENT_TIME, NULL); /* FIXME: Handle error here */
     }
 
     g_slist_free(tags);
@@ -863,6 +858,12 @@ disconnected_cb(GObject* source,
         g_signal_handler_disconnect(priv->irc, priv->irc_disconnected_source);
         priv->irc_disconnected_source = 0;
     }
+}
+
+GtChat*
+gt_chat_new()
+{
+    return g_object_new(GT_TYPE_CHAT, NULL);
 }
 
 void

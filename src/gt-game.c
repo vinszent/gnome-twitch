@@ -157,8 +157,6 @@ update_preview(GtGame* self)
 
     if (!priv->preview)
     {
-        g_print("Url %s\n", priv->data->preview_url);
-
         gt_twitch_download_picture_async(main_app->twitch,
             priv->data->preview_url, 0, priv->cancel,
             download_preview_cb, g_object_ref(self));

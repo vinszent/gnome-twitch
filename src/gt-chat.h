@@ -33,9 +33,9 @@ struct _GtChat
     GtkBox parent_instance;
 };
 
-GtChat* gt_chat_new();
-void gt_chat_connect(GtChat* self, GtChannel* chan);
-void gt_chat_disconnect(GtChat* self);
+GtChat*         gt_chat_new();
+void            gt_chat_connect(GtChat* self, GtChannel* chan);
+void            gt_chat_disconnect(GtChat* self);
 
 G_END_DECLS
 

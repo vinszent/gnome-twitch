@@ -32,7 +32,7 @@
 
 typedef enum
 {
-    GT_UTILS_ERROR_PARSING,
+    GT_UTILS_ERROR_PARSING_TIME,
 } GtUtilsError;
 
 gpointer utils_value_ref_sink_object(const GValue* val);

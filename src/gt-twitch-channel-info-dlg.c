@@ -83,9 +83,10 @@ tag_event_cb(GtkTextTag* tag,
     {
         if (((GdkEventButton*) evt)->button == 1)
         {
-            gtk_show_uri(gtk_widget_get_screen(GTK_WIDGET(self)),
-                         g_object_get_data(G_OBJECT(tag), "link"),
-                         GDK_CURRENT_TIME, NULL);
+            /* FIXME: Fix this once we re-enable this feature */
+            /* gtk_show_uri(gtk_widget_get_screen(GTK_WIDGET(self)), */
+            /*              g_object_get_data(G_OBJECT(tag), "link"), */
+            /*              GDK_CURRENT_TIME, NULL); */
         }
     }
 
