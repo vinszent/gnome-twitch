@@ -12,7 +12,7 @@ Source0:        https://github.com/vinszent/gnome-twitch/archive/v%{version}.tar
 BuildRequires:  meson >= 0.36.0
 BuildRequires:  gettext
 BuildRequires:  pkgconfig(glib-2.0)
-BuildRequires:  pkgconfig(gtk+-3.0) >= 3.2.0
+BuildRequires:  pkgconfig(gtk+-3.0) >= 3.20.0
 BuildRequires:  pkgconfig(gstreamer-1.0)
 BuildRequires:  pkgconfig(libsoup-2.4)
 BuildRequires:  pkgconfig(json-glib-1.0)
