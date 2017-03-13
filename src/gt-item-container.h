@@ -36,8 +36,11 @@ struct _GtItemContainerClass
         gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name,
         gchar** error_label_text, gchar** fetching_label_text);
     GTaskThreadFunc fetch_items;
-    GtkWidget* (*create_child) (gpointer data);
+    GtkWidget* (*create_child) (GtItemContainer* item_container, gpointer data);
     void (*activate_child) (GtItemContainer* item_container, gpointer child);
+    /* NOTE: This will be called before the container is cleared. This can be useful if you need
+     to do something like disconnect signals from each child. */
+    void (*on_clear) (GtItemContainer* item_container, GList* items);
 };
 
 typedef struct
@@ -46,7 +49,7 @@ typedef struct
     gint offset;
 } FetchItemsData;
 
-GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self);
+GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self); /* NOTE: Should only be used by children*/
 void gt_item_container_append_items(GtItemContainer* self, GList* items);
 void gt_item_container_refresh(GtItemContainer* self);
 

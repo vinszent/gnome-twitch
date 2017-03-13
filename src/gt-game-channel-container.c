@@ -91,8 +91,11 @@ fetch_items(GTask* task,
 }
 
 static GtkWidget*
-create_child(gpointer data)
+create_child(GtItemContainer* item_container, gpointer data)
 {
+    g_assert(GT_IS_GAME_CHANNEL_CONTAINER(item_container));
+    g_assert(GT_IS_CHANNEL(data));
+
     return GTK_WIDGET(gt_channels_container_child_new(GT_CHANNEL(data)));
 }
 

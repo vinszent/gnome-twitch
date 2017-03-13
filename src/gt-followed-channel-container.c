@@ -64,10 +64,31 @@ get_properties(GtItemContainer* self,
     *fetching_label_text = g_strdup(_("Fetching channels"));
 }
 
-static GtkWidget*
-create_child(gpointer data)
+static void
+channel_updating_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
 {
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    g_assert(GT_IS_CHANNEL(source));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
+    GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
+
+    if (!gt_channel_is_updating(GT_CHANNEL(source)))
+        gtk_flow_box_invalidate_sort(GTK_FLOW_BOX(priv->item_flow));
+
+}
+
+static GtkWidget*
+create_child(GtItemContainer* item_container, gpointer data)
+{
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
     g_assert(GT_IS_CHANNEL(data));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(item_container);
+
+    g_signal_connect_object(data, "notify::updating",
+        G_CALLBACK(channel_updating_cb), self, 0);
 
     return GTK_WIDGET(gt_channels_container_child_new(GT_CHANNEL(data)));
 }
@@ -102,7 +123,26 @@ fetch_items(GTask* task,
 
     g_assert_nonnull(data);
 
-    g_task_return_pointer(task, main_app->fav_mgr->follow_channels, NULL);
+    /* NOTE: We need to do a shallow copy because GtItemContainer assumes ownership of the list */
+    g_task_return_pointer(task, g_list_copy(main_app->fav_mgr->follow_channels), NULL);
+}
+
+static void
+on_clear(GtItemContainer* item_container,
+    GList* items)
+{
+    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(item_container);
+
+    for (GList* l = items; l != NULL; l = l->next)
+    {
+        g_assert(GT_IS_CHANNEL(l->data));
+
+        GtChannel* chan = l->data;
+
+        g_signal_handlers_disconnect_by_func(chan, channel_updating_cb, self);
+    }
 }
 
 static void
@@ -283,6 +323,7 @@ gt_followed_channel_container_class_init(GtFollowedChannelContainerClass* klass)
     GT_ITEM_CONTAINER_CLASS(klass)->create_child = create_child;
     GT_ITEM_CONTAINER_CLASS(klass)->get_properties = get_properties;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
+    GT_ITEM_CONTAINER_CLASS(klass)->on_clear = on_clear;
 
     props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query", NULL, G_PARAM_READWRITE);
 

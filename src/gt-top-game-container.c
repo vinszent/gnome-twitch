@@ -77,8 +77,9 @@ fetch_items(GTask* task,
 }
 
 static GtkWidget*
-create_child(gpointer data)
+create_child(GtItemContainer* item_container, gpointer data)
 {
+    g_assert(GT_IS_TOP_GAME_CONTAINER(item_container));
     g_assert(GT_IS_GAME(data));
 
     return GTK_WIDGET(gt_games_container_child_new(GT_GAME(data)));
