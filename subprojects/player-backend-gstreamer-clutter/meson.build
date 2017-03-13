@@ -30,7 +30,7 @@ src_gstreamer_clutter = [
 ]
 
 shared_module('player-backend-gstreamer-clutter', src_gstreamer_clutter,
-  include_directories : include_dir,
+  c_args : default_c_args,
   dependencies : deps_gstreamer_clutter,
   install_dir : player_backend_install_dir,
   install : true)

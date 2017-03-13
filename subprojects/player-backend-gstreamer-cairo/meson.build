@@ -28,7 +28,7 @@ src_gstreamer_cairo = [
 ]
 
 shared_module('player-backend-gstreamer-cairo', src_gstreamer_cairo,
-  include_directories : include_dir,
+  c_args : default_c_args,
   dependencies : deps_gstreamer_cairo,
   install_dir : player_backend_install_dir,
   install : true)

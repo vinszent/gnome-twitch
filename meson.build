@@ -24,6 +24,20 @@ project('gnome-twitch', 'c',
   ]
 )
 
+test_cflags = [
+  '-Wno-unused-variable',
+  '-Wno-unused-parameter',
+  '-Wno-missing-field-initializers'
+]
+
+default_c_args = []
+cc = meson.get_compiler('c')
+foreach cflag : test_cflags
+  if cc.has_argument(cflag)
+    default_c_args += cflag
+  endif
+endforeach
+
 # Used in config.h
 LOCALE_DIR = join_paths(get_option('prefix'), get_option('localedir'))
 LIB_DIR = join_paths(get_option('prefix'), get_option('libdir'))

@@ -31,6 +31,7 @@ src_mpv_opengl = [
 ]
 
 shared_module('player-backend-mpv-opengl', src_mpv_opengl,
+  c_args : default_c_args,
   dependencies : deps_mpv_opengl,
   install_dir : player_backend_install_dir,
   install : true)

@@ -101,18 +101,7 @@ src_gt_library = [
   'gt-player-backend.c'
 ]
 
-test_cflags = [
-  '-Wno-unused-variable',
-  '-Wno-unused-parameter',
-  '-Wno-missing-field-initializers'
-]
-gt_executable_c_args = []
-cc = meson.get_compiler('c')
-foreach cflag : test_cflags
-  if cc.has_argument(cflag)
-    gt_executable_c_args += cflag
-  endif
-endforeach
+gt_executable_c_args = default_c_args
 
 gt_executable_link_args = []
 

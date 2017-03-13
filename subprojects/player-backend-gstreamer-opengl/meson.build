@@ -28,7 +28,7 @@ src_gstreamer_opengl = [
 ]
 
 shared_module('player-backend-gstreamer-opengl', src_gstreamer_opengl,
-  include_directories : include_dir,
+  c_args : default_c_args,
   dependencies : deps_gstreamer_opengl,
   install_dir : player_backend_install_dir,
   install : true)
