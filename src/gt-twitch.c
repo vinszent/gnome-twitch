@@ -17,6 +17,7 @@
  */
 
 #include "gt-twitch.h"
+#include "gt-resource-downloader.h"
 #include "config.h"
 #include <libsoup/soup.h>
 #include <glib/gprintf.h>
@@ -193,6 +194,7 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
+static GtResourceDownloader* emote_downloader;
 static GtTwitchStreamAccessToken*
 gt_twitch_stream_access_token_new()
 {
@@ -261,6 +263,11 @@ gt_twitch_init(GtTwitch* self)
     priv->soup = soup_session_new();
     priv->emote_table = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) g_object_unref);
     priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
+
+    g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(),
+        "gnome-twitch", "emotes", NULL);
+
+    emote_downloader = gt_resource_downloader_new(filepath);
 }
 
 static gboolean
@@ -1496,20 +1503,20 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
 
     if (!g_hash_table_contains(priv->emote_table, GINT_TO_POINTER(id)))
     {
-        gchar* url = NULL;
-        GError* err = NULL;
+        g_autofree gchar* uri = NULL;
+        g_autoptr(GError) err = NULL;
+        gchar id_str[15];
 
-        url = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
+        uri = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
+        g_sprintf(id_str, "%d", id);
 
-        DEBUGF("Downloading emote form url='%s'", url);
+        DEBUGF("Downloading emote form url='%s'", uri);
 
         g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
-            gt_twitch_download_picture(self, url, NO_TIMESTAMP, &err));
+            gt_resource_downloader_download_image(emote_downloader, uri, id_str, TRUE, &err));
 
         //TODO: Propagate this error further
-        g_assert_no_error(err);
-
-        g_free(url);
+        RETURN_VAL_IF_FAIL(err != NULL, NULL);
     }
 
     ret = GDK_PIXBUF(g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id)));

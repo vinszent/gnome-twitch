@@ -199,6 +199,7 @@ logged_in_cb(GObject* src,
     }
 }
 
+/* FIXME: Move this into GtResourceDownloader */
 static inline void
 init_dirs()
 {
@@ -218,6 +219,12 @@ init_dirs()
     g_free(fp);
 
     fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
+    err = g_mkdir_with_parents(fp, 0777);
+    if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
+        WARNING("Error creating game cache directory");
+    g_free(fp);
+
+    fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "emotes", NULL);
     err = g_mkdir_with_parents(fp, 0777);
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
         WARNING("Error creating game cache directory");
