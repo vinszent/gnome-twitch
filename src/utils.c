@@ -56,11 +56,11 @@ utils_container_clear(GtkContainer* cont)
 }
 
 guint64
-utils_timestamp_file(const gchar* filename)
+utils_timestamp_file(const gchar* filename, GError** error)
 {
-    g_assert_nonnull(filename);
+    RETURN_VAL_IF_FAIL(!utils_str_empty(filename), 0);
 
-    g_autoptr(GError) err = NULL;
+    GError* err = NULL; /* NOTE: Doesn't need to be freed because we propagate it */
 
     if (g_file_test(filename, G_FILE_TEST_EXISTS))
     {
@@ -76,6 +76,8 @@ utils_timestamp_file(const gchar* filename)
         {
             WARNING("Could not timestamp file because: %s", err->message);
 
+            g_propagate_prefixed_error(error, err, "Could not timestamp file because: ");
+
             return 0;
         }
 
@@ -84,7 +86,7 @@ utils_timestamp_file(const gchar* filename)
         return time.tv_sec;
     }
 
-    return 0;
+    RETURN_VAL_IF_REACHED(0);
 }
 
 gint64
@@ -114,12 +116,14 @@ utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterp
 gint64
 utils_http_full_date_to_timestamp(const char* string)
 {
-    gint64 ret;
-    SoupDate* tmp;
+    gint64 ret = G_MAXINT64;
+    g_autoptr(SoupDate) date = NULL;
 
-    tmp = soup_date_new_from_string(string);
-    ret = soup_date_to_time_t(tmp);
-    soup_date_free(tmp);
+    date = soup_date_new_from_string(string);
+
+    RETURN_VAL_IF_FAIL(date != NULL, ret);
+
+    ret = soup_date_to_time_t(date);
 
     return ret;
 }

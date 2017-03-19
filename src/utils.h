@@ -33,6 +33,7 @@
 typedef enum
 {
     GT_UTILS_ERROR_PARSING_TIME,
+    GT_UTILS_ERROR_SOUP,
 } GtUtilsError;
 
 typedef struct
@@ -53,7 +54,7 @@ typedef struct
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
 void utils_container_clear(GtkContainer* cont);
-guint64 utils_timestamp_file(const gchar* filename);
+guint64 utils_timestamp_file(const gchar* filename, GError** error);
 gint64 utils_timestamp_now(void);
 gint64 utils_http_full_date_to_timestamp(const char* string);
 void utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterpType interp);
