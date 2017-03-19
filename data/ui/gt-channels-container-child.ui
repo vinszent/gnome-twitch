@@ -34,6 +34,7 @@
         <child>
           <object class="GtkStack" id="preview_stack">
             <property name="visible">true</property>
+            <property name="homogeneous">false</property>
             <property name="vexpand">true</property>
             <child>
               <object class="GtkSpinner" id="updating_spinner">
@@ -61,7 +62,7 @@
                     </style>
                     <child>
                       <object class="GtkImage">
-                        <property name="visible">True</property>
+                        <property name="visible">true</property>
                         <property name="icon-name">view-refresh-symbolic</property>
                         <property name="icon-size">6</property>
                       </object>
