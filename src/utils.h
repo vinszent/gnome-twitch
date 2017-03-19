@@ -35,6 +35,21 @@ typedef enum
     GT_UTILS_ERROR_PARSING_TIME,
 } GtUtilsError;
 
+typedef struct
+{
+    gint64 int_1;
+    gint64 int_2;
+    gint64 int_3;
+
+    gchar* str_1;
+    gchar* str_2;
+    gchar* str_3;
+
+    gboolean bool_1;
+    gboolean bool_2;
+    gboolean bool_3;
+} GenericTaskData;
+
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
 void utils_container_clear(GtkContainer* cont);
@@ -51,5 +66,7 @@ void utils_signal_connect_oneshot(gpointer instance, const gchar* signal, GCallb
 void utils_signal_connect_oneshot_swapped(gpointer instance, const gchar* signal, GCallback cb, gpointer udata);
 void utils_refresh_cancellable(GCancellable** cancel);
 GDateTime* utils_parse_time_iso_8601(const gchar* time, GError** error);
+GenericTaskData* generic_task_data_new();
+void generic_task_data_free(GenericTaskData* data);
 
 #endif

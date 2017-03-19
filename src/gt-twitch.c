@@ -193,36 +193,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
-typedef struct
-{
-    gint64 int_1;
-    gint64 int_2;
-    gint64 int_3;
-
-    gchar* str_1;
-    gchar* str_2;
-    gchar* str_3;
-
-    gboolean bool_1;
-    gboolean bool_2;
-    gboolean bool_3;
-} GenericTaskData;
-
-static GenericTaskData*
-generic_task_data_new()
-{
-    return g_malloc0(sizeof(GenericTaskData));
-}
-
-static void
-generic_task_data_free(GenericTaskData* data)
-{
-    g_free(data->str_1);
-    g_free(data->str_2);
-    g_free(data->str_3);
-    g_free(data);
-}
-
 static GtTwitchStreamAccessToken*
 gt_twitch_stream_access_token_new()
 {

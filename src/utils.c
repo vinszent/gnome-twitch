@@ -314,3 +314,19 @@ utils_parse_time_iso_8601(const gchar* time, GError** error)
 
     return ret;
 }
+
+GenericTaskData*
+generic_task_data_new()
+{
+    return g_slice_new0(GenericTaskData);
+}
+
+void
+generic_task_data_free(GenericTaskData* data)
+{
+    g_free(data->str_1);
+    g_free(data->str_2);
+    g_free(data->str_3);
+
+    g_slice_free(GenericTaskData, data);
+}
