@@ -60,6 +60,7 @@ const gchar*   gt_channel_get_game_name(GtChannel* self);
 gboolean       gt_channel_is_online(GtChannel* self);
 gboolean       gt_channel_is_error(GtChannel* self);
 gboolean       gt_channel_is_updating(GtChannel* self);
+gboolean       gt_channel_is_followed(GtChannel* self);
 const gchar*   gt_channel_get_error_message(GtChannel* self);
 const gchar*   gt_channel_get_error_details(GtChannel* self);
 gboolean       gt_channel_update(GtChannel* self);
