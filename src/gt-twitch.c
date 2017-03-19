@@ -195,6 +195,8 @@ typedef struct
 G_DEFINE_TYPE_WITH_PRIVATE(GtTwitch, gt_twitch,  G_TYPE_OBJECT)
 
 static GtResourceDownloader* emote_downloader;
+static GtResourceDownloader* badge_downloader;
+
 static GtTwitchStreamAccessToken*
 gt_twitch_stream_access_token_new()
 {
@@ -264,10 +266,14 @@ gt_twitch_init(GtTwitch* self)
     priv->emote_table = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) g_object_unref);
     priv->badge_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_chat_badge_free);
 
-    g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(),
+    g_autofree gchar* emotes_filepath = g_build_filename(g_get_user_cache_dir(),
         "gnome-twitch", "emotes", NULL);
 
-    emote_downloader = gt_resource_downloader_new(filepath);
+    g_autofree gchar* badges_filepath = g_build_filename(g_get_user_cache_dir(),
+        "gnome-twitch", "badges", NULL);
+
+    emote_downloader = gt_resource_downloader_new(emotes_filepath);
+    badge_downloader = gt_resource_downloader_new(badges_filepath);
 }
 
 static gboolean
@@ -1566,17 +1572,20 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
         for (gint j = 0; j < json_reader_count_members(reader); j++)
         {
             GtChatBadge* badge = gt_chat_badge_new();
+            /* NOTE: Don't need to free this as it's freed by the hash table when it's destroyed. */
             gchar* key = NULL;
+            g_autofree gchar* uri = NULL;
 
             READ_JSON_ELEMENT(j);
 
             badge->name = g_strdup(badge_name);
             badge->version = g_strdup(json_reader_get_member_name(reader));
 
-            READ_JSON_MEMBER("image_url_1x");
-            badge->pixbuf = gt_twitch_download_picture(self,
-                json_reader_get_string_value(reader), NO_TIMESTAMP, &err);
-            END_JSON_MEMBER();
+            key = g_strdup_printf("%s-%s-%s", set_name, badge->name, badge->version);
+
+            READ_JSON_VALUE("image_url_1x", uri);
+            badge->pixbuf = gt_resource_downloader_download_image(badge_downloader,
+                uri, key, TRUE, &err);
 
             if (err)
             {
@@ -1593,8 +1602,6 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
             END_JSON_ELEMENT();
 
-            // Don't need to free this as it's freed by the hash table when it's destroyed.
-            key = g_strdup_printf("%s-%s-%s", set_name, badge->name, badge->version);
 
             g_assert_false(g_hash_table_contains(priv->badge_table, key));
 

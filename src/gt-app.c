@@ -229,6 +229,12 @@ init_dirs()
     if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
         WARNING("Error creating game cache directory");
     g_free(fp);
+
+    fp = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "badges", NULL);
+    err = g_mkdir_with_parents(fp, 0777);
+    if (err != 0 && g_file_error_from_errno(errno) != G_FILE_ERROR_EXIST)
+        WARNING("Error creating game cache directory");
+    g_free(fp);
 }
 
 static void
