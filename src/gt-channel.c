@@ -173,12 +173,12 @@ update_preview(GtChannel* self)
     {
         /* NOTE: Don't cache preview image as it's changed frequently */
         priv->preview = gt_resource_downloader_download_image(res_downloader,
-            priv->data->preview_url, priv->data->id, FALSE, &err);
+            priv->data->preview_url, priv->data->id, &err);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
         priv->preview = gt_resource_downloader_download_image(res_downloader,
-            priv->data->video_banner_url, priv->data->id, TRUE, &err);
+            priv->data->video_banner_url, priv->data->id, &err);
     }
     else
     {
@@ -529,6 +529,8 @@ gt_channel_class_init(GtChannelClass* klass)
     g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", NULL);
 
     res_downloader = gt_resource_downloader_new(filepath);
+    gt_resource_downloader_set_cache_images(res_downloader, TRUE);
+    gt_resource_downloader_set_image_filetype(res_downloader, GT_IMAGE_FILETYPE_JPEG);
 
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
     update_preview_pool = g_thread_pool_new((GFunc) update_preview, NULL, g_get_num_processors(), FALSE, NULL);

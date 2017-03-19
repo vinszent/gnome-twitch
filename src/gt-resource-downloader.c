@@ -9,6 +9,8 @@
 typedef struct
 {
     gchar* filepath;
+    gboolean cache_images;
+    gchar* image_filetype;
     SoupSession* soup;
 } GtResourceDownloaderPrivate;
 
@@ -66,13 +68,15 @@ gt_resource_downloader_new(const gchar* filepath)
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(ret);
 
     priv->filepath = g_strdup(filepath);
+    priv->cache_images = FALSE;
+    priv->image_filetype = NULL;
 
     return ret;
 }
 
 GdkPixbuf*
 gt_resource_downloader_download_image(GtResourceDownloader* self,
-    const gchar* uri, const gchar* name, gboolean cache, GError** error)
+    const gchar* uri, const gchar* name, GError** error)
 {
     RETURN_VAL_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self), NULL);
     RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
@@ -113,7 +117,7 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
         return NULL;                                                    \
     }
 
-    if (cache && (file_exists = g_file_test(filename, G_FILE_TEST_EXISTS)))
+    if (priv->cache_images && (file_exists = g_file_test(filename, G_FILE_TEST_EXISTS)))
     {
         file_timestamp = utils_timestamp_file(filename, &err);
 
@@ -124,7 +128,7 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
     soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
     istream = soup_session_send(priv->soup, msg, NULL, &err);
 
-    if (!cache) goto download;
+    if (!priv->cache_images) goto download;
 
     CHECK_ERROR;
 
@@ -170,7 +174,17 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
 
             CHECK_ERROR;
 
-            gdk_pixbuf_save(ret, filename, "jpeg", &err, "quality", "100", NULL);
+            if (STRING_EQUALS(priv->image_filetype, GT_IMAGE_FILETYPE_JPEG))
+            {
+                gdk_pixbuf_save(ret, filename, priv->image_filetype,
+                    &err, "quality", "100", NULL);
+            }
+            else
+            {
+                gdk_pixbuf_save(ret, filename, priv->image_filetype,
+                    &err, NULL);
+            }
+
 
             /* NOTE: We won't throw an error here, just log it*/
             if (err)
@@ -209,7 +223,7 @@ download_image_async_cb(GTask* task, gpointer source,
     GenericTaskData* data = task_data;
 
     GdkPixbuf* ret = gt_resource_downloader_download_image(self,
-        data->str_1, data->str_2, data->bool_1, &err);
+        data->str_1, data->str_2, &err);
 
     if (err)
         g_task_return_error(task, err);
@@ -219,7 +233,7 @@ download_image_async_cb(GTask* task, gpointer source,
 
 void
 gt_resource_downloader_download_image_async(GtResourceDownloader* self,
-    const gchar* uri, const gchar* name, gboolean cache, GAsyncReadyCallback cb,
+    const gchar* uri, const gchar* name, GAsyncReadyCallback cb,
     GCancellable* cancel, gpointer udata)
 {
     RETURN_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(source));
@@ -229,7 +243,6 @@ gt_resource_downloader_download_image_async(GtResourceDownloader* self,
 
     data->str_1 = g_strdup(uri);
     data->str_2 = g_strdup(name);
-    data->bool_1 = cache;
 
     g_task_set_task_data(task, data, (GDestroyNotify) generic_task_data_free);
 
@@ -246,4 +259,24 @@ gt_resource_donwloader_download_image_finish(GtResourceDownloader* self,
     GdkPixbuf* ret = g_task_propagate_pointer(G_TASK(result), error);
 
     return ret;
+}
+
+void
+gt_resource_downloader_set_cache_images(GtResourceDownloader* self, gboolean cache_images)
+{
+    RETURN_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self));
+
+    GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
+
+    priv->cache_images = cache_images;
+}
+
+void
+gt_resource_downloader_set_image_filetype(GtResourceDownloader* self, const gchar* image_filetype)
+{
+    RETURN_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self));
+
+    GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
+
+    priv->image_filetype = g_strdup(image_filetype);
 }

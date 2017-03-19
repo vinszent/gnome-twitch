@@ -273,7 +273,12 @@ gt_twitch_init(GtTwitch* self)
         "gnome-twitch", "badges", NULL);
 
     emote_downloader = gt_resource_downloader_new(emotes_filepath);
+    gt_resource_downloader_set_cache_images(emote_downloader, TRUE);
+    gt_resource_downloader_set_image_filetype(emote_downloader, GT_IMAGE_FILETYPE_PNG);
+
     badge_downloader = gt_resource_downloader_new(badges_filepath);
+    gt_resource_downloader_set_cache_images(badge_downloader, TRUE);
+    gt_resource_downloader_set_image_filetype(badge_downloader, GT_IMAGE_FILETYPE_PNG);
 }
 
 static gboolean
@@ -1378,6 +1383,39 @@ gt_twitch_fetch_channel_finish(GtTwitch* self,
     return ret;
 }
 
+/* GdkPixbuf* */
+/* gt_twitch_download_picture_new(GtTwitch* self, const gchar* uri, */
+/*     gboolean check_cache, GError** error) */
+/* { */
+/*     g_return_val_if_fail(GT_IS_TWITCH(self), NULL); */
+/*     g_return_val_if_fail(!utils_str_empty(uri), NULL); */
+
+/*     GtTwitchPrivate* priv = gt_twitch_get_instance_private(self); */
+/*     GdkPixbuf* ret = NULL; */
+
+/*     g_autoptr(SoupMessage) msg = NULL; */
+
+/*     if (check_cache) */
+/*     { */
+/*         g_autofree gchar* filename= NULL; */
+/*         gchar hash_str[15]; */
+/*         guint hash = 0; */
+/*         gint64 timestamp = 0; */
+
+/*         hash = g_str_hash(uri); */
+
+/*         g_sprintf(hash_str, "%ud", hash); */
+
+/*         filename = g_build_filename(g_get_user_cache_dir(), */
+/*             "gnome-twitch", "images", NULL); */
+
+/*         if (g_file_test(filename, G_FILE_TEST_EXISTS)) */
+/*         { */
+/*             ret = */
+/*         } */
+/*     } */
+/* } */
+
 GdkPixbuf*
 gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, GError** error)
 {
@@ -1519,7 +1557,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
         DEBUGF("Downloading emote form url='%s'", uri);
 
         g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
-            gt_resource_downloader_download_image(emote_downloader, uri, id_str, TRUE, &err));
+            gt_resource_downloader_download_image(emote_downloader, uri, id_str, &err));
 
         //TODO: Propagate this error further
         RETURN_VAL_IF_FAIL(err != NULL, NULL);
@@ -1585,7 +1623,7 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
             READ_JSON_VALUE("image_url_1x", uri);
             badge->pixbuf = gt_resource_downloader_download_image(badge_downloader,
-                uri, key, TRUE, &err);
+                uri, key, &err);
 
             if (err)
             {

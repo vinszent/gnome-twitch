@@ -88,7 +88,7 @@ update_preview(GtGame* self)
 
     /* FIXME: Handle error below */
     priv->preview = gt_resource_downloader_download_image(res_downloader,
-        priv->data->preview_url, priv->data->id, TRUE, NULL);
+        priv->data->preview_url, priv->data->id, NULL);
 
     utils_pixbuf_scale_simple(&priv->preview,
         200, 270, GDK_INTERP_BILINEAR);
@@ -263,6 +263,8 @@ gt_game_class_init(GtGameClass* klass)
 
     update_preview_pool = g_thread_pool_new((GFunc) update_preview, NULL, g_get_num_processors(), FALSE, NULL);
     res_downloader = gt_resource_downloader_new(filepath);
+    gt_resource_downloader_set_cache_images(res_downloader, TRUE);
+    gt_resource_downloader_set_image_filetype(res_downloader, GT_IMAGE_FILETYPE_JPEG);
 }
 
 static void
