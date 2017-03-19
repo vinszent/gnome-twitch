@@ -92,6 +92,7 @@ src_gt_executable = [
   'gt-irc.c',
   'gt-chat.c',
   'gt-enums.c',
+  'gt-resource-downloader.c',
   'utils.c',
   res,
   ver
