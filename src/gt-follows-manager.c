@@ -115,81 +115,83 @@ toggle_followed_cb(gpointer udata)
 
 static void
 channel_followed_cb(GObject* source,
-                      GParamSpec* pspec,
-                      gpointer udata)
+    GParamSpec* pspec, gpointer udata)
 {
     GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
     GtChannel* chan = GT_CHANNEL(source);
+    g_autoptr(GError) err = NULL;
+    const gchar* name = gt_channel_get_name(chan);
 
-    gboolean followed;
-
-    g_object_get(chan, "followed", &followed, NULL);
-
-    if (followed)
+    if (gt_channel_is_followed(chan))
     {
         if (gt_app_is_logged_in(main_app))
         {
-            GError* error = NULL;
-
-            gt_twitch_follow_channel(main_app->twitch, gt_channel_get_name(chan), &error); //TODO: Error handling
+            gt_twitch_follow_channel(main_app->twitch, name, &err); //TODO: Error handling
 //            gt_twitch_follow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
 
-            if (error)
+            if (err)
             {
-                gchar* secondary = g_strdup_printf(_("Unable to follow channel '%s' on Twitch, "
-                                                     "try refreshing your login"),
-                                                   gt_channel_get_name(chan));
+                GtWin* win = NULL;
 
-                gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
+                WARNING("Unable to follow channel '%s' because: %s",
+                    name, err->message);
+
+                win = GT_WIN_ACTIVE;
+
+                RETURN_IF_FAIL(GT_IS_WIN(win));
+
+                gt_win_show_error_message(win, "Unable to follow channel",
+                    "Unable to follow channel '%s' because: %s",
+                    name, err->message);
 
                 g_idle_add((GSourceFunc) toggle_followed_cb, chan);
-
-                g_free(secondary);
-                g_error_free(error);
 
                 return;
             }
         }
 
         self->follow_channels = g_list_append(self->follow_channels, chan);
-//        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
+        g_signal_connect(chan, "notify::online", G_CALLBACK(channel_online_cb), self);
         g_object_ref(chan);
 
-        MESSAGEF("Followed channel '%s'", gt_channel_get_name(chan));
+        MESSAGEF("Followed channel '%s'", name);
 
         g_signal_emit(self, sigs[SIG_CHANNEL_FOLLOWED], 0, chan);
     }
     else
     {
         GList* found = g_list_find_custom(self->follow_channels, chan, (GCompareFunc) gt_channel_compare);
-        // Should never return null;
 
-        g_assert_nonnull(found);
-
-//        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
+        /* NOTE: This should never be NULL */
+        RETURN_IF_FAIL(found != NULL);
 
         if (gt_app_is_logged_in(main_app))
         {
-            GError* error = NULL;
 //            gt_twitch_unfollow_channel_async(main_app->twitch, gt_channel_get_name(chan), NULL, NULL); //TODO: Error handling
-            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan), &error);
+            gt_twitch_unfollow_channel(main_app->twitch, gt_channel_get_name(chan), &err);
 
-            if (error)
+            if (err)
             {
-                gchar* secondary = g_strdup_printf(_("Unable to unfollow channel '%s' on Twitch, "
-                                                     "try refreshing your login"),
-                                                   gt_channel_get_name(chan));
+                GtWin* win = NULL;
 
-                gt_win_show_error_message(GT_WIN_ACTIVE, secondary, error->message);
+                WARNING("Unable to unfollow channel '%s' because: %s",
+                    name, err->message);
+
+                win = GT_WIN_ACTIVE;
+
+                RETURN_IF_FAIL(GT_IS_WIN(win));
+
+                gt_win_show_error_message(win, "Unable to follow channel",
+                    "Unable to follow channel '%s' because: %s",
+                    name, err->message);
 
                 g_idle_add((GSourceFunc) toggle_followed_cb, chan);
-
-                g_free(secondary);
-                g_error_free(error);
 
                 return;
             }
         }
+
+        g_signal_handlers_disconnect_by_func(found->data, channel_online_cb, self);
 
         // Remove the link before the signal is emitted
         self->follow_channels = g_list_remove_link(self->follow_channels, found);
@@ -282,7 +284,7 @@ load_from_file(const char* filepath, GError** error)
         else if (STRING_EQUALS(json_node_type_name(id_node), "String"))
             id = g_strdup(json_reader_get_string_value(reader));
         else
-            g_assert_not_reached();
+            RETURN_VAL_IF_REACHED(NULL);
 
         json_reader_end_element(reader);
 
@@ -461,7 +463,7 @@ fetch_all_followed_channels_cb(GObject* source,
         WARNING("Unable to fetch Twitch follows because: %s", err->message);
 
         gt_win_show_error_message(GT_WIN_ACTIVE,
-            _("Unable to fetch your Twitch follows"),
+            "Unable to fetch your Twitch follows",
             err->message);
 
         return;
