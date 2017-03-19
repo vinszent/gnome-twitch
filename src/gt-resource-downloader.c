@@ -124,7 +124,7 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
     soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
     istream = soup_session_send(priv->soup, msg, NULL, &err);
 
-    if (cache) goto download;
+    if (!cache) goto download;
 
     CHECK_ERROR;
 
