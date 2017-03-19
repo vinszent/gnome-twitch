@@ -52,10 +52,10 @@ typedef enum
 #define LOGF(lvl, fmt, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d} " fmt, TAG, __LINE__, ##__VA_ARGS__)
 #define FATAL(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define FATALF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define ERROR(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
-#define ERRORF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
-#define CRITICAL(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
-#define CRITICALF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
+#define ERROR(msg, ...) LOGF(GT_LOG_LEVEL_ERROR, msg, ##__VA_ARGS__)
+#define ERRORF(fmt, ...) LOGF(GT_LOG_LEVEL_ERROR, fmt, __VA_ARGS__)
+#define CRITICAL(msg, ...) LOGF(GT_LOG_LEVEL_CRITICAL, msg, ##__VA_ARGS__)
+#define CRITICALF(fmt, ...) LOGF(GT_LOG_LEVEL_CRITICAL, fmt, __VA_ARGS__)
 #define WARNING(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define WARNINGF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
 #define MESSAGE(msg, ...) LOGF(GT_LOG_LEVEL_MESSAGE, msg, ##__VA_ARGS__)
@@ -66,6 +66,25 @@ typedef enum
 #define DEBUGF(fmt, ...) LOGF(GT_LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
 #define TRACE(msg, ...) LOGF(GT_LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
 #define TRACEF(fmt, ...) LOGF(GT_LOG_LEVEL_TRACE, fmt, __VA_ARGS__)
+
+#define RETURN_IF_FAIL(expr)                                \
+    if (!(#expr))                                           \
+    {                                                       \
+        CRITICAL("Expression '%s should be TRUE", #expr);   \
+        return;                                             \
+    }
+#define RETURN_VAL_IF_FAIL(expr, val)                       \
+    if (!(#expr))                                           \
+    {                                                       \
+        CRITICAL("Expression '%s' should be TRUE", #expr);  \
+        return val;                                         \
+    }
+#define RETURN_IF_REACHED()                             \
+    CRITICAL("This expression should not be reached");  \
+    return;
+#define RETURN_VAL_IF_REACHED(val)                      \
+    CRITICAL("This expression should not be reached");  \
+    return val;
 #endif
 
 #endif
