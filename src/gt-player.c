@@ -1339,6 +1339,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     const gchar* id = gt_channel_get_id(chan);
+    g_autofree gchar* default_quality = NULL;
 
     g_object_set(self, "channel", chan, NULL);
 
@@ -1362,8 +1363,9 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     gt_chat_connect(GT_CHAT(priv->chat_view), chan);
 
-    g_object_set(self, "stream-quality",
-        g_settings_get_string(main_app->settings, "default-quality"), NULL);
+    default_quality = g_settings_get_string(main_app->settings, "default-quality");
+
+    g_object_set(self, "stream-quality", default_quality, NULL);
 
     MESSAGEF("Opening stream '%s' with quality '%s'",
         gt_channel_get_name(chan), priv->quality);
@@ -1383,8 +1385,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_DARK_THEME]);
 
     update_docked(self);
-
-    /* gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self); */
 }
 
 void
@@ -1444,7 +1444,6 @@ gt_player_get_channel(GtPlayer* self)
 
     return priv->channel;
 }
-
 
 GList*
 gt_player_get_available_stream_qualities(GtPlayer* self)
