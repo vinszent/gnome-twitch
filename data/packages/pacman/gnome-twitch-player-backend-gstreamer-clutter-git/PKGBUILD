@@ -1,14 +1,14 @@
 # Maintainer:  vinszent <vinszent@vinszent.com>
 
-pkgname=gnome-twitch-player-backend-gstreamer-cairo-git
+pkgname=gnome-twitch-player-backend-gstreamer-clutter-git
 pkgver=r924.0f37971
 pkgrel=1
-pkgdesc="GStreamer Cairo (software rendering) player backend for GNOME Twitch"
+pkgdesc="GStreamer Clutter (hardware rendering) player backend for GNOME Twitch"
 arch=('i686' 'x86_64')
 url="https://github.com/vinszent/gnome-twitch"
 license=('GPL3')
 makedepends=('git' 'meson')
-depends=('gnome-twitch-git' 'gtk3' 'gstreamer' 'gst-libav' 'gst-plugins-base' 'gst-plugins-good' 'gst-plugins-bad' 'libpeas' 'gobject-introspection')
+depends=('gnome-twitch-git' 'gtk3' 'gstreamer' 'gst-libav' 'gst-plugins-base' 'gst-plugins-good' 'gst-plugins-bad' 'libpeas' 'gobject-introspection' 'clutter-gst' 'clutter-gtk')
 source=("$pkgname::git+https://github.com/vinszent/gnome-twitch.git")
 md5sums=('SKIP')
 
@@ -25,9 +25,8 @@ build()
   mkdir build
   cd build
   meson --prefix /usr --libdir lib --buildtype release \
-        -Dbuild-gnome-twitch-executable=false \
-        -Dbuild-gnome-twitch-library=false \
-        -Dbuild-player-backend-gstreamer-cairo=true ..
+        -Dbuild-executable=false \
+        -Dbuild-player-backends=gstreamer-clutter ..
   ninja
 }
 
