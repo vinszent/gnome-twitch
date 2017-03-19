@@ -317,10 +317,23 @@ gt_game_get_updating(GtGame* self)
     return priv->updating;
 }
 
+gint64
+gt_game_get_viewers(GtGame* self)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_GAME(self), -1);
+
+    GtGamePrivate* priv = gt_game_get_instance_private(self);
+
+    return priv->data->viewers;
+}
+
 GtGameData*
 gt_game_data_new()
 {
-    return g_slice_new0(GtGameData);
+    GtGameData* ret = g_slice_new0(GtGameData);
+    ret->viewers = -1;
+
+    return ret;
 }
 
 void

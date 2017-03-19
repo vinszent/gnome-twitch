@@ -47,6 +47,7 @@ void         gt_game_update_from_raw_data(GtGame* self, GtGameData* data);
 void         gt_game_list_free(GList* self);
 const gchar* gt_game_get_name(GtGame* self);
 gboolean     gt_game_get_updating(GtGame* self);
+gint64       gt_game_get_viewers(GtGame* self);
 GtGameData*  gt_game_data_new();
 void         gt_game_data_free(GtGameData* data);
 

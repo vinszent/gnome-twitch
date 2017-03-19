@@ -17,9 +17,12 @@
  */
 
 #include "gt-games-container-child.h"
+#include "utils.h"
+#include <glib/gi18n.h>
+#include <glib/gprintf.h>
 
 #define TAG "GtGamesContainerChild"
-#include "utils.h"
+#include "gnome-twitch/gt-log.h"
 
 typedef struct
 {
@@ -29,6 +32,8 @@ typedef struct
     GtkWidget* cover_image;
     GtkWidget* cover_overlay_revealer;
     GtkWidget* name_label;
+    GtkWidget* viewers_label;
+    GtkWidget* viewers_image;
 } GtGamesContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGamesContainerChild, gt_games_container_child, GTK_TYPE_FLOW_BOX_CHILD)
@@ -42,18 +47,45 @@ enum
 
 static GParamSpec* props[NUM_PROPS];
 
-GtGamesContainerChild*
-gt_games_container_child_new(GtGame* game)
+static void
+update_viewers_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
 {
-    return g_object_new(GT_TYPE_GAMES_VIEW_CHILD,
-                        "game", game,
-                        NULL);
+    RETURN_IF_FAIL(GT_IS_GAMES_CONTAINER_CHILD(udata));
+    RETURN_IF_FAIL(GT_IS_GAME(source));
+
+    GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
+    GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
+
+    gint64 viewers = gt_game_get_viewers(priv->game);
+    gchar label[50];
+
+    if (viewers > 1e4)
+    {
+        // Translators: Used for when viewers >= 1000
+        // Shorthand for thousands. Ex (English): 6200 = 6.2k
+        g_sprintf(label, _("%3.1fk"), (gdouble) viewers / 1e3);
+    }
+    else
+    {
+        gchar num[50];
+
+        g_sprintf(num, "%" G_GINT64_FORMAT, viewers);
+
+        // Translators: Used for when viewers < 1000
+        g_sprintf(label, _("%s"), num);
+
+    }
+
+    gtk_label_set_text(GTK_LABEL(priv->viewers_label), label);
+
+    gtk_widget_set_visible(priv->viewers_label, viewers > -1);
+    gtk_widget_set_visible(priv->viewers_image, viewers > -1);
 }
 
 static void
 motion_enter_cb(GtkWidget* widget,
-                GdkEvent* evt,
-                gpointer udata)
+    GdkEvent* evt, gpointer udata)
 {
     GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
@@ -63,8 +95,7 @@ motion_enter_cb(GtkWidget* widget,
 
 static void
 motion_leave_cb(GtkWidget* widget,
-                GdkEvent* evt,
-                gpointer udata)
+    GdkEvent* evt, gpointer udata)
 {
     GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(udata);
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
@@ -118,10 +149,9 @@ get_property (GObject*    obj,
 }
 
 static void
-set_property(GObject*      obj,
-             guint         prop,
-             const GValue* val,
-             GParamSpec*   pspec)
+set_property(GObject* obj,
+    guint prop, const GValue* val,
+    GParamSpec* pspec)
 {
     GtGamesContainerChild* self = GT_GAMES_CONTAINER_CHILD(obj);
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
@@ -150,8 +180,10 @@ constructed(GObject* obj)
                            priv->cover_image, "pixbuf",
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
+    g_signal_connect(priv->game, "notify::viewers", G_CALLBACK(update_viewers_cb), self);
     g_signal_connect(priv->game, "notify::updating", G_CALLBACK(updating_cb), self);
 
+    update_viewers_cb(G_OBJECT(priv->game), NULL, self);
     updating_cb(G_OBJECT(priv->game), NULL, self);
 
     G_OBJECT_CLASS(gt_games_container_child_parent_class)->constructed(obj);
@@ -185,6 +217,8 @@ gt_games_container_child_class_init(GtGamesContainerChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, cover_overlay_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, name_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, cover_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, viewers_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtGamesContainerChild, viewers_image);
 }
 
 static void
@@ -193,6 +227,13 @@ gt_games_container_child_init(GtGamesContainerChild* self)
     GtGamesContainerChildPrivate* priv = gt_games_container_child_get_instance_private(self);
 
     gtk_widget_init_template(GTK_WIDGET(self));
+}
+
+GtGamesContainerChild*
+gt_games_container_child_new(GtGame* game)
+{
+    return g_object_new(GT_TYPE_GAMES_VIEW_CHILD,
+        "game", game, NULL);
 }
 
 void
