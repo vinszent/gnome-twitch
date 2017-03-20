@@ -50,7 +50,8 @@ typedef struct
     GCancellable* cancel;
 } GtChannelPrivate;
 
-static GtResourceDownloader* res_downloader;
+static GtResourceDownloader* preview_downloader;
+static GtResourceDownloader* banner_downloader;
 static GThreadPool* update_pool;
 static GThreadPool* update_preview_pool;
 
@@ -144,7 +145,7 @@ auto_update_cb(GObject* src,
 static gboolean
 notify_preview_cb(gpointer udata)
 {
-    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(self), G_SOURCE_REMOVE);
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(udata), G_SOURCE_REMOVE);
 
     /* NOTE: Callback to async func so we need to unref ourselves */
     g_autoptr(GtChannel) self = GT_CHANNEL(udata);
@@ -172,12 +173,12 @@ update_preview(GtChannel* self)
     if (priv->data->online)
     {
         /* NOTE: Don't cache preview image as it's changed frequently */
-        priv->preview = gt_resource_downloader_download_image(res_downloader,
+        priv->preview = gt_resource_downloader_download_image(preview_downloader,
             priv->data->preview_url, priv->data->id, &err);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
-        priv->preview = gt_resource_downloader_download_image(res_downloader,
+        priv->preview = gt_resource_downloader_download_image(banner_downloader,
             priv->data->video_banner_url, priv->data->id, &err);
     }
     else
@@ -285,7 +286,7 @@ update_from_data(GtChannel* self, GtChannelData* data)
 static gboolean
 update_set_cb(gpointer udata)
 {
-    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(data), G_SOURCE_REMOVE);
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(udata), G_SOURCE_REMOVE);
 
     g_autoptr(GtChannel) self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
@@ -528,9 +529,10 @@ gt_channel_class_init(GtChannelClass* klass)
 
     g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "channels", NULL);
 
-    res_downloader = gt_resource_downloader_new(filepath);
-    gt_resource_downloader_set_cache_images(res_downloader, TRUE);
-    gt_resource_downloader_set_image_filetype(res_downloader, GT_IMAGE_FILETYPE_JPEG);
+    banner_downloader = gt_resource_downloader_new_with_cache(filepath);
+    gt_resource_downloader_set_image_filetype(banner_downloader, GT_IMAGE_FILETYPE_JPEG);
+
+    preview_downloader = gt_resource_downloader_new();
 
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
     update_preview_pool = g_thread_pool_new((GFunc) update_preview, NULL, g_get_num_processors(), FALSE, NULL);

@@ -18,8 +18,8 @@ struct _GtResourceDownloader
     GObject parent_instance;
 };
 
-GtResourceDownloader* gt_resource_downloader_new(const gchar* filepath);
-void                  gt_resource_downloader_set_cache_images(GtResourceDownloader* self, gboolean cache_images);
+GtResourceDownloader* gt_resource_downloader_new();
+GtResourceDownloader* gt_resource_downloader_new_with_cache(const gchar* filepath);
 void                  gt_resource_downloader_set_image_filetype(GtResourceDownloader* self, const gchar* filetype);
 GdkPixbuf*            gt_resource_downloader_download_image(GtResourceDownloader* self, const gchar* uri, const gchar* name, GError** error);
 void                  gt_resource_downloader_download_image_async(GtResourceDownloader* self, const gchar* uri, const gchar* name, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);

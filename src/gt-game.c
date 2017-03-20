@@ -63,7 +63,7 @@ static GParamSpec* props[NUM_PROPS];
 static gboolean
 notify_preview_cb(gpointer udata)
 {
-    RETURN_VAL_IF_FAIL(GT_IS_GAME(self), G_SOURCE_REMOVE);
+    RETURN_VAL_IF_FAIL(GT_IS_GAME(udata), G_SOURCE_REMOVE);
 
     /* NOTE: Callback to async func so we need to unref ourselves */
     g_autoptr(GtGame) self = GT_GAME(udata);
@@ -262,8 +262,7 @@ gt_game_class_init(GtGameClass* klass)
     g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
 
     update_preview_pool = g_thread_pool_new((GFunc) update_preview, NULL, g_get_num_processors(), FALSE, NULL);
-    res_downloader = gt_resource_downloader_new(filepath);
-    gt_resource_downloader_set_cache_images(res_downloader, TRUE);
+    res_downloader = gt_resource_downloader_new_with_cache(filepath);
     gt_resource_downloader_set_image_filetype(res_downloader, GT_IMAGE_FILETYPE_JPEG);
 }
 
@@ -282,7 +281,7 @@ gt_game_init(GtGame* self)
 GtGame*
 gt_game_new(GtGameData* data)
 {
-    RETURN_VAL_IF_FAIL(GT_IS_GAME(self), NULL);
+    RETURN_VAL_IF_FAIL(data != NULL, NULL);
 
     GtGame* game = g_object_new(GT_TYPE_GAME, NULL);
 

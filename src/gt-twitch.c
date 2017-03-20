@@ -272,12 +272,10 @@ gt_twitch_init(GtTwitch* self)
     g_autofree gchar* badges_filepath = g_build_filename(g_get_user_cache_dir(),
         "gnome-twitch", "badges", NULL);
 
-    emote_downloader = gt_resource_downloader_new(emotes_filepath);
-    gt_resource_downloader_set_cache_images(emote_downloader, TRUE);
+    emote_downloader = gt_resource_downloader_new_with_cache(emotes_filepath);
     gt_resource_downloader_set_image_filetype(emote_downloader, GT_IMAGE_FILETYPE_PNG);
 
-    badge_downloader = gt_resource_downloader_new(badges_filepath);
-    gt_resource_downloader_set_cache_images(badge_downloader, TRUE);
+    badge_downloader = gt_resource_downloader_new_with_cache(badges_filepath);
     gt_resource_downloader_set_image_filetype(badge_downloader, GT_IMAGE_FILETYPE_PNG);
 }
 
