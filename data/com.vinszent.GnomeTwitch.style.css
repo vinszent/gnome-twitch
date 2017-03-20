@@ -4,13 +4,16 @@
     background-color: rgba(0, 0, 0, 0.7);
 }
 
-.gt-channels-container-child #overlay
+.gt-channels-container-child #overlay,
+.gt-games-container-child #overlay
 {
     padding: 7px;
 }
 
 .gt-channels-container-child #overlay label,
-.gt-channels-container-child #overlay image
+.gt-channels-container-child #overlay image,
+.gt-games-container-child #overlay label,
+.gt-games-container-child #overlay image
 {
     color: rgba(109, 115, 128, 1);
 }
