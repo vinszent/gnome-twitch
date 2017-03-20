@@ -67,14 +67,15 @@ typedef enum
 #define TRACE(msg, ...) LOGF(GT_LOG_LEVEL_TRACE, msg, ##__VA_ARGS__)
 #define TRACEF(fmt, ...) LOGF(GT_LOG_LEVEL_TRACE, fmt, __VA_ARGS__)
 
+
 #define RETURN_IF_FAIL(expr)                                \
-    if (!(#expr))                                           \
+    if (!(expr))                                            \
     {                                                       \
-        CRITICAL("Expression '%s should be TRUE", #expr);   \
+        CRITICAL("Expression '%s' should be TRUE", #expr);  \
         return;                                             \
     }
 #define RETURN_VAL_IF_FAIL(expr, val)                       \
-    if (!(#expr))                                           \
+    if (!(expr))                                            \
     {                                                       \
         CRITICAL("Expression '%s' should be TRUE", #expr);  \
         return val;                                         \
