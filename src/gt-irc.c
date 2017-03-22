@@ -816,7 +816,7 @@ gt_irc_class_init(GtIrcClass* klass)
                                                GT_TYPE_IRC,
                                                G_SIGNAL_RUN_LAST,
                                                0, NULL, NULL,
-                                               g_cclosure_marshal_VOID__OBJECT,
+                                               g_cclosure_marshal_VOID__BOXED,
                                                G_TYPE_NONE,
                                                1, G_TYPE_ERROR);
 
