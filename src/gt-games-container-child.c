@@ -181,7 +181,7 @@ constructed(GObject* obj)
                            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
     g_signal_connect(priv->game, "notify::viewers", G_CALLBACK(update_viewers_cb), self);
-    g_signal_connect(priv->game, "notify::updating", G_CALLBACK(updating_cb), self);
+    g_signal_connect_object(priv->game, "notify::updating", G_CALLBACK(updating_cb), self, 0);
 
     update_viewers_cb(G_OBJECT(priv->game), NULL, self);
     updating_cb(G_OBJECT(priv->game), NULL, self);
