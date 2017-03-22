@@ -277,6 +277,9 @@ gt_twitch_init(GtTwitch* self)
 
     badge_downloader = gt_resource_downloader_new_with_cache(badges_filepath);
     gt_resource_downloader_set_image_filetype(badge_downloader, GT_IMAGE_FILETYPE_PNG);
+
+    g_signal_connect_swapped(main_app, "shutdown", G_CALLBACK(g_object_unref), emote_downloader);
+    g_signal_connect_swapped(main_app, "shutdown", G_CALLBACK(g_object_unref), badge_downloader);
 }
 
 static gboolean
@@ -1558,7 +1561,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
             gt_resource_downloader_download_image(emote_downloader, uri, id_str, &err));
 
         //TODO: Propagate this error further
-        RETURN_VAL_IF_FAIL(err != NULL, NULL);
+        RETURN_VAL_IF_FAIL(err == NULL, NULL);
     }
 
     ret = GDK_PIXBUF(g_hash_table_lookup(priv->emote_table, GINT_TO_POINTER(id)));

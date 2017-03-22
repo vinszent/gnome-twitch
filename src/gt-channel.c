@@ -46,14 +46,16 @@ typedef struct
 
     guint update_id;
     guint update_set_id;
+    guint notify_source_id;
 
     GCancellable* cancel;
 } GtChannelPrivate;
 
 static GtResourceDownloader* preview_downloader;
 static GtResourceDownloader* banner_downloader;
+
+/* TODO: Remove the use of this, just let GLib do all the rate limiting */
 static GThreadPool* update_pool;
-static GThreadPool* update_preview_pool;
 
 G_DEFINE_TYPE_WITH_CODE(GtChannel, gt_channel, G_TYPE_INITIALLY_UNOWNED,
     G_ADD_PRIVATE(GtChannel))
@@ -159,7 +161,36 @@ notify_preview_cb(gpointer udata)
     if (priv->error)
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
 
+    priv->notify_source_id = 0;
+
     return G_SOURCE_REMOVE;
+}
+
+static void
+download_image_cb(GdkPixbuf* pixbuf, gpointer udata, GError* error)
+{
+    RETURN_IF_FAIL(GT_IS_CHANNEL(udata));
+
+    GtChannel* self = GT_CHANNEL(udata);
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    if (error)
+    {
+        priv->error = TRUE;
+        priv->error_message = g_strdup_printf("Unable to update preview image");
+        priv->error_details = g_strdup_printf("Unable to update preview image because: %s", error->message);
+
+        g_error_free(error);
+    }
+    else
+    {
+        priv->preview = pixbuf;
+
+        utils_pixbuf_scale_simple(&priv->preview, 320, 180, GDK_INTERP_BILINEAR);
+    }
+
+    if (priv->notify_source_id == 0)
+        priv->notify_source_id = g_idle_add(notify_preview_cb, self);
 }
 
 static void
@@ -172,14 +203,13 @@ update_preview(GtChannel* self)
 
     if (priv->data->online)
     {
-        /* NOTE: Don't cache preview image as it's changed frequently */
-        priv->preview = gt_resource_downloader_download_image(preview_downloader,
-            priv->data->preview_url, priv->data->id, &err);
+        priv->preview = gt_resource_downloader_download_image_immediately(preview_downloader,
+            priv->data->preview_url, priv->data->id, download_image_cb, g_object_ref(self), &err);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
-        priv->preview = gt_resource_downloader_download_image(banner_downloader,
-            priv->data->video_banner_url, priv->data->id, &err);
+        priv->preview = gt_resource_downloader_download_image_immediately(preview_downloader,
+            priv->data->video_banner_url, priv->data->id, download_image_cb, g_object_ref(self), &err);
     }
     else
     {
@@ -198,10 +228,13 @@ update_preview(GtChannel* self)
 
         priv->error = TRUE;
     }
-    else
+    else if (priv->preview)
+    {
         utils_pixbuf_scale_simple(&priv->preview, 320, 180, GDK_INTERP_BILINEAR);
 
-    g_idle_add(notify_preview_cb, self);
+        if (priv->notify_source_id == 0)
+            priv->notify_source_id = g_idle_add(notify_preview_cb, g_object_ref(self));
+    }
 }
 
 static void
@@ -278,8 +311,7 @@ update_from_data(GtChannel* self, GtChannelData* data)
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_STARTED_TIME]);
     }
 
-    /* FIXME: Handle error below */
-    g_thread_pool_push(update_preview_pool, g_object_ref(self), NULL);
+    update_preview(self);
 }
 
 
@@ -532,10 +564,13 @@ gt_channel_class_init(GtChannelClass* klass)
     banner_downloader = gt_resource_downloader_new_with_cache(filepath);
     gt_resource_downloader_set_image_filetype(banner_downloader, GT_IMAGE_FILETYPE_JPEG);
 
+    /* NOTE: Don't cache previews as they're updated often */
     preview_downloader = gt_resource_downloader_new();
 
+    g_signal_connect_swapped(main_app, "shutdown", G_CALLBACK(g_object_unref), preview_downloader);
+    g_signal_connect_swapped(main_app, "shutdown", G_CALLBACK(g_object_unref), banner_downloader);
+
     update_pool = g_thread_pool_new((GFunc) update_cb, NULL, 2, FALSE, NULL);
-    update_preview_pool = g_thread_pool_new((GFunc) update_preview, NULL, g_get_num_processors(), FALSE, NULL);
 }
 
 

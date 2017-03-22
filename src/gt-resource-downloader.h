@@ -11,6 +11,8 @@ G_BEGIN_DECLS
 #define GT_IMAGE_FILETYPE_JPEG "jpeg"
 #define GT_IMAGE_FILETYPE_PNG "png"
 
+typedef void (*ResourceDownloaderFunc)(GdkPixbuf* pixbuf, gpointer udata, GError* err);
+
 G_DECLARE_FINAL_TYPE(GtResourceDownloader, gt_resource_downloader, GT, RESOURCE_DOWNLOADER, GObject);
 
 struct _GtResourceDownloader
@@ -24,6 +26,7 @@ void                  gt_resource_downloader_set_image_filetype(GtResourceDownlo
 GdkPixbuf*            gt_resource_downloader_download_image(GtResourceDownloader* self, const gchar* uri, const gchar* name, GError** error);
 void                  gt_resource_downloader_download_image_async(GtResourceDownloader* self, const gchar* uri, const gchar* name, GAsyncReadyCallback cb, GCancellable* cancel, gpointer udata);
 GdkPixbuf*            gt_resource_donwloader_download_image_finish(GtResourceDownloader* self, GAsyncResult* result, GError** error);
+GdkPixbuf*            gt_resource_downloader_download_image_immediately(GtResourceDownloader* self, const gchar* uri, const gchar* name, ResourceDownloaderFunc cb, gpointer udata, GError** error);
 
 G_END_DECLS
 

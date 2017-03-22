@@ -11,9 +11,160 @@ typedef struct
     gchar* filepath;
     gchar* image_filetype;
     SoupSession* soup;
+    GMutex mutex;
 } GtResourceDownloaderPrivate;
 
+typedef struct
+{
+    gchar* uri;
+    gchar* name;
+    ResourceDownloaderFunc cb;
+    gpointer udata;
+    GtResourceDownloader* self;
+    SoupMessage* msg;
+} ResourceData; /* FIXME: Better name? */
+
 G_DEFINE_TYPE_WITH_PRIVATE(GtResourceDownloader, gt_resource_downloader, G_TYPE_OBJECT);
+
+static ResourceData*
+resource_data_new()
+{
+    return g_slice_new0(ResourceData);
+}
+
+static void
+resource_data_free(ResourceData* data)
+{
+    if (!data) return;
+
+    g_free(data->uri);
+    g_free(data->name);
+    g_object_unref(data->self);
+    g_object_unref(data->msg);
+
+    g_slice_free(ResourceData, data);
+}
+
+/* FIXME: Throw error */
+static GdkPixbuf*
+download_image(GtResourceDownloader* self,
+    const gchar* uri, const gchar* name,
+    SoupMessage* msg, GInputStream* istream,
+    gboolean* from_file)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self), NULL);
+    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
+    RETURN_VAL_IF_FAIL(SOUP_IS_MESSAGE(msg), NULL);
+    RETURN_VAL_IF_FAIL(G_IS_INPUT_STREAM(istream), NULL);
+
+    GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
+    g_autofree gchar* filename = NULL;
+    gint64 file_timestamp = 0;
+    gboolean file_exists = FALSE;
+    g_autoptr(GdkPixbuf) ret = NULL;
+
+        /* NOTE: If we aren't supplied a filename, we'll just create one by hashing the uri */
+    if (utils_str_empty(name))
+    {
+        gchar hash_str[15];
+        guint hash = 0;
+
+        hash = g_str_hash(uri); /* TODO: Replace this with murmur3 hash */
+
+        g_sprintf(hash_str, "%ud", hash);
+
+        filename = g_build_filename(priv->filepath, hash_str, NULL);
+    }
+    else
+        filename = g_build_filename(priv->filepath, name, NULL);
+
+    if (priv->filepath && (file_exists = g_file_test(filename, G_FILE_TEST_EXISTS)))
+    {
+        file_timestamp = utils_timestamp_file(filename, NULL);
+    }
+
+    if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code))
+    {
+        const gchar* last_modified_str = NULL;
+
+        DEBUG("Successful return code from uri '%s'", uri);
+
+        last_modified_str = soup_message_headers_get_one(msg->response_headers, "Last-Modified");
+
+        if (utils_str_empty(last_modified_str))
+        {
+            DEBUG("No 'Last-Modified' header in response from uri '%s'", uri);
+
+            goto download;
+        }
+        else if (utils_http_full_date_to_timestamp(last_modified_str) < file_timestamp)
+        {
+            DEBUG("No new image at uri '%s'", uri);
+
+            if (file_exists)
+            {
+                DEBUG("Loading image from file '%s'", filename);
+
+                ret = gdk_pixbuf_new_from_file(filename, NULL);
+
+                if (from_file) *from_file = TRUE;
+            }
+            else
+            {
+                DEBUG("Image doesn't exist locally");
+
+                goto download;
+            }
+        }
+        else
+        {
+        download:
+            DEBUG("New image at uri '%s'", uri);
+
+            ret = gdk_pixbuf_new_from_stream(istream, NULL, NULL);
+
+            if (priv->filepath && STRING_EQUALS(priv->image_filetype, GT_IMAGE_FILETYPE_JPEG))
+            {
+                gdk_pixbuf_save(ret, filename, priv->image_filetype,
+                    NULL, "quality", "100", NULL);
+            }
+            else if (priv->filepath)
+            {
+                gdk_pixbuf_save(ret, filename, priv->image_filetype,
+                    NULL, NULL);
+            }
+
+            if (from_file) *from_file = FALSE;
+        }
+    }
+
+    return g_steal_pointer(&ret);
+}
+
+static void
+send_message_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    ResourceData* data = udata;
+    g_autoptr(GError) err = NULL;
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GdkPixbuf) ret = NULL;
+    gboolean from_file;
+
+    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
+
+    ret = download_image(data->self, data->uri, data->name,
+        data->msg, istream, &from_file);
+
+    data->cb(from_file ? NULL : g_steal_pointer(&ret),
+        data->udata, g_steal_pointer(&err));
+
+    resource_data_free(data);
+}
 
 static void
 finalize(GObject* obj)
@@ -24,6 +175,7 @@ finalize(GObject* obj)
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
 
     g_free(priv->filepath);
+    g_mutex_clear(&priv->mutex);
 
     G_OBJECT_CLASS(gt_resource_downloader_parent_class)->finalize(obj);
 }
@@ -35,6 +187,8 @@ dispose(GObject* obj)
 
     GtResourceDownloader* self = GT_RESOURCE_DOWNLOADER(obj);
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
+
+    MESSAGE("Finalize");
 
     g_clear_object(&priv->soup);
 
@@ -56,6 +210,8 @@ gt_resource_downloader_init(GtResourceDownloader* self)
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
 
     priv->soup = soup_session_new();
+
+    g_mutex_init(&priv->mutex);
 }
 
 GtResourceDownloader*
@@ -89,131 +245,38 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
     RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
 
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
-    g_autofree gchar* filename = NULL;
-    gint64 file_timestamp = 0;
-    gboolean file_exists = FALSE;
     g_autoptr(SoupMessage) msg = NULL;
     g_autoptr(GInputStream) istream = NULL;
-    GdkPixbuf* ret = NULL;
-    GError* err = NULL; /* NOTE: Doesn't need to be freed because we propagate it */
+    g_autoptr(GdkPixbuf) ret = NULL;
+    g_autoptr(GError) err = NULL;
 
     DEBUG("Downloading image from uri '%s'", uri);
 
-    /* NOTE: If we aren't supplied a filename, we'll just create one by hashing the uri */
-    if (utils_str_empty(name))
-    {
-        gchar hash_str[15];
-        guint hash = 0;
-
-        hash = g_str_hash(uri); /* TODO: Replace this with murmur3 hash */
-
-        g_sprintf(hash_str, "%ud", hash);
-
-        filename = g_build_filename(priv->filepath, hash_str, NULL);
-    }
-    else
-        filename = g_build_filename(priv->filepath, name, NULL);
-
-#define CHECK_ERROR                                                     \
-    if (err)                                                            \
-    {                                                                   \
-        WARNING("Could not download image because: %s", err->message);  \
-                                                                        \
-        g_propagate_prefixed_error(error, err, "Could not download image because: "); \
-                                                                        \
-        return NULL;                                                    \
-    }
-
-    if (priv->filepath && (file_exists = g_file_test(filename, G_FILE_TEST_EXISTS)))
-    {
-        file_timestamp = utils_timestamp_file(filename, &err);
-
-        CHECK_ERROR;
-    }
-
     msg = soup_message_new(SOUP_METHOD_GET, uri);
-    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+
+    /* NOTE: So libsoup isn't actually all that thread safe and
+     * calling soup_session_send from multiple threads causes it to
+     * crash, so we wrap a mutex around it. One should use the
+     * download_image_immediately func if one wants to download
+     * several images at the same time */
+    g_mutex_lock(&priv->mutex);
     istream = soup_session_send(priv->soup, msg, NULL, &err);
+    g_mutex_unlock(&priv->mutex);
 
-    if (!priv->filepath) goto download;
-
-    CHECK_ERROR;
-
-    if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code))
+    if (err)
     {
-        const gchar* last_modified_str = NULL;
+        WARNING("Unable to download image from uri '%s' because: %s",
+            uri, err->message);
 
-        DEBUG("Successful return code from uri '%s'", uri);
+        g_propagate_prefixed_error(error, g_steal_pointer(&err),
+            "Unable to download image from uri '%s' because: ", uri);
 
-        last_modified_str = soup_message_headers_get_one(msg->response_headers, "Last-Modified");
-
-        if (utils_str_empty(last_modified_str))
-        {
-            DEBUG("No 'Last-Modified' header in response from uri '%s'", uri);
-
-            goto download;
-        }
-        else if (utils_http_full_date_to_timestamp(last_modified_str) < file_timestamp)
-        {
-            DEBUG("No new image at uri '%s'", uri);
-
-            if (file_exists)
-            {
-                DEBUG("Loading image from file '%s'", filename);
-
-                ret = gdk_pixbuf_new_from_file(filename, &err);
-
-                CHECK_ERROR;
-            }
-            else
-            {
-                DEBUG("Image doesn't exist locally");
-
-                goto download;
-            }
-        }
-        else
-        {
-        download:
-            DEBUG("New image at uri '%s'", uri);
-
-            ret = gdk_pixbuf_new_from_stream(istream, NULL, &err);
-
-            CHECK_ERROR;
-
-            if (priv->filepath && STRING_EQUALS(priv->image_filetype, GT_IMAGE_FILETYPE_JPEG))
-            {
-                gdk_pixbuf_save(ret, filename, priv->image_filetype,
-                    &err, "quality", "100", NULL);
-            }
-            else if (priv->filepath)
-            {
-                gdk_pixbuf_save(ret, filename, priv->image_filetype,
-                    &err, NULL);
-            }
-
-
-            /* NOTE: We won't throw an error here, just log it*/
-            if (err)
-            {
-                WARNING("Unable to save image with filename '%s' because: %s",
-                    filename, err->message);
-
-                g_error_free(err);
-            }
-        }
-    }
-    else
-    {
-        WARNING("Received unsuccessful response from uri '%s' with code '%d' and response '%s'",
-            uri, msg->status_code, msg->response_body->data);
-
-        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_SOUP,
-            "Received unsuccessful response from url '%s' with code '%d' and body '%s'",
-            uri, msg->status_code, msg->response_body->data);
+        return NULL;
     }
 
-    return ret;
+    ret = download_image(self, uri, name, msg, istream, NULL);
+
+    return g_steal_pointer(&ret);
 }
 
 
@@ -277,4 +340,68 @@ gt_resource_downloader_set_image_filetype(GtResourceDownloader* self, const gcha
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
 
     priv->image_filetype = g_strdup(image_filetype);
+}
+
+/* FIXME: Make cancellable */
+GdkPixbuf*
+gt_resource_downloader_download_image_immediately(GtResourceDownloader* self,
+    const gchar* uri, const gchar* name, ResourceDownloaderFunc cb,
+    gpointer udata, GError** error)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self), NULL);
+    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
+
+    GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
+    g_autofree gchar* filename = NULL;
+    g_autoptr(GdkPixbuf) ret = NULL;
+    g_autoptr(GError) err = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+    ResourceData* data = NULL;
+
+    /* NOTE: If we aren't supplied a filename, we'll just create one by hashing the uri */
+    if (utils_str_empty(name))
+    {
+        gchar hash_str[15];
+        guint hash = 0;
+
+        hash = g_str_hash(uri); /* TODO: Replace this with murmur3 hash */
+
+        g_sprintf(hash_str, "%ud", hash);
+
+        filename = g_build_filename(priv->filepath, hash_str, NULL);
+    }
+    else
+        filename = g_build_filename(priv->filepath, name, NULL);
+
+    if (priv->filepath && g_file_test(filename, G_FILE_TEST_EXISTS))
+    {
+        ret = gdk_pixbuf_new_from_file(filename, &err);
+
+        if (err)
+        {
+            WARNING("Unable to download image because: %s", err->message);
+
+            g_propagate_prefixed_error(error, g_steal_pointer(&err),
+                "Unable to download image because: ");
+
+            /* NOTE: Don't return here as we still might be able to
+             * download a new image*/
+        }
+    }
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+
+    data = resource_data_new();
+    data->uri = g_strdup(uri);
+    data->name = g_strdup(name);
+    data->cb = cb;
+    data->udata = udata;
+    data->self = g_object_ref(self);
+    data->msg = g_steal_pointer(&msg);
+
+    soup_session_send_async(priv->soup, data->msg, NULL, send_message_cb, data);
+
+    /* NOTE: Return any found image immediately */
+    return g_steal_pointer(&ret);
 }
