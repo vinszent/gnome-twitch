@@ -835,7 +835,8 @@ gt_chat_init(GtChat* self)
     /*                        priv->chat_entry, "sensitive", */
     /*                        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE); */
 
-    g_source_set_callback((GSource*) priv->irc->source, (GSourceFunc) irc_source_cb, self, NULL);
+    g_source_set_callback((GSource*) priv->irc->source, (GSourceFunc) irc_source_cb,
+        g_object_ref(self), g_object_unref);
 
     ADD_STYLE_CLASS(self, "gt-chat");
 }
