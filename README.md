@@ -43,9 +43,8 @@ sudo ninja -C build install
 
 ``` shell
 meson build \
-    -Dbuild-gnome-twitch-executable=false \
-    -Dbuild-gnome-twitch-library=false \
-    -Dbuild-player-backend-${PLAYER_BACKEND_YOU_WANT}
+    -Dbuild-executable=false \
+    -Dbuild-player-backends=${PLAYER_BACKENDS_YOU_WANT}
 sudo ninja -C build install
 ```
 #### Local install
