@@ -680,12 +680,17 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
     if (gt_player_is_playing(self->player))
         gt_player_close_channel(self->player);
 
-    gt_player_open_channel(GT_PLAYER(self->player), chan);
+    if (gt_channel_is_online(chan))
+    {
+        gt_player_open_channel(GT_PLAYER(self->player), chan);
 
-    gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
-                                     "player");
-    gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
-                                     "player");
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
+            "player");
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
+            "player");
+    }
+    else
+        gt_win_show_info_message(self, _("Unable to open channel because it's not online"));
 }
 
 gboolean
