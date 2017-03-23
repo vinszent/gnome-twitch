@@ -175,7 +175,6 @@ finalize(GObject* obj)
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
 
     g_free(priv->filepath);
-    g_mutex_clear(&priv->mutex);
 
     G_OBJECT_CLASS(gt_resource_downloader_parent_class)->finalize(obj);
 }
