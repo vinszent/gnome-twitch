@@ -50,7 +50,6 @@ typedef struct
 } FetchItemsData;
 
 GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self); /* NOTE: Should only be used by children*/
-void gt_item_container_append_items(GtItemContainer* self, GList* items);
 void gt_item_container_refresh(GtItemContainer* self);
 
 G_END_DECLS;
