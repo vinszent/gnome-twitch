@@ -35,18 +35,17 @@ struct _GtFollowsManager
 {
     GObject parent_instance;
 
-    GtFollowsManagerPrivate* priv;
-
     GList* follow_channels;
 };
 
 GtFollowsManager* gt_follows_manager_new(void);
-void gt_follows_manager_load_from_file(GtFollowsManager* self);
-void gt_follows_manager_load_from_twitch(GtFollowsManager* self);
-void gt_follows_manager_save(GtFollowsManager* self);
-gboolean gt_follows_manager_is_channel_followed(GtFollowsManager* self, GtChannel* chan);
-void gt_follows_manager_attach_to_channel(GtFollowsManager* self, GtChannel* chan);
-
+void              gt_follows_manager_load_from_file(GtFollowsManager* self);
+void              gt_follows_manager_load_from_twitch(GtFollowsManager* self);
+void              gt_follows_manager_save(GtFollowsManager* self);
+gboolean          gt_follows_manager_is_channel_followed(GtFollowsManager* self, GtChannel* chan);
+gboolean          gt_follows_manager_is_loading_follows(GtFollowsManager* self);
+void              gt_follows_manager_attach_to_channel(GtFollowsManager* self, GtChannel* chan);
+void              gt_follows_manager_refresh(GtFollowsManager* self);
 
 G_END_DECLS
 

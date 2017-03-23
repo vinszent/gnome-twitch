@@ -35,6 +35,8 @@ typedef struct
 {
     gchar* query;
     GtkWidget* item_flow;
+    GMutex mutex;
+    GCond cond;
 } GtFollowedChannelContainerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFollowedChannelContainer, gt_followed_channel_container, GT_TYPE_ITEM_CONTAINER);
@@ -68,8 +70,8 @@ static void
 channel_updating_cb(GObject* source,
     GParamSpec* pspec, gpointer udata)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
-    g_assert(GT_IS_CHANNEL(source));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    RETURN_IF_FAIL(GT_IS_CHANNEL(source));
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
@@ -82,8 +84,8 @@ channel_updating_cb(GObject* source,
 static GtkWidget*
 create_child(GtItemContainer* item_container, gpointer data)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
-    g_assert(GT_IS_CHANNEL(data));
+    RETURN_VAL_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container), NULL);
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(data), NULL);
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(item_container);
 
@@ -97,8 +99,8 @@ static void
 activate_child(GtItemContainer* item_container,
     gpointer _child)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
-    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
+    RETURN_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child));
 
     GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
 
@@ -114,24 +116,27 @@ fetch_items(GTask* task,
     gpointer source, gpointer task_data,
     GCancellable* cancel)
 {
-    g_assert(G_IS_TASK(task));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(source));
+    RETURN_IF_FAIL(G_IS_TASK(task));
+    RETURN_IF_FAIL(task_data != NULL);
 
-    if (g_task_return_error_if_cancelled(task))
-        return;
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(source);
+    GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
-    FetchItemsData* data = task_data;
-
-    g_assert_nonnull(data);
+    g_mutex_lock(&priv->mutex);
+    while (gt_follows_manager_is_loading_follows(main_app->fav_mgr))
+        g_cond_wait(&priv->cond, &priv->mutex);
+    g_mutex_unlock(&priv->mutex);
 
     /* NOTE: We need to do a shallow copy because GtItemContainer assumes ownership of the list */
-    g_task_return_pointer(task, g_list_copy(main_app->fav_mgr->follow_channels), NULL);
+    g_task_return_pointer(task, g_list_copy(main_app->fav_mgr->follow_channels), (GDestroyNotify) g_list_free);
 }
 
 static void
 on_clear(GtItemContainer* item_container,
     GList* items)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(item_container);
 
@@ -146,23 +151,12 @@ on_clear(GtItemContainer* item_container,
 }
 
 static void
-finished_loading_follows_cb(GObject* source,
-    GParamSpec* pspec, gpointer udata)
-{
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
-
-    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
-
-    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
-}
-
-static void
 channel_followed_cb(GtFollowsManager* mgr,
     GtChannel* chan, gpointer udata)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
-    g_assert(GT_IS_CHANNEL(chan));
-    g_assert(GT_IS_FOLLOWS_MANAGER(mgr));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    RETURN_IF_FAIL(GT_IS_CHANNEL(chan));
+    RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(mgr));
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
 
@@ -175,21 +169,40 @@ static void
 channel_unfollowed_cb(GtFollowsManager* mgr,
     GtChannel* chan, gpointer udata)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
-    g_assert(GT_IS_CHANNEL(chan));
-    g_assert(GT_IS_FOLLOWS_MANAGER(mgr));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    RETURN_IF_FAIL(GT_IS_CHANNEL(chan));
+    RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(mgr));
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(self));
 }
 
+static void
+finished_loading_follows_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(source));
+
+    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
+    GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
+
+    if (gt_follows_manager_is_loading_follows(main_app->fav_mgr))
+        gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+    else
+    {
+        g_mutex_lock(&priv->mutex);
+        g_cond_signal(&priv->cond);
+        g_mutex_unlock(&priv->mutex);
+    }
+}
 static gboolean
 filter_by_name(GtkFlowBoxChild* _child,
     gpointer udata)
 {
-    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child));
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child), FALSE);
+    RETURN_VAL_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata), FALSE);
 
     GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
@@ -216,9 +229,9 @@ static gint
 sort_by_name_and_online(GtkFlowBoxChild* _child1,
     GtkFlowBoxChild* _child2, gpointer udata)
 {
-    g_assert(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
-    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child1));
-    g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(_child2));
+    RETURN_VAL_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata), -1);
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child1), -1);
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child2), -1);
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
     GtChannelsContainerChild* child1 = GT_CHANNELS_CONTAINER_CHILD(_child1);
@@ -336,6 +349,8 @@ gt_followed_channel_container_init(GtFollowedChannelContainer* self)
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
     priv->item_flow = gt_item_container_get_flow_box(GT_ITEM_CONTAINER(self));
+
+    g_mutex_init(&priv->mutex);
 }
 
 GtFollowedChannelContainer*

@@ -18,6 +18,8 @@
 
 #include "gt-followed-container-view.h"
 #include "gt-followed-channel-container.h"
+#include "gt-follows-manager.h"
+#include "gt-app.h"
 
 #define TAG "GtFollowedContainerView"
 #include "gnome-twitch/gt-log.h"
@@ -40,7 +42,12 @@ refresh(GtContainerView* view)
     GtkWidget* container = gtk_stack_get_visible_child(
         GTK_STACK(gt_container_view_get_container_stack(view)));
 
-    g_assert(GT_IS_ITEM_CONTAINER(container));
+    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(container));
+    RETURN_IF_FAIL(container == GTK_WIDGET(priv->followed_container));
+
+    /* NOTE: Our only container is the followed_container so we can
+     * safely call this without checking */
+    gt_follows_manager_refresh(main_app->fav_mgr);
 
     gt_item_container_refresh(GT_ITEM_CONTAINER(container));
 }
