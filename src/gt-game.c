@@ -66,8 +66,7 @@ notify_preview_cb(gpointer udata)
 {
     RETURN_VAL_IF_FAIL(GT_IS_GAME(udata), G_SOURCE_REMOVE);
 
-    /* NOTE: Callback to async func so we need to unref ourselves */
-    g_autoptr(GtGame) self = GT_GAME(udata);
+    GtGame* self = GT_GAME(udata);
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
@@ -100,7 +99,12 @@ download_image_cb(GdkPixbuf* pixbuf, gpointer udata, GError* error)
     }
 
     if (priv->notify_source_id == 0)
-        priv->notify_source_id = g_idle_add(notify_preview_cb, self);
+    {
+        /* NOTE: Don't need to ref ourselves because we are in a async
+         * cb */
+        priv->notify_source_id = g_idle_add_full(G_PRIORITY_LOW,
+            notify_preview_cb, self, g_object_unref);
+    }
 }
 
 static void
@@ -122,7 +126,10 @@ update_preview(GtGame* self)
             200, 270, GDK_INTERP_BILINEAR);
 
         if (priv->notify_source_id == 0)
-            priv->notify_source_id = g_idle_add(notify_preview_cb, g_object_ref(self));
+        {
+            priv->notify_source_id = g_idle_add_full(G_PRIORITY_LOW,
+                notify_preview_cb, g_object_ref(self), g_object_unref);
+        }
     }
 }
 
@@ -193,6 +200,9 @@ finalize(GObject* object)
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     gt_game_data_free(priv->data);
+
+    if (priv->notify_source_id > 0)
+        g_source_remove(priv->notify_source_id);
 
     G_OBJECT_CLASS(gt_game_parent_class)->finalize(object);
 }

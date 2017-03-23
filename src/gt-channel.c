@@ -125,9 +125,28 @@ channel_unfollowed_cb(GtFollowsManager* mgr,
     }
 }
 
+static gboolean
+auto_update_cb(gpointer udata)
+{
+    RETURN_VAL_IF_FAIL(udata != NULL, G_SOURCE_REMOVE);
 
+    g_autoptr(GtChannel) self = g_weak_ref_get(udata);
+
+    if (!self)
+    {
+        DEBUG("Not auto-updating because we were unreffed while wating");
+
+        return G_SOURCE_REMOVE;
+    }
+
+    gt_channel_update(self);
+
+    return G_SOURCE_CONTINUE;
+}
+
+/* TODO: Move this into set_property */
 static void
-auto_update_cb(GObject* src,
+auto_update_set_cb(GObject* src,
     GParamSpec* pspec, gpointer udata)
 {
     RETURN_IF_FAIL(GT_IS_CHANNEL(src));
@@ -138,7 +157,7 @@ auto_update_cb(GObject* src,
     if (priv->auto_update)
     {
         priv->update_id = g_timeout_add_seconds_full(G_PRIORITY_DEFAULT, 120, /* TODO: Add the timeout as a setting */
-            (GSourceFunc) gt_channel_update, g_object_ref(self), g_object_unref);
+            auto_update_cb, utils_create_weak_ref(self), (GDestroyNotify) utils_free_weak_ref);
     }
     else
         g_source_remove(priv->update_id);
@@ -149,8 +168,7 @@ notify_preview_cb(gpointer udata)
 {
     RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(udata), G_SOURCE_REMOVE);
 
-    /* NOTE: Callback to async func so we need to unref ourselves */
-    g_autoptr(GtChannel) self = GT_CHANNEL(udata);
+    GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
@@ -171,7 +189,7 @@ download_image_cb(GdkPixbuf* pixbuf, gpointer udata, GError* error)
 {
     RETURN_IF_FAIL(GT_IS_CHANNEL(udata));
 
-    GtChannel* self = GT_CHANNEL(udata);
+    g_autoptr(GtChannel) self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
 
     if (error)
@@ -190,7 +208,10 @@ download_image_cb(GdkPixbuf* pixbuf, gpointer udata, GError* error)
     }
 
     if (priv->notify_source_id == 0)
-        priv->notify_source_id = g_idle_add(notify_preview_cb, self);
+    {
+        priv->notify_source_id = g_idle_add_full(G_PRIORITY_LOW,
+            notify_preview_cb, g_object_ref(self), g_object_unref);
+    }
 }
 
 static void
@@ -230,10 +251,10 @@ update_preview(GtChannel* self)
     }
     else if (priv->preview)
     {
+        /* FIXME: Do something about this because it can cause the UI to temporarily freeze */
         utils_pixbuf_scale_simple(&priv->preview, 320, 180, GDK_INTERP_BILINEAR);
 
-        if (priv->notify_source_id == 0)
-            priv->notify_source_id = g_idle_add(notify_preview_cb, g_object_ref(self));
+        notify_preview_cb(self);
     }
 }
 
@@ -320,7 +341,7 @@ update_set_cb(gpointer udata)
 {
     RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(udata), G_SOURCE_REMOVE);
 
-    g_autoptr(GtChannel) self = GT_CHANNEL(udata);
+    GtChannel* self = GT_CHANNEL(udata);
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     GtChannelData* data = g_object_get_data(G_OBJECT(self), "data");
 
@@ -346,7 +367,7 @@ update_cb(gpointer data,
 {
     RETURN_IF_FAIL(GT_IS_CHANNEL(data));
 
-    GtChannel* self = data;
+    g_autoptr(GtChannel) self = data;
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     g_autoptr(GError) err = NULL;
 
@@ -370,7 +391,8 @@ update_cb(gpointer data,
 
     g_object_set_data(G_OBJECT(self), "data", chan_data);
 
-    priv->update_set_id = g_idle_add((GSourceFunc) update_set_cb, self);
+    priv->update_set_id = g_idle_add_full(G_PRIORITY_LOW,
+        update_set_cb, g_object_ref(self), g_object_unref);
 }
 
 static void
@@ -397,6 +419,9 @@ finalize(GObject* object)
 
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
+
+    if (priv->notify_source_id > 0)
+        g_source_remove(priv->notify_source_id);
 
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_followed_cb, self);
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfollowed_cb, self);
@@ -591,7 +616,7 @@ gt_channel_init(GtChannel* self)
     priv->error_message = NULL;
     priv->error_details = NULL;
 
-    g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_cb), NULL);
+    g_signal_connect(self, "notify::auto-update", G_CALLBACK(auto_update_set_cb), NULL);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
