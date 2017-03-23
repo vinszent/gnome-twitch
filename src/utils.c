@@ -299,6 +299,24 @@ utils_refresh_cancellable(GCancellable** cancel)
     *cancel = g_cancellable_new();
 }
 
+GWeakRef*
+utils_create_weak_ref(gpointer obj)
+{
+    GWeakRef* ref = g_malloc(sizeof(GWeakRef));
+
+    g_weak_ref_init(ref, obj);
+
+    return ref;
+}
+
+void
+utils_free_weak_ref(GWeakRef* ref)
+{
+    g_weak_ref_clear(ref);
+
+    g_clear_pointer(&ref, g_free);
+}
+
 GDateTime*
 utils_parse_time_iso_8601(const gchar* time, GError** error)
 {

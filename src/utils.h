@@ -69,5 +69,8 @@ void utils_refresh_cancellable(GCancellable** cancel);
 GDateTime* utils_parse_time_iso_8601(const gchar* time, GError** error);
 GenericTaskData* generic_task_data_new();
 void generic_task_data_free(GenericTaskData* data);
+GWeakRef* utils_create_weak_ref(gpointer obj);
+void utils_free_weak_ref(GWeakRef* ref);
+
 
 #endif
