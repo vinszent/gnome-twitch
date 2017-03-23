@@ -69,8 +69,8 @@ static void
 fetch_items_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
-    g_assert(GT_IS_ITEM_CONTAINER(source));
-    g_assert(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
 
     GtItemContainer* self = GT_ITEM_CONTAINER(source);
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
@@ -87,7 +87,7 @@ fetch_items_cb(GObject* source,
         {
             GtWin* win = GT_WIN_TOPLEVEL(self);
 
-            g_assert(GT_IS_WIN(win));
+            RETURN_IF_FAIL(GT_IS_WIN(win));
 
             WARNING("Unable to fetch items because: %s", err->message);
 
@@ -125,6 +125,10 @@ fetch_items(GtItemContainer* self)
     g_assert(GT_IS_ITEM_CONTAINER(self));
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+
+    /* NOTE: Return if we are already fetching items */
+    if (priv->fetching_items)
+        return;
 
     GtkAdjustment* vadj = gtk_scrolled_window_get_vadjustment(
         GTK_SCROLLED_WINDOW(priv->item_scroll));
@@ -166,7 +170,7 @@ fetch_items(GtItemContainer* self)
 
     GTask* task = g_task_new(self, priv->cancel, fetch_items_cb, NULL);
     g_task_set_task_data(task, data, g_free);
-    g_task_set_return_on_cancel(task, FALSE);
+    /* g_task_set_return_on_cancel(task, FALSE); */
 
     g_task_run_in_thread(task, GT_ITEM_CONTAINER_GET_CLASS(self)->fetch_items);
 
@@ -221,8 +225,8 @@ static void
 edge_reached_cb(GtkScrolledWindow* scroll,
     GtkPositionType pos, gpointer udata)
 {
-    g_assert(GT_IS_ITEM_CONTAINER(udata));
-    g_assert(GTK_IS_SCROLLED_WINDOW(scroll));
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(udata));
+    RETURN_IF_FAIL(GTK_IS_SCROLLED_WINDOW(scroll));
 
     GtItemContainer* self = GT_ITEM_CONTAINER(udata);
 
@@ -354,7 +358,7 @@ gt_item_container_init(GtItemContainer* self)
 GtkWidget*
 gt_item_container_get_flow_box(GtItemContainer* self)
 {
-    g_assert(GT_IS_ITEM_CONTAINER(self));
+    RETURN_VAL_IF_FAIL(GT_IS_ITEM_CONTAINER(self), NULL);
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
