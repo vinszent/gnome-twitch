@@ -47,13 +47,15 @@ search_active_cb(GObject* obj,
     g_assert(GTK_IS_STACK(container_stack));
 
     if (gt_container_view_get_search_active(GT_CONTAINER_VIEW(self)))
+        gtk_stack_set_visible_child(GTK_STACK(container_stack), GTK_WIDGET(priv->search_container));
+    else
     {
         g_object_set(self, "show-back-button", FALSE, NULL);
 
-        gtk_stack_set_visible_child(GTK_STACK(container_stack), GTK_WIDGET(priv->search_container));
-    }
-    else
         gtk_stack_set_visible_child(GTK_STACK(container_stack), GTK_WIDGET(priv->top_container));
+
+        gtk_widget_set_sensitive(gt_container_view_get_search_bar(GT_CONTAINER_VIEW(self)), TRUE);
+    }
 }
 
 static void
@@ -159,7 +161,6 @@ gt_game_container_view_open_game(GtGameContainerView* self, GtGame* game)
 
         gtk_widget_set_sensitive(search_bar, FALSE);
     }
-
 
     g_object_set(priv->game_container, "game", gt_game_get_name(game), NULL);
 

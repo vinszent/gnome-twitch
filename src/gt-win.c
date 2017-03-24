@@ -120,10 +120,10 @@ container_view_changed_cb(GObject* source,
         NULL);
 
     priv->search_binding = g_object_bind_property(priv->browse_header_bar, "search-active",
-        current_view, "search-active", G_BINDING_DEFAULT);
+        current_view, "search-active", G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
     priv->back_binding = g_object_bind_property(current_view, "show-back-button",
-        priv->browse_header_bar, "show-back-button", G_BINDING_DEFAULT);
+        priv->browse_header_bar, "show-back-button", G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 }
 
 static void
