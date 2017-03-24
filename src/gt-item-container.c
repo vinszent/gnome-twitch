@@ -127,8 +127,8 @@ fetch_items(GtItemContainer* self)
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
     /* NOTE: Return if we are already fetching items */
-    if (priv->fetching_items)
-        return;
+    /* if (priv->fetching_items) */
+    /*     return; */
 
     GtkAdjustment* vadj = gtk_scrolled_window_get_vadjustment(
         GTK_SCROLLED_WINDOW(priv->item_scroll));
