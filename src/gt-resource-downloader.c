@@ -50,7 +50,7 @@ static GdkPixbuf*
 download_image(GtResourceDownloader* self,
     const gchar* uri, const gchar* name,
     SoupMessage* msg, GInputStream* istream,
-    gboolean* from_file)
+    gboolean* from_file, GError** error)
 {
     RETURN_VAL_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self), NULL);
     RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
@@ -62,6 +62,7 @@ download_image(GtResourceDownloader* self,
     gint64 file_timestamp = 0;
     gboolean file_exists = FALSE;
     g_autoptr(GdkPixbuf) ret = NULL;
+    g_autoptr(GError) err = NULL;
 
         /* NOTE: If we aren't supplied a filename, we'll just create one by hashing the uri */
     if (utils_str_empty(name))
@@ -121,7 +122,18 @@ download_image(GtResourceDownloader* self,
         download:
             DEBUG("New image at uri '%s'", uri);
 
-            ret = gdk_pixbuf_new_from_stream(istream, NULL, NULL);
+            ret = gdk_pixbuf_new_from_stream(istream, NULL, &err);
+
+            if (err)
+            {
+                WARNING("Unable to download image from uri '%s' because: %s",
+                    uri, err->message);
+
+                g_propagate_prefixed_error(error, g_steal_pointer(&err),
+                    "Unable to download image from uri '%s' because: ", uri);
+
+                return NULL;
+            }
 
             if (priv->filepath && STRING_EQUALS(priv->image_filetype, GT_IMAGE_FILETYPE_JPEG))
             {
@@ -157,8 +169,11 @@ send_message_cb(GObject* source,
 
     istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
 
-    ret = download_image(data->self, data->uri, data->name,
-        data->msg, istream, &from_file);
+    if (!err)
+    {
+        ret = download_image(data->self, data->uri, data->name,
+            data->msg, istream, &from_file, &err);
+    }
 
     data->cb(from_file ? NULL : g_steal_pointer(&ret),
         data->udata, g_steal_pointer(&err));
@@ -273,8 +288,7 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
         return NULL;
     }
 
-    ret = download_image(self, uri, name, msg, istream, NULL);
-
+    ret = download_image(self, uri, name, msg, istream, NULL, error);
     return g_steal_pointer(&ret);
 }
 

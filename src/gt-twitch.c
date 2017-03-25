@@ -1550,6 +1550,7 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
     {
         g_autofree gchar* uri = NULL;
         g_autoptr(GError) err = NULL;
+        g_autoptr(GdkPixbuf) emote = NULL;
         gchar id_str[15];
 
         uri = g_strdup_printf(TWITCH_EMOTE_URI, id, 1);
@@ -1557,8 +1558,27 @@ gt_twitch_download_emote(GtTwitch* self, gint id)
 
         DEBUGF("Downloading emote form url='%s'", uri);
 
+        emote = gt_resource_downloader_download_image(emote_downloader, uri, id_str, &err);
+
+        /* NOTE: If we encountered an error here we'll just insert a generic error emote */
+        if (err)
+        {
+            g_autoptr(GtkIconInfo) icon_info;
+
+            WARNING("Unable to download emote with id '%d' because: %s", id, err->message);
+
+            g_clear_error(&err);
+
+            icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),
+                "software-update-urgent-symbolic", 1, 0);
+
+            emote = gtk_icon_info_load_icon(icon_info, &err);
+
+            RETURN_VAL_IF_FAIL(err == NULL, NULL);
+        }
+
         g_hash_table_insert(priv->emote_table, GINT_TO_POINTER(id),
-            gt_resource_downloader_download_image(emote_downloader, uri, id_str, &err));
+            g_steal_pointer(&emote));
 
         //TODO: Propagate this error further
         RETURN_VAL_IF_FAIL(err == NULL, NULL);
@@ -1628,15 +1648,24 @@ fetch_chat_badge_set(GtTwitch* self, const gchar* set_name, GError** error)
 
             if (err)
             {
+                g_autoptr(GtkIconInfo) icon_info;
+
                 WARNING("Unable to fetch chat badge set with name '%s' because: %s",
                     set_name, err->message);
 
-                g_propagate_prefixed_error(error, err, "Unable to fetch chat badge set with name '%s' because: ",
-                    set_name);
+                g_clear_error(&err);
 
-                gt_chat_badge_free(badge);
+                /* NOTE: If we encountered an error here we'll just insert a generic error emote */
 
-                return;
+                g_clear_error(&err);
+
+                icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),
+                    "software-update-urgent-symbolic", 1, 0);
+
+                badge->pixbuf = gtk_icon_info_load_icon(icon_info, &err);
+
+                RETURN_IF_FAIL(err == NULL);
+
             }
 
             END_JSON_ELEMENT();
