@@ -193,7 +193,7 @@ finished_loading_follows_cb(GObject* source,
     else
     {
         g_mutex_lock(&priv->mutex);
-        g_cond_signal(&priv->cond);
+        g_cond_broadcast(&priv->cond);
         g_mutex_unlock(&priv->mutex);
     }
 }
