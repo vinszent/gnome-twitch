@@ -160,7 +160,7 @@
     border-style: solid;
 	border-width: 4px;
     border-color: red;
-	animation: blinker 1s linear infinite;
+	/* animation: blinker 1s linear infinite; */
 }
 
 .gt-error-dlg #info-label,
