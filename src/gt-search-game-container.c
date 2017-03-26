@@ -28,7 +28,7 @@
 
 #define CHILD_WIDTH 210
 #define CHILD_HEIGHT 320
-#define APPEND_EXTRA TRUE
+#define APPEND_EXTRA FALSE
 #define SEARCH_DELAY G_TIME_SPAN_MILLISECOND * 500 //ms
 
 typedef struct
@@ -75,7 +75,9 @@ cancelled_cb(GCancellable* cancel,
     g_assert(GT_IS_SEARCH_GAME_CONTAINER(self));
     g_assert(G_IS_CANCELLABLE(cancel));
 
+    g_mutex_lock(&priv->mutex);
     g_cond_signal(&priv->cond);
+    g_mutex_unlock(&priv->mutex);
 }
 
 static void
@@ -118,8 +120,8 @@ fetch_items(GTask* task, gpointer source, gpointer task_data, GCancellable* canc
 
             GError* err = NULL;
 
-            GList* items = gt_twitch_search_games(main_app->twitch,
-                priv->query, data->amount, data->offset, &err);
+            GList* items = data->offset == 0 ? gt_twitch_search_games(main_app->twitch,
+                priv->query, data->amount, data->offset, &err) : NULL;
 
             if (err)
                 g_task_return_error(task, err);
@@ -227,7 +229,6 @@ gt_search_game_container_init(GtSearchGameContainer* self)
     GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
 
     priv->query = NULL;
-    g_cond_init(&priv->cond);
     g_mutex_init(&priv->mutex);
 }
 

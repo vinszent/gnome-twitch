@@ -81,7 +81,9 @@ cancelled_cb(GCancellable* cancel,
     g_assert(GT_IS_SEARCH_CHANNEL_CONTAINER(self));
     g_assert(G_IS_CANCELLABLE(cancel));
 
+    g_mutex_lock(&priv->mutex);
     g_cond_signal(&priv->cond);
+    g_mutex_unlock(&priv->mutex);
 }
 
 static void
@@ -245,7 +247,6 @@ gt_search_channel_container_init(GtSearchChannelContainer* self)
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
 
     priv->query = NULL;
-    g_cond_init(&priv->cond);
     g_mutex_init(&priv->mutex);
 }
 
