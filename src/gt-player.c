@@ -329,36 +329,27 @@ destroy_cb(GtkWidget* widget,
     g_object_unref(priv->action_group);
 }
 
-static void
-scale_chat_cb(GtkWidget* widget,
-    GtkAllocation* _alloc, gpointer udata)
+static gboolean
+update_chat_undocked_position(GtkOverlay* overlay,
+    GtkWidget* widget, GdkRectangle* chat_alloc, gpointer udata)
 {
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GtkAllocation alloc;
 
-    if (!priv->cur_channel_settings->docked)
-    {
-        GtkAllocation alloc;
-        gint width_request;
-        gint height_request;
-        gint margin_start;
-        gint margin_top;
+    if (widget != priv->chat_view) return FALSE;
 
-        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
+    /* NOTE: This is to shut GTK up */
+    gtk_widget_get_preferred_size(priv->chat_view, NULL, NULL);
 
-        g_object_get(priv->chat_view,
-            "width-request", &width_request,
-            "height_request", &height_request,
-            NULL);
+    gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
 
-        margin_start = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - width_request));
-        margin_top = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - height_request));
+    chat_alloc->width = ROUND(priv->cur_channel_settings->width*alloc.width);
+    chat_alloc->height = ROUND(priv->cur_channel_settings->height*alloc.height);
+    chat_alloc->x = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - chat_alloc->width));
+    chat_alloc->y = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - chat_alloc->height));
 
-        g_object_set(priv->chat_view,
-            "margin-start", margin_start,
-            "margin-top", margin_top,
-            NULL);
-    }
+    return TRUE;
 }
 
 static void
@@ -383,12 +374,6 @@ update_docked(GtPlayer* self)
 
         g_object_set(priv->chat_view,
             "opacity", 1.0,
-            "width-request", -1,
-            "height-request", -1,
-            "margin-start", 0,
-            "margin-top", 0,
-            "valign", GTK_ALIGN_FILL,
-            "halign", GTK_ALIGN_FILL,
             NULL);
 
         g_object_set(self,
@@ -400,36 +385,14 @@ update_docked(GtPlayer* self)
     }
     else
     {
-        GtkAllocation alloc;
-        gint width_request;
-        gint height_request;
-        gint margin_top;
-        gint margin_start;
-
-        gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
-
-        if (alloc.width <= 1 && alloc.height <= 1)
-            return;
-
         if (gtk_widget_get_parent(priv->chat_view) == priv->docking_pane)
             gtk_container_remove(GTK_CONTAINER(priv->docking_pane), priv->chat_view);
 
         if (gtk_widget_get_parent(priv->chat_view) == NULL)
             gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
 
-        width_request = ROUND(priv->cur_channel_settings->width*alloc.width);
-        height_request = ROUND(priv->cur_channel_settings->height*alloc.height);
-        margin_start = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - width_request));
-        margin_top = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - height_request));
-
         g_object_set(priv->chat_view,
             "opacity", priv->cur_channel_settings->opacity,
-            "valign", GTK_ALIGN_START,
-            "halign", GTK_ALIGN_START,
-            "margin-start", margin_start,
-            "margin-top", margin_top,
-            "width-request", width_request,
-            "height-request", height_request,
             NULL);
     }
 }
@@ -651,21 +614,14 @@ mouse_moved_cb(GtkWidget* widget,
     if (priv->mouse_pressed)
     {
         GtkAllocation alloc;
-        gint margin_top;
-        gint margin_start;
-        gint width_request;
-        gint height_request;
-
-        g_object_get(priv->chat_view,
-            "margin-top", &margin_top,
-            "margin-start", &margin_start,
-            "width-request", &width_request,
-            "height-request", &height_request,
-            NULL);
 
         gtk_widget_get_allocation(GTK_WIDGET(self), &alloc);
 
-        //TODO: Implement dragging
+        gint width_request = ROUND(priv->cur_channel_settings->width*alloc.width);
+        gint height_request = ROUND(priv->cur_channel_settings->height*alloc.height);
+        gint margin_start = ROUND(priv->cur_channel_settings->x_pos*(alloc.width - width_request));
+        gint margin_top = ROUND(priv->cur_channel_settings->y_pos*(alloc.height - height_request));
+
         if (priv->start_mouse_pos == MOUSE_POS_LEFT_HANDLE && x >= 0)
         {
             width_request += margin_start - x;
@@ -673,11 +629,6 @@ mouse_moved_cb(GtkWidget* widget,
             width_request = MAX(width_request, CHAT_MIN_WIDTH);
 
             margin_start = width_request == CHAT_MIN_WIDTH ? margin_start : x;
-
-            g_object_set(priv->chat_view,
-                "width-request", width_request,
-                "margin-start", margin_start,
-                NULL);
         }
         else if (priv->start_mouse_pos == MOUSE_POS_RIGHT_HANDLE &&
             x <= gtk_widget_get_allocated_width(GTK_WIDGET(self)))
@@ -685,10 +636,6 @@ mouse_moved_cb(GtkWidget* widget,
             width_request += x - margin_start - width_request;
 
             width_request = MAX(width_request, CHAT_MIN_WIDTH);
-
-            g_object_set(priv->chat_view,
-                "width-request", width_request,
-                NULL);
         }
         else if (priv->start_mouse_pos == MOUSE_POS_TOP_HANDLE && y >= 0)
         {
@@ -697,11 +644,6 @@ mouse_moved_cb(GtkWidget* widget,
             height_request = MAX(height_request, CHAT_MIN_HEIGHT);
 
             margin_top = height_request == CHAT_MIN_HEIGHT ? margin_top : y;
-
-            g_object_set(priv->chat_view,
-                "height-request", height_request,
-                "margin-top", margin_top,
-                NULL);
         }
         else if (priv->start_mouse_pos == MOUSE_POS_BOTTOM_HANDLE &&
             y <= gtk_widget_get_allocated_height(GTK_WIDGET(self)))
@@ -709,10 +651,6 @@ mouse_moved_cb(GtkWidget* widget,
             height_request += y - margin_top - height_request;
 
             height_request = MAX(height_request, CHAT_MIN_HEIGHT);
-
-            g_object_set(priv->chat_view,
-                "height-request", height_request,
-                NULL);
         }
         else if (priv->start_mouse_pos == MOUSE_POS_INSIDE)
         {
@@ -721,17 +659,14 @@ mouse_moved_cb(GtkWidget* widget,
 
             margin_top = MIN(gtk_widget_get_allocated_height(GTK_WIDGET(self)) - height_request,
                 MAX(0, y - height_request / 2));
-
-            g_object_set(priv->chat_view,
-                "margin-start", margin_start,
-                "margin-top", margin_top,
-                NULL);
         }
 
         priv->cur_channel_settings->x_pos = margin_start / (gdouble) (alloc.width - width_request);
         priv->cur_channel_settings->y_pos = margin_top / (gdouble) (alloc.height - height_request);
         priv->cur_channel_settings->width = width_request / (gdouble) alloc.width;
         priv->cur_channel_settings->height = height_request / (gdouble) alloc.height;
+
+        gtk_widget_queue_resize_no_redraw(priv->chat_view);
 
     }
     else
@@ -1007,7 +942,6 @@ realize_cb(GtkWidget* widget,
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
 
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
-    g_signal_connect(win, "size-allocate", G_CALLBACK(scale_chat_cb), self);
 }
 
 static gboolean
@@ -1289,6 +1223,7 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(self, "destroy", G_CALLBACK(destroy_cb), self);
     g_signal_connect(priv->reload_button, "clicked", G_CALLBACK(reload_button_cb), self);
     g_signal_connect(main_app, "shutdown", G_CALLBACK(app_shutdown_cb), NULL);
+    g_signal_connect_object(priv->player_overlay, "get-child-position", G_CALLBACK(update_chat_undocked_position), self, 0);
 
     gchar** c;
     gchar** _c;
