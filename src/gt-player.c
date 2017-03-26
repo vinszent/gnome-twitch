@@ -792,10 +792,10 @@ update_edit_chat(GtPlayer* self)
         if (priv->mouse_pressed_handler_id > 0)
         {
             g_signal_handler_disconnect(self, priv->mouse_pressed_handler_id);
-            priv->mouse_moved_handler_id = 0;
+            priv->mouse_pressed_handler_id = 0;
         }
 
-        if (priv->mouse_pressed_handler_id > 0)
+        if (priv->mouse_released_handler_id > 0)
         {
             g_signal_handler_disconnect(self, priv->mouse_released_handler_id);
             priv->mouse_pressed_handler_id = 0;
