@@ -784,8 +784,8 @@ gt_channel_update(GtChannel* self)
     DEBUG("Initiating update for channel with id '%s' and name '%s'",
         priv->data->id, priv->data->name);
 
-    g_free(priv->error_message);
-    g_free(priv->error_details);
+    g_clear_pointer(&priv->error_message, g_free);
+    g_clear_pointer(&priv->error_details, g_free);
 
     priv->error = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
