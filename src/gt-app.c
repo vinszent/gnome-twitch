@@ -382,7 +382,7 @@ startup(GApplication* app)
 
     G_APPLICATION_CLASS(gt_app_parent_class)->startup(app);
 
-    MESSAGE("Startup");
+    MESSAGE("Startup, running version '%s'", GT_VERSION);
 
     self->fav_mgr = gt_follows_manager_new();
     self->twitch = gt_twitch_new();
