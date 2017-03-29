@@ -668,7 +668,6 @@ gt_win_init(GtWin* self)
     g_object_unref(window_group);
 }
 
-//TODO: Make this action
 void
 gt_win_open_channel(GtWin* self, GtChannel* chan)
 {
@@ -690,7 +689,15 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
             "player");
     }
     else
-        gt_win_show_info_message(self, _("Unable to open channel because it's not online"));
+    {
+        gt_win_show_info_message(self, _("Unable to open channel %s because it's not online"),
+            gt_channel_get_name(chan));
+
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
+            "browse");
+        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
+            "browse");
+    }
 }
 
 gboolean

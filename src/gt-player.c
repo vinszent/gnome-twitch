@@ -871,19 +871,26 @@ streams_list_cb(GObject* source,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     const GtTwitchStreamData* stream_data;
-    GError* err = NULL;
+    g_autoptr(GError) err = NULL;
 
     priv->stream_qualities = gt_twitch_all_streams_finish(GT_TWITCH(source), res, &err);
 
-    if (err)
+    if (g_error_matches(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP_NOT_FOUND))
     {
         GtWin* win = GT_WIN_TOPLEVEL(self);
 
-        g_assert(GT_IS_WIN(win));
+        gt_win_show_info_message(win, _("Unable to open channel %s because it's offline"),
+            gt_channel_get_name(priv->channel));
+
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
+
+        gt_chat_disconnect(GT_CHAT(priv->chat_view));
+    }
+    else if (err)
+    {
+        GtWin* win = GT_WIN_TOPLEVEL(self);
 
         gt_win_show_error_message(win, "Error opening stream", err->message);
-
-        g_error_free(err);
 
         gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
 

@@ -64,8 +64,6 @@
 #define TWITCH_API_VERSION_4 "4"
 #define TWITCH_API_VERSION_5 "5"
 
-#define GT_TWITCH_ERROR gt_spawn_twitch_error_quark()
-
 #define END_JSON_MEMBER() json_reader_end_member(reader) // Just for consistency's sake
 #define END_JSON_ELEMENT() json_reader_end_element(reader) // Just for consistency's sake
 
@@ -239,7 +237,7 @@ gt_chat_emote_list_free(GList* list)
     g_list_free_full(list, (GDestroyNotify) gt_chat_emote_free);
 }
 
-static GQuark
+GQuark
 gt_spawn_twitch_error_quark()
 {
     return g_quark_from_static_string("gt-twitch-error-quark");
@@ -332,10 +330,15 @@ new_send_message(GtTwitch* self, SoupMessage* msg, GError** error)
     }
     else
     {
+        gint code;
+
         WARNINGF("Received unsuccessful response from url '%s' with code '%d' and body '%s'",
                  uri, msg->status_code, msg->response_body->data);
 
-        g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP,
+        code = msg->status_code == GT_TWITCH_ERROR_SOUP_NOT_FOUND ?
+            GT_TWITCH_ERROR_SOUP_NOT_FOUND : GT_TWITCH_ERROR_SOUP_GENERIC;
+
+        g_set_error(error, GT_TWITCH_ERROR, code,
             "Received unsuccessful response from url '%s' with code '%d' and body '%s'",
             uri, msg->status_code, msg->response_body->data);
     }
@@ -362,7 +365,7 @@ new_send_message_json_with_version(GtTwitch* self, SoupMessage* msg, const gchar
         JsonNode* node = NULL;
         GError* e = NULL;
 
-        json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &e);
+        json_parser_load_from_data(parser, msg->response_body->data, -1, &e);
 
         if (e)
         {
@@ -1454,7 +1457,7 @@ gt_twitch_download_picture(GtTwitch* self, const gchar* url, gint64 timestamp, G
             WARNING("Unable to download picture from url '%s' because received unsuccessful response with code '%d' and body '%s'",
                 url, msg->status_code, msg->response_body->data);
 
-            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP,
+            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP_GENERIC,
                 "Unable to download picture from url '%s' because received unsuccessful response with code '%d' and body '%s'",
                 url, msg->status_code, msg->response_body->data);
 

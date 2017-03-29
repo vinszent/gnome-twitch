@@ -266,6 +266,11 @@ open_channel_after_fetch_cb(GObject* source,
             "Couldn't open channel because: %s", err->message);
 
     }
+    else if (!gt_channel_is_online(channel))
+    {
+        gt_win_show_info_message(win, _("Unable to open channel %s bceause it's not online"),
+            gt_channel_get_name(channel));
+    }
     else
         gt_win_open_channel(win, channel); //NOTE: Win will take a reference to channel
 

@@ -35,11 +35,15 @@ G_DECLARE_FINAL_TYPE(GtTwitch, gt_twitch, GT, TWITCH, GObject)
 #define NO_TIMESTAMP -1
 #define ALL_LANGUAGES ""
 
+GQuark gt_spawn_twitch_error_quark();
+#define GT_TWITCH_ERROR gt_spawn_twitch_error_quark()
+
 typedef enum _GtTwitchError
 {
-    GT_TWITCH_ERROR_SOUP,
     GT_TWITCH_ERROR_JSON,
     GT_TWITCH_ERROR_MISC,
+    GT_TWITCH_ERROR_SOUP_GENERIC,
+    GT_TWITCH_ERROR_SOUP_NOT_FOUND = 404,
 } GtTwitchError;
 
 #define GT_TWITCH_STREAM_QUALITY_SOURCE "source"
