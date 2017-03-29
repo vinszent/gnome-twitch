@@ -1041,7 +1041,7 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
     gchar host[20];
     gint port;
     const GtOAuthInfo* info = NULL;
-    GError* err = NULL;
+    g_autoptr(GError) err = NULL;
 
     if (priv->state != GT_IRC_STATE_DISCONNECTED)
     {
@@ -1057,11 +1057,35 @@ gt_irc_connect_and_join_channel(GtIrc* self, GtChannel* chan)
 
     gt_twitch_load_chat_badge_sets_for_channel(main_app->twitch, gt_channel_get_id(priv->chan), &err);
 
-    g_assert_no_error(err); //TODO: Propagate error further
+    if (err)
+    {
+        WARNINGF("Unable to connect and join channel '%s' because: %s",
+            gt_channel_get_name(chan), err->message);
+
+        g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+        priv->state = GT_IRC_STATE_DISCONNECTED;
+
+        g_clear_object(&priv->chan);
+
+        return;
+    }
 
     servers = gt_twitch_chat_servers(main_app->twitch, gt_channel_get_name(chan), &err);
 
-    g_assert_no_error(err); //TODO: Propagate error further
+    if (err)
+    {
+        WARNINGF("Unable to connect and join channel '%s' because: %s",
+            gt_channel_get_name(chan), err->message);
+
+        g_signal_emit(self, sigs[SIG_ERROR_ENCOUNTERED], 0, err);
+
+        priv->state = GT_IRC_STATE_DISCONNECTED;
+
+        g_clear_object(&priv->chan);
+
+        return;
+    }
 
     pos = g_random_int() % g_list_length(servers);
 
