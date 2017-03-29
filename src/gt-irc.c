@@ -479,7 +479,7 @@ parse_line(GtIrc* self, gchar* line)
                 gchar** badgev = g_strsplit(*c, "/", -1);
                 const gchar* name = *badgev;
                 const gchar* version = *(badgev+1);
-                GError* err = NULL;
+                g_autoptr(GError) err = NULL;
 
                 GtChatBadge* badge = gt_twitch_fetch_chat_badge(main_app->twitch,
                     gt_channel_get_id(priv->chan), name, version, &err);
@@ -488,7 +488,6 @@ parse_line(GtIrc* self, gchar* line)
                 {
                     WARNING("Unable to add chat badge because: %s", err->message);
 
-                    //TODO: Add some frontend ui to show the error message
                     g_error_free(err);
                     err = NULL;
 
@@ -501,7 +500,8 @@ parse_line(GtIrc* self, gchar* line)
                     badge->pixbuf = gtk_icon_info_load_icon(icon_info, &err);
 
                     //NOTE: At this point we're fucked, maybe we can just set an empty icon?
-                    g_assert_no_error(err);
+                    if (err)
+                        badge->pixbuf = NULL;
                 }
 
                 msg->cmd.privmsg->badges = g_list_append(msg->cmd.privmsg->badges, badge);

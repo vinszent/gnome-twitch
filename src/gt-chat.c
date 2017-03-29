@@ -304,10 +304,14 @@ irc_source_cb(GtIrcMessage* msg,
 
             GtChatBadge* badge = l->data;
 
-            g_assert(GDK_IS_PIXBUF(badge->pixbuf));
-
-            gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &iter, GDK_PIXBUF(badge->pixbuf));
-            gtk_text_buffer_insert(priv->chat_buffer, &iter, " ", -1);
+            /* NOTE: If for whatever reason the pixbuf is NULL we'll just insert the original text */
+            if (badge->pixbuf)
+            {
+                gtk_text_buffer_insert_pixbuf(priv->chat_buffer, &iter, GDK_PIXBUF(badge->pixbuf));
+                gtk_text_buffer_insert(priv->chat_buffer, &iter, " ", -1);
+            }
+            else
+                gtk_text_buffer_insert(priv->chat_buffer, &iter, badge->name, -1);
         }
 
 #undef INSERT_USER_MOD_PIXBUF
