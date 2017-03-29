@@ -710,12 +710,17 @@ gt_win_toggle_fullscreen(GtWin* self)
 }
 
 void
-gt_win_show_info_message(GtWin* self, const gchar* msg)
+gt_win_show_info_message(GtWin* self, const gchar* msg_fmt, ...)
 {
+    RETURN_IF_FAIL(GT_IS_WIN(self));
+
     GtWinPrivate* priv = gt_win_get_instance_private(self);
     QueuedInfoData* data = g_new0(QueuedInfoData, 1);
+    va_list fmt_list;
 
-    data->msg = g_strdup(msg);
+    va_start(fmt_list, msg_fmt);
+    data->msg = g_strdup_vprintf(msg_fmt, fmt_list);
+    va_end(fmt_list);
 
     g_queue_push_tail(priv->info_queue, data);
 

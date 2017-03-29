@@ -44,7 +44,7 @@ GtWin* gt_win_new(GtApp* app);
 void gt_win_open_channel(GtWin* self, GtChannel* chan);
 gboolean gt_win_is_fullscreen(GtWin* self);
 void gt_win_toggle_fullscreen(GtWin* self);
-void gt_win_show_info_message(GtWin* self, const gchar* msg);
+void gt_win_show_info_message(GtWin* self, const gchar* msg_fmt, ...);
 void gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
 void gt_win_show_error_dialogue(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
 void gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata);
