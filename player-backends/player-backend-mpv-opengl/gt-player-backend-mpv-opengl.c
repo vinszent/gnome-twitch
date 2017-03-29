@@ -130,7 +130,7 @@ mpv_wakeup_cb(gpointer udata)
     GtPlayerBackendMpvOpenGL* self = GT_PLAYER_BACKEND_MPV_OPENGL(udata);
     GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
 
-    priv->mpv_event_cb_id = g_idle_add(mpv_event_cb, udata);
+    priv->mpv_event_cb_id = g_idle_add_full(G_PRIORITY_DEFAULT, mpv_event_cb, g_object_ref(self), g_object_unref);
 }
 
 static void
