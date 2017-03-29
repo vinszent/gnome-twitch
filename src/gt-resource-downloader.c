@@ -165,7 +165,7 @@ send_message_cb(GObject* source,
     g_autoptr(GError) err = NULL;
     g_autoptr(GInputStream) istream = NULL;
     g_autoptr(GdkPixbuf) ret = NULL;
-    gboolean from_file;
+    gboolean from_file = FALSE;
 
     istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
 
