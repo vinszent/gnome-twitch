@@ -16,9 +16,7 @@
 # along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
 #
 
-_realname=gnome-twitch-git
-pkgbase=mingw-w64-${_realname}
-pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgname="${MINGW_PACKAGE_PREFIX}-gnome-twitch-git"
 pkgver=r897.028500f
 pkgrel=1
 arch=('any')
@@ -44,22 +42,18 @@ makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
   "gettext"
   "git"
 )
-install=${_realname}-${MSYSTEM_CARCH}.install
+install=gnome-twitch-git-${MSYSTEM_CARCH}.install
 options=('strip')
+source=("$pkgname::git+https://github.com/vinszent/gnome-twitch.git")
+md5sums=('SKIP')
 
 pkgver() {
-  cd "${_realname}"
+  cd "${pkgname}"
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
-prepare() {
-  rm -rf "${srcdir}/${_realname}"
-
-  git clone -b update-build-files https://github.com/vinszent/gnome-twitch "${srcdir}/${_realname}"
-}
-
 build() {
-  cd "${srcdir}/${_realname}"
+  cd "$pkgname"
   rm -rf build-${MINGW_CHOST}
   mkdir -p build-${MINGW_CHOST}
   cd build-${MINGW_CHOST}
@@ -70,6 +64,6 @@ build() {
 }
 
 package() {
-  cd "${srcdir}/${_realname}/build-${MINGW_CHOST}"
+  cd "${pkgname}/build-${MINGW_CHOST}"
   DESTDIR="${pkgdir}" ninja install
 }
