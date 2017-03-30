@@ -38,17 +38,17 @@ echo "==> Creating chroot environment"
 mkdir "${PACKAGE_DIR}"
 mkdir -p "${PACKAGE_DIR}"/var/lib/pacman
 
-pacman -Syu --noconfirm --root "${PACKAGE_DIR}" &> "$LOG_NAME"
+pacman -Syu --noconfirm --root "${PACKAGE_DIR}" &>> "$LOG_NAME"
 
 # Bootstrap chroot
 echo "==> Bootstrapping chroot"
-pacman -S --noconfirm --root "${PACKAGE_DIR}" bash filesystem pacman &> "$LOG_NAME"
+pacman -S --noconfirm --root "${PACKAGE_DIR}" bash filesystem pacman &>> "$LOG_NAME"
 
 # Compile and install GT
 echo "==> Compiling and installing packages"
-makepkg -s -c --noconfirm &> "$LOG_NAME"
+makepkg -s -c --noconfirm &>> "$LOG_NAME"
 
-pacman -U mingw-w64-"${MSYSTEM_CARCH}"-gnome-twitch-git*.tar.xz --root "${PACKAGE_DIR}" --noconfirm &> "$LOG_NAME"
+pacman -U mingw-w64-"${MSYSTEM_CARCH}"-gnome-twitch-git*.tar.xz --root "${PACKAGE_DIR}" --noconfirm &>> "$LOG_NAME"
 
 cd "${PACKAGE_DIR}/${MSYSTEM_PREFIX}"
 
@@ -108,7 +108,7 @@ find share/locale/ -type d | xargs rmdir -p --ignore-fail-on-non-empty
 cd ../../
 
 echo "==> Compiling installer"
-C:/Program\ Files\ \(x86\)/Inno\ Setup\ 5/ISCC.exe gnome-twitch.iss &> "$LOG_NAME"
+C:/Program\ Files\ \(x86\)/Inno\ Setup\ 5/ISCC.exe gnome-twitch.iss &>> "$LOG_NAME"
 
 # Cleanup
 echo "==> Cleaning up"
