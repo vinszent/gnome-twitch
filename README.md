@@ -2,7 +2,7 @@
 
 Enjoy Twitch on your GNU/Linux desktop.
 
-## [Latest news](http://gnome-twitch.vinszent.com/posts/gnome-twitch-v0.3.0-post.html)
+<!-- ## [Latest news](http://gnome-twitch.vinszent.com/posts/gnome-twitch-v0.3.0-post.html) -->
 
 ## Install
 ### Dependencies
