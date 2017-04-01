@@ -2,8 +2,6 @@
 
 Enjoy Twitch on your GNU/Linux desktop.
 
-[![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/gnome-twitch/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) (free tech support and development help ![datsheffy](https://static-cdn.jtvnw.net/emoticons/v1/170/1.0))
-
 ## [Latest news](http://gnome-twitch.vinszent.com/posts/gnome-twitch-v0.3.0-post.html)
 
 ## Install
