@@ -30,11 +30,11 @@ implemented.
     settings. From there one can select to also search for offline
     channels.
 
-* __Dynamic stream qualities__
+* __Display all stream qualities__
 
     Shows all available stream qualities including special ones like 720p60, etc.
 
-* __Dynamic chat badges__
+* __Display all chat badges__
 
     Displays all chat badges including any news ones and temporary ones
     like the Horde/Alliance chat badges from the Warcraft event.
@@ -64,4 +64,4 @@ implemented.
 * __Changes to the build system__
 
     The Meson build scripts have been significantly cleaned up (with
-    help from @TinpPing).
+    help from @TingPing).
