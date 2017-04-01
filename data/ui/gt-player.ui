@@ -45,35 +45,15 @@
           </object>
         </child>
         <child>
-          <object class="GtkBox">
+          <object class="GtkLinkButton">
             <property name="visible">True</property>
-            <property name="orientation">horizontal</property>
             <property name="halign">center</property>
-            <child>
-              <object class="GtkLabel" id="empty_subtitle_label_left">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Click </property>
-                <property name="name">empty-sub-label</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLinkButton">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">here</property>
-                <property name="margin">0</property>
-                <property name="name">empty-link-button</property>
-                <property name="action-name">win.show_settings_with_view</property>
-                <property name="action-target">'plugins'</property>
-                <signal name="activate-link" handler="gtk_true"/>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="empty_subtitle_label_right">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes"> to load one</property>
-                <property name="name">empty-sub-label</property>
-              </object>
-            </child>
+            <property name="label" translatable="yes">Click here to load one</property>
+            <property name="margin">0</property>
+            <property name="name">empty-link-button</property>
+            <property name="action-name">win.show_settings_with_view</property>
+            <property name="action-target">'plugins'</property>
+            <signal name="activate-link" handler="gtk_true"/>
           </object>
         </child>
       </object>
