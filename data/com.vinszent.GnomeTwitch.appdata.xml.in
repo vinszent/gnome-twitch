@@ -31,6 +31,16 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release date="2017-04-01" version="0.4.0">
+      <description>
+        <p>
+          This release is focused on improving stability and having
+          better error handling. Some key features have also been
+          implemented. These include better chat moving and resizing,
+          language selection, various UI additions, and more.
+        </p>
+      </description>
+    </release>
     <release date="2016-10-15" version="0.3.1">
       <description>
         <p>This is a minor release to fix an error getting follows.</p>
