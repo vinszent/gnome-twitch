@@ -192,7 +192,12 @@ utils_mouse_clicked_link_cb(GtkWidget* widget,
     {
         GtWin* parent = GT_WIN_TOPLEVEL(widget);
 
+#if GTK_CHECK_VERSION(3, 22, 0)
         gtk_show_uri_on_window(GTK_WINDOW(parent), (gchar*) udata, GDK_CURRENT_TIME, NULL);
+#else
+        gtk_show_uri(NULL, (gchar*) udata, GDK_CURRENT_TIME, NULL);
+#endif
+
     }
 
     return FALSE;
