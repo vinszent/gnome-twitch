@@ -619,7 +619,7 @@ after_connected_cb(GObject* source,
             gt_app_is_logged_in(main_app));
         gtk_entry_set_placeholder_text(GTK_ENTRY(priv->chat_entry),
             gt_app_is_logged_in(main_app)
-            ? _("Send a message") : _("Please login to chat"));
+            ? _("Send a message") : _("Please log in to chat"));
     }
 }
 
