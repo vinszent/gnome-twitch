@@ -440,7 +440,13 @@ chat_view_button_press_cb(GtkWidget* widget,
         g_assert(GT_IS_WIN(win));
 
         if (!utils_str_empty(url))
-            gtk_show_uri_on_window(GTK_WINDOW(win), url, GDK_CURRENT_TIME, NULL); /* FIXME: Handle error here */
+        {
+#if GTK_CHECK_VERSION(3, 22, 0)
+            gtk_show_uri_on_window(GTK_WINDOW(win), url, GDK_CURRENT_TIME, NULL);
+#else
+            gtk_show_uri(NULL, url, GDK_CURRENT_TIME, NULL);
+#endif
+        }
     }
 
     g_slist_free(tags);
