@@ -23,11 +23,11 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_player.png</image>
-      <_caption>Watching a stream including chat</_caption>
+      <caption>Watching a stream including chat</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_streams.png</image>
-      <_caption>Viewing live channels</_caption>
+      <caption>Viewing live channels</caption>
     </screenshot>
   </screenshots>
   <releases>
