@@ -36,7 +36,6 @@
           <object class="GtkLabel" id="status_label">
             <property name="visible">True</property>
             <property name="ellipsize">end</property>
-            <property name="width-chars">75</property>
             <style>
               <class name="title"/>
             </style>

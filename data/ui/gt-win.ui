@@ -28,6 +28,7 @@
         <property name="visible">True</property>
         <property name="transition-type">crossfade</property>
         <property name="transition-duration">300</property>
+        <property name="homogeneous">false</property>
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
