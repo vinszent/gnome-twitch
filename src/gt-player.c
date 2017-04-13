@@ -424,13 +424,12 @@ update_volume(GtPlayer* self)
 
 static gboolean
 motion_cb(GtkWidget* widget,
-          GdkEventMotion* evt,
-          gpointer udata)
+    GdkEventMotion* evt, gpointer udata)
 {
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (gt_win_is_fullscreen(GT_WIN_TOPLEVEL(widget)) && evt->y < FULLSCREEN_BAR_REVEAL_HEIGHT)
+    if (gt_win_is_fullscreen(GT_WIN_TOPLEVEL(widget)) && evt->y_root < FULLSCREEN_BAR_REVEAL_HEIGHT)
     {
         gtk_widget_set_visible(priv->fullscreen_bar_revealer, TRUE);
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), TRUE);
