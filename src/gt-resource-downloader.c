@@ -22,7 +22,10 @@ typedef struct
     gpointer udata;
     GtResourceDownloader* self;
     SoupMessage* msg;
+    GInputStream* istream;
 } ResourceData; /* FIXME: Better name? */
+
+static GThreadPool* dl_pool;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtResourceDownloader, gt_resource_downloader, G_TYPE_OBJECT);
 
@@ -41,6 +44,7 @@ resource_data_free(ResourceData* data)
     g_free(data->name);
     g_object_unref(data->self);
     g_object_unref(data->msg);
+    g_object_unref(data->istream);
 
     g_slice_free(ResourceData, data);
 }
@@ -154,6 +158,25 @@ download_image(GtResourceDownloader* self,
 }
 
 static void
+download_cb(ResourceData* data,
+    gpointer udata)
+{
+    RETURN_IF_FAIL(data != NULL);
+
+    g_autoptr(GdkPixbuf) ret = NULL;
+    g_autoptr(GError) err = NULL;
+    gboolean from_file = FALSE;
+
+    ret = download_image(data->self, data->uri, data->name, data->msg,
+        data->istream, &from_file, &err);
+
+    data->cb(from_file ? NULL : g_steal_pointer(&ret),
+        data->udata, g_steal_pointer(&err));
+
+    resource_data_free(data);
+}
+
+static void
 send_message_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
@@ -162,23 +185,19 @@ send_message_cb(GObject* source,
     RETURN_IF_FAIL(udata != NULL);
 
     ResourceData* data = udata;
+    GtResourceDownloader* self = GT_RESOURCE_DOWNLOADER(data->self);
+    GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
     g_autoptr(GError) err = NULL;
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GdkPixbuf) ret = NULL;
-    gboolean from_file = FALSE;
 
-    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
+    data->istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
 
     if (!err)
+        g_thread_pool_push(dl_pool, data, NULL);
+    else
     {
-        ret = download_image(data->self, data->uri, data->name,
-            data->msg, istream, &from_file, &err);
+        data->cb(NULL, data->udata, g_steal_pointer(&err));
+        resource_data_free(data);
     }
-
-    data->cb(from_file ? NULL : g_steal_pointer(&ret),
-        data->udata, g_steal_pointer(&err));
-
-    resource_data_free(data);
 }
 
 static void
@@ -214,6 +233,8 @@ gt_resource_downloader_class_init(GtResourceDownloaderClass* klass)
 {
     G_OBJECT_CLASS(klass)->finalize = finalize;
     G_OBJECT_CLASS(klass)->dispose = dispose;
+
+    dl_pool = g_thread_pool_new((GFunc) download_cb, NULL, g_get_num_processors(), FALSE, NULL);
 }
 
 static void
@@ -289,6 +310,7 @@ gt_resource_downloader_download_image(GtResourceDownloader* self,
     }
 
     ret = download_image(self, uri, name, msg, istream, NULL, error);
+
     return g_steal_pointer(&ret);
 }
 
