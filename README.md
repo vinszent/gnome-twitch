@@ -36,21 +36,25 @@ meson build
 sudo ninja -C build install
 ```
 
-### Install extra player backends
+### Install player backends
 #### Root install
-
 ``` shell
 meson build \
     -Dbuild-executable=false \
     -Dbuild-player-backends=${PLAYER_BACKENDS_YOU_WANT}
 sudo ninja -C build install
 ```
+
+**Note:** `${PLAYER_BACKENDS_YOU_WANT}` should be replaced with a
+comma separated list of
+`gstreamer-opengl,gstreamer-cairo,gstreamer-clutter,mpv-opengl`, for
+example `-Dbuild-player-backends=gstreamer-cairo,mpv-opengl`
+
 #### Local install
-
-Same as the root install but instead change the last two lines to:
-
 ``` shell
-meson build --prefix=$HOME/.local --libdir=share
+meson build --prefix=$HOME/.local --libdir=share \
+    -Dbuild-executable=false \
+    -Dbuild-player-backends=${PLAYER_BACKENDS_YOU_WANT}
 ninja -C build install
 ```
 
