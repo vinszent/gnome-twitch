@@ -1,21 +1,31 @@
 # Contributing
 ## Translating
+### Zanata
+You can edit translations with Red Hat's Zanata project using
+GNOME Twitch's project
+page
+[here](https://translate.zanata.org/project/view/gnome-twitch). Zanata
+provides a nice web interface to edit translations which makes it easier to contribute. There is a short startup guide to get you
+going
+[here](http://docs.zanata.org/en/release/user-guide/translator-guide/). If
+you want a new language added, just create a new GitHub issue and I'll
+enable it.
+### Manually
 1. Clone the latest source: `git clone https://github.com/vinszent/gnome-twitch`
 2. Change to the clone directory: `cd gnome-twitch`
-3. Setup Meson: `mkdir build && meson . build`
-4. Create a new Gettext template: `cd build && ninja pot`
-5. Edit the newly created template in the `po` directory (`gnome-twitch/po/gnome-twitch.po`) either manually or with your favourite Gettext editor (gtranslator, poedit, etc)
-6. Rename your translated template to `language_code.po`, ex: Swedish = sv.po, German = de.po, Chinese (traditional) = zh_TW.po
-7. Add your language to the langs array in `po/meson.build`
-8. Add the language code to the LINGUAS file in the po directory (notice the file is sorted alphabetically)
-9. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
+3. Setup Meson: `meson build`
+4. Copy the template file to your chosen language (eg: `cp po/gnome-twitch.pot es.po`)
+5. Edit the newly created template manually or with your favourite Gettext editor (gtranslator, poedit, etc)
+6. Add your language to the langs array in `po/meson.build`
+7. Add the language code to the LINGUAS file in the po directory (notice the file is sorted alphabetically)
+8. Test your translation by running `ninja install && gnome-twitch` (needs root to install) from the `build` directory.
 
 ## Development
 1. Clone the latest source: `git clone https://github.com/vinszent/gnome-twitch`
 2. Change to the clone directory: `cd gnome-twitch`
-3. Setup Meson: `mkdir build && meson . build`
+3. Setup Meson: `meson build`
 4. Create a new feature branch and switch to it: `git checkout -b myfeature`
-5. Write code. Feel free to drop the Gitter channel for help! [![Gitter](https://badges.gitter.im/vinszent/gnome-twitch.svg)](https://gitter.im/vinszent/gnome-twitch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+5. Write code!
 6. Test your code: `cd build && ninja && ./src/gnome-twitch`
 7. Add your changes: `git add -A`
 8. Commit your changes: `git commit -m 'Short message'`
