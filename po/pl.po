@@ -3,10 +3,10 @@
 # This file is distributed under the same license as the gnome-twitch package.
 msgid ""
 msgstr ""
-"Project-Id-Version: gnome-twitch 0.4.0\n"
+"Project-Id-Version: gnome-twitch 0.4.1\n"
 "Report-Msgid-Bugs-To: https://github.com/vinszent/gnome-twitch/issues/new\n"
-"POT-Creation-Date: 2017-04-05 12:55+0200\n"
-"PO-Revision-Date: 2017-04-05 13:00+0200\n"
+"POT-Creation-Date: 2017-04-27 00:35+0200\n"
+"PO-Revision-Date: 2017-04-27 00:42+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <community-poland@mozilla.org>\n"
 "Language: pl\n"
@@ -17,6 +17,7 @@ msgstr ""
 "|| n%100>=20) ? 1 : 2);\n"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:5
+#: data/com.vinszent.GnomeTwitch.appdata.xml.in:6
 #: data/com.vinszent.GnomeTwitch.desktop.in:3
 msgid "GNOME Twitch"
 msgstr "GNOME Twitch"
@@ -216,7 +217,7 @@ msgstr "Coś się nie powiodło"
 msgid "Report error"
 msgstr "Zgłoś błąd"
 
-#: data/ui/gt-error-dlg.ui:52 data/ui/gt-win.ui:128
+#: data/ui/gt-error-dlg.ui:52 data/ui/gt-win.ui:129
 msgid "Close"
 msgstr "Zamknij"
 
@@ -232,27 +233,27 @@ msgstr "Proszę sprawdzić powyższy komunikat o błędzie. "
 msgid "Click here to reload"
 msgstr "Wczytaj ponownie"
 
-#: data/ui/gt-player-header-bar.ui:194 data/ui/gt-player-header-bar.ui:218
+#: data/ui/gt-player-header-bar.ui:193 data/ui/gt-player-header-bar.ui:217
 msgid "Edit chat"
 msgstr "Modyfikuj czat"
 
-#: data/ui/gt-player-header-bar.ui:201 data/ui/gt-player-header-bar.ui:291
+#: data/ui/gt-player-header-bar.ui:200 data/ui/gt-player-header-bar.ui:290
 msgid "Stream quality"
 msgstr "Jakość obrazu"
 
-#: data/ui/gt-player-header-bar.ui:233
+#: data/ui/gt-player-header-bar.ui:232
 msgid "Dock chat"
 msgstr "Przyłącz czat"
 
-#: data/ui/gt-player-header-bar.ui:239
+#: data/ui/gt-player-header-bar.ui:238
 msgid "Dark theme"
 msgstr "Ciemny motyw"
 
-#: data/ui/gt-player-header-bar.ui:246
+#: data/ui/gt-player-header-bar.ui:245
 msgid "Move & resize chat"
 msgstr "Przenieś i zmień rozmiar czatu"
 
-#: data/ui/gt-player-header-bar.ui:259
+#: data/ui/gt-player-header-bar.ui:258
 msgid "Opacity"
 msgstr "Nieprzezroczystość"
 
@@ -308,39 +309,39 @@ msgstr "Ogólne"
 msgid "Players"
 msgstr "Odtwarzacze"
 
-#: data/ui/gt-win.ui:43 data/ui/gt-win.ui:180
+#: data/ui/gt-win.ui:44 data/ui/gt-win.ui:181
 msgid "Browse"
 msgstr "Przeglądaj"
 
-#: data/ui/gt-win.ui:52 data/ui/gt-win.ui:190
+#: data/ui/gt-win.ui:53 data/ui/gt-win.ui:191
 msgid "Player"
 msgstr "Odtwarzacz"
 
-#: data/ui/gt-win.ui:92
+#: data/ui/gt-win.ui:93
 msgid "Yes"
 msgstr "Tak"
 
-#: data/ui/gt-win.ui:101
+#: data/ui/gt-win.ui:102
 msgid "No"
 msgstr "Nie"
 
-#: data/ui/gt-win.ui:110
+#: data/ui/gt-win.ui:111
 msgid "OK"
 msgstr "OK"
 
-#: data/ui/gt-win.ui:119
+#: data/ui/gt-win.ui:120
 msgid "Details"
 msgstr "Szczegóły"
 
-#: data/ui/gt-win.ui:156
+#: data/ui/gt-win.ui:157
 msgid "Channels"
 msgstr "Kanały"
 
-#: data/ui/gt-win.ui:165
+#: data/ui/gt-win.ui:166
 msgid "Follows"
 msgstr "Obserwowane"
 
-#: data/ui/gt-win.ui:174
+#: data/ui/gt-win.ui:175
 msgid "Games"
 msgstr "Gry"
 
@@ -348,12 +349,12 @@ msgstr "Gry"
 msgid "Refresh login"
 msgstr "Odśwież logowanie"
 
-#: src/gt-app.c:271
+#: src/gt-app.c:271 src/gt-win.c:704
 #, c-format
-msgid "Unable to open channel %s bceause it's not online"
+msgid "Unable to open channel %s because it's not online"
 msgstr "Nie można otworzyć kanału „%s”, ponieważ nie jest online"
 
-#: src/gt-app.c:398 src/gt-twitch-login-dlg.c:48
+#: src/gt-app.c:383 src/gt-twitch-login-dlg.c:48
 msgid "Login to Twitch"
 msgstr "Zaloguj w serwisie Twitch"
 
@@ -422,6 +423,18 @@ msgstr "%s zaczyna streamować „%s”"
 msgid "Click here to start watching"
 msgstr "Zacznij oglądać"
 
+#: src/gt-follows-manager.c:149
+msgid "Unable to follow channel"
+msgstr "Nie można obserwować kanału"
+
+#: src/gt-follows-manager.c:190
+msgid "Unable to unfollow channel"
+msgstr "Nie można zrezygnować z obserwacji kanału"
+
+#: src/gt-follows-manager.c:352 src/gt-follows-manager.c:406
+msgid "Unable to move your local follows to Twitch"
+msgstr "Nie można przenieść lokalnych obserwowań do serwisu Twitch"
+
 #: src/gt-follows-manager.c:443
 msgid ""
 "GNOME Twitch has detected local follows, would you like to move them to "
@@ -429,6 +442,20 @@ msgid ""
 msgstr ""
 "Program GNOME Twitch wykrył lokalne obserwowania. Przenieść je do serwisu "
 "Twitch?"
+
+#: src/gt-follows-manager.c:482
+msgid "Unable to fetch your Twitch follows"
+msgstr "Nie można pobrać obserwowań serwisu Twitch"
+
+#: src/gt-follows-manager.c:655
+msgid "Unable to load followed channels from file"
+msgstr "Nie można wczytać obserwowanych kanałów z pliku"
+
+#. Translators: %s will be filled with the game name
+#: src/gt-game.c:165
+#, c-format
+msgid "Unable to update game '%s'"
+msgstr "Nie można zaktualizować gry „%s”"
 
 #: src/gt-game-channel-container.c:55 src/gt-search-channel-container.c:67
 #: src/gt-top-channel-container.c:50
@@ -444,17 +471,26 @@ msgstr "Nikt obecnie nie streamuje tej gry"
 msgid "An error occurred when fetching the channels"
 msgstr "Wystąpił błąd podczas pobierania kanałów"
 
-#: src/gt-player.c:475
+#: src/gt-item-container.c:95
+msgid "Unable to fetch items"
+msgstr "Nie można pobrać elementów"
+
+#: src/gt-player.c:474
 #, c-format
 msgid "Buffered %d%%"
 msgstr "Zbuforowano %d%%"
 
-#: src/gt-player.c:882
+#. Translators: %s will be filled with the channel name
+#: src/gt-player.c:886
 #, c-format
 msgid "Unable to open channel %s because it's offline"
 msgstr "Nie można otworzyć kanału „%s”, ponieważ jest offline"
 
-#: src/gt-player.c:1299
+#: src/gt-player.c:890
+msgid "Error opening stream"
+msgstr "Błąd podczas otwierania streamu"
+
+#: src/gt-player.c:1296
 msgid "Loading stream"
 msgstr "Wczytywanie streamu"
 
@@ -482,7 +518,11 @@ msgstr "Prawdopodobnie wystąpił błąd, proszę odświeżyć"
 msgid "Untitled broadcast"
 msgstr "Audycja bez tytułu"
 
-#: src/gt-twitch-login-dlg.c:120
+#: src/gt-twitch-login-dlg.c:109
+msgid "Unable to fetch user info"
+msgstr "Nie można pobrać informacji o użytkowniku"
+
+#: src/gt-twitch-login-dlg.c:121
 msgid "Successfully logged in to Twitch!"
 msgstr "Zalogowano w serwisie Twitch"
 
@@ -506,13 +546,8 @@ msgstr "<b>Komunikat o błędzie:</b> %s"
 msgid "Already logged into Twitch, refresh login?"
 msgstr "Już zalogowano w serwisie Twitch. Odświeżyć logowanie?"
 
-#: src/gt-win.c:693
-#, c-format
-msgid "Unable to open channel %s because it's not online"
-msgstr "Nie można otworzyć kanału „%s”, ponieważ nie jest online"
-
 #. Translators: Please keep the markup tags
-#: src/gt-win.c:745
+#: src/gt-win.c:756
 #, c-format
 msgid "<b>Something went wrong:</b> %s."
 msgstr "<b>Coś się nie powiodło:</b> %s."
