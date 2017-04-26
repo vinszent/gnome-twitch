@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-26 20:54+0200\n"
+"POT-Creation-Date: 2017-04-27 00:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -336,12 +336,12 @@ msgstr ""
 msgid "Refresh login"
 msgstr ""
 
-#: src/gt-app.c:271
+#: src/gt-app.c:271 src/gt-win.c:704
 #, c-format
-msgid "Unable to open channel %s bceause it's not online"
+msgid "Unable to open channel %s because it's not online"
 msgstr ""
 
-#: src/gt-app.c:398 src/gt-twitch-login-dlg.c:48
+#: src/gt-app.c:383 src/gt-twitch-login-dlg.c:48
 msgid "Login to Twitch"
 msgstr ""
 
@@ -436,6 +436,12 @@ msgstr ""
 msgid "Unable to load followed channels from file"
 msgstr ""
 
+#. Translators: %s will be filled with the game name
+#: src/gt-game.c:165
+#, c-format
+msgid "Unable to update game '%s'"
+msgstr ""
+
 #: src/gt-game-channel-container.c:55 src/gt-search-channel-container.c:67
 #: src/gt-top-channel-container.c:50
 msgid "No channels found"
@@ -448,6 +454,10 @@ msgstr ""
 #: src/gt-game-channel-container.c:57 src/gt-search-channel-container.c:69
 #: src/gt-top-channel-container.c:52
 msgid "An error occurred when fetching the channels"
+msgstr ""
+
+#: src/gt-item-container.c:95
+msgid "Unable to fetch items"
 msgstr ""
 
 #: src/gt-player.c:474
@@ -520,7 +530,7 @@ msgid "Already logged into Twitch, refresh login?"
 msgstr ""
 
 #. Translators: Please keep the markup tags
-#: src/gt-win.c:745
+#: src/gt-win.c:756
 #, c-format
 msgid "<b>Something went wrong:</b> %s."
 msgstr ""
