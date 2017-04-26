@@ -18,8 +18,10 @@ src/gt-channels-container-child.c
 src/gt-chat.c
 src/gt-followed-channel-container.c
 src/gt-follows-manager.c
+src/gt-game.c
 src/gt-game-channel-container.c
 src/gt-games-container-child.c
+src/gt-item-container.c
 src/gt-player.c
 src/gt-player-header-bar.c
 src/gt-search-channel-container.c
