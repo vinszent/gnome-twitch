@@ -161,7 +161,8 @@ update_from_data(GtGame* self, GtGameData* data)
             /* FIXME: Put GtGame in a error state like GtChannel */
             if (GT_IS_WIN(win))
             {
-                gt_win_show_error_message(win, "Unable to update game '%s'",
+                /* Translators: %s will be filled with the game name */
+                gt_win_show_error_message(win, _("Unable to update game '%s'"),
                     "Unable to update game with id '%s' and name '%s' because: "
                     "New data with id '%s' does not match the current one",
                     old_data->id, old_data->name, data->id);

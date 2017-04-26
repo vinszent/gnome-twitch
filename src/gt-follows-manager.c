@@ -146,7 +146,7 @@ channel_followed_cb(GObject* source,
 
                 RETURN_IF_FAIL(GT_IS_WIN(win));
 
-                gt_win_show_error_message(win, "Unable to follow channel",
+                gt_win_show_error_message(win, _("Unable to follow channel"),
                     "Unable to follow channel '%s' because: %s",
                     name, err->message);
 
@@ -187,8 +187,8 @@ channel_followed_cb(GObject* source,
 
                 RETURN_IF_FAIL(GT_IS_WIN(win));
 
-                gt_win_show_error_message(win, "Unable to follow channel",
-                    "Unable to follow channel '%s' because: %s",
+                gt_win_show_error_message(win, _("Unable to unfollow channel"),
+                    "Unable to unfollow channel '%s' because: %s",
                     name, err->message);
 
                 g_idle_add((GSourceFunc) toggle_followed_cb, chan);
@@ -349,7 +349,7 @@ follow_next_channel_cb(GObject* source,
 
         RETURN_IF_FAIL(GT_IS_WIN(win));
 
-        gt_win_show_error_message(win, "Unable to move your local follows to Twitch",
+        gt_win_show_error_message(win, _("Unable to move your local follows to Twitch"),
             "Unable to move your local follows to Twitch because: %s", err->message);
 
         priv->loading_follows = TRUE;
@@ -403,7 +403,7 @@ move_local_follows_cb(GtkInfoBar* bar,
 
             RETURN_IF_FAIL(GT_IS_WIN(win));
 
-            gt_win_show_error_message(win, "Unable to move your local folllows to Twitch",
+            gt_win_show_error_message(win, _("Unable to move your local folllows to Twitch"),
                 "Unable to move local follows to Twitch because: %s", err->message);
 
             return;
@@ -479,7 +479,7 @@ fetch_all_followed_channels_cb(GObject* source,
             WARNING("Unable to fetch Twitch follows because: %s", err->message);
 
             gt_win_show_error_message(win,
-                "Unable to fetch your Twitch follows",
+                _("Unable to fetch your Twitch follows"),
                 err->message);
 
         }
@@ -652,7 +652,7 @@ gt_follows_manager_load_from_file(GtFollowsManager* self)
 
             WARNING("Error loading followed channels from file because: %s", err->message);
 
-            gt_win_show_error_message(win, "Unable to load followed channels from file",
+            gt_win_show_error_message(win, _("Unable to load followed channels from file"),
                 "Unable to load followed channels from file because: %s", err->message);
         }
 

@@ -106,7 +106,8 @@ fetch_oauth_info_cb(GObject* source,
 
         g_assert(GT_IS_WIN(win));
 
-        gt_win_show_error_message(GT_WIN(win), "Unable to get user info", err->message);
+        gt_win_show_error_message(GT_WIN(win), _("Unable to fetch user info"),
+            "Unable to fetch user info because: %s", err->message);
 
         g_error_free(err);
     }

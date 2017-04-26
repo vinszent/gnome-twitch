@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the gnome-twitch package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-05 12:55+0200\n"
+"POT-Creation-Date: 2017-04-26 20:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:5
+#: data/com.vinszent.GnomeTwitch.appdata.xml.in:6
 #: data/com.vinszent.GnomeTwitch.desktop.in:3
 msgid "GNOME Twitch"
 msgstr ""
@@ -203,7 +204,7 @@ msgstr ""
 msgid "Report error"
 msgstr ""
 
-#: data/ui/gt-error-dlg.ui:52 data/ui/gt-win.ui:128
+#: data/ui/gt-error-dlg.ui:52 data/ui/gt-win.ui:129
 msgid "Close"
 msgstr ""
 
@@ -219,27 +220,27 @@ msgstr ""
 msgid "Click here to reload"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:194 data/ui/gt-player-header-bar.ui:218
+#: data/ui/gt-player-header-bar.ui:193 data/ui/gt-player-header-bar.ui:217
 msgid "Edit chat"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:201 data/ui/gt-player-header-bar.ui:291
+#: data/ui/gt-player-header-bar.ui:200 data/ui/gt-player-header-bar.ui:290
 msgid "Stream quality"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:233
+#: data/ui/gt-player-header-bar.ui:232
 msgid "Dock chat"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:239
+#: data/ui/gt-player-header-bar.ui:238
 msgid "Dark theme"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:246
+#: data/ui/gt-player-header-bar.ui:245
 msgid "Move & resize chat"
 msgstr ""
 
-#: data/ui/gt-player-header-bar.ui:259
+#: data/ui/gt-player-header-bar.ui:258
 msgid "Opacity"
 msgstr ""
 
@@ -295,39 +296,39 @@ msgstr ""
 msgid "Players"
 msgstr ""
 
-#: data/ui/gt-win.ui:43 data/ui/gt-win.ui:180
+#: data/ui/gt-win.ui:44 data/ui/gt-win.ui:181
 msgid "Browse"
 msgstr ""
 
-#: data/ui/gt-win.ui:52 data/ui/gt-win.ui:190
+#: data/ui/gt-win.ui:53 data/ui/gt-win.ui:191
 msgid "Player"
 msgstr ""
 
-#: data/ui/gt-win.ui:92
+#: data/ui/gt-win.ui:93
 msgid "Yes"
 msgstr ""
 
-#: data/ui/gt-win.ui:101
+#: data/ui/gt-win.ui:102
 msgid "No"
 msgstr ""
 
-#: data/ui/gt-win.ui:110
+#: data/ui/gt-win.ui:111
 msgid "OK"
 msgstr ""
 
-#: data/ui/gt-win.ui:119
+#: data/ui/gt-win.ui:120
 msgid "Details"
 msgstr ""
 
-#: data/ui/gt-win.ui:156
+#: data/ui/gt-win.ui:157
 msgid "Channels"
 msgstr ""
 
-#: data/ui/gt-win.ui:165
+#: data/ui/gt-win.ui:166
 msgid "Follows"
 msgstr ""
 
-#: data/ui/gt-win.ui:174
+#: data/ui/gt-win.ui:175
 msgid "Games"
 msgstr ""
 
@@ -409,10 +410,30 @@ msgstr ""
 msgid "Click here to start watching"
 msgstr ""
 
+#: src/gt-follows-manager.c:149
+msgid "Unable to follow channel"
+msgstr ""
+
+#: src/gt-follows-manager.c:190
+msgid "Unable to unfollow channel"
+msgstr ""
+
+#: src/gt-follows-manager.c:352 src/gt-follows-manager.c:406
+msgid "Unable to move your local follows to Twitch"
+msgstr ""
+
 #: src/gt-follows-manager.c:443
 msgid ""
 "GNOME Twitch has detected local follows, would you like to move them to "
 "Twitch?"
+msgstr ""
+
+#: src/gt-follows-manager.c:482
+msgid "Unable to fetch your Twitch follows"
+msgstr ""
+
+#: src/gt-follows-manager.c:655
+msgid "Unable to load followed channels from file"
 msgstr ""
 
 #: src/gt-game-channel-container.c:55 src/gt-search-channel-container.c:67
@@ -429,17 +450,22 @@ msgstr ""
 msgid "An error occurred when fetching the channels"
 msgstr ""
 
-#: src/gt-player.c:475
+#: src/gt-player.c:474
 #, c-format
 msgid "Buffered %d%%"
 msgstr ""
 
-#: src/gt-player.c:882
+#. Translators: %s will be filled with the channel name
+#: src/gt-player.c:886
 #, c-format
 msgid "Unable to open channel %s because it's offline"
 msgstr ""
 
-#: src/gt-player.c:1299
+#: src/gt-player.c:890
+msgid "Error opening stream"
+msgstr ""
+
+#: src/gt-player.c:1296
 msgid "Loading stream"
 msgstr ""
 
@@ -467,7 +493,11 @@ msgstr ""
 msgid "Untitled broadcast"
 msgstr ""
 
-#: src/gt-twitch-login-dlg.c:120
+#: src/gt-twitch-login-dlg.c:109
+msgid "Unable to fetch user info"
+msgstr ""
+
+#: src/gt-twitch-login-dlg.c:121
 msgid "Successfully logged in to Twitch!"
 msgstr ""
 
@@ -487,11 +517,6 @@ msgstr ""
 
 #: src/gt-win.c:336
 msgid "Already logged into Twitch, refresh login?"
-msgstr ""
-
-#: src/gt-win.c:693
-#, c-format
-msgid "Unable to open channel %s because it's not online"
 msgstr ""
 
 #. Translators: Please keep the markup tags
