@@ -19,6 +19,7 @@
 #include "gt-item-container.h"
 #include "utils.h"
 #include "gt-win.h"
+#include <glib/gi18n.h>
 
 #define TAG "GtItemContainer"
 #include "gnome-twitch/gt-log.h"
@@ -91,7 +92,7 @@ fetch_items_cb(GObject* source,
 
             WARNING("Unable to fetch items because: %s", err->message);
 
-            gt_win_show_error_message(win, "Unable to fetch items",
+            gt_win_show_error_message(win, _("Unable to fetch items"),
                 "Unable to fetch items because: %s", err->message);
 
             gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
