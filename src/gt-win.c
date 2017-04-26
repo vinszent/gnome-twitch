@@ -487,12 +487,27 @@ close_player_cb(GSimpleAction* action,
                                      "browse");
 }
 
-static void
-update_fullscreen(GtWin* self)
+static gboolean
+window_state_event_cb(GtkWidget* widget,
+    GdkEventWindowState* evt, gpointer udata)
 {
+    RETURN_VAL_IF_FAIL(GT_IS_WIN(widget), GDK_EVENT_PROPAGATE);
+    RETURN_VAL_IF_FAIL(udata == NULL, GDK_EVENT_PROPAGATE);
+
+    GtWin* self = GT_WIN(widget);
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (priv->fullscreen)
+    priv->fullscreen = evt->new_window_state & GDK_WINDOW_STATE_FULLSCREEN;
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FULLSCREEN]);
+
+    return GDK_EVENT_PROPAGATE;
+}
+
+static void
+update_fullscreen(GtWin* self, gboolean fullscreen)
+{
+    if (fullscreen)
         gtk_window_fullscreen(GTK_WINDOW(self));
     else
         gtk_window_unfullscreen(GTK_WINDOW(self));
@@ -547,13 +562,11 @@ set_property(GObject*      obj,
              GParamSpec*   pspec)
 {
     GtWin* self = GT_WIN(obj);
-    GtWinPrivate* priv = gt_win_get_instance_private(self);
 
     switch (prop)
     {
         case PROP_FULLSCREEN:
-            priv->fullscreen = g_value_get_boolean(val);
-            update_fullscreen(self);
+            update_fullscreen(self, g_value_get_boolean(val));
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -584,11 +597,8 @@ gt_win_class_init(GtWinClass* klass)
     object_class->set_property = set_property;
     object_class->constructed = constructed;
 
-    props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen",
-                                                  "Fullscreen",
-                                                  "Whether window is fullscreen",
-                                                  FALSE,
-                                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+    props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen", "Fullscreen", "Whether window is fullscreen",
+        FALSE, G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
     g_object_class_install_properties(object_class,
                                       NUM_PROPS,
@@ -652,6 +662,7 @@ gt_win_init(GtWin* self)
     g_signal_connect_after(self, "key-press-event", G_CALLBACK(key_press_cb), self);
     g_signal_connect(self, "delete-event", G_CALLBACK(delete_cb), self);
     g_signal_connect_after(priv->info_bar, "response", G_CALLBACK(close_info_bar_cb), self);
+    g_signal_connect(self, "window-state-event", G_CALLBACK(window_state_event_cb), NULL);
 
     g_action_map_add_action_entries(G_ACTION_MAP(self),
                                     win_actions,
