@@ -403,7 +403,7 @@ move_local_follows_cb(GtkInfoBar* bar,
 
             RETURN_IF_FAIL(GT_IS_WIN(win));
 
-            gt_win_show_error_message(win, _("Unable to move your local folllows to Twitch"),
+            gt_win_show_error_message(win, _("Unable to move your local follows to Twitch"),
                 "Unable to move local follows to Twitch because: %s", err->message);
 
             return;
