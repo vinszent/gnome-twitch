@@ -278,21 +278,6 @@ open_channel_after_fetch_cb(GObject* source,
 }
 
 static void
-open_channel_from_url_cb(GSimpleAction* action,
-    GVariant* var, gpointer udata)
-{
-    g_assert(G_IS_SIMPLE_ACTION(action));
-    g_assert(GT_IS_APP(udata));
-    g_assert(g_variant_is_of_type(var, G_VARIANT_TYPE_STRING));
-
-    GtWin* win;
-
-    win = GT_WIN_ACTIVE;
-
-    g_assert(GT_IS_WIN(win));
-}
-
-static void
 open_channel_from_id_cb(GSimpleAction* action,
     GVariant* var, gpointer udata)
 {
