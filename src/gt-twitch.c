@@ -2458,7 +2458,7 @@ gt_twitch_emoticons(GtTwitch* self,
     g_autoptr(SoupMessage) msg = NULL;
     g_autoptr(JsonReader) reader = NULL;
     g_autofree gchar* uri = NULL;
-    g_auto(GStrv) sets;
+    g_auto(GStrv) sets = NULL;
     GList* ret = NULL;
     GError* err = NULL;
 
