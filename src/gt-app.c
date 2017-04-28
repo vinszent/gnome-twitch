@@ -268,7 +268,7 @@ open_channel_after_fetch_cb(GObject* source,
     }
     else if (!gt_channel_is_online(channel))
     {
-        gt_win_show_info_message(win, _("Unable to open channel %s because it's not online"),
+        gt_win_show_info_message(win, _("Unable to open channel %s because it’s not online"),
             gt_channel_get_name(channel));
     }
     else

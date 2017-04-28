@@ -883,7 +883,7 @@ streams_list_cb(GObject* source,
         if (g_error_matches(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP_NOT_FOUND))
         {
             /* Translators: %s will be filled with the channel name */
-            gt_win_show_info_message(win, _("Unable to open channel %s because it's offline"),
+            gt_win_show_info_message(win, _("Unable to open channel %s because it’s offline"),
                 gt_channel_get_name(priv->channel));
         }
         else
