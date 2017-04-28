@@ -36,7 +36,7 @@
       <summary>Twitch OAuth token</summary>
       <description>
         OAuth token used to authenticate all requests to the Twitch API.
-        Note that if you want to "logout" then you can just set the OAuth token
+        Note that if you want to “logout” then you can just set the OAuth token
         to an empty string
       </description>
     </key>
