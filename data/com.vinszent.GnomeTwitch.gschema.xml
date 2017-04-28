@@ -19,7 +19,7 @@
     <key name="volume" type="d">
       <range min="0.0" max="1.0"/>
       <default>0.3</default>
-      <summary>Current volume of player</summary>
+      <summary>Current volume of the player</summary>
     </key>
     <key name="window-height" type="i">
       <default>710</default>
@@ -36,8 +36,8 @@
       <summary>Twitch OAuth token</summary>
       <description>
         OAuth token used to authenticate all requests to the Twitch API.
-        Note that if you want to “logout” then you can just set the OAuth token
-        to an empty string
+        Note that if you want to “log out” then you can just set the OAuth
+        token to an empty string.
       </description>
     </key>
     <key name="user-name" type="s">
@@ -51,9 +51,9 @@
     </key>
     <key name="user-id" type="s">
       <default>''</default>
-      <summary>Twitch user id</summary>
+      <summary>Twitch user ID</summary>
       <description>
-        User id that is used in conjunction with the OAuth token
+        User ID that is used in conjunction with the OAuth token
         to authenticate to the Twitch API.
       </description>
     </key>
