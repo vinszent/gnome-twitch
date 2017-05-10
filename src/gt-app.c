@@ -143,7 +143,7 @@ oauth_info_cb(GObject* source,
 
     gt_app_set_oauth_info(self, oauth_info);
 
-    MESSAGE("Succesfully fetched oauth info with name '%s', id '%s' and oauth token '%s'",
+    MESSAGE("Successfully fetched oauth info with name '%s', id '%s' and oauth token '%s'",
         oauth_info->user_name, oauth_info->user_id, oauth_info->oauth_token);
 }
 
@@ -178,7 +178,7 @@ user_info_cb(GObject* source,
 
     priv->user_info = user_info;
 
-    MESSAGE("Succesfully fetched user info with name '%s', id '%s' and oauth token '%s'",
+    MESSAGE("Successfully fetched user info with name '%s', id '%s' and oauth token '%s'",
         user_info->name, user_info->id, user_info->oauth_token);
 }
 
