@@ -1,79 +1,77 @@
-# Translation of gnome-twitch to Serbian.
-# Copyright (C) 2015-2016 Марко М. Костић (Marko M. Kostić) <marko.m.kostic@gmail.com>
+# Translation of gnome-twitch to Spanish.
 # This file is distributed under the same license as the gnome-twitch package.
-# Марко М. Костић <marko.m.kostic@gmail.com>, 2016.
+# Holman Calderón <halecalderon@gmail.com>, 2016.
+# Holman Alejandro Calderón Villamizar <halecalderon@gmail.com>, 2017. #zanata
 # Vincent <vinszent@vinszent.com>, 2017. #zanata
-# Марко Костић (Marko Kostić) <marko.m.kostic@gmail.com>, 2017. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-twitch\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-04-27 00:35+0200\n"
-"PO-Revision-Date: 2017-04-27 11:47-0400\n"
-"Last-Translator: Марко Костић (Marko Kostić) <marko.m.kostic@gmail.com>\n"
-"Language-Team: Serbian\n"
+"PO-Revision-Date: 2017-04-28 09:08-0400\n"
+"Last-Translator: Holman Alejandro Calderón Villamizar <halecalderon@gmail.com>\n"
+"Language-Team: Spanish; Castilian <>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: sr\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Zanata 3.9.6\n"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:5
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:6
 #: data/com.vinszent.GnomeTwitch.desktop.in:3
 msgid "GNOME Twitch"
-msgstr "Гном Твич"
+msgstr "GNOME Twitch"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:7
 msgid "Twitch desktop client"
-msgstr "Стони Твич клијент"
+msgstr "Cliente de escritorio para Twitch"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:11
 msgid "Allows searching for and watching Twitch streams from the desktop."
-msgstr "Омогућава претрагу и гледање стримова на Твичу, на вашем рачунару."
+msgstr "Permite buscar y ver transmisiones de Twitch en el escritorio"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:14
 msgid "Notable Features:"
-msgstr "Истакнуте могућности:"
+msgstr "Características Notables:"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:16
 msgid "Watch your favourite streams natively with fully accelerated video"
 msgstr ""
-"Гледајте ваше омиљене стримове преко рачунара са у потпуности убрзаним "
-"приказом видеа"
+"Mira tus transmisiones favoritas nativamente con video completamente "
+"acelerado "
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:17
 msgid "Built in chat which can even be overlayed over the video"
-msgstr "Уграђено ћаскање које се чак може преклопити преко видеа"
+msgstr "Chat incluido que puede incluso ser puesto sobre el video"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:18
 msgid ""
 "Easy favourites/follows management and receive notifications when they are "
 "online"
 msgstr ""
-"Једноставно управљање омиљеним каналима и праћењима и примање обавештења "
-"када сте на мрежи"
+"Manejo sencillo de favoritos/seguidos y recibe notificaciones cuando estos "
+"están en vivo"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:26
 msgid "Watching a stream including chat"
-msgstr "Гледање стрима и ћаскања"
+msgstr "Viendo una transmisión con chat incluido"
 
 #: data/com.vinszent.GnomeTwitch.appdata.xml.in:30
 msgid "Viewing live channels"
-msgstr "Гледање живих канала"
+msgstr "Viendo canales en vivo"
 
 #: data/com.vinszent.GnomeTwitch.desktop.in:4 src/gt-win.c:149
 msgid "Enjoy Twitch on your GNU/Linux desktop"
-msgstr "Уживајте у гледању Твича на вашем ГНУ/Линукс уређају"
+msgstr "Disfruta de Twitch en tu escritorio GNU/Linux"
 
 #. Translators: Search terms to find this application.
 #. Do NOT translate or localize the semicolons!
 #. The list MUST also end with a semicolon!
 #: data/com.vinszent.GnomeTwitch.desktop.in:8
 msgid "stream;video;twitch;live;games;"
-msgstr ""
-"stream;video;twitch;live;games;strim;video;tvič;uživo;lajv;igre;igrice;стрим;видео;твич;лајв;уживо;игре;игрице;"
+msgstr "stream;video;twitch;vivo;juegos;"
 
 #. Translators: Don't translate this, xgettext marks this automatically
 #: data/com.vinszent.GnomeTwitch.desktop.in:12
@@ -82,51 +80,51 @@ msgstr "com.vinszent.GnomeTwitch"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:6
 msgid "Prefer dark theme"
-msgstr "Дај предност тамној теми"
+msgstr "Preferir el tema oscuro"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:7
 msgid "Whether to use the dark variant of the theme"
-msgstr "Да ли треба користити тамну варијанту теме"
+msgstr "Si desea usar la variante oscura del tema"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:11
 msgid "Default quality"
-msgstr "Подразумевани квалитет"
+msgstr "Calidad predeterminada "
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:12
 msgid "Default quality selected when opening a stream"
-msgstr "Подразумевани квалитет одабран приликом отварања стрима"
+msgstr "Calidad predeterminada cuando se abra una tranmisión"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:16 data/ui/gt-settings-dlg.ui:117
 msgid "Language filter"
-msgstr "Језички филтер"
+msgstr "Filtro de idioma"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:17
 msgid "Language to filter by"
-msgstr "Филтрирај по језику"
+msgstr "Filtrar idioma por"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:22
 msgid "Current volume of player"
-msgstr "Тренутна гласноћа пуштача"
+msgstr "Volumen actual del reproductor"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:26
 msgid "Window height"
-msgstr "Висина прозора"
+msgstr "Alto de ventana"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:27
 msgid "Current window height"
-msgstr "Висина тренутног прозора"
+msgstr "Alto de ventana actual"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:31
 msgid "Window width"
-msgstr "Ширина прозора"
+msgstr "Ancho de ventana"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:32
 msgid "Current window width"
-msgstr "Ширина тренутног прозора"
+msgstr "Ancho de la ventana actual"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:36
 msgid "Twitch OAuth token"
-msgstr "О-Аут Твич жетон"
+msgstr "Token de autorización de Twitch "
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:37
 msgid ""
@@ -134,242 +132,241 @@ msgid ""
 "if you want to \"logout\" then you can just set the OAuth token to an empty "
 "string"
 msgstr ""
-"О-Аут жетон се користи за идентификацију свих захтева ка Твич АПИ-ју. "
-"Уколико желите да се „одјавите“, подесите да О-Аут жетон буде празна ниска"
+"Token de autorización usado para autenticar todas las peticiones a la API de"
+" Twitch. Ten en cuenta que si quieres \"cerrar sesión\" entonces podrías "
+"poner el Token de Autorización como un string vacío."
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:45
 msgid "Twitch user name"
-msgstr "Твич корисничко"
+msgstr "Nombre de usuario de Twitch"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:46
 msgid ""
 "User name that is used in conjunction with the OAuth token to authenticate "
 "to the Twitch API. Is also used to login to IRC and other Twitch services."
 msgstr ""
-"Корисничко име које се користи у пару са О-Аут жетоном да би се "
-"идентификовали са Твич АПИ-јем. Такође се користи за пријаву на ИРЦ и друге "
-"Твич услуге."
+"Nombre de usuario que es usado en conjunto con el Token de Autorización de Twitch para autenticarse en la API de Twitch.\n"
+"También es usado para iniciar sesión en IRC y otros servicios de Twitch."
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:54
 msgid "Twitch user id"
-msgstr "Твич кориснички ИБ"
+msgstr "Id de usuario de Twitch"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:55
 msgid ""
 "User id that is used in conjunction with the OAuth token to authenticate to "
 "the Twitch API."
 msgstr ""
-"Кориснички ИБ који се користи у пару са О-Аут жетоном да би се "
-"идентификовали на Твич АПИ."
+"Id de usuario que es usado en conjunto con el Token de autorización de "
+"Twitch para autenticarse en la API de Twitch."
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:62
 msgid "Loaded player backend"
-msgstr "Учитани позадински пуштач"
+msgstr "Reproductor en segundo plano cargado"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:63
 msgid "Currently loaded player backend"
-msgstr "Тренутно учитани позадински пуштач"
+msgstr "Reproductor en segundo plano cargado actualmente"
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:67 data/ui/gt-settings-dlg.ui:68
 msgid "Show notifications"
-msgstr "Прикажи обавештења"
+msgstr "Mostrar notificaciones "
 
 #: data/com.vinszent.GnomeTwitch.gschema.xml:68
 msgid "Whether to show notifications when channels start streaming"
-msgstr ""
-"Да ли треба приказивати обавештења када се крене са стримовањем на каналима"
+msgstr "Mostrar notificaciones cuando los canales empiecen a transmitir"
 
 #: data/ui/app-menu.ui:25
 msgid "Settings"
-msgstr "Подешавања"
+msgstr "Configuración"
 
 #: data/ui/app-menu.ui:31
 msgid "About"
-msgstr "О програму"
+msgstr "Acerca de"
 
 #: data/ui/app-menu.ui:35
 msgid "Quit"
-msgstr "Изађи"
+msgstr "Salir"
 
 #: data/ui/gt-channels-container-child.ui:92
 msgid "An error occurred."
-msgstr "Догодила се грешка."
+msgstr "Ha ocurrido un error."
 
 #: data/ui/gt-channels-container-child.ui:104
 msgid "Show error"
-msgstr "Прикажи грешку"
+msgstr "Mostrar Error"
 
 #: data/ui/gt-chat.ui:64 src/gt-chat.c:628
 msgid "Send a message"
-msgstr "Пошаљи поруку"
+msgstr "Enviar un mensaje"
 
 #: data/ui/gt-chat.ui:94
 msgid "Connecting to chat"
-msgstr "Повезујем се на ћаскање"
+msgstr "Conectando al chat"
 
 #: data/ui/gt-chat.ui:134
 msgid "Click to reconnect"
-msgstr "Кликните да бисте се поново повезали"
+msgstr "Click para reconectar"
 
 #: data/ui/gt-error-dlg.ui:28
 msgid "Something went wrong"
-msgstr "Нешто је пошло наопако"
+msgstr "Algo ha salido mal"
 
 #: data/ui/gt-error-dlg.ui:38
 msgid "Report error"
-msgstr "Пријави грешку"
+msgstr "Reportar error"
 
 #: data/ui/gt-error-dlg.ui:52 data/ui/gt-win.ui:129
 msgid "Close"
-msgstr "Затвори"
+msgstr "Cerrar"
 
 #: data/ui/gt-error-dlg.ui:75
 msgid "<b>Details:</b> "
-msgstr "<b>Појединости:</b> "
+msgstr "<b>Detalles:</b>"
 
 #: data/ui/gt-item-container.ui:136 data/ui/gt-player.ui:91
 msgid "Please check the error message above. "
-msgstr "Проверите поруку грешке изнад."
+msgstr "Por favor revisa el mensaje de error de arriba "
 
 #: data/ui/gt-item-container.ui:143 data/ui/gt-player.ui:98
 msgid "Click here to reload"
-msgstr "Кликните овде за поновно учитавање"
+msgstr "Click aquí para recargar"
 
 #: data/ui/gt-player-header-bar.ui:193 data/ui/gt-player-header-bar.ui:217
 msgid "Edit chat"
-msgstr "Уреди ћаскање"
+msgstr "Modificar el chat"
 
 #: data/ui/gt-player-header-bar.ui:200 data/ui/gt-player-header-bar.ui:290
 msgid "Stream quality"
-msgstr "Квалитет стрима"
+msgstr "Calidad de la transmisión"
 
 #: data/ui/gt-player-header-bar.ui:232
 msgid "Dock chat"
-msgstr "Ћаскање у доку"
+msgstr "Acoplar el chat"
 
 #: data/ui/gt-player-header-bar.ui:238
 msgid "Dark theme"
-msgstr "Тамна тема"
+msgstr "Tema oscuro"
 
 #: data/ui/gt-player-header-bar.ui:245
 msgid "Move & resize chat"
-msgstr "Помери и промени величину ћаскања"
+msgstr "Mover & redimensionar el chat "
 
 #: data/ui/gt-player-header-bar.ui:258
 msgid "Opacity"
-msgstr "Непровидност"
+msgstr "Opacidad"
 
 #: data/ui/gt-player.ui:43
 msgid "No players loaded!"
-msgstr "Нема учитаних пуштача!"
+msgstr "No hay reproductores en segundo plano cargados!"
 
 #: data/ui/gt-player.ui:51
 msgid "Click here to load one"
-msgstr "Кликните овде да учитате један"
+msgstr "Click aquí para cargar uno"
 
 #: data/ui/gt-player.ui:79
 msgid "An error occurred when opening the stream"
-msgstr "Догодила се грешка приликом отварања стрима"
+msgstr "Ha ocurrido un error cuando se abría la transmisión "
 
 #: data/ui/gt-settings-dlg.ui:48
 msgid "Use dark theme"
-msgstr "Користи тамну тему"
+msgstr "Usar tema oscuro"
 
 #: data/ui/gt-settings-dlg.ui:89
 msgid "Default video quality"
-msgstr "Подразумевани квалитет видеа"
+msgstr "Calidad de video predeterminada"
 
 #: data/ui/gt-settings-dlg.ui:102
 msgid "Source"
-msgstr "Изворни"
+msgstr "Fuente"
 
 #: data/ui/gt-settings-dlg.ui:103
 msgid "High"
-msgstr "Високи"
+msgstr "Alta"
 
 #: data/ui/gt-settings-dlg.ui:104
 msgid "Medium"
-msgstr "Средњи"
+msgstr "Media"
 
 #: data/ui/gt-settings-dlg.ui:105
 msgid "Low"
-msgstr "Ниски"
+msgstr "Baja"
 
 #: data/ui/gt-settings-dlg.ui:106
 msgid "Mobile"
-msgstr "Мобилни"
+msgstr "Móvil"
 
 #: data/ui/gt-settings-dlg.ui:130
 msgid "All"
-msgstr "Све"
+msgstr "Todos"
 
 #: data/ui/gt-settings-dlg.ui:166
 msgid "General"
-msgstr "Опште"
+msgstr "General"
 
 #: data/ui/gt-settings-dlg.ui:175
 msgid "Players"
-msgstr "Пуштачи"
+msgstr "Reproductores"
 
 #: data/ui/gt-win.ui:44 data/ui/gt-win.ui:181
 msgid "Browse"
-msgstr "Прегледај"
+msgstr "Navegar"
 
 #: data/ui/gt-win.ui:53 data/ui/gt-win.ui:191
 msgid "Player"
-msgstr "Пуштач"
+msgstr "Reproductor"
 
 #: data/ui/gt-win.ui:93
 msgid "Yes"
-msgstr "Да"
+msgstr "Sí"
 
 #: data/ui/gt-win.ui:102
 msgid "No"
-msgstr "Не"
+msgstr "No"
 
 #: data/ui/gt-win.ui:111
 msgid "OK"
-msgstr "У реду"
+msgstr "OK"
 
 #: data/ui/gt-win.ui:120
 msgid "Details"
-msgstr "Појединости"
+msgstr "Detalles"
 
 #: data/ui/gt-win.ui:157
 msgid "Channels"
-msgstr "Канали"
+msgstr "Canales"
 
 #: data/ui/gt-win.ui:166
 msgid "Follows"
-msgstr "Праћење"
+msgstr "Seguidos"
 
 #: data/ui/gt-win.ui:175
 msgid "Games"
-msgstr "Игре"
+msgstr "Juegos"
 
 #: src/gt-app.c:197
 msgid "Refresh login"
-msgstr "Освежи пријаву"
+msgstr "Reiniciar sesión"
 
 #: src/gt-app.c:271 src/gt-win.c:704
 #, c-format
 msgid "Unable to open channel %s because it's not online"
-msgstr "Не могу да отворим канал „%s“ јер није на мрежи"
+msgstr "No ha sido posible abrir el canal %s porque no está en vivo"
 
 #: src/gt-app.c:383 src/gt-twitch-login-dlg.c:48
 msgid "Login to Twitch"
-msgstr "Пријави се на Твич"
+msgstr "Iniciar sesión en Twitch"
 
 #: src/gt-channel-container-view.c:102
 msgid "Include offline channels"
-msgstr "Прикажи канале ван мреже"
+msgstr "Incluir canales desconectados"
 
 #. Translators: Used for when viewers >= 1000
 #. Shorthand for thousands. Ex (English): 6200 = 6.2k
 #: src/gt-channels-container-child.c:114 src/gt-games-container-child.c:67
 #, c-format
 msgid "%3.1fk"
-msgstr "%3.1fк"
+msgstr "%3.1fk"
 
 #. Translators: Used for when viewers < 1000
 #. No need to translate, just future-proofing
@@ -384,169 +381,170 @@ msgstr "%s"
 #: src/gt-channels-container-child.c:153
 #, c-format
 msgid "%2.1fh"
-msgstr "%2.1fч"
+msgstr "%2.1fh"
 
 #. Translators: Used when stream time <= 60min
 #. Ex (English): 45 minutes = 45m
 #: src/gt-channels-container-child.c:162
 #, c-format
 msgid "%sm"
-msgstr "%sм"
+msgstr "%sm"
 
 #: src/gt-chat.c:628
 msgid "Please log in to chat"
-msgstr "Пријавите се да бисте ћаскали"
+msgstr "Por favor inicia sesión para usar el chat"
 
 #: src/gt-followed-channel-container.c:62
 msgid "No channels followed"
-msgstr "Не пратим ниједан канал"
+msgstr "No hay canales seguidos"
 
 #: src/gt-followed-channel-container.c:63
 msgid "Follow channels that you like for them to show up here!"
-msgstr "Запратите канале који вам се свиде да би се појавили овде!"
+msgstr "Sigue aquellos canales que te gusten para que aparezcan aquí!"
 
 #: src/gt-followed-channel-container.c:64 src/gt-search-game-container.c:63
 #: src/gt-top-game-container.c:49
 msgid "An error occurred when fetching the games"
-msgstr "Догодила се грешка приликом добављања игрица"
+msgstr "Ha ocurrido un error cuando se cargaban los juegos"
 
 #: src/gt-followed-channel-container.c:66 src/gt-search-channel-container.c:71
 #: src/gt-top-channel-container.c:54
 msgid "Fetching channels"
-msgstr "Добављам канале"
+msgstr "Cargando canales"
 
 #: src/gt-follows-manager.c:85
 #, c-format
 msgid "%s started streaming %s"
-msgstr "„%s“ креће са стримовањем игрице „%s“"
+msgstr "%s empezó a transmitir %s"
 
 #: src/gt-follows-manager.c:87
 #, c-format
 msgid "Click here to start watching"
-msgstr "Кликните овде да бисте гледали"
+msgstr "Click aquí para empezar a ver"
 
 #: src/gt-follows-manager.c:149
 msgid "Unable to follow channel"
-msgstr "Не могу да запратим канал"
+msgstr "No fue posible seguir el canal"
 
 #: src/gt-follows-manager.c:190
 msgid "Unable to unfollow channel"
-msgstr "Не могу да престанем са праћењем канала"
+msgstr "No fue posible dejar de seguir el canal"
 
 #: src/gt-follows-manager.c:352 src/gt-follows-manager.c:406
 msgid "Unable to move your local follows to Twitch"
-msgstr "Не могу да преместим ваша локална праћења на Твич"
+msgstr "No fue posible mover tus seguidos locales a Twitch"
 
 #: src/gt-follows-manager.c:443
 msgid ""
 "GNOME Twitch has detected local follows, would you like to move them to "
 "Twitch?"
 msgstr ""
-"Гном Твич је приметио локална праћења, желите ли да их преместите на Твич?"
+"GNOME Twitch ha detectado que tienes seguidos locales, ¿Te gustaría moverlos"
+" a Twitch?"
 
 #: src/gt-follows-manager.c:482
 msgid "Unable to fetch your Twitch follows"
-msgstr "Не могу да добавим ваша Твич праћења"
+msgstr "No se han podido cargar tus seguidos en Twitch"
 
 #: src/gt-follows-manager.c:655
 msgid "Unable to load followed channels from file"
-msgstr "Не могу да учитам запраћене канале из датотеке"
+msgstr "No se han podido cargar los canales seguidos del archivo"
 
 #. Translators: %s will be filled with the game name
 #: src/gt-game.c:165
 #, c-format
 msgid "Unable to update game '%s'"
-msgstr "Не могу да ажурирам игрицу „%s“"
+msgstr "No se ha podido actualizar el juego '%s'"
 
 #: src/gt-game-channel-container.c:55 src/gt-search-channel-container.c:67
 #: src/gt-top-channel-container.c:50
 msgid "No channels found"
-msgstr "Нисам пронашао ниједан канал"
+msgstr "No se han encontrado canales"
 
 #: src/gt-game-channel-container.c:56
 msgid "Nobody is currently streaming this game"
-msgstr "Тренутно нико не стримује ову игру"
+msgstr "En estos momentos no hay nadie transmitiendo este juego"
 
 #: src/gt-game-channel-container.c:57 src/gt-search-channel-container.c:69
 #: src/gt-top-channel-container.c:52
 msgid "An error occurred when fetching the channels"
-msgstr "Догодила се грешка приликом добављања канала"
+msgstr "Ocurrió un error cuando se cargaban los canales"
 
 #: src/gt-item-container.c:95
 msgid "Unable to fetch items"
-msgstr "Не могу да добавим ставке"
+msgstr "No se han podido cargar los items"
 
 #: src/gt-player.c:474
 #, c-format
 msgid "Buffered %d%%"
-msgstr "Учитано %d%%"
+msgstr "%d%% cargado"
 
 #. Translators: %s will be filled with the channel name
 #: src/gt-player.c:886
 #, c-format
 msgid "Unable to open channel %s because it's offline"
-msgstr "Не могу да отворим канал „%s“ зато што је ван мреже"
+msgstr "No se ha podido cargar el canal %s porque no está en vivo"
 
 #: src/gt-player.c:890
 msgid "Error opening stream"
-msgstr "Грешка приликом отварања стрима"
+msgstr "Error al abrir la transmisión"
 
 #: src/gt-player.c:1296
 msgid "Loading stream"
-msgstr "Учитавам стрим"
+msgstr "Cargando transmisión"
 
 #: src/gt-search-channel-container.c:68 src/gt-search-game-container.c:62
 msgid "Try a different search"
-msgstr "Покушајте другачију претрагу"
+msgstr "Intenta una búsqueda diferente"
 
 #: src/gt-search-game-container.c:61 src/gt-top-game-container.c:47
 msgid "No games found"
-msgstr "Ниједна игрица није нађена"
+msgstr "No se han encontrado juegos"
 
 #: src/gt-search-game-container.c:65 src/gt-top-game-container.c:51
 msgid "Fetching games"
-msgstr "Добављам игрице"
+msgstr "Buscando juegos "
 
 #: src/gt-settings-dlg.c:71
 msgid "How to install player backends"
-msgstr "Како се инсталирају позадински пуштачи"
+msgstr "Cómo instalar reproductores"
 
 #: src/gt-top-channel-container.c:51 src/gt-top-game-container.c:48
 msgid "Probably an error occurred, try refreshing"
-msgstr "Вероватно се догодила грешка, пробајте да освежите"
+msgstr "Probablemente ha ocurrido un error, intenta actualizar"
 
 #: src/gt-twitch.c:500
 msgid "Untitled broadcast"
-msgstr "Неименовано емитовање"
+msgstr "Transmisión sin título"
 
 #: src/gt-twitch-login-dlg.c:109
 msgid "Unable to fetch user info"
-msgstr "Не могу да добавим податке о кориснику"
+msgstr "No ha sido podido cargar la información de usuario"
 
 #: src/gt-twitch-login-dlg.c:121
 msgid "Successfully logged in to Twitch!"
-msgstr "Пријава на Твич је успела!"
+msgstr "Se ha iniciado sesión en Twitch correctamente"
 
 #. Translators: Put your details here :)
 #: src/gt-win.c:154
 msgid "translator-credits"
-msgstr "Марко М. Костић <marko.m.kostic@gmail.com>"
+msgstr "Holman A. Calderón <halecalderon@gmail.com>"
 
 #: src/gt-win.c:157
 msgid "Contributors"
-msgstr "Доприносиоци"
+msgstr "Contribuidores"
 
 #: src/gt-win.c:226
 #, c-format
 msgid "<b>Error message:</b> %s"
-msgstr "<b>Порука грешке:</b> %s"
+msgstr "<b>Mensaje de error:</b> %s"
 
 #: src/gt-win.c:336
 msgid "Already logged into Twitch, refresh login?"
-msgstr "Већ сте пријављени на Твич. Освежити пријаву?"
+msgstr "Ya iniciaste sesión en Twitch, ¿quieres reiniciar sesión?"
 
 #. Translators: Please keep the markup tags
 #: src/gt-win.c:756
 #, c-format
 msgid "<b>Something went wrong:</b> %s."
-msgstr "<b>Нешто је пошло наопако:</b> %s."
+msgstr "<b>Algo ha salido mal:</b> %s."
