@@ -13,9 +13,9 @@
     </p>
     <p>Notable Features:</p>
     <ul>
-      <li>Watch your favourite streams natively with fully accelerated video</li>
+      <li>Watch your favorite streams natively with fully accelerated video</li>
       <li>Built in chat which can even be overlayed over the video</li>
-      <li>Easy favourites/follows management and receive notifications when they are online</li>
+      <li>Easy favorites/follows management and receive notifications when they are online</li>
     </ul>
   </description>
   <url type="homepage">http://gnome-twitch.vinszent.com/</url>
@@ -23,7 +23,7 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_player.png</image>
-      <caption>Watching a stream including chat</caption>
+      <caption>Watching a stream with a chat</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/vinszent/gnome-twitch/master/data/screenshots/scrot_streams.png</image>

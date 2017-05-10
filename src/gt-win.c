@@ -701,7 +701,7 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
     }
     else
     {
-        gt_win_show_info_message(self, _("Unable to open channel %s because it's not online"),
+        gt_win_show_info_message(self, _("Unable to open channel %s because it’s not online"),
             gt_channel_get_name(chan));
 
         gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
