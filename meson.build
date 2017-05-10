@@ -15,7 +15,7 @@
 # along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
 
 project('gnome-twitch', 'c',
-  version : '0.4.0',
+  version : '0.4.1',
   meson_version : '>= 0.37.0',
   license : 'GPL3',
   default_options: [
