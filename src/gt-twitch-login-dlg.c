@@ -45,7 +45,7 @@ gt_twitch_login_dlg_new(GtkWindow* parent)
     return g_object_new(GT_TYPE_TWITCH_LOGIN_DLG,
                         "transient-for", parent,
                         "use-header-bar", 1,
-                        "title", _("Login to Twitch"),
+                        "title", _("Log in to Twitch"),
                         NULL);
 }
 

@@ -268,7 +268,7 @@ open_channel_after_fetch_cb(GObject* source,
     }
     else if (!gt_channel_is_online(channel))
     {
-        gt_win_show_info_message(win, _("Unable to open channel %s because it's not online"),
+        gt_win_show_info_message(win, _("Unable to open channel %s because it’s not online"),
             gt_channel_get_name(channel));
     }
     else
@@ -380,7 +380,7 @@ startup(GApplication* app)
     menu_bld = gtk_builder_new_from_resource("/com/vinszent/GnomeTwitch/ui/app-menu.ui");
     priv->app_menu = G_MENU_MODEL(gtk_builder_get_object(menu_bld, "app_menu"));
     g_object_ref(priv->app_menu);
-    priv->login_item = g_menu_item_new(_("Login to Twitch"), "win.show_twitch_login");
+    priv->login_item = g_menu_item_new(_("Log in to Twitch"), "win.show_twitch_login");
     g_menu_prepend_item(G_MENU(priv->app_menu), priv->login_item);
 
     gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(priv->app_menu));
