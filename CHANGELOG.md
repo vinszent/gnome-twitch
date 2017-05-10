@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.4.1
+### Summary:
+Minor bug fixes and translation updates for v0.4.1.
+
+* __Updated translations__
+
+  Updated translations for Dutch, German, Polish, Portugese, Russian,
+  Serbian and Spanish.
+
+* __Bug fixes__
+  - Fixed UI lag when updating channels #260
+  - Fixed bug that causes the header bar to be shown when hovering over the chat input #247
+  - Removed indirect restrictions on window width #255
+  - Fixed a crash when opening a offline channel #251
+  - Fix some minor GCC warnings #250
+  - Fix bug where the fullscreen bar is visible twice #239
+
 ## v0.4.0
 ### Summary:
 Mainly work on stability with much better error
