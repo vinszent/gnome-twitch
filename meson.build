@@ -49,6 +49,7 @@ BUILD_EXECUTABLE = get_option('build-executable')
 BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO = player_backend_options.contains('gstreamer-cairo')
 BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL = player_backend_options.contains('gstreamer-opengl')
 BUILD_PLAYER_BACKEND_GSTREAMER_CLUTTER = player_backend_options.contains('gstreamer-clutter')
+BUILD_PLAYER_BACKEND_GSTREAMER_VAAPI = player_backend_options.contains('gstreamer-vaapi')
 BUILD_PLAYER_BACKEND_MPV_OPENGL = player_backend_options.contains('mpv-opengl')
 
 include_dir = include_directories('include')
@@ -91,4 +92,7 @@ if BUILD_PLAYER_BACKEND_GSTREAMER_CAIRO
 endif
 if BUILD_PLAYER_BACKEND_GSTREAMER_OPENGL
   subdir('player-backends/player-backend-gstreamer-opengl')
+endif
+if BUILD_PLAYER_BACKEND_GSTREAMER_VAAPI
+  subdir('player-backends/player-backend-gstreamer-vaapi')
 endif
