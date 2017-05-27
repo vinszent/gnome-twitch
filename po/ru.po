@@ -532,7 +532,7 @@ msgstr "Успешно вошли в Twitch!"
 #. Translators: Put your details here :)
 #: src/gt-win.c:154
 msgid "translator-credits"
-msgstr "Перевод"
+msgstr "Aleksey Samoilov <samoilov.lex@gmail.com"
 
 #: src/gt-win.c:157
 msgid "Contributors"
