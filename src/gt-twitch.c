@@ -2032,7 +2032,7 @@ error:
 
 static GList*
 fetch_followed_streams(GtTwitch* self, const gchar* oauth_token,
-    gint limit, gint offset, gint* total, GError** error)
+    gint limit, gint offset, gint64* total, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_cmpint(limit, >, 0);
@@ -2054,7 +2054,10 @@ fetch_followed_streams(GtTwitch* self, const gchar* oauth_token,
     CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed streams with oauth token '%s', limit '%d' and offset '%d'",
         oauth_token, limit, offset);
 
-    READ_JSON_VALUE("_total", *total);
+    if (total)
+    {
+        READ_JSON_VALUE("_total", *total);
+    }
 
     READ_JSON_MEMBER("streams");
 
@@ -2084,7 +2087,7 @@ error:
 
 static GList*
 fetch_followed_channels(GtTwitch* self, const gchar* id,
-    gint limit, gint offset, gint* total, GError** error)
+    gint limit, gint offset, gint64* total, GError** error)
 {
     g_assert(GT_IS_TWITCH(self));
     g_assert_cmpint(limit, >, 0);
@@ -2105,7 +2108,10 @@ fetch_followed_channels(GtTwitch* self, const gchar* id,
     CHECK_AND_PROPAGATE_ERROR("Unable to fetch followed channels with name '%s', limit '%d' and offset '%d'",
         id, limit, offset);
 
-    READ_JSON_VALUE("_total", *total);
+    if (total)
+    {
+        READ_JSON_VALUE("_total", *total);
+    }
 
     READ_JSON_MEMBER("follows");
 
@@ -2143,7 +2149,7 @@ gt_twitch_fetch_all_followed_channels(GtTwitch* self,
 
 #define LIMIT 100
 
-    gint total = 0;
+    gint64 total = 0;
     GList* chans = NULL;
     GList* streams = NULL;
     GList* ret = NULL;
@@ -2154,12 +2160,12 @@ gt_twitch_fetch_all_followed_channels(GtTwitch* self,
 
     CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
 
-    if (total > 100)
+    if (total > LIMIT)
     {
-        for (gint i = 100; i < total; i += 100)
+        for (gint i = LIMIT; i < total; i += LIMIT)
         {
             streams = g_list_concat(streams,
-                fetch_followed_streams(self, oauth_token, LIMIT, 0, NULL, &err));
+                fetch_followed_streams(self, oauth_token, LIMIT, i, NULL, &err));
 
             CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
         }
@@ -2170,12 +2176,12 @@ gt_twitch_fetch_all_followed_channels(GtTwitch* self,
 
     CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
 
-    if (total > 100)
+    if (total > LIMIT)
     {
-        for (gint i = 100; i < total; i += 100)
+        for (gint i = LIMIT; i < total; i += LIMIT)
         {
             chans = g_list_concat(chans,
-                fetch_followed_channels(self, id, LIMIT, 0, NULL, &err));
+                fetch_followed_channels(self, id, LIMIT, i, NULL, &err));
 
             CHECK_AND_PROPAGATE_ERROR("Unable to fetch all followed channels");
         }
@@ -2189,12 +2195,14 @@ gt_twitch_fetch_all_followed_channels(GtTwitch* self,
         if (!found)
         {
             WARNINGF("Unable to fetch all followed channels with id '%s' and oauth token '%s' because: "
-                "A followed stream did not exist as a followed channel", id, oauth_token);
+                "The followed stream '%s' did not exist as a followed channel", id, oauth_token, ((GtChannelData*) l->data)->name);
 
-            g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_MISC, "Unable to fetch all followed channels with id '%s' and oauth token '%s' because: "
-                "A followed stream did not exist as a followed channel", id, oauth_token);
+            /* NOTE: This is commented out because we won't treat it
+             * as a hard error and try to load follows anyways */
+            /* g_set_error(error, GT_TWITCH_ERROR, GT_TWITCH_ERROR_MISC, "Unable to fetch all followed channels with id '%s' and oauth token '%s' because: " */
+            /*     "A followed stream did not exist as a followed channel", id, oauth_token); */
 
-            goto error;
+            /* goto error; */
         }
         else
         {
