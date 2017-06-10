@@ -115,7 +115,7 @@ msgstr "A GNOME Twitch érzékelte hogy vannak helyi feliratkozásaid. Szeretné
 
 #: src/gt-game.c:225 src/gt-twitch.c:302
 msgid "Untitled broadcast"
-msgstr "Névtelen kőzvetítés"
+msgstr "Névtelen közvetítés"
 
 #: src/gt-games-container-search.c:204
 msgid "No games found"
@@ -136,12 +136,12 @@ msgstr "%d%% Pufferelve"
 
 #: src/gt-player.c:887
 msgid "Loading stream"
-msgstr "Kőzvetítés betöltése"
+msgstr "Közvetítés betöltése"
 
 #: src/gt-twitch.c:1720 src/gt-twitch.c:1864 src/gt-twitch.c:1942
 #, c-format
 msgid "Twitch replied with error code '%d', message '%s' and body '%s'"
-msgstr "Hiba történt a Twitch oldaláról. Hiba kód: '%d', üzenet '%s' és test '%s'"
+msgstr "Hiba történt a Twitch oldaláról. Hiba kód: '%d', üzenet '%s' és a pontos információk '%s'"
 
 #: src/gt-twitch-login-dlg.c:121
 msgid "Successfully logged in to Twitch!"
