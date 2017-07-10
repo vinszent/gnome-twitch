@@ -366,6 +366,71 @@ gt_item_container_get_flow_box(GtItemContainer* self)
     return priv->item_flow;
 }
 
+void
+gt_item_container_append_items(GtItemContainer* self, GList* items)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+
+    priv->items = g_list_concat(priv->items, items);
+
+    for (GList* l = items; l != NULL; l = l->next)
+    {
+        gtk_container_add(GTK_CONTAINER(priv->item_flow),
+            GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data));
+
+        priv->num_items++;
+    }
+
+    DEBUG("Appended items, total is '%d'", priv->num_items);
+
+    if (priv->num_items == 0)
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+}
+
+void
+gt_item_container_set_items(GtItemContainer* self, GList* items)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+
+    utils_container_clear(GTK_CONTAINER(priv->item_flow));
+
+    g_list_free(priv->items);
+
+    priv->num_items = 0;
+
+    priv->items = items;
+
+    for (GList* l = items; l != NULL; l = l->next)
+    {
+        gtk_container_add(GTK_CONTAINER(priv->item_flow),
+            GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data));
+
+        priv->num_items++;
+    }
+
+    DEBUG("Set items, total is '%d'", priv->num_items);
+
+    if (priv->num_items == 0)
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+}
+
+void
+gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_items)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
+
+    priv->fetching_items = fetching_items;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
+}
+
 //TODO: Make this overridable, mainly for GtFollowedChannelContainer
 void
 gt_item_container_refresh(GtItemContainer* self)
