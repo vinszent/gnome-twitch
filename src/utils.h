@@ -33,6 +33,8 @@
 
 #define GT_UTILS_ERROR g_quark_from_static_string("gt-utils-error-quark")
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GWeakRef, g_weak_ref_clear);
+
 typedef enum
 {
     GT_UTILS_ERROR_PARSING_TIME,
