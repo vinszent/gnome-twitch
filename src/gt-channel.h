@@ -48,6 +48,9 @@ typedef struct
     gboolean online;
 } GtChannelData;
 
+typedef GList GtChannelDataList;
+typedef GList GtChannelList;
+
 GtChannel*     gt_channel_new(GtChannelData* data);
 GtChannel*     gt_channel_new_from_id_and_name(const gchar* id, const gchar* name);
 void           gt_channel_toggle_followed(GtChannel* self);
@@ -69,7 +72,9 @@ void           gt_channel_data_free(GtChannelData* data);
 void           gt_channel_data_list_free(GList* list);
 gint           gt_channel_data_compare(GtChannelData* a, GtChannelData* b);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtChannelList, gt_channel_list_free);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtChannelData, gt_channel_data_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtChannelDataList, gt_channel_data_list_free);
 
 G_END_DECLS
 
