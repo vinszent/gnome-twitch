@@ -21,6 +21,7 @@
 
 #include <gtk/gtk.h>
 #include <libpeas/peas.h>
+#include <libsoup/soup.h>
 
 G_BEGIN_DECLS
 
@@ -79,6 +80,8 @@ struct _GtApp
     GSettings* settings;
 
     PeasEngine* players_engine;
+
+    SoupSession* soup;
 };
 
 typedef struct

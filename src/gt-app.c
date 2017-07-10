@@ -487,6 +487,7 @@ gt_app_init(GtApp* self)
 
     self->settings = g_settings_new("com.vinszent.GnomeTwitch");
     self->players_engine = peas_engine_get_default();
+    self->soup = soup_session_new();
 
     gchar* plugin_dir;
 
