@@ -305,7 +305,7 @@ utils_refresh_cancellable(GCancellable** cancel)
 }
 
 GWeakRef*
-utils_create_weak_ref(gpointer obj)
+utils_weak_ref_new(gpointer obj)
 {
     GWeakRef* ref = g_malloc(sizeof(GWeakRef));
 
@@ -315,7 +315,7 @@ utils_create_weak_ref(gpointer obj)
 }
 
 void
-utils_free_weak_ref(GWeakRef* ref)
+utils_weak_ref_free(GWeakRef* ref)
 {
     g_weak_ref_clear(ref);
 
