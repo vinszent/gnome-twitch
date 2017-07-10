@@ -48,8 +48,8 @@ typedef enum
 #ifndef TAG
 #error Tag not defined
 #else
-#define LOG(lvl, msg, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d} %s", TAG, __LINE__, msg, ##__VA_ARGS__)
-#define LOGF(lvl, fmt, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d} " fmt, TAG, __LINE__, ##__VA_ARGS__)
+#define LOG(lvl, msg, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d %s} %s", TAG, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define LOGF(lvl, fmt, ...) g_log(NULL, (GLogLevelFlags) lvl, "{%s:%d %s} " fmt, TAG, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 #define FATAL(msg, ...) LOGF(GT_LOG_LEVEL_WARNING, msg, ##__VA_ARGS__)
 #define FATALF(fmt, ...) LOGF(GT_LOG_LEVEL_WARNING, fmt, __VA_ARGS__)
 #define ERROR(msg, ...) LOGF(GT_LOG_LEVEL_ERROR, msg, ##__VA_ARGS__)
