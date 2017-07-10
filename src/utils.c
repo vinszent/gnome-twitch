@@ -357,3 +357,34 @@ generic_task_data_free(GenericTaskData* data)
 
     g_slice_free(GenericTaskData, data);
 }
+
+SoupMessage*
+utils_create_twitch_request(const gchar* uri)
+{
+    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
+
+    SoupMessage* msg = NULL;
+
+    msg = soup_message_new(SOUP_METHOD_GET, uri);
+
+    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
+    soup_message_headers_append(msg->request_headers, "Accept", "application/vnd.twitchtv.v5+json");
+    soup_message_headers_append(msg->request_headers, "Accept", "image/*");
+
+    return msg;
+}
+
+SoupMessage*
+utils_create_twitch_request_v(const gchar* uri, ...)
+{
+    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
+
+    va_list args;
+    g_autofree gchar* uri_formatted = NULL;
+
+    va_start(args, uri);
+    uri_formatted = g_strdup_vprintf(uri, args);
+    va_end(args);
+
+    return utils_create_twitch_request(uri_formatted);
+}
