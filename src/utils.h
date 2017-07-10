@@ -72,5 +72,7 @@ void generic_task_data_free(GenericTaskData* data);
 GWeakRef* utils_create_weak_ref(gpointer obj);
 void utils_free_weak_ref(GWeakRef* ref);
 
+SoupMessage* utils_create_twitch_request(const gchar* uri);
+SoupMessage* utils_create_twitch_request_v(const gchar* uri, ...);
 
 #endif
