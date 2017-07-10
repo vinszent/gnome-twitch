@@ -33,8 +33,6 @@
 
 #define GT_UTILS_ERROR g_quark_from_static_string("gt-utils-error-quark")
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(GWeakRef, g_weak_ref_clear);
-
 typedef enum
 {
     GT_UTILS_ERROR_PARSING_TIME,
@@ -74,13 +72,15 @@ void utils_refresh_cancellable(GCancellable** cancel);
 GDateTime* utils_parse_time_iso_8601(const gchar* time, GError** error);
 GenericTaskData* generic_task_data_new();
 void generic_task_data_free(GenericTaskData* data);
-GWeakRef* utils_create_weak_ref(gpointer obj);
-void utils_free_weak_ref(GWeakRef* ref);
+GWeakRef* utils_weak_ref_new(gpointer obj);
+void utils_weak_ref_free(GWeakRef* ref);
 SoupMessage* utils_create_twitch_request(const gchar* uri);
 SoupMessage* utils_create_twitch_request_v(const gchar* uri, ...);
 JsonReader* utils_parse_json(const gchar* data, GError** error);
 GtChannelData* utils_parse_stream_from_json(JsonReader* reader, GError** error);
 GtChannelData* utils_parse_channel_from_json(JsonReader* reader, GError** error);
 GtGameData* utils_parse_game_from_json(JsonReader* reader, GError** error);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GWeakRef, utils_weak_ref_free);
 
 #endif
