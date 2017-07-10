@@ -68,24 +68,40 @@ typedef enum
 #define TRACEF(fmt, ...) LOGF(GT_LOG_LEVEL_TRACE, fmt, __VA_ARGS__)
 
 
-#define RETURN_IF_FAIL(expr)                                \
-    if (!(expr))                                            \
-    {                                                       \
-        CRITICAL("Expression '%s' should be TRUE", #expr);  \
-        return;                                             \
-    }
-#define RETURN_VAL_IF_FAIL(expr, val)                       \
-    if (!(expr))                                            \
-    {                                                       \
-        CRITICAL("Expression '%s' should be TRUE", #expr);  \
-        return val;                                         \
-    }
-#define RETURN_IF_REACHED()                             \
-    CRITICAL("This expression should not be reached");  \
-    return;
-#define RETURN_VAL_IF_REACHED(val)                      \
-    CRITICAL("This expression should not be reached");  \
-    return val;
+#define RETURN_IF_FAIL(expr)                                    \
+    G_STMT_START                                                \
+    {                                                           \
+        if (!(expr))                                            \
+        {                                                       \
+            CRITICAL("Expression '%s' should be TRUE", #expr);  \
+            return;                                             \
+        }                                                       \
+    } G_STMT_END
+#define RETURN_VAL_IF_FAIL(expr, val)                           \
+    G_STMT_START                                                \
+    {                                                           \
+        if (!(expr))                                            \
+        {                                                       \
+            CRITICAL("Expression '%s' should be TRUE", #expr);  \
+            return val;                                         \
+        }                                                       \
+    } G_STMT_END
+#define RETURN_IF_REACHED()                                     \
+    G_STMT_START                                                \
+    {                                                           \
+        {                                                       \
+            CRITICAL("This expression should not be reached");  \
+            return;                                             \
+        }                                                       \
+    } G_STMT_END
+#define RETURN_VAL_IF_REACHED(val)                              \
+    G_STMT_START                                                \
+    {                                                           \
+        {                                                       \
+            CRITICAL("This expression should not be reached");  \
+            return val;                                         \
+        }                                                       \
+    } G_STMT_END
 #endif
 
 #endif
