@@ -19,8 +19,11 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include "gt-channel.h"
+#include "gt-game.h"
 #include <gtk/gtk.h>
 #include <libsoup/soup.h>
+#include <json-glib/json-glib.h>
 
 #define REMOVE_STYLE_CLASS(w, n) gtk_style_context_remove_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)
 #define ADD_STYLE_CLASS(w, n) gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)
@@ -71,8 +74,11 @@ GenericTaskData* generic_task_data_new();
 void generic_task_data_free(GenericTaskData* data);
 GWeakRef* utils_create_weak_ref(gpointer obj);
 void utils_free_weak_ref(GWeakRef* ref);
-
 SoupMessage* utils_create_twitch_request(const gchar* uri);
 SoupMessage* utils_create_twitch_request_v(const gchar* uri, ...);
+JsonReader* utils_parse_json(const gchar* data, GError** error);
+GtChannelData* utils_parse_stream_from_json(JsonReader* reader, GError** error);
+GtChannelData* utils_parse_channel_from_json(JsonReader* reader, GError** error);
+GtGameData* utils_parse_game_from_json(JsonReader* reader, GError** error);
 
 #endif

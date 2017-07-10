@@ -388,3 +388,144 @@ utils_create_twitch_request_v(const gchar* uri, ...)
 
     return utils_create_twitch_request(uri_formatted);
 }
+
+JsonReader*
+utils_parse_json(const gchar* data, GError** error)
+{
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(JsonParser) parser = NULL;
+    g_autoptr(GError) err = NULL;
+
+    parser = json_parser_new();
+
+    json_parser_load_from_data(parser, data, -1, &err);
+
+    if (err)
+    {
+        WARNING("Unable to parse JSON because: %s", err->message);
+
+        g_propagate_prefixed_error(error, g_steal_pointer(&err), "Unable to parse JSON because: ");
+    }
+    else
+        reader = json_reader_new(json_parser_get_root(parser));
+
+    return g_steal_pointer(&reader);
+}
+
+GtChannelData*
+utils_parse_channel_from_json(JsonReader* reader, GError** error)
+{
+    g_autoptr(GtChannelData) data = gt_channel_data_new();
+
+    if (!json_reader_read_member(reader, "_id")) RETURN_VAL_IF_REACHED(NULL);
+    JsonNode* node = json_reader_get_value(reader);
+    if (STRING_EQUALS(json_node_type_name(node), "Integer"))
+        data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
+    else if (STRING_EQUALS(json_node_type_name(node), "String"))
+        data->id = g_strdup(json_reader_get_string_value(reader));
+    else
+        RETURN_VAL_IF_REACHED(NULL);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "name")) RETURN_VAL_IF_REACHED(NULL);
+    data->name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "display_name")) RETURN_VAL_IF_REACHED(NULL);
+    data->display_name = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "status")) RETURN_VAL_IF_REACHED(NULL);
+    data->status = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "video_banner")) RETURN_VAL_IF_REACHED(NULL);
+    data->video_banner_url = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "logo")) RETURN_VAL_IF_REACHED(NULL);
+    data->logo_url = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "url")) RETURN_VAL_IF_REACHED(NULL);
+    data->profile_url = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    data->online = FALSE;
+
+    return g_steal_pointer(&data);
+}
+
+GtChannelData*
+utils_parse_stream_from_json(JsonReader* reader, GError** error)
+{
+    g_autoptr(GtChannelData) data = NULL;
+
+    if (!json_reader_read_member(reader, "channel")) RETURN_VAL_IF_REACHED(NULL);
+    data = utils_parse_channel_from_json(reader, NULL);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "game")) RETURN_VAL_IF_REACHED(NULL);
+    data->game = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "viewers")) RETURN_VAL_IF_REACHED(NULL);
+    data->viewers = json_reader_get_null_value(reader) ?
+        0 : json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "created_at")) RETURN_VAL_IF_REACHED(NULL);
+    data->stream_started_time = json_reader_get_null_value(reader) ?
+        NULL : utils_parse_time_iso_8601(json_reader_get_string_value(reader), NULL); /* FIXME: Handle error */
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "preview")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL);
+    data->preview_url = json_reader_get_null_value(reader) ?
+        NULL : g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    data->online = TRUE;
+
+    return g_steal_pointer(&data);
+}
+
+GtGameData*
+utils_parse_game_from_json(JsonReader* reader, GError** error)
+{
+    g_autoptr(GtGameData) data = gt_game_data_new();
+
+    if (!json_reader_read_member(reader, "_id")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    JsonNode* node = json_reader_get_value(reader);
+    if (STRING_EQUALS(json_node_type_name(node), "Integer"))
+        data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
+    else if (STRING_EQUALS(json_node_type_name(node), "String"))
+        data->id = g_strdup(json_reader_get_string_value(reader));
+    else
+        RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "name")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    data->name = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "box")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    data->preview_url = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "logo")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    data->logo_url = g_strdup(json_reader_get_string_value(reader));
+    json_reader_end_member(reader);
+    json_reader_end_member(reader);
+
+    return g_steal_pointer(&data);
+}
