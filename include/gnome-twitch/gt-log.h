@@ -102,6 +102,15 @@ typedef enum
             return val;                                         \
         }                                                       \
     } G_STMT_END
+#define RETURN_IF_ERROR(err)                                            \
+    G_STMT_START                                                        \
+    {                                                                   \
+        if (err)                                                        \
+        {                                                               \
+            CRITICAL("Error should be NULL, message was '%s'", err->message); \
+            return;                                                     \
+        }                                                               \
+    } G_STMT_END
 #endif
 
 #endif
