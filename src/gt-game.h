@@ -42,6 +42,8 @@ typedef struct
     gint64 channels;
 } GtGameData;
 
+typedef GList GtGameList;
+
 GtGame*      gt_game_new(GtGameData* data);
 void         gt_game_update_from_raw_data(GtGame* self, GtGameData* data);
 void         gt_game_list_free(GList* self);
@@ -52,6 +54,7 @@ GtGameData*  gt_game_data_new();
 void         gt_game_data_free(GtGameData* data);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtGameData, gt_game_data_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtGameList, gt_game_list_free);
 
 G_END_DECLS
 
