@@ -35,8 +35,6 @@ typedef struct
 {
     gchar* query;
     GtkWidget* item_flow;
-    GMutex mutex;
-    GCond cond;
 } GtFollowedChannelContainerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFollowedChannelContainer, gt_followed_channel_container, GT_TYPE_ITEM_CONTAINER);
@@ -78,7 +76,6 @@ channel_updating_cb(GObject* source,
 
     if (!gt_channel_is_updating(GT_CHANNEL(source)))
         gtk_flow_box_invalidate_sort(GTK_FLOW_BOX(priv->item_flow));
-
 }
 
 static GtkWidget*
@@ -112,45 +109,6 @@ activate_child(GtItemContainer* item_container,
 }
 
 static void
-fetch_items(GTask* task,
-    gpointer source, gpointer task_data,
-    GCancellable* cancel)
-{
-    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(source));
-    RETURN_IF_FAIL(G_IS_TASK(task));
-    RETURN_IF_FAIL(task_data != NULL);
-
-    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(source);
-    GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
-
-    g_mutex_lock(&priv->mutex);
-    while (gt_follows_manager_is_loading_follows(main_app->fav_mgr))
-        g_cond_wait(&priv->cond, &priv->mutex);
-    g_mutex_unlock(&priv->mutex);
-
-    /* NOTE: We need to do a shallow copy because GtItemContainer assumes ownership of the list */
-    g_task_return_pointer(task, g_list_copy(main_app->fav_mgr->follow_channels), (GDestroyNotify) g_list_free);
-}
-
-static void
-on_clear(GtItemContainer* item_container,
-    GList* items)
-{
-    RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(item_container));
-
-    GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(item_container);
-
-    for (GList* l = items; l != NULL; l = l->next)
-    {
-        g_assert(GT_IS_CHANNEL(l->data));
-
-        GtChannel* chan = l->data;
-
-        g_signal_handlers_disconnect_by_func(chan, channel_updating_cb, self);
-    }
-}
-
-static void
 channel_followed_cb(GtFollowsManager* mgr,
     GtChannel* chan, gpointer udata)
 {
@@ -160,9 +118,7 @@ channel_followed_cb(GtFollowsManager* mgr,
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
 
-    //TODO: Ideally we should just add the channel instead of refreshing
-    // the entire container.
-    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+    gt_item_container_append_item(GT_ITEM_CONTAINER(self), chan);
 }
 
 static void
@@ -175,11 +131,11 @@ channel_unfollowed_cb(GtFollowsManager* mgr,
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
 
-    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+    gt_item_container_remove_item(GT_ITEM_CONTAINER(self), chan);
 }
 
 static void
-finished_loading_follows_cb(GObject* source,
+loading_follows_cb(GObject* source,
     GParamSpec* pspec, gpointer udata)
 {
     RETURN_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata));
@@ -189,12 +145,20 @@ finished_loading_follows_cb(GObject* source,
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
     if (gt_follows_manager_is_loading_follows(main_app->fav_mgr))
-        gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+    {
+        g_signal_handlers_block_by_func(main_app->fav_mgr, channel_followed_cb, self);
+        g_signal_handlers_block_by_func(main_app->fav_mgr, channel_unfollowed_cb, self);
+
+        gt_item_container_set_items(GT_ITEM_CONTAINER(self), NULL);
+        gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), TRUE);
+    }
     else
     {
-        g_mutex_lock(&priv->mutex);
-        g_cond_broadcast(&priv->cond);
-        g_mutex_unlock(&priv->mutex);
+        g_signal_handlers_unblock_by_func(main_app->fav_mgr, channel_followed_cb, self);
+        g_signal_handlers_unblock_by_func(main_app->fav_mgr, channel_unfollowed_cb, self);
+
+        gt_item_container_set_items(GT_ITEM_CONTAINER(self), main_app->fav_mgr->follow_channels);
+        gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), FALSE);
     }
 }
 static gboolean
@@ -231,6 +195,7 @@ sort_by_name_and_online(GtkFlowBoxChild* _child1,
 {
     RETURN_VAL_IF_FAIL(GT_IS_FOLLOWED_CHANNEL_CONTAINER(udata), -1);
     RETURN_VAL_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child1), -1);
+
     RETURN_VAL_IF_FAIL(GT_IS_CHANNELS_CONTAINER_CHILD(_child2), -1);
 
     GtFollowedChannelContainer* self = GT_FOLLOWED_CHANNEL_CONTAINER(udata);
@@ -316,11 +281,12 @@ constructed(GObject* obj)
         (GtkFlowBoxSortFunc) sort_by_name_and_online, self, NULL);
 
     //TODO: Need to refresh everytime a channel is followed or unfollowed
-    g_signal_connect(main_app->fav_mgr, "notify::loading-follows", G_CALLBACK(finished_loading_follows_cb), self);
+    g_signal_connect(main_app->fav_mgr, "notify::loading-follows", G_CALLBACK(loading_follows_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
-    gt_item_container_refresh(GT_ITEM_CONTAINER(self));
+    if (!gt_follows_manager_is_loading_follows(main_app->fav_mgr))
+        gt_item_container_set_items(GT_ITEM_CONTAINER(self), g_list_copy(main_app->fav_mgr->follow_channels));
 
     G_OBJECT_CLASS(gt_followed_channel_container_parent_class)->constructed(obj);
 }
@@ -332,11 +298,9 @@ gt_followed_channel_container_class_init(GtFollowedChannelContainerClass* klass)
     G_OBJECT_CLASS(klass)->get_property = get_property;
     G_OBJECT_CLASS(klass)->set_property = set_property;
 
-    GT_ITEM_CONTAINER_CLASS(klass)->fetch_items = fetch_items;
     GT_ITEM_CONTAINER_CLASS(klass)->create_child = create_child;
     GT_ITEM_CONTAINER_CLASS(klass)->get_properties = get_properties;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
-    GT_ITEM_CONTAINER_CLASS(klass)->on_clear = on_clear;
 
     props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query", NULL, G_PARAM_READWRITE);
 
@@ -349,8 +313,6 @@ gt_followed_channel_container_init(GtFollowedChannelContainer* self)
     GtFollowedChannelContainerPrivate* priv = gt_followed_channel_container_get_instance_private(self);
 
     priv->item_flow = gt_item_container_get_flow_box(GT_ITEM_CONTAINER(self));
-
-    g_mutex_init(&priv->mutex);
 }
 
 GtFollowedChannelContainer*

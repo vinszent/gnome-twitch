@@ -48,8 +48,6 @@ refresh(GtContainerView* view)
     /* NOTE: Our only container is the followed_container so we can
      * safely call this without checking */
     gt_follows_manager_refresh(main_app->fav_mgr);
-
-    gt_item_container_refresh(GT_ITEM_CONTAINER(container));
 }
 
 static void
