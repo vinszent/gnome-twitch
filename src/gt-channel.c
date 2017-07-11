@@ -152,8 +152,8 @@ auto_update_set_cb(GObject* src,
 
     if (priv->auto_update)
     {
-        priv->update_id = g_timeout_add_seconds_full(G_PRIORITY_DEFAULT, 120, /* TODO: Add the timeout as a setting */
-            auto_update_cb, utils_create_weak_ref(self), (GDestroyNotify) utils_free_weak_ref);
+        priv->update_id = g_timeout_add_seconds_full(G_PRIORITY_LOW, 120, /* TODO: Add the timeout as a setting */
+            auto_update_cb, utils_weak_ref_new(self), (GDestroyNotify) utils_weak_ref_free);
     }
     else
         g_source_remove(priv->update_id);
