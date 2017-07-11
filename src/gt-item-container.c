@@ -402,17 +402,10 @@ gt_item_container_refresh(GtItemContainer* self)
 
     DEBUG("Refreshing");
 
-    if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh)
-    {
-        GList* items = g_hash_table_get_values(priv->items);
-
-        GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh(self, items);
-        g_list_free(items);
-    }
-
-    /* NOTE: We don't use free_full because the items are owned by the item_flow children */
-    g_hash_table_steal_all(priv->items);
     utils_container_clear(GTK_CONTAINER(priv->item_flow));
+
+    /* NOTE: No need to free items as they are owned by the children */
+    g_hash_table_steal_all(priv->items);
 
     fetch_items(self);
 }
