@@ -39,8 +39,8 @@ typedef struct
 {
     gboolean search_offline;
     gchar* query;
-    GMutex mutex;
-    GCond cond;
+    JsonParser* json_parser;
+    GCancellable* cancel;
 } GtSearchChannelContainerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtSearchChannelContainer, gt_search_channel_container, GT_TYPE_ITEM_CONTAINER);
@@ -72,81 +72,102 @@ get_properties(GtItemContainer* self,
 }
 
 static void
-cancelled_cb(GCancellable* cancel,
-    gpointer udata)
+process_json_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    GtSearchChannelContainer* self = GT_SEARCH_CHANNEL_CONTAINER(udata);
+    DEBUG("Processing json");
+
+    g_autoptr(GtSearchChannelContainer) self = udata;
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GtChannelList) items = NULL;
+    g_autoptr(GError) err = NULL;
 
-    g_assert(GT_IS_SEARCH_CHANNEL_CONTAINER(self));
-    g_assert(G_IS_CANCELLABLE(cancel));
+    json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
-    g_mutex_lock(&priv->mutex);
-    g_cond_signal(&priv->cond);
-    g_mutex_unlock(&priv->mutex);
+    /* TODO: Handle error */
+    if (err) RETURN_IF_REACHED();
+
+    reader = json_reader_new(json_parser_get_root(priv->json_parser));
+
+    /* TODO: Handle error */
+    if (!json_reader_read_member(reader, "streams")) RETURN_IF_REACHED();
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        g_autoptr(GError) err = NULL;
+
+        /* TODO: Handle error */
+        if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED();
+
+        items = g_list_append(items,
+            gt_channel_new(utils_parse_stream_from_json(reader, &err)));
+
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    gt_item_container_append_items(GT_ITEM_CONTAINER(self), g_steal_pointer(&items));
+    gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), FALSE);
 }
 
 static void
-fetch_items(GTask* task, gpointer source, gpointer task_data, GCancellable* cancel)
+handle_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    GtSearchChannelContainer* self = GT_SEARCH_CHANNEL_CONTAINER(source);
+    DEBUG("Received response");
+
+    g_autoptr(GtSearchChannelContainer) self = udata;
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
 
-    g_assert(GT_IS_SEARCH_CHANNEL_CONTAINER(self));
-    g_assert(G_IS_CANCELLABLE(cancel));
-    g_assert(G_IS_TASK(task));
+    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
 
-    if (g_task_return_error_if_cancelled(task))
+    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    {
+        DEBUG("Cancelled");
         return;
+    }
+    else if (err)
+        RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    json_parser_load_from_stream_async(priv->json_parser, istream,
+        priv->cancel, process_json_cb, g_object_ref(self));
+}
+
+static void
+request_extra_items(GtItemContainer* item_container,
+    gint amount, gint offset)
+{
+    RETURN_IF_FAIL(GT_IS_SEARCH_CHANNEL_CONTAINER(item_container));
+    RETURN_IF_FAIL(amount > 0);
+    RETURN_IF_FAIL(amount <= 100);
+    RETURN_IF_FAIL(offset >= 0);
+
+    GtSearchChannelContainer* self = GT_SEARCH_CHANNEL_CONTAINER(item_container);
+    GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
+
+    INFO("Requesting '%d' items at offset '%d' with query '%s'",
+        amount, offset, priv->query);
+
+    utils_refresh_cancellable(&priv->cancel);
 
     if (utils_str_empty(priv->query))
     {
-        g_task_return_pointer(task, NULL, NULL);
-        return;
+        gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), FALSE);
+        gt_item_container_set_items(GT_ITEM_CONTAINER(self), NULL);
     }
-
-    g_assert_nonnull(task_data);
-
-    FetchItemsData* data = task_data;
-
-    g_mutex_lock(&priv->mutex);
-
-    gint64 end_time = g_get_monotonic_time() + SEARCH_DELAY;
-
-    g_cancellable_connect(cancel, G_CALLBACK(cancelled_cb), self, NULL);
-
-    while (!g_cancellable_is_cancelled(cancel))
+    else
     {
-        if (!g_cond_wait_until(&priv->cond, &priv->mutex, end_time))
-        {
-            /* We weren't cancelled */
+        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d",
+            priv->query, amount, offset);
 
-            g_assert(!utils_str_empty(priv->query));
-
-            GError* err = NULL;
-
-            GList* items = gt_twitch_search_channels(main_app->twitch,
-                priv->query, data->amount, data->offset, priv->search_offline, &err);
-
-            //NOTE: This is so online channels will be displayed as online
-            if (priv->search_offline)
-                g_list_foreach(items, (GFunc) gt_channel_update, NULL);
-
-            if (err)
-                g_task_return_error(task, err);
-            else
-                g_task_return_pointer(task, items, (GDestroyNotify) gt_channel_list_free);
-
-            g_mutex_unlock(&priv->mutex);
-
-            return;
-        }
+        soup_session_send_async(main_app->soup, msg, priv->cancel,
+            handle_response_cb, g_object_ref(self));
     }
-
-    /* We were cancelled */
-    g_assert(g_task_return_error_if_cancelled(task));
-
-    g_mutex_unlock(&priv->mutex);
 }
 
 static GtkWidget*
@@ -229,8 +250,8 @@ gt_search_channel_container_class_init(GtSearchChannelContainerClass* klass)
 
     GT_ITEM_CONTAINER_CLASS(klass)->create_child = create_child;
     GT_ITEM_CONTAINER_CLASS(klass)->get_properties = get_properties;
-    GT_ITEM_CONTAINER_CLASS(klass)->fetch_items = fetch_items;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
+    GT_ITEM_CONTAINER_CLASS(klass)->request_extra_items = request_extra_items;
 
     props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query",
         NULL, G_PARAM_READWRITE);
@@ -247,7 +268,10 @@ gt_search_channel_container_init(GtSearchChannelContainer* self)
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
 
     priv->query = NULL;
-    g_mutex_init(&priv->mutex);
+    priv->cancel = NULL;
+    priv->json_parser = json_parser_new();
+
+    gt_item_container_set_items(GT_ITEM_CONTAINER(self), NULL);
 }
 
 GtSearchChannelContainer*
