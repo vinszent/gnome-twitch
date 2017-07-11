@@ -288,6 +288,22 @@ gt_item_container_get_flow_box(GtItemContainer* self)
 }
 
 void
+gt_item_container_append_item(GtItemContainer* self, gpointer item)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+    RETURN_IF_FAIL(item != NULL);
+
+    DEBUG("Appending item");
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+    GtkWidget* child = GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, item);
+
+    g_hash_table_insert(priv->items, item, child);
+    gtk_container_add(GTK_CONTAINER(priv->item_flow), child);
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
+}
+
 gt_item_container_append_items(GtItemContainer* self, GList* items)
 {
     RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));

@@ -45,6 +45,7 @@ struct _GtItemContainerClass
 
 GtkWidget* gt_item_container_get_flow_box(GtItemContainer* self); /* NOTE: Should only be used by children*/
 void gt_item_container_refresh(GtItemContainer* self);
+void gt_item_container_append_item(GtItemContainer* self, gpointer item);
 void gt_item_container_append_items(GtItemContainer* self, GList* items);
 void gt_item_container_set_items(GtItemContainer* self, GList* items);
 void gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_items);
