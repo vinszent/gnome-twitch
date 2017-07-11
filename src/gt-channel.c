@@ -45,8 +45,6 @@ typedef struct
     gchar* error_details;
 
     guint update_id;
-    guint update_set_id;
-    guint notify_source_id;
 
     JsonParser* json_parser;
 
@@ -176,8 +174,6 @@ notify_preview_cb(gpointer udata)
 
     if (priv->error)
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_ERROR]);
-
-    priv->notify_source_id = 0;
 
     return G_SOURCE_REMOVE;
 }
@@ -702,9 +698,6 @@ finalize(GObject* object)
     if (priv->update_id > 0)
         g_source_remove(priv->update_id);
 
-    if (priv->notify_source_id > 0)
-        g_source_remove(priv->notify_source_id);
-
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_followed_cb, self);
     g_signal_handlers_disconnect_by_func(main_app->fav_mgr, channel_unfollowed_cb, self);
 
@@ -880,7 +873,6 @@ gt_channel_init(GtChannel* self)
     priv->cancel = g_cancellable_new();
 
     priv->update_id = 0;
-    priv->update_set_id = 0;
 
     priv->error_message = NULL;
     priv->error_details = NULL;
@@ -942,7 +934,7 @@ gt_channel_toggle_followed(GtChannel* self)
 }
 
 void
-gt_channel_list_free(GList* list)
+gt_channel_list_free(GtChannelList* list)
 {
     g_list_free_full(list, g_object_unref);
 }
@@ -1120,7 +1112,7 @@ gt_channel_data_free(GtChannelData* data)
 }
 
 void
-gt_channel_data_list_free(GList* list)
+gt_channel_data_list_free(GtChannelDataList* list)
 {
     g_list_free_full(list, (GDestroyNotify) gt_channel_data_free);
 }
