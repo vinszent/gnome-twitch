@@ -39,7 +39,6 @@ struct _GtItemContainerClass
     void (*activate_child) (GtItemContainer* item_container, gpointer child);
     /* NOTE: This will be called before the container is cleared. This can be useful if you need
      to do something like disconnect signals from each child. */
-    void (*request_refresh) (GtItemContainer* item_container, GList* items);
     void (*request_extra_items) (GtItemContainer* item_container, gint amount, gint offset);
 };
 
