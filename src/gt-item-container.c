@@ -50,8 +50,6 @@ typedef struct
     guint num_items;
     gboolean fetching_items;
 
-    GCancellable* cancel;
-
     GdkRectangle* alloc;
 } GtItemContainerPrivate;
 
@@ -67,69 +65,11 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 static void
-fetch_items_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
-{
-    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
-
-    GtItemContainer* self = GT_ITEM_CONTAINER(source);
-    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
-
-    g_autoptr(GError) err = NULL;
-
-    /* NOTE: This will be freed when the container is cleared because these items
-       are concatenated onto the internal items list */
-    GList* items = g_task_propagate_pointer(G_TASK(res), &err);
-
-    if (err)
-    {
-        if (!g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-        {
-            GtWin* win = GT_WIN_TOPLEVEL(self);
-
-            RETURN_IF_FAIL(GT_IS_WIN(win));
-
-            WARNING("Unable to fetch items because: %s", err->message);
-
-            gt_win_show_error_message(win, _("Unable to fetch items"),
-                "Unable to fetch items because: %s", err->message);
-
-            gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
-        }
-        else
-            TRACE("Fetch items was cancelled");
-
-        return;
-    }
-
-    priv->items = g_list_concat(priv->items, items);
-
-    for (GList* l = items; l != NULL; l = l->next)
-    {
-        gtk_container_add(GTK_CONTAINER(priv->item_flow),
-            GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data));
-
-        priv->num_items++;
-    }
-
-    if (priv->num_items == 0)
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
-
-    priv->fetching_items = FALSE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
-}
-
-static void
 fetch_items(GtItemContainer* self)
 {
-    g_assert(GT_IS_ITEM_CONTAINER(self));
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
-
-    /* NOTE: Return if we are already fetching items */
-    /* if (priv->fetching_items) */
-    /*     return; */
 
     GtkAdjustment* vadj = gtk_scrolled_window_get_vadjustment(
         GTK_SCROLLED_WINDOW(priv->item_scroll));
@@ -160,22 +100,8 @@ fetch_items(GtItemContainer* self)
 
     guint amount = leftover + columns*3;
 
-    utils_refresh_cancellable(&priv->cancel);
-
-    FetchItemsData* data = g_new(FetchItemsData, 1);
-    data->amount = amount;
-    data->offset = priv->num_items;
-
-    DEBUG("Fetching '%d' items at offset '%d', currently have '%d' items",
-        data->amount, data->offset, priv->num_items);
-
-    GTask* task = g_task_new(self, priv->cancel, fetch_items_cb, NULL);
-    g_task_set_task_data(task, data, g_free);
-    /* g_task_set_return_on_cancel(task, FALSE); */
-
-    g_task_run_in_thread(task, GT_ITEM_CONTAINER_GET_CLASS(self)->fetch_items);
-
-    g_object_unref(task);
+    if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items)
+        GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items(self, amount, priv->num_items);
 }
 
 static void
@@ -190,10 +116,7 @@ append_extra(GtkWidget* widget,
         return;
 
     if (alloc->width < 10 || alloc->height < 10)
-    {
-        g_print("Small alloc\n");
         return;
-    }
 
     gboolean bigger =
         alloc->width > priv->alloc->width ||
@@ -312,8 +235,6 @@ constructed(GObject* obj)
 static void
 gt_item_container_class_init(GtItemContainerClass* klass)
 {
-    klass->on_clear = NULL;
-
     G_OBJECT_CLASS(klass)->set_property = set_property;
     G_OBJECT_CLASS(klass)->get_property = get_property;
     G_OBJECT_CLASS(klass)->constructed = constructed;
@@ -371,6 +292,8 @@ gt_item_container_append_items(GtItemContainer* self, GList* items)
 {
     RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
 
+    DEBUG("Appending items with list length '%d'", g_list_length(items));
+
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
     priv->items = g_list_concat(priv->items, items);
@@ -383,8 +306,6 @@ gt_item_container_append_items(GtItemContainer* self, GList* items)
         priv->num_items++;
     }
 
-    DEBUG("Appended items, total is '%d'", priv->num_items);
-
     if (priv->num_items == 0)
         gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
 }
@@ -393,6 +314,8 @@ void
 gt_item_container_set_items(GtItemContainer* self, GList* items)
 {
     RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+
+    DEBUG("Settings items with list length '%d'", g_list_length(items));
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
@@ -412,8 +335,6 @@ gt_item_container_set_items(GtItemContainer* self, GList* items)
         priv->num_items++;
     }
 
-    DEBUG("Set items, total is '%d'", priv->num_items);
-
     if (priv->num_items == 0)
         gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
 }
@@ -422,6 +343,8 @@ void
 gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_items)
 {
     RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+
+    DEBUG("Setting fetching items to '%s'", PRINT_BOOL(fetching_items));
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
@@ -435,16 +358,17 @@ gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_it
 void
 gt_item_container_refresh(GtItemContainer* self)
 {
-    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
 
-    g_assert(GT_IS_ITEM_CONTAINER(self));
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
     DEBUG("Refreshing");
 
-    if (GT_ITEM_CONTAINER_GET_CLASS(self)->on_clear)
-        GT_ITEM_CONTAINER_GET_CLASS(self)->on_clear(self, priv->items);
+    if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh)
+        GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh(self, priv->items);
 
-    g_list_free(priv->items); /* NOTE: We don't use free_full because the items are owned by the item_flow children */
+    /* NOTE: We don't use free_full because the items are owned by the item_flow children */
+    g_list_free(priv->items);
     priv->items = NULL;
     utils_container_clear(GTK_CONTAINER(priv->item_flow));
 
