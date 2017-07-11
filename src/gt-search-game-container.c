@@ -26,6 +26,9 @@
 #include "gt-game-container-view.h"
 #include "utils.h"
 
+#define TAG "GtSearchGameContainer"
+#include "gnome-twitch/gt-log.h"
+
 #define CHILD_WIDTH 210
 #define CHILD_HEIGHT 320
 #define APPEND_EXTRA FALSE
@@ -34,8 +37,8 @@
 typedef struct
 {
     gchar* query;
-    GMutex mutex;
-    GCond cond;
+    GCancellable* cancel;
+    JsonParser* json_parser;
 } GtSearchGameContainerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtSearchGameContainer, gt_search_game_container, GT_TYPE_ITEM_CONTAINER);
@@ -66,78 +69,117 @@ get_properties(GtItemContainer* self,
 }
 
 static void
-cancelled_cb(GCancellable* cancel,
-    gpointer udata)
+process_json_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    GtSearchGameContainer* self = GT_SEARCH_GAME_CONTAINER(udata);
+    RETURN_IF_FAIL(JSON_IS_PARSER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtSearchGameContainer) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not processing json because we were unreffed while waiting");
+        return;
+    }
+
     GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GtGameList) items = NULL;
+    g_autoptr(GError) err = NULL;
 
-    g_assert(GT_IS_SEARCH_GAME_CONTAINER(self));
-    g_assert(G_IS_CANCELLABLE(cancel));
+    json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
-    g_mutex_lock(&priv->mutex);
-    g_cond_signal(&priv->cond);
-    g_mutex_unlock(&priv->mutex);
+    RETURN_IF_FAIL(err == NULL);
+
+    reader = json_reader_new(json_parser_get_root(priv->json_parser));
+
+    if (!json_reader_read_member(reader, "games")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+        items = g_list_append(items,
+            gt_game_new(utils_parse_game_from_json(reader, &err)));
+
+        RETURN_IF_FAIL(err == NULL); /* FIXME: Handle error */
+
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    gt_item_container_append_items(GT_ITEM_CONTAINER(self), g_steal_pointer(&items));
+    gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), FALSE);
+
 }
 
 static void
-fetch_items(GTask* task, gpointer source, gpointer task_data, GCancellable* cancel)
+handle_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    g_assert(GT_IS_SEARCH_GAME_CONTAINER(source));
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
 
-    GtSearchGameContainer* self = GT_SEARCH_GAME_CONTAINER(source);
-    GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtSearchGameContainer) self = g_weak_ref_get(ref);
 
-    g_assert(G_IS_CANCELLABLE(cancel));
-    g_assert(G_IS_TASK(task));
-
-    if (g_task_return_error_if_cancelled(task))
+    if (!self)
+    {
+        TRACE("Not handling response because we were unreffed while waiting");
         return;
+    }
+
+    GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
+
+    istream = soup_session_send_finish(main_app->soup, res, &err);
+
+    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    {
+        TRACE("Cancelled");
+        return;
+    }
+    else if (err)
+        RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    json_parser_load_from_stream_async(priv->json_parser, istream, priv->cancel,
+        process_json_cb, g_steal_pointer(&ref));
+}
+
+static void
+request_extra_items(GtItemContainer* item_container,
+    gint amount, gint offset)
+{
+    RETURN_IF_FAIL(GT_IS_SEARCH_GAME_CONTAINER(item_container));
+    RETURN_IF_FAIL(amount > 0);
+    RETURN_IF_FAIL(amount <= 100);
+    RETURN_IF_FAIL(offset >= 0);
+
+    GtSearchGameContainer* self = GT_SEARCH_GAME_CONTAINER(item_container);
+    GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
+
+    utils_refresh_cancellable(&priv->cancel);
 
     if (utils_str_empty(priv->query))
     {
-        g_task_return_pointer(task, NULL, NULL);
-        return;
+        gt_item_container_set_fetching_items(item_container, FALSE);
+        gt_item_container_set_items(item_container, NULL);
     }
-
-    g_assert_nonnull(task_data);
-
-    FetchItemsData* data = task_data;
-
-    g_mutex_lock(&priv->mutex);
-
-    gint64 end_time = g_get_monotonic_time() + SEARCH_DELAY;
-
-    g_cancellable_connect(cancel, G_CALLBACK(cancelled_cb), self, NULL);
-
-    while (!g_cancellable_is_cancelled(cancel))
+    else
     {
-        if (!g_cond_wait_until(&priv->cond, &priv->mutex, end_time))
-        {
-            /* We weren't cancelled */
+        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/search/games?query=%s&type=suggest",
+            priv->query, amount, offset);
 
-            g_assert(!utils_str_empty(priv->query));
-
-            GError* err = NULL;
-
-            GList* items = data->offset == 0 ? gt_twitch_search_games(main_app->twitch,
-                priv->query, data->amount, data->offset, &err) : NULL;
-
-            if (err)
-                g_task_return_error(task, err);
-            else
-                g_task_return_pointer(task, items, (GDestroyNotify) gt_game_list_free);
-
-            g_mutex_unlock(&priv->mutex);
-
-            return;
-        }
+        soup_session_send_async(main_app->soup, msg, priv->cancel,
+            handle_response_cb, utils_weak_ref_new(self));
     }
-
-    /* We were cancelled */
-    g_assert(g_task_return_error_if_cancelled(task));
-
-    g_mutex_unlock(&priv->mutex);
 }
 
 static GtkWidget*
@@ -215,7 +257,7 @@ gt_search_game_container_class_init(GtSearchGameContainerClass* klass)
 
     GT_ITEM_CONTAINER_CLASS(klass)->create_child = create_child;
     GT_ITEM_CONTAINER_CLASS(klass)->get_properties = get_properties;
-    GT_ITEM_CONTAINER_CLASS(klass)->fetch_items = fetch_items;
+    GT_ITEM_CONTAINER_CLASS(klass)->request_extra_items = request_extra_items;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
 
     props[PROP_QUERY] = g_param_spec_string("query", "Query", "Current query", NULL, G_PARAM_READWRITE);
@@ -229,7 +271,8 @@ gt_search_game_container_init(GtSearchGameContainer* self)
     GtSearchGameContainerPrivate* priv = gt_search_game_container_get_instance_private(self);
 
     priv->query = NULL;
-    g_mutex_init(&priv->mutex);
+    priv->cancel = NULL;
+    priv->json_parser = json_parser_new();
 }
 
 GtSearchGameContainer*

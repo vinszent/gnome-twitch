@@ -23,6 +23,10 @@
 #include "gt-app.h"
 #include "gt-twitch.h"
 #include "gt-game-container-view.h"
+#include "utils.h"
+
+#define TAG "GtTopGameContainer"
+#include "gnome-twitch/gt-log.h"
 
 #define CHILD_WIDTH 210
 #define CHILD_HEIGHT 320
@@ -30,7 +34,8 @@
 
 typedef struct
 {
-    gpointer tmp;
+    JsonParser* json_parser;
+    GCancellable* cancel;
 } GtTopGameContainerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtTopGameContainer, gt_top_game_container, GT_TYPE_ITEM_CONTAINER);
@@ -52,28 +57,114 @@ get_properties(GtItemContainer* self,
 }
 
 static void
-fetch_items(GTask* task,
-    gpointer source, gpointer task_data,
-    GCancellable* cancel)
+process_json_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    g_assert(G_IS_TASK(task));
+    RETURN_IF_FAIL(JSON_IS_PARSER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
 
-    if (g_task_return_error_if_cancelled(task))
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtTopGameContainer) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not processing json because we were unreffed while waiting");
         return;
+    }
 
-    FetchItemsData* data = task_data;
+    GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GtGameList) items = NULL;
+    g_autoptr(GError) err = NULL;
 
-    g_assert_nonnull(data);
+    json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
-    GError* err = NULL;
+    RETURN_IF_FAIL(err == NULL);
 
-    GList* items = gt_twitch_top_games(main_app->twitch,
-        data->amount, data->offset, &err);
+    reader = json_reader_new(json_parser_get_root(priv->json_parser));
 
-    if (err)
-        g_task_return_error(task, err);
-    else
-        g_task_return_pointer(task, items, (GDestroyNotify) gt_game_list_free);
+    if (!json_reader_read_member(reader, "top")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    {
+        if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+        if (!json_reader_read_member(reader, "game")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+        items = g_list_append(items,
+            gt_game_new(utils_parse_game_from_json(reader, &err)));
+
+        RETURN_IF_FAIL(err == NULL); /* FIXME: Handle error */
+
+        json_reader_end_member(reader);
+
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    gt_item_container_append_items(GT_ITEM_CONTAINER(self), g_steal_pointer(&items));
+    gt_item_container_set_fetching_items(GT_ITEM_CONTAINER(self), FALSE);
+}
+
+static void
+handle_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtTopGameContainer) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not handling response because we were unreffed while waiting");
+        return;
+    }
+
+    GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
+
+    istream = soup_session_send_finish(main_app->soup, res, &err);
+
+    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    {
+        DEBUG("Cancelled");
+        return;
+    }
+    else if (err)
+        RETURN_IF_REACHED();
+
+    json_parser_load_from_stream_async(priv->json_parser, istream,
+        priv->cancel, process_json_cb, g_steal_pointer(&ref));
+}
+
+static void
+request_extra_items(GtItemContainer* item_container,
+    gint amount, gint offset)
+{
+    RETURN_IF_FAIL(GT_IS_TOP_GAME_CONTAINER(item_container));
+    RETURN_IF_FAIL(amount > 0);
+    RETURN_IF_FAIL(amount <= 100);
+    RETURN_IF_FAIL(offset >= 0);
+
+    INFO("Requesting '%d' items at offset '%d'", amount, offset);
+
+    GtTopGameContainer* self = GT_TOP_GAME_CONTAINER(item_container);
+    GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
+
+    utils_refresh_cancellable(&priv->cancel);
+
+    msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d",
+        amount, offset);
+
+    soup_session_send_async(main_app->soup, msg, priv->cancel,
+        handle_response_cb, utils_weak_ref_new(self));
 }
 
 static GtkWidget*
@@ -107,14 +198,16 @@ gt_top_game_container_class_init(GtTopGameContainerClass* klass)
 {
     GT_ITEM_CONTAINER_CLASS(klass)->create_child = create_child;
     GT_ITEM_CONTAINER_CLASS(klass)->get_properties = get_properties;
-    GT_ITEM_CONTAINER_CLASS(klass)->fetch_items = fetch_items;
+    GT_ITEM_CONTAINER_CLASS(klass)->request_extra_items = request_extra_items;
     GT_ITEM_CONTAINER_CLASS(klass)->activate_child = activate_child;
 }
 
 static void
 gt_top_game_container_init(GtTopGameContainer* self)
 {
+    GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
 
+    priv->json_parser = json_parser_new();
 }
 
 GtTopGameContainer*
