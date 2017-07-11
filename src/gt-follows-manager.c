@@ -37,6 +37,9 @@ struct _GtFollowsManagerPrivate
 {
     gboolean loading_follows;
     GCancellable* cancel;
+    JsonParser* json_parser;
+    gint current_offset;
+    GtChannelList* loading_list;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtFollowsManager, gt_follows_manager, G_TYPE_OBJECT)
@@ -451,47 +454,97 @@ logged_in_cb(GObject* source,
 }
 
 static void
-fetch_all_followed_channels_cb(GObject* source,
+handle_channels_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata);
+
+static void
+process_channels_json_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
-    RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(udata));
+    RETURN_IF_FAIL(JSON_IS_PARSER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
 
-    GtFollowsManager* self = GT_FOLLOWS_MANAGER(udata);
-    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
 
-    g_autoptr(GError) err = NULL;
-    GList* list = NULL;
-
-    list = gt_twitch_fetch_all_followed_channels_finish(GT_TWITCH(source), res, &err);
-
-    g_clear_pointer(&self->follow_channels,
-        (GDestroyNotify) gt_channel_list_free);
-
-    if (err)
+    if (!self)
     {
-        if (!g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-        {
-
-            GtWin* win = GT_WIN_ACTIVE;
-
-            RETURN_IF_FAIL(GT_IS_WIN(win));
-
-            WARNING("Unable to fetch Twitch follows because: %s", err->message);
-
-            gt_win_show_error_message(win,
-                _("Unable to fetch your Twitch follows"),
-                err->message);
-
-        }
-
+        TRACE("Not processing followed streams json because we were unreffed while waiting");
         return;
     }
 
-    self->follow_channels = list;
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GError) err = NULL;
+    gint num_elements;
+    gint64 total;
+    g_autoptr(SoupMessage) msg = NULL;
 
-    if (self->follow_channels)
+    json_parser_load_from_stream_finish(priv->json_parser, res, &err);
+
+    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+    reader = json_reader_new(json_parser_get_root(priv->json_parser));
+
+    if (!json_reader_read_member(reader, "_total")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+    total = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "follows")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    num_elements = json_reader_count_elements(reader);
+
+    for (gint i = 0; i < num_elements; i++)
     {
-        for (GList* l = list; l != NULL; l = l->next)
+        GtChannelData* data = NULL;
+        gboolean found = FALSE;
+
+        if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED(); /* FIXME: Handle error */
+        if (!json_reader_read_member(reader, "channel")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+        data = utils_parse_channel_from_json(reader, &err);
+
+        RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+        for (GList* l = priv->loading_list; l != NULL; l = l->next)
+        {
+            GtChannel* chan = GT_CHANNEL(l->data);
+
+            if (STRING_EQUALS(gt_channel_get_id(chan), data->id)
+                && STRING_EQUALS(gt_channel_get_name(chan), data->name))
+            {
+                gt_channel_data_free(data);
+                found = TRUE;
+
+                break;
+            }
+        }
+
+        if (!found)
+            priv->loading_list = g_list_append(priv->loading_list, gt_channel_new(data));
+
+        json_reader_end_member(reader);
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    priv->current_offset += num_elements;
+
+    const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
+
+    if (priv->current_offset < total)
+    {
+        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
+            info->user_id, 100, priv->current_offset);
+
+        soup_session_send_async(main_app->soup, msg, priv->cancel,
+            handle_channels_response_cb, g_steal_pointer(&ref));
+    }
+    else
+    {
+        for (GList* l = priv->loading_list; l != NULL; l = l->next)
         {
             GtChannel* chan = l->data;
 
@@ -514,12 +567,154 @@ fetch_all_followed_channels_cb(GObject* source,
             g_signal_handlers_unblock_by_func(chan, channel_followed_cb, self);
         }
 
+        gt_channel_list_free(self->follow_channels);
+        self->follow_channels = priv->loading_list;
+        priv->loading_list = NULL;
+
+        priv->loading_follows = FALSE;
+        g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
+
+        MESSAGE("Loaded '%d' follows", g_list_length(self->follow_channels));
+    }
+}
+
+static void
+handle_channels_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not handling followed channels response because we were unreffed while waiting");
+        return;
     }
 
-    MESSAGE("Loaded '%d' follows from Twitch", g_list_length(self->follow_channels));
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
 
-    priv->loading_follows = FALSE;
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
+    istream = soup_session_send_finish(main_app->soup, res, &err);
+
+    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+    json_parser_load_from_stream_async(priv->json_parser, istream, priv->cancel,
+        process_channels_json_cb, g_steal_pointer(&ref));
+}
+
+static void
+handle_streams_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata);
+
+static void
+process_streams_json_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(JSON_IS_PARSER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not processing followed channels json because we were unreffed while waiting");
+        return;
+    }
+
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(JsonReader) reader = NULL;
+    g_autoptr(GError) err = NULL;
+    gint num_elements;
+    gint64 total;
+    g_autoptr(SoupMessage) msg = NULL;
+
+    json_parser_load_from_stream_finish(priv->json_parser, res, &err);
+
+    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+    reader = json_reader_new(json_parser_get_root(priv->json_parser));
+
+    if (!json_reader_read_member(reader, "_total")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+    total = json_reader_get_int_value(reader);
+    json_reader_end_member(reader);
+
+    if (!json_reader_read_member(reader, "streams")) RETURN_IF_REACHED(); /* FIXME: Handle error */
+
+    num_elements = json_reader_count_elements(reader);
+
+    for (gint i = 0; i < num_elements; i++)
+    {
+        json_reader_read_element(reader, i);
+
+        priv->loading_list = g_list_append(priv->loading_list,
+            gt_channel_new(utils_parse_stream_from_json(reader, &err)));
+
+        RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+        json_reader_end_element(reader);
+    }
+
+    json_reader_end_member(reader);
+
+    priv->current_offset += num_elements;
+
+    const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
+
+    if (priv->current_offset < total)
+    {
+
+        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
+            info->oauth_token, 100, priv->current_offset);
+
+        soup_session_send_async(main_app->soup, msg, priv->cancel,
+            handle_streams_response_cb, g_steal_pointer(&ref));
+    }
+    else
+    {
+        priv->current_offset = 0;
+
+        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
+            info->user_id, 100, 0);
+
+        soup_session_send_async(main_app->soup, msg, priv->cancel,
+            handle_channels_response_cb, g_steal_pointer(&ref));
+    }
+}
+
+static void
+handle_streams_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not handling followed channels response because we were unreffed while waiting");
+        return;
+    }
+
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
+
+    istream = soup_session_send_finish(main_app->soup, res, &err);
+
+    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+
+    json_parser_load_from_stream_async(priv->json_parser, istream, priv->cancel,
+        process_streams_json_cb, g_steal_pointer(&ref));
 }
 
 static void
@@ -592,6 +787,11 @@ gt_follows_manager_init(GtFollowsManager* self)
 {
     g_assert(GT_IS_FOLLOWS_MANAGER(self));
 
+    GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+
+    priv->json_parser = json_parser_new();
+    priv->loading_list = NULL;
+
     self->follow_channels = NULL;
 
     g_autofree gchar* old_fp = OLD_FAV_CHANNELS_FILE;
@@ -611,6 +811,7 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
     RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(self));
 
     GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
 
     priv->loading_follows = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
@@ -619,8 +820,13 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
 
     utils_refresh_cancellable(&priv->cancel);
 
-    gt_twitch_fetch_all_followed_channels_async(main_app->twitch,
-        info->user_id, info->oauth_token, priv->cancel, fetch_all_followed_channels_cb, self);
+    priv->current_offset = 0;
+
+    msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
+        info->oauth_token, 100, 0);
+
+    soup_session_send_async(main_app->soup, msg, priv->cancel,
+        handle_streams_response_cb, utils_weak_ref_new(self));
 }
 
 void
@@ -693,7 +899,7 @@ gt_follows_manager_save(GtFollowsManager* self)
 
     g_autofree gchar* fp = FAV_CHANNELS_FILE;
 
-    MESSAGE("Saving follows fo file '%s'", fp);
+    MESSAGE("Saving follows to file '%s'", fp);
 
     if (g_list_length(self->follow_channels) == 0)
     {
