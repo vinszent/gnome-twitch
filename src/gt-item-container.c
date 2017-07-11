@@ -46,8 +46,7 @@ typedef struct
     gchar* fetching_label_text;
     gchar* error_label_text;
 
-    GList* items;
-    guint num_items;
+    GHashTable* items;
     gboolean fetching_items;
 
     GdkRectangle* alloc;
@@ -73,8 +72,9 @@ fetch_items(GtItemContainer* self)
 
     GtkAdjustment* vadj = gtk_scrolled_window_get_vadjustment(
         GTK_SCROLLED_WINDOW(priv->item_scroll));
+    gint num_items = g_hash_table_size(priv->items);
 
-    guint height = priv->num_items == 0 ?
+    guint height = num_items == 0 ?
         gtk_widget_get_allocated_height(GTK_WIDGET(self)) :
         ROUND(gtk_adjustment_get_upper(vadj));
 
@@ -96,12 +96,12 @@ fetch_items(GtItemContainer* self)
     guint columns = width / priv->child_width;
     guint rows = height / priv->child_height;
 
-    guint leftover = MAX(columns*rows - priv->num_items , 0);
+    guint leftover = MAX(columns*rows - num_items , 0);
 
     guint amount = leftover + columns*3;
 
     if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items)
-        GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items(self, amount, priv->num_items);
+        GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items(self, amount, num_items);
 }
 
 static void
@@ -265,8 +265,7 @@ gt_item_container_init(GtItemContainer* self)
 {
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
-    priv->items = NULL;
-    priv->num_items = 0;
+    priv->items = g_hash_table_new(g_direct_hash, g_direct_equal);
     priv->alloc = g_new(GdkRectangle, 1);
     priv->alloc->width = 0;
     priv->alloc->height = 0;
@@ -304,6 +303,7 @@ gt_item_container_append_item(GtItemContainer* self, gpointer item)
     gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 }
 
+void
 gt_item_container_append_items(GtItemContainer* self, GList* items)
 {
     RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
@@ -312,18 +312,18 @@ gt_item_container_append_items(GtItemContainer* self, GList* items)
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
-    priv->items = g_list_concat(priv->items, items);
-
     for (GList* l = items; l != NULL; l = l->next)
     {
-        gtk_container_add(GTK_CONTAINER(priv->item_flow),
-            GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data));
+        GtkWidget* child = GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data);
 
-        priv->num_items++;
+        g_hash_table_insert(priv->items, l->data, child);
+        gtk_container_add(GTK_CONTAINER(priv->item_flow), child);
     }
 
-    if (priv->num_items == 0)
+    if (g_hash_table_size(priv->items) == 0)
         gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 }
 
 void
@@ -337,21 +337,43 @@ gt_item_container_set_items(GtItemContainer* self, GList* items)
 
     utils_container_clear(GTK_CONTAINER(priv->item_flow));
 
-    g_list_free(priv->items);
-
-    priv->num_items = 0;
-
-    priv->items = items;
+    /* NOTE: We don't call any free funcs here because all data is
+     * owned by the children */
+    g_hash_table_steal_all(priv->items);
 
     for (GList* l = items; l != NULL; l = l->next)
     {
-        gtk_container_add(GTK_CONTAINER(priv->item_flow),
-            GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data));
+        GtkWidget* child = GT_ITEM_CONTAINER_GET_CLASS(self)->create_child(self, l->data);
 
-        priv->num_items++;
+        g_hash_table_insert(priv->items, l->data, child);
+        gtk_container_add(GTK_CONTAINER(priv->item_flow), child);
     }
 
-    if (priv->num_items == 0)
+    if (g_hash_table_size(priv->items) == 0)
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
+}
+
+void
+gt_item_container_remove_item(GtItemContainer* self, gpointer item)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+    RETURN_IF_FAIL(item != NULL);
+
+    DEBUG("Removing item");
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+
+    GtkWidget* child = g_hash_table_lookup(priv->items, item);
+
+    RETURN_IF_FAIL(GTK_IS_WIDGET(child));
+
+    g_hash_table_steal(priv->items, item);
+
+    gtk_container_remove(GTK_CONTAINER(priv->item_flow), child);
+
+    if (g_hash_table_size(priv->items) == 0)
         gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
 }
 
@@ -381,14 +403,16 @@ gt_item_container_refresh(GtItemContainer* self)
     DEBUG("Refreshing");
 
     if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh)
-        GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh(self, priv->items);
+    {
+        GList* items = g_hash_table_get_values(priv->items);
+
+        GT_ITEM_CONTAINER_GET_CLASS(self)->request_refresh(self, items);
+        g_list_free(items);
+    }
 
     /* NOTE: We don't use free_full because the items are owned by the item_flow children */
-    g_list_free(priv->items);
-    priv->items = NULL;
+    g_hash_table_steal_all(priv->items);
     utils_container_clear(GTK_CONTAINER(priv->item_flow));
-
-    priv->num_items = 0;
 
     fetch_items(self);
 }
