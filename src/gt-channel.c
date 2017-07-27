@@ -135,6 +135,9 @@ auto_update_cb(gpointer udata)
         return G_SOURCE_REMOVE;
     }
 
+    g_object_set_data_full(G_OBJECT(self), "category",
+        g_strdup("gt-channel-auto-update"), g_free);
+
     gt_channel_update(self);
 
     return G_SOURCE_CONTINUE;
@@ -311,9 +314,8 @@ update_preview(GtChannel* self)
 
         msg = utils_create_twitch_request_v(priv->data->preview_url);
 
-        soup_message_set_priority(msg, SOUP_MESSAGE_PRIORITY_LOW);
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_preview_response_cb, utils_weak_ref_new(self));
+        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
+            msg, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
@@ -343,9 +345,8 @@ update_preview(GtChannel* self)
                 "save-preview", GINT_TO_POINTER(TRUE));
         }
 
-        soup_message_set_priority(msg, SOUP_MESSAGE_PRIORITY_LOW);
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_preview_response_cb, utils_weak_ref_new(self));
+        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
+            msg, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
     }
     else
     {
@@ -362,6 +363,9 @@ update_preview(GtChannel* self)
 
         notify_preview_cb(self);
     }
+
+    /* Restore normal category in case it was the auto-update category */
+    g_object_set_data_full(G_OBJECT(self), "category", g_strdup("gt-channel"), g_free);
 }
 
 static void
@@ -605,9 +609,9 @@ process_stream_json_cb(GObject* source,
     {
         g_autoptr(SoupMessage) msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/channels/%s",
             priv->data->id);
-        soup_message_set_priority(msg, SOUP_MESSAGE_PRIORITY_LOW);
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_channel_response_cb, g_steal_pointer(&ref));
+
+        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
+            msg, priv->cancel, handle_channel_response_cb, g_steal_pointer(&ref));
     }
     else
     {
@@ -884,6 +888,9 @@ gt_channel_init(GtChannel* self)
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
 
     gt_follows_manager_attach_to_channel(main_app->fav_mgr, self);
+
+    /* NOTE: Set the initial category to the 'default' one */
+    g_object_set_data_full(G_OBJECT(self), "category", g_strdup("gt-channel"), g_free);
 }
 
 GtChannel*
@@ -1060,10 +1067,9 @@ gt_channel_update(GtChannel* self)
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
     msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/%s", priv->data->id);
-    soup_message_set_priority(msg, SOUP_MESSAGE_PRIORITY_LOW);
 
-    soup_session_send_async(main_app->soup, msg, priv->cancel,
-        handle_stream_response_cb, utils_weak_ref_new(self));
+    gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
+        msg, priv->cancel, handle_stream_response_cb, utils_weak_ref_new(self));
 
     return TRUE;
 }

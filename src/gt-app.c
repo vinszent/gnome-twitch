@@ -43,6 +43,8 @@ struct _GtAppPrivate
     gchar* language_filter;
 
     GCancellable* open_channel_cancel;
+    GHashTable* soup_inflight_table;
+    GQueue* soup_message_queue;
 };
 
 gint LOG_LEVEL = GT_LOG_LEVEL_MESSAGE;
@@ -418,6 +420,20 @@ shutdown(GApplication* app)
 }
 
 static void
+dispose(GObject* object)
+{
+    g_assert(GT_IS_APP(object));
+
+    GtApp* self = GT_APP(object);
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+
+    g_hash_table_unref(priv->soup_inflight_table);
+    g_queue_free_full(priv->soup_message_queue, g_object_unref);
+
+    G_OBJECT_CLASS(gt_app_parent_class)->dispose(object);
+}
+
+static void
 get_property (GObject* obj, guint prop,
     GValue* val, GParamSpec* pspec)
 {
@@ -460,6 +476,8 @@ gt_app_class_init(GtAppClass* klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
+    G_OBJECT_CLASS(klass)->dispose = dispose;
+
     G_APPLICATION_CLASS(klass)->activate = activate;
     G_APPLICATION_CLASS(klass)->startup = startup;
     G_APPLICATION_CLASS(klass)->shutdown = shutdown;
@@ -482,6 +500,8 @@ gt_app_init(GtApp* self)
     GtAppPrivate* priv = gt_app_get_instance_private(self);
 
     priv->oauth_info = gt_oauth_info_new();
+    priv->soup_inflight_table = g_hash_table_new(g_str_hash, g_str_equal);
+    priv->soup_message_queue = g_queue_new();
 
     g_application_add_main_option_entries(G_APPLICATION(self), cli_options);
 
@@ -619,6 +639,131 @@ gt_app_should_show_notifications(GtApp* self)
     g_assert(GT_IS_APP(self));
 
     return g_settings_get_boolean(main_app->settings, "show-notifications");
+}
+
+/* NOTE: This rate limits messages for different parts of the code so
+ * one part can't just spam messages */
+#define MAX_MESSAGES_INFLIGHT 1
+
+static void
+soup_queue_message_cancelled_cb(GCancellable* cancel, gpointer udata)
+{
+    RETURN_IF_FAIL(G_IS_CANCELLABLE(cancel));
+    RETURN_IF_FAIL(udata != NULL);
+
+    GtAppPrivate* priv = gt_app_get_instance_private(main_app);
+    GWeakRef* ref = udata; /* NOTE: The signal will automatically clean this up */
+    g_autoptr(SoupMessage) msg = g_weak_ref_get(ref);
+
+    if (!msg)
+    {
+        TRACE("Unreffed while waiting");
+        return;
+    }
+
+    RETURN_IF_FAIL(g_queue_remove(priv->soup_message_queue, msg));
+    g_object_unref(msg); /* NOTE: Remove the queue's ref */
+}
+
+static void
+soup_message_finished_cb(SoupMessage* msg, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_MESSAGE(msg));
+    RETURN_IF_FAIL(G_IS_CANCELLABLE(udata));
+
+    GCancellable* cancel = udata;
+    GtAppPrivate* priv = gt_app_get_instance_private(main_app);
+    const gulong* cancel_id = g_object_get_data(G_OBJECT(msg), "cancel-id");
+
+    const gchar* category = g_object_get_data(G_OBJECT(msg), "category");
+
+    TRACE("Finished sending message for category '%s'", category);
+
+    g_hash_table_insert(priv->soup_inflight_table, g_strdup(category), GINT_TO_POINTER(
+            GPOINTER_TO_INT(g_hash_table_lookup(priv->soup_inflight_table, category)) - 1));
+
+    if (cancel_id)
+        g_cancellable_disconnect(cancel, *cancel_id);
+
+    gint inflight = 0;
+    guint i;
+    g_autoptr(SoupMessage) next_msg = NULL;
+
+    for (i = 0; i < g_queue_get_length(priv->soup_message_queue); i++)
+    {
+        next_msg = g_queue_peek_nth(priv->soup_message_queue, i);
+
+        category = g_object_get_data(G_OBJECT(next_msg), "category");
+
+        inflight = GPOINTER_TO_INT(g_hash_table_lookup(priv->soup_inflight_table, category));
+
+        if (inflight < MAX_MESSAGES_INFLIGHT)
+            break;
+
+        next_msg = NULL;
+    }
+
+    next_msg = g_queue_pop_nth(priv->soup_message_queue, i);
+
+    if (next_msg)
+    {
+        g_hash_table_insert(priv->soup_inflight_table, g_strdup(category), GINT_TO_POINTER(inflight + 1));
+
+        soup_session_send_async(main_app->soup, next_msg,
+            g_object_get_data(G_OBJECT(next_msg), "cancel"),
+            g_object_get_data(G_OBJECT(next_msg), "callback"),
+            g_object_get_data(G_OBJECT(next_msg), "user-data"));
+
+        TRACE("Sending message for category '%s'", category);
+    }
+    else
+        TRACE("Too many messages in flight");
+}
+
+/* NOTE: This func rate limits sending of messages from different
+ * categories. This is handy because GtChannel which auto-updates
+ * might have 100+ messages to send and we don't want to hog all of
+ * GLibs threads. */
+void
+gt_app_queue_soup_message(GtApp* self, const gchar* category, SoupMessage* msg,
+    GCancellable* cancel, GAsyncReadyCallback callback, gpointer udata)
+{
+    GtAppPrivate* priv = gt_app_get_instance_private(self);
+    gpointer inflight;
+
+    g_object_set_data_full(G_OBJECT(msg), "category", g_strdup(category), g_free);
+
+    /* NOTE: Investigate whether cancel needs to be referenced at all */
+    g_signal_connect_object(msg, "finished", G_CALLBACK(soup_message_finished_cb), cancel, 0);
+
+    if ((inflight = g_hash_table_lookup(priv->soup_inflight_table, category)) != NULL
+        && GPOINTER_TO_INT(inflight) >= MAX_MESSAGES_INFLIGHT)
+    {
+        gulong cancel_id;
+
+        TRACE("Queueing message for category '%s'", category);
+
+        g_object_set_data(G_OBJECT(msg), "callback", callback);
+        g_object_set_data(G_OBJECT(msg), "user-data", udata);
+        g_object_set_data_full(G_OBJECT(msg), "cancel", g_object_ref(cancel), g_object_unref);
+
+        cancel_id = g_cancellable_connect(cancel, G_CALLBACK(soup_queue_message_cancelled_cb),
+            utils_weak_ref_new(msg), (GDestroyNotify) utils_weak_ref_free);
+
+        g_object_set_data_full(G_OBJECT(msg), "cancel-id",
+            g_memdup(&cancel_id, sizeof(gulong)), g_free);
+
+        g_queue_push_tail(priv->soup_message_queue, g_object_ref(msg));
+    }
+    else
+    {
+        TRACE("Sending message for category '%s'", category);
+
+        g_hash_table_insert(priv->soup_inflight_table, g_strdup(category),
+            GINT_TO_POINTER(GPOINTER_TO_INT(inflight) + 1));
+
+        soup_session_send_async(self->soup, msg, cancel, callback, udata);
+    }
 }
 
 GtUserInfo*

@@ -168,8 +168,8 @@ request_extra_items(GtItemContainer* item_container,
     msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s&language=%s",
         amount, offset, priv->game, gt_app_get_language_filter(main_app));
 
-    soup_session_send_async(main_app->soup, msg, priv->cancel,
-        handle_response_cb, utils_weak_ref_new(self));
+    gt_app_queue_soup_message(main_app, "item-container", msg,
+        priv->cancel, handle_response_cb, utils_weak_ref_new(self));
 }
 
 static GtkWidget*
