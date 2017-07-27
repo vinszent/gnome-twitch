@@ -75,13 +75,30 @@ static void
 process_json_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
+    RETURN_IF_FAIL(JSON_IS_PARSER(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
     DEBUG("Processing json");
 
-    g_autoptr(GtSearchChannelContainer) self = udata;
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtSearchChannelContainer) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Unreffed while waiting");
+        return;
+    }
+
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
     g_autoptr(JsonReader) reader = NULL;
     g_autoptr(GtChannelList) items = NULL;
     g_autoptr(GError) err = NULL;
+    gint amount = GPOINTER_TO_INT(g_object_steal_data(G_OBJECT(self), "amount"));
+    gint offset = GPOINTER_TO_INT(g_object_steal_data(G_OBJECT(self), "offset"));
+    gboolean offline = GPOINTER_TO_INT(g_object_steal_data(G_OBJECT(self), "offline"));
+    gint total;
+    gint page_amount = offline ? 100 : 90;
 
     json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
@@ -91,9 +108,11 @@ process_json_cb(GObject* source,
     reader = json_reader_new(json_parser_get_root(priv->json_parser));
 
     /* TODO: Handle error */
-    if (!json_reader_read_member(reader, "streams")) RETURN_IF_REACHED();
+    if (!json_reader_read_member(reader, offline ? "channels" : "streams")) RETURN_IF_REACHED();
 
-    for (gint i = 0; i < json_reader_count_elements(reader); i++)
+    total = MIN(amount + offset % page_amount, json_reader_count_elements(reader));
+
+    for (gint i = offset % page_amount; i < total; i++)
     {
         g_autoptr(GError) err = NULL;
 
@@ -101,7 +120,9 @@ process_json_cb(GObject* source,
         if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED();
 
         items = g_list_append(items,
-            gt_channel_new(utils_parse_stream_from_json(reader, &err)));
+            gt_channel_new(offline ?
+                utils_parse_channel_from_json(reader, &err) :
+                utils_parse_stream_from_json(reader, &err)));
 
         json_reader_end_element(reader);
     }
@@ -116,9 +137,21 @@ static void
 handle_response_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
     DEBUG("Received response");
 
-    g_autoptr(GtSearchChannelContainer) self = udata;
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtSearchChannelContainer) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Unreffed while waiting");
+        return;
+    }
+
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
     g_autoptr(GInputStream) istream = NULL;
     g_autoptr(GError) err = NULL;
@@ -134,8 +167,10 @@ handle_response_cb(GObject* source,
         RETURN_IF_REACHED(); /* FIXME: Handle error */
 
     json_parser_load_from_stream_async(priv->json_parser, istream,
-        priv->cancel, process_json_cb, g_object_ref(self));
+        priv->cancel, process_json_cb, g_steal_pointer(&ref));
 }
+
+#define SEARCH_AMOUNT 100
 
 static void
 request_extra_items(GtItemContainer* item_container,
@@ -149,6 +184,7 @@ request_extra_items(GtItemContainer* item_container,
     GtSearchChannelContainer* self = GT_SEARCH_CHANNEL_CONTAINER(item_container);
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
     g_autoptr(SoupMessage) msg = NULL;
+    const gint page_amount = priv->search_offline ? 100 : 90;
 
     INFO("Requesting '%d' items at offset '%d' with query '%s'",
         amount, offset, priv->query);
@@ -162,8 +198,16 @@ request_extra_items(GtItemContainer* item_container,
     }
     else
     {
-        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d",
-            priv->query, amount, offset);
+        const gchar* uri = priv->search_offline ?
+            "https://api.twitch.tv/kraken/search/channels?query=%s&limit=%d&offset=%d" :
+            "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d";
+
+        msg = utils_create_twitch_request_v(uri, priv->query,
+            SEARCH_AMOUNT, (offset / page_amount) * SEARCH_AMOUNT);
+
+        g_object_set_data(G_OBJECT(self), "amount", GINT_TO_POINTER(amount));
+        g_object_set_data(G_OBJECT(self), "offset", GINT_TO_POINTER(offset));
+        g_object_set_data(G_OBJECT(self), "offline", GINT_TO_POINTER(priv->search_offline));
 
         gt_app_queue_soup_message(main_app, "item-container", msg, priv->cancel,
             handle_response_cb, utils_weak_ref_new(self));
