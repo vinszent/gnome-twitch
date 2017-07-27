@@ -661,8 +661,8 @@ soup_queue_message_cancelled_cb(GCancellable* cancel, gpointer udata)
         return;
     }
 
-    RETURN_IF_FAIL(g_queue_remove(priv->soup_message_queue, msg));
-    g_object_unref(msg); /* NOTE: Remove the queue's ref */
+    if (g_queue_remove(priv->soup_message_queue, msg))
+        g_object_unref(msg); /* NOTE: Remove the queue's ref */
 }
 
 static void
