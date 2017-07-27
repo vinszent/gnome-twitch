@@ -37,8 +37,6 @@ typedef struct
     GdkPixbuf* logo;
 
     GCancellable* cancel;
-
-    guint notify_source_id;
 } GtGamePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtGame, gt_game, G_TYPE_INITIALLY_UNOWNED)
@@ -57,8 +55,6 @@ enum
     NUM_PROPS
 };
 
-static GtResourceDownloader* res_downloader;
-
 static GParamSpec* props[NUM_PROPS];
 
 static gboolean
@@ -74,37 +70,62 @@ notify_preview_cb(gpointer udata)
     priv->updating = FALSE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
-    priv->notify_source_id = 0;
-
     return G_SOURCE_REMOVE;
 }
 
 static void
-download_image_cb(GdkPixbuf* pixbuf, gpointer udata, GError* error)
+handle_preview_download_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
 {
-    RETURN_IF_FAIL(GT_IS_GAME(udata));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
 
-    GtGame* self = GT_GAME(udata);
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtGame) self = g_weak_ref_get(ref);
+
+    if (!self)
+    {
+        TRACE("Not handling preview download because we were unreffed while waiting");
+        return;
+    }
+
     GtGamePrivate* priv = gt_game_get_instance_private(self);
+    g_autoptr(GError) err = NULL;
 
-    /* FIXME: Propagate error */
-    RETURN_IF_FAIL(error == NULL);
+    priv->preview = gdk_pixbuf_new_from_stream_finish(res, &err);
 
-    if (pixbuf)
+    RETURN_IF_FAIL(err == NULL); /* FIXME: Handle error */
+
+    notify_preview_cb(self);
+}
+
+static void
+handle_preview_response_cb(GObject* source,
+    GAsyncResult* res, gpointer udata)
+{
+    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
+    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_autoptr(GWeakRef) ref = udata;
+    g_autoptr(GtGame) self = g_weak_ref_get(ref);
+
+    if (!self)
     {
-        priv->preview = pixbuf;
-
-        utils_pixbuf_scale_simple(&priv->preview,
-            200, 270, GDK_INTERP_BILINEAR);
+        TRACE("Not handling preview response because we were unreffed while waiting");
+        return;
     }
 
-    if (priv->notify_source_id == 0)
-    {
-        /* NOTE: Don't need to ref ourselves because we are in a async
-         * cb */
-        priv->notify_source_id = g_idle_add_full(G_PRIORITY_LOW,
-            notify_preview_cb, self, g_object_unref);
-    }
+    GtGamePrivate* priv = gt_game_get_instance_private(self);
+    g_autoptr(GInputStream) istream = NULL;
+    g_autoptr(GError) err = NULL;
+
+    istream = soup_session_send_finish(main_app->soup, res, &err);
+
+    RETURN_IF_FAIL(err == NULL); /* FIXME: Handle error */
+
+    gdk_pixbuf_new_from_stream_at_scale_async(istream, 200, 270, FALSE,
+        priv->cancel, handle_preview_download_cb, g_steal_pointer(&ref));
 }
 
 static void
@@ -113,24 +134,14 @@ update_preview(GtGame* self)
     RETURN_IF_FAIL(GT_IS_GAME(self));
 
     GtGamePrivate* priv = gt_game_get_instance_private(self);
+    g_autoptr(SoupMessage) msg = NULL;
 
-    /* utils_refresh_cancellable(&priv->cancel); */
+    utils_refresh_cancellable(&priv->cancel);
 
-    /* FIXME: Handle error below */
-    priv->preview = gt_resource_downloader_download_image_immediately(res_downloader,
-        priv->data->preview_url, priv->data->id, download_image_cb, g_object_ref(self), NULL);
+    msg = utils_create_twitch_request(priv->data->preview_url);
 
-    if (priv->preview)
-    {
-        utils_pixbuf_scale_simple(&priv->preview,
-            200, 270, GDK_INTERP_BILINEAR);
-
-        if (priv->notify_source_id == 0)
-        {
-            priv->notify_source_id = g_idle_add_full(G_PRIORITY_LOW,
-                notify_preview_cb, g_object_ref(self), g_object_unref);
-        }
-    }
+    gt_app_queue_soup_message(main_app, "gt-game", msg,
+        priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
 }
 
 static void
@@ -152,6 +163,7 @@ update_from_data(GtGame* self, GtGameData* data)
     {
         if (!STRING_EQUALS(old_data->id, data->id))
         {
+
             GtWin* win = GT_WIN_ACTIVE;
 
             WARNING("Unable to update game with id '%s' and name '%s' because: "
@@ -188,6 +200,9 @@ dispose(GObject* object)
     GtGame* self = GT_GAME(object);
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
+    g_cancellable_cancel(priv->cancel);
+
+    g_clear_object(&priv->cancel);
     g_clear_object(&priv->preview);
     g_clear_object(&priv->logo);
 
@@ -201,9 +216,6 @@ finalize(GObject* object)
     GtGamePrivate* priv = gt_game_get_instance_private(self);
 
     gt_game_data_free(priv->data);
-
-    if (priv->notify_source_id > 0)
-        g_source_remove(priv->notify_source_id);
 
     G_OBJECT_CLASS(gt_game_parent_class)->finalize(object);
 }
@@ -295,16 +307,7 @@ gt_game_class_init(GtGameClass* klass)
     props[PROP_CHANNELS] = g_param_spec_int64("channels", "Channels", "Total channels of game",
         0, G_MAXINT64, 0, G_PARAM_READABLE);
 
-    g_object_class_install_properties(object_class,
-                                      NUM_PROPS,
-                                      props);
-
-    g_autofree gchar* filepath = g_build_filename(g_get_user_cache_dir(), "gnome-twitch", "games", NULL);
-
-    res_downloader = gt_resource_downloader_new_with_cache(filepath);
-    gt_resource_downloader_set_image_filetype(res_downloader, GT_IMAGE_FILETYPE_JPEG);
-
-    g_signal_connect_swapped(main_app, "shutdown", G_CALLBACK(g_object_unref), res_downloader);
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
 }
 
 static void
