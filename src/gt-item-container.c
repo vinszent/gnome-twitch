@@ -404,3 +404,20 @@ gt_item_container_refresh(GtItemContainer* self)
 
     fetch_items(self);
 }
+
+void
+gt_item_container_show_error(GtItemContainer* self, const GError* error)
+{
+    RETURN_IF_FAIL(GT_IS_ITEM_CONTAINER(self));
+    RETURN_IF_FAIL(error != NULL);
+
+    GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
+    GtWin* win = GT_WIN_TOPLEVEL(self);
+
+    RETURN_IF_FAIL(GT_IS_WIN(win));
+
+    gt_win_show_error_message(win, _("Unable to fetch items"),
+        "Unable to fetch items because: %s", error->message);
+
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
+}

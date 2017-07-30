@@ -49,6 +49,7 @@ void gt_item_container_append_items(GtItemContainer* self, GList* items);
 void gt_item_container_set_items(GtItemContainer* self, GList* items);
 void gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_items);
 void gt_item_container_remove_item(GtItemContainer* self, gpointer item);
+void gt_item_container_show_error(GtItemContainer* self, const GError* error);
 
 G_END_DECLS;
 
