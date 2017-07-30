@@ -70,23 +70,52 @@ process_json_cb(GObject* source,
 
     json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
-    /* TODO: Handle error */
-    if (err) RETURN_IF_REACHED();
+    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    {
+        DEBUG("Cancelled");
+        return;
+    }
+    else if (err)
+    {
+        WARNING("Unable to process JSON because: %s", err->message);
+        gt_item_container_show_error(GT_ITEM_CONTAINER(self), err);
+        return;
+    }
 
     reader = json_reader_new(json_parser_get_root(priv->json_parser));
 
-    /* TODO: Handle error */
-    if (!json_reader_read_member(reader, "streams")) RETURN_IF_REACHED();
+    if (!json_reader_read_member(reader, "streams"))
+    {
+        WARNING("Unable to process JSON because: %s",
+            json_reader_get_error(reader)->message);
+        gt_item_container_show_error(GT_ITEM_CONTAINER(self),
+            json_reader_get_error(reader));
+        return;
+    }
 
     for (gint i = 0; i < json_reader_count_elements(reader); i++)
     {
-        g_autoptr(GError) err = NULL;
+        g_autoptr(GtChannelData) data = NULL;
 
-        /* TODO: Handle error */
-        if (!json_reader_read_element(reader, i)) RETURN_IF_REACHED();
+        if (!json_reader_read_element(reader, i))
+        {
+            WARNING("Unable to process JSON because: %s",
+                json_reader_get_error(reader)->message);
+            gt_item_container_show_error(GT_ITEM_CONTAINER(self),
+                json_reader_get_error(reader));
+            return;
+        }
 
-        items = g_list_append(items,
-            gt_channel_new(utils_parse_stream_from_json(reader, &err)));
+        data = utils_parse_stream_from_json(reader, &err);
+
+        if (err)
+        {
+            WARNING("Unable to process JSON because: %s", err->message);
+            gt_item_container_show_error(GT_ITEM_CONTAINER(self), err);
+            return;
+        }
+
+        items = g_list_append(items, gt_channel_new(g_steal_pointer(&data)));
 
         json_reader_end_element(reader);
     }
@@ -116,7 +145,11 @@ handle_response_cb(GObject* source,
         return;
     }
     else if (err)
-        RETURN_IF_REACHED(); /* FIXME: Handle error */
+    {
+        WARNING("Unable to handle response because: %s", err->message);
+        gt_item_container_show_error(GT_ITEM_CONTAINER(self), err);
+        return;
+    }
 
     json_parser_load_from_stream_async(priv->json_parser, istream,
         priv->cancel, process_json_cb, g_object_ref(self));

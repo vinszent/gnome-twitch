@@ -280,7 +280,6 @@ constructed(GObject* obj)
     gtk_flow_box_set_sort_func(GTK_FLOW_BOX(priv->item_flow),
         (GtkFlowBoxSortFunc) sort_by_name_and_online, self, NULL);
 
-    //TODO: Need to refresh everytime a channel is followed or unfollowed
     g_signal_connect(main_app->fav_mgr, "notify::loading-follows", G_CALLBACK(loading_follows_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-followed", G_CALLBACK(channel_followed_cb), self);
     g_signal_connect(main_app->fav_mgr, "channel-unfollowed", G_CALLBACK(channel_unfollowed_cb), self);
