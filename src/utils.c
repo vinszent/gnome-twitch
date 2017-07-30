@@ -412,46 +412,61 @@ utils_parse_json(const gchar* data, GError** error)
     return g_steal_pointer(&reader);
 }
 
+#define RETURN_JSON_ERROR                                       \
+    G_STMT_START                                                \
+    {                                                           \
+        WARNING("Coultn'd parse channel from JSON because: %s", \
+            json_reader_get_error(reader)-> message);           \
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_JSON, \
+            "Couldn't parse channel from JSON because: %s",     \
+            json_reader_get_error(reader)->message);            \
+        return NULL;                                            \
+    } G_STMT_END
+
 GtChannelData*
 utils_parse_channel_from_json(JsonReader* reader, GError** error)
 {
     g_autoptr(GtChannelData) data = gt_channel_data_new();
 
-    if (!json_reader_read_member(reader, "_id")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "_id")) RETURN_JSON_ERROR;
     JsonNode* node = json_reader_get_value(reader);
     if (STRING_EQUALS(json_node_type_name(node), "Integer"))
         data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
     else if (STRING_EQUALS(json_node_type_name(node), "String"))
         data->id = g_strdup(json_reader_get_string_value(reader));
     else
-        RETURN_VAL_IF_REACHED(NULL);
+    {
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_JSON,
+            "Unable to parse game from JSON because: '_id' was of incorrect format");
+        return NULL;
+    }
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "name")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "name")) RETURN_JSON_ERROR;
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "display_name")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "display_name")) RETURN_JSON_ERROR;
     data->display_name = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "status")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "status")) RETURN_JSON_ERROR;
     data->status = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "video_banner")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "video_banner")) RETURN_JSON_ERROR;
     data->video_banner_url = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "logo")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "logo")) RETURN_JSON_ERROR;
     data->logo_url = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "url")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "url")) RETURN_JSON_ERROR;
     data->profile_url = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
@@ -460,32 +475,52 @@ utils_parse_channel_from_json(JsonReader* reader, GError** error)
     return g_steal_pointer(&data);
 }
 
+#undef RETURN_JSON_ERROR
+#define RETURN_JSON_ERROR                                       \
+    G_STMT_START                                                \
+    {                                                           \
+        WARNING("Coultn'd parse stream from JSON because: %s",  \
+            json_reader_get_error(reader)-> message);           \
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_JSON, \
+            "Couldn't parse stream from JSON because: %s",      \
+            json_reader_get_error(reader)->message);            \
+        return NULL;                                            \
+    } G_STMT_END
+
 GtChannelData*
 utils_parse_stream_from_json(JsonReader* reader, GError** error)
 {
     g_autoptr(GtChannelData) data = NULL;
 
-    if (!json_reader_read_member(reader, "channel")) RETURN_VAL_IF_REACHED(NULL);
-    data = utils_parse_channel_from_json(reader, NULL);
+    if (!json_reader_read_member(reader, "channel")) RETURN_JSON_ERROR;
+    data = utils_parse_channel_from_json(reader, error);
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "game")) RETURN_VAL_IF_REACHED(NULL);
+    if (*error) return NULL;
+
+    if (!json_reader_read_member(reader, "game")) RETURN_JSON_ERROR;
     data->game = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "viewers")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "viewers")) RETURN_JSON_ERROR;
     data->viewers = json_reader_get_null_value(reader) ?
         0 : json_reader_get_int_value(reader);
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "created_at")) RETURN_VAL_IF_REACHED(NULL);
+    if (!json_reader_read_member(reader, "created_at")) RETURN_JSON_ERROR;
     data->stream_started_time = json_reader_get_null_value(reader) ?
-        NULL : utils_parse_time_iso_8601(json_reader_get_string_value(reader), NULL); /* FIXME: Handle error */
+        NULL : utils_parse_time_iso_8601(json_reader_get_string_value(reader), error);
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "preview")) RETURN_VAL_IF_REACHED(NULL);
-    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL);
+    if (*error)
+    {
+        g_prefix_error(error, "Unable to parse stream from JSON because: ");
+        return NULL;
+    }
+
+    if (!json_reader_read_member(reader, "preview")) RETURN_JSON_ERROR;
+    if (!json_reader_read_member(reader, "large")) RETURN_JSON_ERROR;
     data->preview_url = json_reader_get_null_value(reader) ?
         NULL : g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
@@ -496,33 +531,49 @@ utils_parse_stream_from_json(JsonReader* reader, GError** error)
     return g_steal_pointer(&data);
 }
 
+#undef RETURN_JSON_ERROR
+#define RETURN_JSON_ERROR                                       \
+    G_STMT_START                                                \
+    {                                                           \
+        WARNING("Coultn'd parse game from JSON because: %s",    \
+            json_reader_get_error(reader)-> message);           \
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_JSON, \
+            "Couldn't parse game from JSON because: %s",        \
+            json_reader_get_error(reader)->message);            \
+        return NULL;                                            \
+    } G_STMT_END
+
 GtGameData*
 utils_parse_game_from_json(JsonReader* reader, GError** error)
 {
     g_autoptr(GtGameData) data = gt_game_data_new();
 
-    if (!json_reader_read_member(reader, "_id")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "_id")) RETURN_JSON_ERROR;
     JsonNode* node = json_reader_get_value(reader);
     if (STRING_EQUALS(json_node_type_name(node), "Integer"))
         data->id = g_strdup_printf("%" G_GINT64_FORMAT, json_reader_get_int_value(reader));
     else if (STRING_EQUALS(json_node_type_name(node), "String"))
         data->id = g_strdup(json_reader_get_string_value(reader));
     else
-        RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    {
+        g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_JSON,
+            "Unable to parse game from JSON because: '_id' was of incorrect format");
+        return NULL;
+    }
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "name")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "name")) RETURN_JSON_ERROR;
     data->name = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "box")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
-    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "box")) RETURN_JSON_ERROR;
+    if (!json_reader_read_member(reader, "large")) RETURN_JSON_ERROR;
     data->preview_url = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
     json_reader_end_member(reader);
 
-    if (!json_reader_read_member(reader, "logo")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
-    if (!json_reader_read_member(reader, "large")) RETURN_VAL_IF_REACHED(NULL); /* FIXME: Handle error */
+    if (!json_reader_read_member(reader, "logo")) RETURN_JSON_ERROR;
+    if (!json_reader_read_member(reader, "large")) RETURN_JSON_ERROR;
     data->logo_url = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
     json_reader_end_member(reader);

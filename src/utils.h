@@ -36,6 +36,7 @@
 typedef enum
 {
     GT_UTILS_ERROR_PARSING_TIME,
+    GT_UTILS_ERROR_JSON,
     GT_UTILS_ERROR_SOUP,
 } GtUtilsError;
 
