@@ -319,11 +319,6 @@ gt_item_container_append_items(GtItemContainer* self, GList* items)
         g_hash_table_insert(priv->items, l->data, child);
         gtk_container_add(GTK_CONTAINER(priv->item_flow), child);
     }
-
-    if (g_hash_table_size(priv->items) == 0)
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
-    else
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 }
 
 void
@@ -348,11 +343,6 @@ gt_item_container_set_items(GtItemContainer* self, GList* items)
         g_hash_table_insert(priv->items, l->data, child);
         gtk_container_add(GTK_CONTAINER(priv->item_flow), child);
     }
-
-    if (g_hash_table_size(priv->items) == 0)
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
-    else
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 }
 
 void
@@ -386,13 +376,18 @@ gt_item_container_set_fetching_items(GtItemContainer* self, gboolean fetching_it
 
     GtItemContainerPrivate* priv = gt_item_container_get_instance_private(self);
 
-    gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
+    if (!fetching_items)
+    {
+        if (g_hash_table_size(priv->items) == 0)
+            gtk_stack_set_visible_child(GTK_STACK(self), priv->empty_box);
+        else
+            gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
+    }
 
     priv->fetching_items = fetching_items;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_FETCHING_ITEMS]);
 }
 
-//TODO: Make this overridable, mainly for GtFollowedChannelContainer
 void
 gt_item_container_refresh(GtItemContainer* self)
 {
