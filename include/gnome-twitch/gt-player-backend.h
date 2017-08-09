@@ -25,7 +25,7 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_PLAYER_BACKEND (gt_player_backend_get_type())
 
-G_DECLARE_INTERFACE(GtPlayerBackend, gt_player_backend, GT, PLAYER_BACKEND, GObject);
+G_DECLARE_INTERFACE(GtPlayerBackend, gt_player_backend, GT, PLAYER_BACKEND, GObject)
 
 struct _GtPlayerBackendInterface
 {
