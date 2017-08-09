@@ -370,7 +370,7 @@ void
 gt_resource_downloader_set_image_filetype(GtResourceDownloader* self, const gchar* image_filetype)
 {
     RETURN_IF_FAIL(GT_IS_RESOURCE_DOWNLOADER(self));
-    RETURN_IF_FAIL(!utils_str_empty(image_filetype))
+    RETURN_IF_FAIL(!utils_str_empty(image_filetype));
 
     GtResourceDownloaderPrivate* priv = gt_resource_downloader_get_instance_private(self);
 
