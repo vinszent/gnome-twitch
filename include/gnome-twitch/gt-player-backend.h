@@ -34,6 +34,13 @@ struct _GtPlayerBackendInterface
     GtkWidget* (*get_widget) (GtPlayerBackend* backend);
 };
 
+/**
+ * gt_player_backend_get_widget
+ *
+ * Returns: (transfer none): The Gtk Widget
+ *
+ * Returns a Gtk.Widget that presents the player to the user
+ */
 GtkWidget* gt_player_backend_get_widget(GtPlayerBackend* backend);
 
 G_END_DECLS
