@@ -136,13 +136,14 @@ pkg.generate(
   version : meson.project_version())
 
 gnome.generate_gir(gt_library,
-            sources: [meson.current_source_dir()+'/../include/gnome-twitch/gt-player-backend.h'],
-            nsversion: api,
-            namespace: 'Gt',
-            dependencies: deps_gt_library,
-            install: true,
-            install_dir_gir: get_option('datadir') + '/gir-1.0',
-            install_dir_typelib: get_option('libdir') + '/girepository-1.0'
+  sources: ['../include/gnome-twitch/gt-player-backend.h'],
+  nsversion: api,
+  namespace: 'Gt',
+  dependencies: deps_gt_library,
+  extra_args: ['--include','Gtk-3.0'],
+  install: true,
+  install_dir_gir: get_option('datadir') + '/gir-1.0',
+  install_dir_typelib: get_option('libdir') + '/girepository-1.0'
 )
 
 deps_gt += gt_library_dep
