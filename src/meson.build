@@ -140,7 +140,7 @@ gnome.generate_gir(gt_library,
   nsversion: api,
   namespace: 'Gt',
   dependencies: deps_gt_library,
-  extra_args: ['--include','Gtk-3.0'],
+  includes: ['Gtk-3.0'],
   install: true,
   install_dir_gir: get_option('datadir') + '/gir-1.0',
   install_dir_typelib: get_option('libdir') + '/girepository-1.0'
