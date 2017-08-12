@@ -143,7 +143,7 @@ gnome.generate_gir(gt_library,
   includes: ['Gtk-3.0'],
   install: true,
   install_dir_gir: join_paths(get_option('datadir'), 'gir-1.0'),
-  install_dir_typelib: join_paths(get_option('libdir'), '/girepository-1.0')
+  install_dir_typelib: join_paths(get_option('libdir'), 'girepository-1.0')
 )
 
 deps_gt += gt_library_dep
