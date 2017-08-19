@@ -86,6 +86,7 @@ src_gt_executable = [
   'gt-game.c',
   'gt-games-container-child.c',
   'gt-vod.c',
+  'gt-channel-vod-container.c',
   'gt-vod-container-child.c',
   'gt-settings-dlg.c',
   'gt-follows-manager.c',
