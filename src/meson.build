@@ -85,6 +85,7 @@ src_gt_executable = [
   'gt-browse-header-bar.c',
   'gt-game.c',
   'gt-games-container-child.c',
+  'gt-vod.c',
   'gt-settings-dlg.c',
   'gt-follows-manager.c',
   'gt-twitch-login-dlg.c',
