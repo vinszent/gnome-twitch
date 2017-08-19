@@ -36,6 +36,7 @@
 
 typedef enum
 {
+    GT_UTILS_ERROR_PARSING_PLAYLIST,
     GT_UTILS_ERROR_PARSING_TIME,
     GT_UTILS_ERROR_JSON,
     GT_UTILS_ERROR_SOUP,
@@ -55,6 +56,15 @@ typedef struct
     gboolean bool_2;
     gboolean bool_3;
 } GenericTaskData;
+
+typedef struct
+{
+    gchar* name;
+    gchar* resolution;
+    gchar* uri;
+} GtPlaylistEntry;
+
+typedef GList GtPlaylistEntryList;
 
 gpointer utils_value_ref_sink_object(const GValue* val);
 gchar* utils_value_dup_string_allow_null(const GValue* val);
@@ -83,7 +93,12 @@ GtChannelData* utils_parse_stream_from_json(JsonReader* reader, GError** error);
 GtChannelData* utils_parse_channel_from_json(JsonReader* reader, GError** error);
 GtGameData* utils_parse_game_from_json(JsonReader* reader, GError** error);
 GtVODData* utils_parse_vod_from_json(JsonReader* reader, GError** error);
+GtPlaylistEntryList* utils_parse_playlist(const gchar* str, GError** error);
+void gt_playlist_entry_free(GtPlaylistEntry* entry);
+void gt_playlist_entry_list_free(GtPlaylistEntryList* list);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GWeakRef, utils_weak_ref_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtPlaylistEntry, gt_playlist_entry_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtPlaylistEntryList, gt_playlist_entry_list_free);
 
 #endif

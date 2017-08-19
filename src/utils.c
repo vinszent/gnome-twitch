@@ -701,3 +701,79 @@ utils_parse_vod_from_json(JsonReader* reader, GError** error)
     return g_steal_pointer(&data);
 }
 
+void
+gt_playlist_entry_free(GtPlaylistEntry* entry)
+{
+    g_free(entry->name);
+    g_free(entry->resolution);
+    g_free(entry->uri);
+    g_slice_free(GtPlaylistEntry, entry);
+}
+
+void
+gt_playlist_entry_list_free(GtPlaylistEntryList* list)
+{
+    g_list_free_full(list, (GDestroyNotify) gt_playlist_entry_free);
+}
+
+GtPlaylistEntryList*
+utils_parse_playlist(const gchar* str, GError** error)
+{
+    g_autoptr(GtPlaylistEntryList) entries = NULL;
+    g_auto(GStrv) lines = g_strsplit(str, "\n", 0);
+
+    for (gchar** l = lines; *l != NULL; l++)
+    {
+        if (strncmp(*l, "#EXT-X-STREAM-INF", 17) == 0)
+        {
+            g_autoptr(GtPlaylistEntry) entry = g_slice_new(GtPlaylistEntry);
+            g_auto(GStrv) values = NULL;
+
+            if (strncmp(*(l - 1), "#EXT-X-MEDIA", 12) != 0)
+            {
+                g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING_PLAYLIST,
+                    "STREAM-INF entry wasn't preceded by a MEDIA entry");
+                return NULL;
+            }
+
+            values = g_strsplit(*(l - 1), ",", 0);
+
+            for (gchar** m = values; *m != NULL; m++)
+            {
+                g_auto(GStrv) split = g_strsplit(*m, "=", 0);
+
+                if (STRING_EQUALS(*split, "NAME"))
+                {
+                    entry->name = g_strdup(*(split + 1));
+                    break;
+                }
+            }
+
+            values = g_strsplit(*l, ",", 0);
+
+            for (gchar** m = values; *m != NULL; m++)
+            {
+                g_auto(GStrv) split = g_strsplit(*m, "=", 0);
+
+                if (STRING_EQUALS(*split, "RESOLUTION"))
+                {
+                    entry->resolution = g_strdup(*(split + 1));
+                    break;
+                }
+            }
+
+            if (!g_str_has_prefix(*(l + 1), "https://"))
+            {
+                g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING_PLAYLIST,
+                    "STREAM-INF entry wasn't succeeded by a uri");
+                return NULL;
+            }
+
+            entry->uri = g_strdup(*(l + 1));
+
+            entries = g_list_append(entries, g_steal_pointer(&entry));
+        }
+    }
+
+    return g_steal_pointer(&entries);
+}
