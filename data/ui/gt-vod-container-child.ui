@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+  Copyright © 2016 Vincent Szolnoky <vinszent@vinszent.com>
+
+  GNOME Twitch is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  GNOME Twitch is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<interface domain="GnomeTwitch">
+  <template class="GtVODContainerChild" parent="GtkFlowBoxChild">
+    <property name="visible">true</property>
+    <property name="width-request">350</property>
+    <property name="height-request">230</property>
+    <property name="valign">start</property>
+    <style>
+      <class name="gt-vod-container-child"/>
+    </style>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">true</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkOverlay" id="preview_overlay">
+            <property name="visible">true</property>
+            <property name="halign">center</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkImage" id="preview_image">
+                <property name="visible">true</property>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkRevealer" id="action_revealer">
+                <property name="visible">true</property>
+                <property name="transition-type">crossfade</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="visible">true</property>
+                    <property name="name">action-box</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">true</property>
+                        <property name="icon-name">media-playback-start</property>
+                        <property name="icon-size">5</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="expand">true</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="title_label">
+            <property name="visible">true</property>
+            <property name="wrap">true</property>
+            <property name="max-width-chars">1</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
