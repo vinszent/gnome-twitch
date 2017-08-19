@@ -111,18 +111,17 @@ gt_executable_link_args = []
 
 gt_library_c_args = gt_executable_c_args
 
-api = '0.2'
-
 if host_machine.system() == 'windows'
   gt_executable_link_args += '-mwindows'
 endif
 
-  # We need to do this because Windows doesn't allow DLLs to be linked
-  # with undefined references. Therefore we move all shared functionality into a
-  # sub-library that plugins can be linked against.
-gt_library = shared_library('gnome-twitch-' + api, src_gt_library,
+# We need to do this because Windows doesn't allow DLLs to be linked
+# with undefined references. Therefore we move all shared functionality into a
+# sub-library that plugins can be linked against.
+gt_library = shared_library('gnome-twitch', src_gt_library,
   include_directories : include_dir,
   dependencies : deps_gt_library,
+  version: meson.project_version(),
   install : true,
   c_args : gt_library_c_args)
 
@@ -132,16 +131,19 @@ gt_library_dep = declare_dependency(
 
 pkg.generate(
   libraries : gt_library,
-  name : 'gnome-twitch-' + api,
+  name : 'gnome-twitch',
   description : 'Library used for building GNOME Twitch plugins',
+  version : meson.project_version(), # Until we hit 1.0
   requires : ['gtk+-3.0', 'libpeas-1.0'],
   install : true,
   version : meson.project_version())
 
 gnome.generate_gir(gt_library,
   sources: [join_paths('..', 'include', 'gnome-twitch', 'gt-player-backend.h')],
-  nsversion: api,
-  namespace: 'Gt',
+  nsversion: meson.project_version(), # Until we hit 1.0
+  namespace: 'GnomeTwitch',
+  symbol_prefix : 'gt',
+  identifier_prefix : 'Gt',
   dependencies: deps_gt_library,
   includes: ['Gtk-3.0'],
   install: true,
