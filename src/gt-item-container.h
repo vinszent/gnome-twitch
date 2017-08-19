@@ -25,7 +25,19 @@ G_BEGIN_DECLS
 
 #define GT_TYPE_ITEM_CONTAINER (gt_item_container_get_type())
 
-G_DECLARE_DERIVABLE_TYPE(GtItemContainer, gt_item_container, GT, ITEM_CONTAINER, GtkStack)
+G_DECLARE_DERIVABLE_TYPE(GtItemContainer, gt_item_container, GT, ITEM_CONTAINER, GtkStack);
+
+typedef struct
+{
+    gint child_width;
+    gint child_height;
+    gboolean append_extra;
+    gchar* empty_label_text;
+    gchar* empty_sub_label_text;
+    gchar* empty_image_name;
+    gchar* error_label_text;
+    gchar* fetching_label_text;
+} GtItemContainerProperties;
 
 struct _GtItemContainerClass
 {
@@ -35,6 +47,7 @@ struct _GtItemContainerClass
     void (*get_properties) (GtItemContainer* item_container, gint* child_width, gint* child_height, gboolean* append_extra,
         gchar** empty_label_text, gchar** empty_sub_label_text, gchar** empty_image_name,
         gchar** error_label_text, gchar** fetching_label_text);
+    void (*get_container_properties) (GtItemContainer* item_container, GtItemContainerProperties* props);
     GtkWidget* (*create_child) (GtItemContainer* item_container, gpointer data);
     void (*activate_child) (GtItemContainer* item_container, gpointer child);
     /* NOTE: This will be called before the container is cleared. This can be useful if you need

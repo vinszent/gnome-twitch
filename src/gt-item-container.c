@@ -46,6 +46,8 @@ typedef struct
     gchar* fetching_label_text;
     gchar* error_label_text;
 
+    GtItemContainerProperties props;
+
     GHashTable* items;
     gboolean fetching_items;
 
@@ -93,8 +95,8 @@ fetch_items(GtItemContainer* self)
 
     gtk_stack_set_visible_child(GTK_STACK(self), priv->item_scroll);
 
-    guint columns = width / priv->child_width;
-    guint rows = height / priv->child_height;
+    guint columns = width / (GT_ITEM_CONTAINER_GET_CLASS(self)->get_container_properties ? priv->props.child_width : priv->child_width);
+    guint rows = height / (GT_ITEM_CONTAINER_GET_CLASS(self)->get_container_properties ? priv->props.child_height : priv->child_height);
 
     guint leftover = MAX(columns*rows - num_items , 0);
 
@@ -211,25 +213,49 @@ constructed(GObject* obj)
     //NOTE: This causes a segfault
     /* G_OBJECT_GET_CLASS(gt_item_container_parent_class)->constructed(obj); */
 
-    GT_ITEM_CONTAINER_GET_CLASS(self)->get_properties(self,
-        &priv->child_width, &priv->child_height, &priv->append_extra,
-        &priv->empty_label_text, &priv->empty_sub_label_text, &priv->empty_image_name,
-        &priv->error_label_text, &priv->fetching_label_text);
-
-    gtk_label_set_text(GTK_LABEL(priv->empty_label), priv->empty_label_text);
-    gtk_label_set_text(GTK_LABEL(priv->empty_sub_label), priv->empty_sub_label_text);
-    gtk_label_set_text(GTK_LABEL(priv->fetching_label), priv->fetching_label_text);
-    gtk_label_set_text(GTK_LABEL(priv->error_label), priv->error_label_text);
-    gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), priv->empty_image_name, GTK_ICON_SIZE_DIALOG);
-
-    //TODO: This should probably be connected to the window's size-allocate
-    if (priv->append_extra)
+    /* TODO: Migrate all containers to new get_container_properties method */
+    if (GT_ITEM_CONTAINER_GET_CLASS(self)->get_container_properties)
     {
-        g_signal_connect(self, "size-allocate", G_CALLBACK(append_extra), self);
-        g_signal_connect(priv->item_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+        GT_ITEM_CONTAINER_GET_CLASS(self)->get_container_properties(self, &priv->props);
+
+        gtk_label_set_text(GTK_LABEL(priv->empty_label), priv->props.empty_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->empty_sub_label), priv->props.empty_sub_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->fetching_label), priv->props.fetching_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->error_label), priv->props.error_label_text);
+        gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), priv->props.empty_image_name, GTK_ICON_SIZE_DIALOG);
+
+        //TODO: This should probably be connected to the window's size-allocate
+        if (priv->props.append_extra)
+        {
+            g_signal_connect(GT_WIN_ACTIVE, "size-allocate", G_CALLBACK(append_extra), self);
+            g_signal_connect(priv->item_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+        }
+
+        g_signal_connect(priv->item_flow, "child-activated", G_CALLBACK(child_activated_cb), self);
+    }
+    else
+    {
+        GT_ITEM_CONTAINER_GET_CLASS(self)->get_properties(self,
+            &priv->child_width, &priv->child_height, &priv->append_extra,
+            &priv->empty_label_text, &priv->empty_sub_label_text, &priv->empty_image_name,
+            &priv->error_label_text, &priv->fetching_label_text);
+
+        gtk_label_set_text(GTK_LABEL(priv->empty_label), priv->empty_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->empty_sub_label), priv->empty_sub_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->fetching_label), priv->fetching_label_text);
+        gtk_label_set_text(GTK_LABEL(priv->error_label), priv->error_label_text);
+        gtk_image_set_from_icon_name(GTK_IMAGE(priv->empty_image), priv->empty_image_name, GTK_ICON_SIZE_DIALOG);
+
+        //TODO: This should probably be connected to the window's size-allocate
+        if (priv->append_extra)
+        {
+            g_signal_connect(self, "size-allocate", G_CALLBACK(append_extra), self);
+            g_signal_connect(priv->item_scroll, "edge-reached", G_CALLBACK(edge_reached_cb), self);
+        }
+
+        g_signal_connect(priv->item_flow, "child-activated", G_CALLBACK(child_activated_cb), self);
     }
 
-    g_signal_connect(priv->item_flow, "child-activated", G_CALLBACK(child_activated_cb), self);
 }
 
 static void
