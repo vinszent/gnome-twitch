@@ -21,6 +21,7 @@
 
 #include "gt-channel.h"
 #include "gt-game.h"
+#include "gt-vod.h"
 #include <gtk/gtk.h>
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
@@ -81,6 +82,7 @@ JsonReader* utils_parse_json(const gchar* data, GError** error);
 GtChannelData* utils_parse_stream_from_json(JsonReader* reader, GError** error);
 GtChannelData* utils_parse_channel_from_json(JsonReader* reader, GError** error);
 GtGameData* utils_parse_game_from_json(JsonReader* reader, GError** error);
+GtVODData* utils_parse_vod_from_json(JsonReader* reader, GError** error);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GWeakRef, utils_weak_ref_free);
 
