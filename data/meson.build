@@ -32,7 +32,7 @@ if (host_machine.system() != 'windows')
     output : 'com.vinszent.GnomeTwitch.appdata.xml',
     po_dir : '../po',
     install : true,
-    install_dir : join_paths(datadir, 'appdata'))
+    install_dir : join_paths(datadir, 'metainfo'))
 endif
 
 icondir = join_paths(datadir, 'icons', 'hicolor')
