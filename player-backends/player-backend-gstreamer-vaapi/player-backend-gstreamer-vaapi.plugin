@@ -1,0 +1,8 @@
+[Plugin]
+Name = GStreamer VA-API player backend
+Module = player-backend-gstreamer-vaapi
+Description = Gstreamer player backend using VA-API for rendering
+Authors = Hyunjun Ko <zzoon@igalia.com>
+Website = https://github.com/vinszent/gnome-twitch
+License =  GPL3
+Loader = C
