@@ -16,6 +16,12 @@
 #header
 {
     margin-bottom: 20px;
+    display: inline-block;
+}
+
+#header div
+{
+    display: inline-block;
 }
 
 body
@@ -83,7 +89,7 @@ body
 
 .news-header
 {
-  padding: 20px;
+    padding: 20px;
 }
 
 .news-header h4
@@ -122,3 +128,37 @@ body
 {
     margin-bottom: 20px;
 }
+
+#logo-get
+{
+    height: 140px;
+}
+
+#logo-contrib
+{
+    height: 48px;
+}
+
+@media screen and (max-width: 720px) {
+    .row
+    {
+        text-align: center;
+        padding: 5px;
+    }
+
+    .col-sm-2, .col-sm-10, .col-md-6
+    {
+        display: inline-block;
+    }
+
+    .col-md-6 + .col-md-6
+    {
+    	margin-top: 10px
+    }
+
+    img
+    {
+    	max-width: 100%;
+    }
+}
+
