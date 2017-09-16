@@ -83,6 +83,7 @@ src_gt_executable = [
   'gt-channels-container-child.c',
   'gt-player-header-bar.c',
   'gt-browse-header-bar.c',
+  'gt-channel-header-bar.c',
   'gt-game.c',
   'gt-games-container-child.c',
   'gt-vod.c',

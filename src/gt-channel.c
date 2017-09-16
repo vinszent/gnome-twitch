@@ -1004,6 +1004,16 @@ gt_channel_get_game_name(GtChannel* self)
     return utils_str_empty(priv->data->game) ? "" : priv->data->game;
 }
 
+const gchar*
+gt_channel_get_status(GtChannel* self)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_CHANNEL(self), NULL);
+
+    GtChannelPrivate* priv = gt_channel_get_instance_private(self);
+
+    return priv->data->status;
+}
+
 gboolean
 gt_channel_is_online(GtChannel* self)
 {

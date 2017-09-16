@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 #include "gt-app.h"
 #include "gt-channel.h"
+#include "gt-vod.h"
 #include "gt-player.h"
 
 #define GT_WIN_TOPLEVEL(w) GT_WIN(gtk_widget_get_ancestor(GTK_WIDGET(w), GTK_TYPE_WINDOW))
@@ -38,10 +39,12 @@ struct _GtWin
     GtkApplicationWindow parent_instance;
 
     GtPlayer* player;
+    GtChannel* open_channel;
 };
 
 GtWin* gt_win_new(GtApp* app);
 void gt_win_open_channel(GtWin* self, GtChannel* chan);
+void gt_win_play_vod(GtWin* self, GtVOD* vod);
 gboolean gt_win_is_fullscreen(GtWin* self);
 void gt_win_toggle_fullscreen(GtWin* self);
 void gt_win_show_info_message(GtWin* self, const gchar* msg_fmt, ...);

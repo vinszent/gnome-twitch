@@ -19,6 +19,9 @@
 #ifndef GT_PLAYER_H
 #define GT_PLAYER_H
 
+#include "gt-channel.h"
+#include "gt-vod.h"
+#include "gt-twitch.h"
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
@@ -26,9 +29,6 @@ G_BEGIN_DECLS
 #define GT_TYPE_PLAYER (gt_player_get_type())
 
 G_DECLARE_FINAL_TYPE(GtPlayer, gt_player, GT, PLAYER, GtkStack)
-
-#include "gt-channel.h"
-#include "gt-twitch.h"
 
 struct _GtPlayer
 {
@@ -49,6 +49,7 @@ typedef struct
 } GtPlayerChannelSettings;
 
 void                     gt_player_open_channel(GtPlayer* self, GtChannel* chan);
+void                     gt_player_open_vod(GtPlayer* self, GtVOD* vod);
 void                     gt_player_close_channel(GtPlayer* self);
 void                     gt_player_play(GtPlayer* self);
 void                     gt_player_stop(GtPlayer* self);

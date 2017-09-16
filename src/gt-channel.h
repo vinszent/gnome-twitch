@@ -60,6 +60,7 @@ const gchar*   gt_channel_get_name(GtChannel* self);
 const gchar*   gt_channel_get_display_name(GtChannel* self);
 const gchar*   gt_channel_get_id(GtChannel* self);
 const gchar*   gt_channel_get_game_name(GtChannel* self);
+const gchar*   gt_channel_get_status(GtChannel* self);
 gboolean       gt_channel_is_online(GtChannel* self);
 gboolean       gt_channel_is_error(GtChannel* self);
 gboolean       gt_channel_is_updating(GtChannel* self);

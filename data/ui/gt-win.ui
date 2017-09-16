@@ -29,6 +29,10 @@
         <property name="transition-type">crossfade</property>
         <property name="transition-duration">300</property>
         <property name="homogeneous">false</property>
+        <property name="visible-child-name"
+                  bind-source="main_stack"
+                  bind-property="visible-child-name"
+                  bind-flags="default"/>
         <child>
           <object class="GtBrowseHeaderBar" id="browse_header_bar">
             <property name="visible">True</property>
@@ -42,6 +46,23 @@
           <packing>
             <property name="name">browse</property>
             <property name="title" translatable="yes">Browse</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtChannelHeaderBar" id="channel_header_bar">
+            <property name="visible">true</property>
+            <child>
+              <object class="GtkStackSwitcher">
+                <property name="visible">true</property>
+                <property name="stack">channel_stack</property>
+              </object>
+              <packing>
+                <property name="pack-type">end</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">channel</property>
           </packing>
         </child>
         <child>
@@ -144,7 +165,7 @@
             <!-- <property name="transition-type">over-right-left</property> -->
             <property name="transition-type">crossfade</property>
             <property name="transition-duration">300</property>
-              <child>
+            <child>
               <object class="GtkStack" id="browse_stack">
                 <property name="visible">True</property>
                 <property name="transition-type">slide-left-right</property>
@@ -178,17 +199,36 @@
               </object>
               <packing>
                 <property name="name">browse</property>
-                <property name="title" translatable="yes">Browse</property>
               </packing>
             </child>
             <child>
-              <object class="GtPlayer" id="player">
-                <property name="visible">True</property>
-                <property name="expand">True</property>
+              <object class="GtkStack" id="channel_stack">
+                <property name="visible">true</property>
+                <child>
+                  <object class="GtPlayer" id="player">
+                    <property name="visible">True</property>
+                    <property name="expand">True</property>
+                  </object>
+                  <packing>
+                    <property name="name">player</property>
+                    <property name="title" translatable="yes">Player</property>
+                    <property name="icon-name">gt-camera-symbolic</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtChannelVODContainer" id="channel_vod_container">
+                    <property name="visible">True</property>
+                    <property name="expand">True</property>
+                  </object>
+                  <packing>
+                    <property name="name">vods</property>
+                    <property name="title" translatable="yes">VODs</property>
+                    <property name="icon-name">gt-film-symbolic</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="name">player</property>
-                <property name="title" translatable="yes">Player</property>
+                <property name="name">channel</property>
               </packing>
             </child>
           </object>

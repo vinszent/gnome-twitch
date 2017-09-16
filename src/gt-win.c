@@ -23,9 +23,11 @@
 #include "gt-player.h"
 #include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
+#include "gt-channel-header-bar.h"
 #include "gt-channel-container-view.h"
 #include "gt-followed-container-view.h"
 #include "gt-game-container-view.h"
+#include "gt-channel-vod-container.h"
 #include "gt-settings-dlg.h"
 #include "gt-twitch-login-dlg.h"
 #include "gt-twitch-channel-info-dlg.h"
@@ -55,6 +57,9 @@ typedef struct
     GtkWidget* browse_stack_switcher;
     GtkWidget* chat_view;
     GtkWidget* player;
+    GtkWidget* channel_stack;
+    GtkWidget* channel_vod_container;
+    GtkWidget* channel_header_bar;
 
     GtkWidget* info_revealer;
     GtkWidget* info_label;
@@ -82,7 +87,8 @@ enum
 {
     PROP_0,
     PROP_FULLSCREEN,
-    NUM_PROPS
+    PROP_OPEN_CHANNEL,
+    NUM_PROPS,
 };
 
 static GParamSpec* props[NUM_PROPS];
@@ -472,6 +478,23 @@ delete_cb(GtkWidget* widget,
 }
 
 static void
+close_channel_cb(GSimpleAction* action,
+    GVariant* arg, gpointer udata)
+{
+    RETURN_IF_FAIL(G_IS_SIMPLE_ACTION(action));
+    RETURN_IF_FAIL(arg == NULL);
+    RETURN_IF_FAIL(GT_IS_WIN(udata));
+
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gt_player_close_channel(GT_PLAYER(self->player));
+
+    gtk_stack_set_visible_child(GTK_STACK(priv->main_stack),
+        priv->browse_stack);
+}
+
+static void
 close_player_cb(GSimpleAction* action,
                 GVariant* arg,
                 gpointer udata)
@@ -550,6 +573,9 @@ get_property (GObject*    obj,
         case PROP_FULLSCREEN:
             g_value_set_boolean(val, priv->fullscreen);
             break;
+        case PROP_OPEN_CHANNEL:
+            g_value_set_object(val, self->open_channel);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -567,6 +593,10 @@ set_property(GObject*      obj,
     {
         case PROP_FULLSCREEN:
             update_fullscreen(self, g_value_get_boolean(val));
+            break;
+        case PROP_OPEN_CHANNEL:
+            g_clear_object(&self->open_channel);
+            self->open_channel = g_value_dup_object(val);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -600,9 +630,10 @@ gt_win_class_init(GtWinClass* klass)
     props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen", "Fullscreen", "Whether window is fullscreen",
         FALSE, G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
-    g_object_class_install_properties(object_class,
-                                      NUM_PROPS,
-                                      props);
+    props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel", "Open channel", "Currenly open channel",
+        GT_TYPE_CHANNEL, G_PARAM_READWRITE);
+
+    g_object_class_install_properties(object_class, NUM_PROPS, props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
                                                 "/com/vinszent/GnomeTwitch/ui/gt-win.ui");
@@ -621,6 +652,9 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_ok_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_details_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, info_bar_close_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channel_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channel_vod_container);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channel_header_bar);
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
     GT_TYPE_PLAYER_HEADER_BAR;
@@ -628,6 +662,8 @@ gt_win_class_init(GtWinClass* klass)
     GT_TYPE_CHANNEL_CONTAINER_VIEW;
     GT_TYPE_FOLLOWED_CONTAINER_VIEW;
     GT_TYPE_GAME_CONTAINER_VIEW;
+    GT_TYPE_CHANNEL_VOD_CONTAINER;
+    GT_TYPE_CHANNEL_HEADER_BAR;
     GT_TYPE_CHAT;
 }
 
@@ -687,17 +723,20 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
 
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    if (gt_player_is_playing(self->player))
-        gt_player_close_channel(self->player);
+    /* if (gt_player_is_playing(self->player)) */
+    /*     gt_player_close_channel(self->player); */
 
     if (gt_channel_is_online(chan))
     {
+        g_object_set(self, "open-channel", chan, NULL);
+
         gt_player_open_channel(GT_PLAYER(self->player), chan);
 
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
-            "player");
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
-            "player");
+        g_object_set(G_OBJECT(priv->channel_vod_container), "channel-id", gt_channel_get_id(chan), NULL);
+
+        gt_item_container_refresh(GT_ITEM_CONTAINER(priv->channel_vod_container));
+
+        gtk_stack_set_visible_child(GTK_STACK(priv->main_stack), priv->channel_stack);
     }
     else
     {
@@ -709,6 +748,18 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
         gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
             "browse");
     }
+}
+
+void
+gt_win_play_vod(GtWin* self, GtVOD* vod)
+{
+    RETURN_IF_FAIL(GT_IS_WIN(self));
+    RETURN_IF_FAIL(GT_IS_VOD(vod));
+
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    gt_player_open_vod(self->player, vod);
+    gtk_stack_set_visible_child(GTK_STACK(priv->channel_stack), GTK_WIDGET(self->player));
 }
 
 gboolean
