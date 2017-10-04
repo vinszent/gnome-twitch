@@ -63,12 +63,14 @@ typedef struct
     GtkWidget* player_overlay;
     GtkWidget* docking_pane;
     GtkWidget* chat_view;
-    GtkWidget* fullscreen_bar_revealer;
-    GtkWidget* fullscreen_bar;
+    GtkWidget* controls_revealer;
     GtkWidget* buffer_revealer;
     GtkWidget* buffer_label;
     GtkWidget* player_widget;
     GtkWidget* reload_button;
+
+    GtkWidget* volume_button;
+    GtkWidget* toggle_chat_button;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -395,7 +397,10 @@ update_docked(GtPlayer* self)
             gtk_container_remove(GTK_CONTAINER(priv->docking_pane), priv->chat_view);
 
         if (gtk_widget_get_parent(priv->chat_view) == NULL)
+        {
             gtk_overlay_add_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view);
+            gtk_overlay_reorder_overlay(GTK_OVERLAY(priv->player_overlay), priv->chat_view, 0);
+        }
 
         g_object_set(priv->chat_view,
             "opacity", priv->cur_channel_settings->opacity,
@@ -435,15 +440,10 @@ motion_cb(GtkWidget* widget,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (gt_win_is_fullscreen(GT_WIN_TOPLEVEL(widget)) && evt->y_root < FULLSCREEN_BAR_REVEAL_HEIGHT)
-    {
-        gtk_widget_set_visible(priv->fullscreen_bar_revealer, TRUE);
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), TRUE);
-    }
+    if (evt->y_root > gtk_widget_get_allocated_height(widget) - FULLSCREEN_BAR_REVEAL_HEIGHT)
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), TRUE);
     else
-    {
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
-    }
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), FALSE);
 
     return GDK_EVENT_PROPAGATE;
 }
@@ -512,7 +512,7 @@ fullscreen_cb(GObject* source,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     if (!gt_win_is_fullscreen(GT_WIN_TOPLEVEL(self)))
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->fullscreen_bar_revealer), FALSE);
+        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), FALSE);
 }
 
 static MousePos
@@ -572,14 +572,23 @@ mouse_pressed_cb(GtkWidget* widget,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    GtkAllocation alloc;
+    if (((GdkEventButton*) evt)->type == GDK_2BUTTON_PRESS)
+    {
+        priv->mouse_pressed = FALSE;
 
-    gtk_widget_get_allocation(priv->chat_view, &alloc);
+        g_object_set(self, "edit-chat", FALSE, NULL);
+    }
+    else
+    {
+        GtkAllocation alloc;
 
-    priv->start_mouse_pos = get_mouse_pos(self, evt->button.x, evt->button.y);
+        gtk_widget_get_allocation(priv->chat_view, &alloc);
 
-    if (priv->start_mouse_pos != MOUSE_POS_OUTSIDE)
-        priv->mouse_pressed = TRUE;
+        priv->start_mouse_pos = get_mouse_pos(self, evt->button.x, evt->button.y);
+
+        if (priv->start_mouse_pos != MOUSE_POS_OUTSIDE)
+            priv->mouse_pressed = TRUE;
+    }
 
     return GDK_EVENT_PROPAGATE;
 }
@@ -947,7 +956,6 @@ realize_cb(GtkWidget* widget,
         G_ACTION_GROUP(priv->action_group));
 
     //NOTE: Hack to get the bar connected properly
-    gtk_widget_realize(priv->fullscreen_bar);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
 
@@ -1039,7 +1047,7 @@ plugin_loaded_cb(PeasEngine* engine,
         gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
 
         priv->player_widget = gt_player_backend_get_widget(priv->backend);
-        gtk_widget_add_events(priv->player_widget, GDK_POINTER_MOTION_MASK);
+        gtk_widget_add_events(priv->player_widget, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
         gtk_widget_set_can_focus(priv->player_widget, TRUE);
         gtk_container_add(GTK_CONTAINER(priv->player_overlay), priv->player_widget);
         gtk_widget_show_all(priv->player_overlay);
@@ -1320,8 +1328,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, empty_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, docking_pane);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_overlay);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, fullscreen_bar_revealer);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, controls_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
@@ -1395,7 +1402,11 @@ gt_player_init(GtPlayer* self)
 
     priv->action_group = g_simple_action_group_new();
 
-    action = g_property_action_new("show_chat", self, "chat-visible");
+    action = g_property_action_new("toggle_playing", self, "playing");
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    g_object_unref(action);
+
+    action = g_property_action_new("toggle_chat", self, "chat-visible");
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
     g_object_unref(action);
 

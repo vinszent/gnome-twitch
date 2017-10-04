@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
- This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
- Copyright © 2017 Vincent Szolnoky <vinszent@vinszent.com>
+     This file is part of GNOME Twitch - 'Enjoy Twitch on your GNU/Linux desktop'
+     Copyright © 2017 Vincent Szolnoky <vinszent@vinszent.com>
 
- GNOME Twitch is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
+     GNOME Twitch is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
 
- GNOME Twitch is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+     GNOME Twitch is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
+     You should have received a copy of the GNU General Public License
+     along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <interface>
   <template class="GtPlayer" parent="GtkStack">
     <style>
-      <class name="gt-player"/>
+     <class name="gt-player"/>
     </style>
     <child>
       <object class="GtkBox" id="empty_box">
@@ -109,73 +109,283 @@
         <property name="visible">true</property>
         <property name="visible-window">false</property>
         <child>
-          <object class="GtkOverlay" id="fullscreen_overlay">
+          <object class="GtkPaned" id="docking_pane">
             <property name="visible">True</property>
+            <property name="position-set">True</property>
             <child>
-              <object class="GtkPaned" id="docking_pane">
+              <object class="GtkOverlay" id="player_overlay">
                 <property name="visible">True</property>
-                <property name="position-set">True</property>
-                <child>
-                  <object class="GtkOverlay" id="player_overlay">
+                <child type="overlay">
+                  <object class="GtkRevealer">
                     <property name="visible">True</property>
-                    <child type="overlay">
-                      <object class="GtkRevealer" id="buffer_revealer">
+                    <property name="can_focus">False</property>
+                    <property name="halign">center</property>
+                    <property name="valign">start</property>
+                    <property name="reveal-child"
+                              bind-source="GtPlayer"
+                              bind-property="edit-chat"
+                              bind-flags="default|sync-create"/>
+                    <child>
+                      <object class="GtkFrame">
                         <property name="visible">True</property>
-                        <property name="reveal-child">False</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="expand">True</property>
-                        <property name="transition-type">crossfade</property>
                         <child>
-                          <object class="GtkBox" id="buffer_box">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
-                            <property name="name">buffer-box</property>
+                            <property name="spacing">7</property>
                             <child>
-                                <object class="GtkSpinner">
-                                  <property name="visible">True</property>
-                                <property name="active">True</property>
-                                <property name="height-request">48</property>
-                                <property name="width-request">48</property>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="wrap">True</property>
+                                <property name="wrap-mode">word</property>
+                                <property name="label" translatable="yes">Double click anywhere when done</property>
                               </object>
                             </child>
-                            <child>
-                                <object class="GtkLabel" id="buffer_label">
-                                  <property name="visible">True</property>
-                              </object>
-                            </child>
+                          </object>
+                        </child>
+                        <style>
+                         <class name="app-notification"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="overlay">
+                  <object class="GtkRevealer" id="buffer_revealer">
+                    <property name="visible">True</property>
+                    <property name="reveal-child">False</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="expand">True</property>
+                    <property name="transition-type">crossfade</property>
+                    <child>
+                      <object class="GtkBox" id="buffer_box">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <property name="name">buffer-box</property>
+                        <child>
+                          <object class="GtkSpinner">
+                            <property name="visible">True</property>
+                            <property name="active">True</property>
+                            <property name="height-request">48</property>
+                            <property name="width-request">48</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="buffer_label">
+                            <property name="visible">True</property>
                           </object>
                         </child>
                       </object>
                     </child>
                   </object>
-                  <packing>
-                    <property name="resize">True</property>
-                    <property name="shrink">True</property>
-                  </packing>
                 </child>
-              </object>
-            </child>
-            <child type="overlay">
-              <object class="GtkRevealer" id="fullscreen_bar_revealer">
-                <property name="visible">True</property>
-                <property name="valign">start</property>
-                <property name="reveal-child">False</property>
-                <child>
-                  <object class="GtkEventBox">
-                    <property name="visible">True</property>
+                <child type="overlay">
+                  <object class="GtkRevealer" id="controls_revealer">
+                    <property name="visible">true</property>
+                    <property name="valign">end</property>
                     <child>
-                      <object class="GtPlayerHeaderBar" id="fullscreen_bar">
-                        <property name="visible">True</property>
+                      <object class="GtkBox">
+                        <property name="visible">true</property>
+                        <property name="name">player-controls</property>
+                        <child>
+                          <object class="GtkToggleButton" id="toggle_play_button">
+                            <property name="visible">true</property>
+                            <property name="action-name">player.toggle_playing</property>
+                            <style>
+                             <class name="image-button"/>
+                            </style>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">true</property>
+                                <property name="icon-name">media-playback-start-symbolic</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkVolumeButton" id="volume_button">
+                            <property name="visible">true</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuButton">
+                            <property name="visible">true</property>
+                            <property name="popover">player_menu</property>
+                            <style>
+                             <class name="image-button"/>
+                            </style>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">true</property>
+                                <property name="icon-name">emblem-system-symbolic</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="pack-type">end</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkToggleButton" id="toggle_chat_button">
+                            <property name="visible">true</property>
+                            <property name="name">toggle-chat</property>
+                            <property name="action-name">player.toggle_chat</property>
+                            <style>
+                             <class name="image-button"/>
+                            </style>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">true</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_chat_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create|invert-boolean"/>
+                                    <property name="icon-name">gt-show-chat-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_chat_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create"/>
+                                    <property name="icon-name">gt-hide-chat-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="pack-type">end</property>
+                          </packing>
+                        </child>
                       </object>
                     </child>
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">True</property>
+              </packing>
             </child>
           </object>
         </child>
       </object>
     </child>
   </template>
+
+  <object class="GtkPopoverMenu" id="player_menu">
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="margin">12</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkModelButton" id="edit_chat_button">
+            <property name="visible">True</property>
+            <property name="menu-name">edit_chat_menu</property>
+            <property name="text" translatable="yes">Edit chat</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="menu-name">stream_quality_menu</property>
+            <property name="text" translatable="yes">Stream quality</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <property name="margin">10</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="menu-name">main</property>
+            <property name="centered">True</property>
+            <property name="inverted">True</property>
+            <property name="text" translatable="yes">Edit chat</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="orientation">horizontal</property>
+            <property name="margin-top">2</property>
+            <property name="margin-bottom">2</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="dock_chat_button">
+            <property name="visible">True</property>
+            <property name="action-name">player.dock_chat</property>
+            <property name="text" translatable="yes">Dock chat</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="text" translatable="yes">Dark theme</property>
+            <property name="action-name">player.dark_theme_chat</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">true</property>
+            <property name="text" translatable="yes">Move &amp; resize chat</property>
+            <property name="action-name">player.edit_chat</property>
+            <property name="visible"
+                      bind-source="dock_chat_button"
+                      bind-property="active"
+                      bind-flags="default|sync-create|invert-boolean"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="halign">start</property>
+            <property name="label" translatable="yes">Opacity</property>
+            <property name="visible"
+                      bind-source="dock_chat_button"
+                      bind-property="active"
+                      bind-flags="default|sync-create|invert-boolean"/>
+            <style>
+             <class name="separator"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScale">
+            <property name="visible">True</property>
+            <property name="orientation">horizontal</property>
+            <property name="adjustment">chat_opacity_adjustment</property>
+            <property name="draw-value">False</property>
+            <property name="visible"
+                      bind-source="dock_chat_button"
+                      bind-property="active"
+                      bind-flags="default|sync-create|invert-boolean"/>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">edit_chat_menu</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkAdjustment" id="chat_opacity_adjustment">
+    <property name="lower">0.0</property>
+    <property name="upper">1.0</property>
+    <property name="value">1.0</property>
+  </object>
 </interface>

@@ -1,5 +1,6 @@
 .gt-channels-container-child #overlay,
-.gt-games-container-child #overlay
+.gt-games-container-child #overlay,
+.gt-vod-container-child #action-box
 {
     background-color: rgba(0, 0, 0, 0.7);
 }
@@ -174,4 +175,20 @@
     border-color: black;
     border-width: 1px;
     border-style: solid;
+}
+
+.gt-player #player-controls
+{
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.gt-player #player-controls button {
+    background: none;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+.gt-player #player-controls button:hover {
+    color: darker(currentColor);
 }
