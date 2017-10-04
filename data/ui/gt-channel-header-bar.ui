@@ -39,7 +39,7 @@
         </child>
       </object>
     </child>
-    <child>
+    <child type="title">
       <object class="GtkBox">
         <property name="visible">true</property>
         <property name="orientation">vertical</property>

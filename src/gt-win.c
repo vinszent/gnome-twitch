@@ -676,7 +676,9 @@ gt_win_init(GtWin* self)
     gtk_window_set_application(GTK_WINDOW(self), GTK_APPLICATION(main_app));
 
     gtk_widget_init_template(GTK_WIDGET(self));
+    /* NOTE: Win will already be realized after we init the template */
     gtk_widget_realize(priv->player_header_bar);
+    gtk_widget_realize(priv->channel_header_bar);
 
     priv->cur_info_data = NULL;
     priv->info_queue = g_queue_new();

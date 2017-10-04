@@ -42,7 +42,7 @@ realize_cb(GtkWidget* widget, gpointer udata)
 
     RETURN_IF_FAIL(GT_IS_WIN(win));
 
-    g_signal_connect_object(win, "notify:open-channel", G_CALLBACK(channel_opened_cb), self, 0);
+    g_signal_connect_object(win, "notify::open-channel", G_CALLBACK(channel_opened_cb), self, 0);
 }
 
 static void
@@ -50,6 +50,9 @@ gt_channel_header_bar_class_init(GtChannelHeaderBarClass* klass)
 {
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass),
         "/com/vinszent/GnomeTwitch/ui/gt-channel-header-bar.ui");
+
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelHeaderBar, status_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtChannelHeaderBar, name_label);
 }
 
 static void
