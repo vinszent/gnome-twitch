@@ -68,6 +68,7 @@ ninja -C build install
 * [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/%7Enilarimogard/+archive/ubuntu/webupd8/+index?batch=75&direction=backwards&memo=150&start=75) (Same requirements as above)
 * [Gentoo (courtesy of @TorArneThune)](https://github.com/TorArneThune/gnome-twitch-ebuild)
 * [Solus](https://packages.solus-project.com/shannon/g/gnome-twitch/)
+* [OpenBSD](http://openports.se/multimedia/gnome-twitch)
 
 To install extra backends, please refer to either instructions above or checkout the [wiki page](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-player-backends)
 for details on which packages to install for the common distros.
