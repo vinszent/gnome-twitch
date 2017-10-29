@@ -28,6 +28,8 @@ typedef struct
     GtkWidget* preview_image;
     GtkWidget* action_revealer;
     GtkWidget* title_label;
+    GtkWidget* cover_stack;
+    GtkWidget* loading_spinner;
 } GtVODContainerChildPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtVODContainerChild, gt_vod_container_child, GTK_TYPE_FLOW_BOX_CHILD);
@@ -63,6 +65,22 @@ preview_mouse_leave_cb(GtkWidget* source,
     gtk_revealer_set_reveal_child(GTK_REVEALER(priv->action_revealer), FALSE);
 
     return GDK_EVENT_PROPAGATE;
+}
+
+static void
+vod_updating_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    RETURN_IF_FAIL(GT_IS_VOD(source));
+    RETURN_IF_FAIL(GT_IS_VOD_CONTAINER_CHILD(udata));
+
+    GtVODContainerChild* self = GT_VOD_CONTAINER_CHILD(udata);
+    GtVODContainerChildPrivate* priv = gt_vod_container_child_get_instance_private(self);
+
+    if (gt_vod_get_updating(self->vod))
+        gtk_stack_set_visible_child(GTK_STACK(priv->cover_stack), priv->loading_spinner);
+    else
+        gtk_stack_set_visible_child(GTK_STACK(priv->cover_stack), priv->preview_overlay);
 }
 
 static void
@@ -110,6 +128,8 @@ constructed(GObject* obj)
     g_object_bind_property(self->vod, "title", priv->title_label, "label",
         G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
+    g_signal_connect_object(self->vod, "notify::updating", G_CALLBACK(vod_updating_cb), obj, 0);
+
     gtk_widget_set_events(priv->preview_overlay, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
     g_signal_connect_object(priv->preview_overlay, "enter-notify-event",
@@ -140,6 +160,8 @@ gt_vod_container_child_class_init(GtVODContainerChildClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtVODContainerChild, preview_overlay);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtVODContainerChild, preview_image);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtVODContainerChild, title_label);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtVODContainerChild, cover_stack);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtVODContainerChild, loading_spinner);
 }
 
 static void

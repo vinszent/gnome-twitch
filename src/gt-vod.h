@@ -61,6 +61,7 @@ typedef struct
 GtVODData* gt_vod_data_new();
 void gt_vod_data_free(GtVODData* data);
 const gchar* gt_vod_get_id(GtVOD* self);
+gboolean gt_vod_get_updating(GtVOD* self);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GtVODData, gt_vod_data_free);
 

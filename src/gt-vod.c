@@ -34,6 +34,8 @@ typedef struct
 
     gchar* preview_filepath;
 
+    gboolean updating;
+
     GdkPixbuf* preview;
     GCancellable* cancel;
 } GtVODPrivate;
@@ -54,6 +56,7 @@ enum
     PROP_VIEWS,
     PROP_URL,
     PROP_TAG_LIST,
+    PROP_UPDATING,
     NUM_PROPS,
 };
 
@@ -93,6 +96,9 @@ handle_preview_download_cb(GObject* source,
     }
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
+
+    priv->updating = FALSE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 }
 
 static void
@@ -193,6 +199,9 @@ update_from_data(GtVOD* self, GtVODData* data)
 
     RETURN_IF_FAIL(priv->data == NULL);
 
+    priv->updating = TRUE;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
+
     utils_refresh_cancellable(&priv->cancel);
 
     priv->data = data;
@@ -237,6 +246,11 @@ get_property(GObject* obj,
         case PROP_PREVIEW:
             g_value_set_object(val, priv->preview);
             break;
+        case PROP_UPDATING:
+            g_value_set_boolean(val, priv->updating);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
 }
 
@@ -278,6 +292,9 @@ gt_vod_class_init(GtVODClass* klass)
     props[PROP_PREVIEW] = g_param_spec_object("preview", "Preview", "Preview pixbuf of the VOD",
         GDK_TYPE_PIXBUF, G_PARAM_READABLE);
 
+    props[PROP_UPDATING] = g_param_spec_boolean("updating", "Updating", "Whether updating",
+        FALSE, G_PARAM_READABLE);
+
     g_object_class_install_properties(G_OBJECT_CLASS(klass), NUM_PROPS, props);
 }
 
@@ -311,6 +328,16 @@ gt_vod_get_id(GtVOD* self)
     GtVODPrivate* priv = gt_vod_get_instance_private(self);
 
     return priv->data->id;
+}
+
+gboolean
+gt_vod_get_updating(GtVOD* self)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_VOD(self), FALSE);
+
+    GtVODPrivate* priv = gt_vod_get_instance_private(self);
+
+    return priv->updating;
 }
 
 GtVODData*
