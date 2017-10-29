@@ -102,6 +102,8 @@ fetch_items(GtItemContainer* self)
 
     guint amount = leftover + columns*3;
 
+    amount = CLAMP(amount, 1, 100);
+
     if (GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items)
         GT_ITEM_CONTAINER_GET_CLASS(self)->request_extra_items(self, amount, num_items);
 }
