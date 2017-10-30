@@ -738,6 +738,7 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
 
         gt_item_container_refresh(GT_ITEM_CONTAINER(priv->channel_vod_container));
 
+        gtk_stack_set_visible_child(GTK_STACK(priv->channel_stack), GTK_WIDGET(self->player));
         gtk_stack_set_visible_child(GTK_STACK(priv->main_stack), priv->channel_stack);
     }
     else
