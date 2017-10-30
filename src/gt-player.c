@@ -1330,6 +1330,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, reload_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, volume_button);
 
     channel_settings_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_player_channel_settings_free);
 
@@ -1426,6 +1427,9 @@ gt_player_init(GtPlayer* self)
         priv->docking_pane, "position",
         G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL,
         handle_position_to, handle_position_from, self, NULL);
+
+    g_object_bind_property(self, "volume", priv->volume_button, "value",
+        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
     utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realize_cb), self);
     utils_signal_connect_oneshot_swapped(priv->docking_pane, "size-allocate", G_CALLBACK(update_docked), self);
