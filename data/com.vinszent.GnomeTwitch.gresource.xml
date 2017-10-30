@@ -8,7 +8,6 @@
       <file preprocess="xml-stripblanks">ui/gt-channels-container.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channels-container-child.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-vod-container-child.ui</file>
-      <file preprocess="xml-stripblanks">ui/gt-player-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-browse-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-channel-header-bar.ui</file>
       <file preprocess="xml-stripblanks">ui/gt-games-container.ui</file>

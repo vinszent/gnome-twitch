@@ -955,10 +955,6 @@ realize_cb(GtkWidget* widget,
     gtk_widget_insert_action_group(GTK_WIDGET(win), "player",
         G_ACTION_GROUP(priv->action_group));
 
-    //NOTE: Hack to get the bar connected properly
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_VISIBLE]);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_DOCKED_HANDLE_POSITION]);
-
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
 

@@ -65,15 +65,6 @@
             <property name="name">channel</property>
           </packing>
         </child>
-        <child>
-          <object class="GtPlayerHeaderBar" id="player_header_bar">
-            <property name="visible">True</property>
-          </object>
-          <packing>
-            <property name="name">player</property>
-            <property name="title" translatable="yes">Player</property>
-          </packing>
-        </child>
       </object>
     </child>
     <child>

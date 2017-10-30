@@ -21,7 +21,6 @@
 #include <glib/gi18n.h>
 #include "gt-twitch.h"
 #include "gt-player.h"
-#include "gt-player-header-bar.h"
 #include "gt-browse-header-bar.h"
 #include "gt-channel-header-bar.h"
 #include "gt-channel-container-view.h"
@@ -52,7 +51,6 @@ typedef struct
     GtkWidget* main_stack;
     GtkWidget* header_stack;
     GtkWidget* browse_stack;
-    GtkWidget* player_header_bar;
     GtkWidget* browse_header_bar;
     GtkWidget* browse_stack_switcher;
     GtkWidget* chat_view;
@@ -640,7 +638,6 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, main_stack);
     gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(klass), GtWin, player);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, header_stack);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, player_header_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_header_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, browse_stack_switcher);
@@ -657,7 +654,6 @@ gt_win_class_init(GtWinClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtWin, channel_header_bar);
 
     GT_TYPE_PLAYER; // Hack to load GtPlayer into the symbols table
-    GT_TYPE_PLAYER_HEADER_BAR;
     GT_TYPE_BROWSE_HEADER_BAR;
     GT_TYPE_CHANNEL_CONTAINER_VIEW;
     GT_TYPE_FOLLOWED_CONTAINER_VIEW;
@@ -677,7 +673,6 @@ gt_win_init(GtWin* self)
 
     gtk_widget_init_template(GTK_WIDGET(self));
     /* NOTE: Win will already be realized after we init the template */
-    gtk_widget_realize(priv->player_header_bar);
     gtk_widget_realize(priv->channel_header_bar);
 
     priv->cur_info_data = NULL;
