@@ -36,7 +36,7 @@
 
 #define ACCESS_TOKEN_URI       "http://api.twitch.tv/api/channels/%s/access_token"
 #define STREAM_PLAYLIST_URI    "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
-#define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s&language=%s"
+#define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s&broadcaster_language=%s"
 #define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
 #define SEARCH_STREAMS_URI     "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
 #define SEARCH_CHANNELS_URI    "https://api.twitch.tv/kraken/search/channels?query=%s&limit=%d&offset=%d"
