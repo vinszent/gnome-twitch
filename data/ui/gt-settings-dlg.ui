@@ -150,8 +150,8 @@
                       <item id="ru" translatable="no">Русский</item>
                       <item id="ar" translatable="no">العربية</item>
                       <item id="th" translatable="no">ภาษาไทย</item>
-                      <item id="zh" translatable="no">中文 简体</item>
-                      <item id="jp" translatable="no">日本語</item>
+                      <item id="zh" translatable="no">中文</item>
+                      <item id="ja" translatable="no">日本語</item>
                       <item id="ko" translatable="no">한국어</item>
                     </items>
                   </object>
