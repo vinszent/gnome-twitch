@@ -726,7 +726,7 @@ utils_parse_playlist(const gchar* str, GError** error)
     {
         if (strncmp(*l, "#EXT-X-STREAM-INF", 17) == 0)
         {
-            g_autoptr(GtPlaylistEntry) entry = g_slice_new(GtPlaylistEntry);
+            g_autoptr(GtPlaylistEntry) entry = g_slice_new0(GtPlaylistEntry);
             g_auto(GStrv) values = NULL;
 
             if (strncmp(*(l - 1), "#EXT-X-MEDIA", 12) != 0)
@@ -762,7 +762,7 @@ utils_parse_playlist(const gchar* str, GError** error)
                 }
             }
 
-            if (!g_str_has_prefix(*(l + 1), "https://"))
+            if (!(g_str_has_prefix(*(l + 1), "https://") || g_str_has_prefix(*(l + 1), "http://")))
             {
                 g_set_error(error, GT_UTILS_ERROR, GT_UTILS_ERROR_PARSING_PLAYLIST,
                     "STREAM-INF entry wasn't succeeded by a uri");
