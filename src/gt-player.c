@@ -1126,14 +1126,14 @@ process_playlist_data_cb(GObject* source,
         return;
     }
     else if (err)
-        SHOW_ERROR("Unable to open VOD", "Unable to load playlist data", err);
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to load playlist data", err);
 
     data = g_object_steal_data(G_OBJECT(self), "playlist-data");
 
     entries = utils_parse_playlist(data, &err);
 
     if (err)
-        SHOW_ERROR("Unable to open VOD", "Unable to parse playlist data", err);
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to parse playlist data", err);
 
     g_object_set(G_OBJECT(priv->backend), "playing", FALSE, NULL);
     g_object_set(G_OBJECT(priv->backend), "uri", ((GtPlaylistEntry*) entries->data)->uri, NULL);
@@ -1141,7 +1141,7 @@ process_playlist_data_cb(GObject* source,
 }
 
 static void
-handle_vod_playlist_response_cb(GObject* source,
+handle_playlist_response_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
     RETURN_IF_FAIL(SOUP_IS_SESSION(source));
@@ -1169,7 +1169,7 @@ handle_vod_playlist_response_cb(GObject* source,
         return;
     }
     else if (err)
-        SHOW_ERROR("Unable to open VOD", "Unable to handle VOD playlist response", err);
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to handle playlist response", err);
 
     #define BUFFER_SIZE 4096*2
 
@@ -1180,7 +1180,7 @@ handle_vod_playlist_response_cb(GObject* source,
 }
 
 static void
-process_vod_json_cb(GObject* source,
+process_access_token_json_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
     RETURN_IF_FAIL(JSON_IS_PARSER(source));
@@ -1203,7 +1203,7 @@ process_vod_json_cb(GObject* source,
     g_autofree gchar* uri = NULL;
     g_autofree gchar* token = NULL;
     g_autofree gchar* sig = NULL;
-    const gchar* vod_id = NULL;
+    const gchar* id = NULL;
 
     json_parser_load_from_stream_finish(JSON_PARSER(source), res, &err);
 
@@ -1213,36 +1213,58 @@ process_vod_json_cb(GObject* source,
         return;
     }
     else if (err)
-        SHOW_ERROR("Unable to open VOD", "Unable to process VOD access token JSON", err);
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to process access token JSON", err);
 
     reader = json_reader_new(json_parser_get_root(JSON_PARSER(source)));
 
     if (!json_reader_read_member(reader, "token"))
-        SHOW_ERROR("Unable to open VOD", "Unable to process VOD access token JSON", json_reader_get_error(reader));
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to process access token JSON", json_reader_get_error(reader));
     token = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
     if (!json_reader_read_member(reader, "sig"))
-        SHOW_ERROR("Unable to open VOD", "Unable to process VOD access token JSON", json_reader_get_error(reader));
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to process access token JSON", json_reader_get_error(reader));
     sig = g_strdup(json_reader_get_string_value(reader));
     json_reader_end_member(reader);
 
-    vod_id = gt_vod_get_id(priv->vod);
+    if (g_strrstr(token, "channel_id"))
+    {
+        id = gt_channel_get_name(priv->channel);
 
-    if (g_ascii_isalpha(vod_id[0]))
-        vod_id = vod_id + 1;
+        uri = g_strdup_printf("http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d",
+            id, token, sig, g_random_int_range(0, 999999));
+    }
+    else if (g_strrstr(token, "vod_id"))
+    {
+        id = gt_vod_get_id(priv->vod);
 
-    uri = g_strdup_printf("https://usher.ttvnw.net/vod/%s.m3u8?nauth=%s&nauthsig=%s&allow_source=true&player_backend=html5",
-        vod_id, token, sig);
+        if (g_ascii_isalpha(id[0]))
+            id = id + 1;
+
+        uri = g_strdup_printf("https://usher.ttvnw.net/vod/%s.m3u8?nauth=%s&nauthsig=%s&allow_source=true&player_backend=html5",
+            id, token, sig);
+    }
+    else
+    {
+        GtWin* win = GT_WIN_TOPLEVEL(self);
+        RETURN_IF_FAIL(GT_IS_WIN(win));
+
+        WARNING("Unable to open stream/VOD because: Unable to detect whether either stream or VOD");
+
+        gt_win_show_error_message(win, _("Unable to open stream/VOD"),
+            "Unable to open stream/VOD because: Unable to detect whether either stream/VOD");
+
+        return;
+    }
 
     msg = soup_message_new(SOUP_METHOD_GET, uri);
 
     gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
-        handle_vod_playlist_response_cb, g_steal_pointer(&ref));
+        handle_playlist_response_cb, g_steal_pointer(&ref));
 }
 
 static void
-handler_vod_access_token_response_cb(GObject* source,
+handle_access_token_response_cb(GObject* source,
     GAsyncResult* res, gpointer udata)
 {
     RETURN_IF_FAIL(SOUP_IS_SESSION(source));
@@ -1273,7 +1295,7 @@ handler_vod_access_token_response_cb(GObject* source,
         SHOW_ERROR("Unable to open VOD", "Unable to handle VOD access token response", err);
 
     json_parser_load_from_stream_async(priv->json_parser, istream,
-        priv->cancel, process_vod_json_cb, g_steal_pointer(&ref));
+        priv->cancel, process_access_token_json_cb, g_steal_pointer(&ref));
 }
 
 static void
@@ -1433,7 +1455,7 @@ gt_player_init(GtPlayer* self)
 
     utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realize_cb), self);
     utils_signal_connect_oneshot_swapped(priv->docking_pane, "size-allocate", G_CALLBACK(update_docked), self);
-    g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
+    /* g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self); */
     g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(priv->player_box, "motion-notify-event", G_CALLBACK(motion_cb), self);
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
@@ -1492,7 +1514,9 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     const gchar* id = gt_channel_get_id(chan);
-    g_autofree gchar* default_quality = NULL;
+    g_autoptr(SoupMessage) msg = NULL;
+
+    utils_refresh_cancellable(&priv->cancel);
 
     g_object_set(self, "channel", chan, NULL);
 
@@ -1516,13 +1540,6 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     gt_chat_connect(GT_CHAT(priv->chat_view), chan);
 
-    default_quality = g_settings_get_string(main_app->settings, "default-quality");
-
-    g_object_set(self, "stream-quality", default_quality, NULL);
-
-    MESSAGEF("Opening stream '%s' with quality '%s'",
-        gt_channel_get_name(chan), priv->quality);
-
     priv->cur_channel_settings = g_hash_table_lookup(channel_settings_table, id);
     if (!priv->cur_channel_settings)
     {
@@ -1538,6 +1555,12 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_CHAT_DARK_THEME]);
 
     update_docked(self);
+
+    msg = utils_create_twitch_request_v("https://api.twitch.tv/api/channels/%s/access_token",
+        gt_channel_get_name(chan));
+
+    gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
+        handle_access_token_response_cb, utils_weak_ref_new(self));
 }
 
 void
@@ -1564,7 +1587,7 @@ gt_player_open_vod(GtPlayer* self, GtVOD* vod)
         vod_id);
 
     gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
-        handler_vod_access_token_response_cb, utils_weak_ref_new(self));
+        handle_access_token_response_cb, utils_weak_ref_new(self));
 }
 
 void
