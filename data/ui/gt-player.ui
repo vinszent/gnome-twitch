@@ -263,6 +263,44 @@
                             <property name="pack-type">end</property>
                           </packing>
                         </child>
+                        <child>
+                          <object class="GtkToggleButton" id="toggle_fullscreen_button">
+                            <property name="visible">true</property>
+                            <property name="name">toggle-chat</property>
+                            <property name="action-name">win.toggle_fullscreen</property>
+                            <style>
+                             <class name="image-button"/>
+                            </style>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">true</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_fullscreen_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create|invert-boolean"/>
+                                    <property name="icon-name">view-fullscreen-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_fullscreen_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create"/>
+                                    <property name="icon-name">view-restore-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="pack-type">end</property>
+                          </packing>
+                        </child>
                       </object>
                     </child>
                   </object>
