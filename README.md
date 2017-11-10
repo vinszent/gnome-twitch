@@ -64,6 +64,7 @@ ninja -C build install
 * [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian (courtesy of @dengelt)](https://tracker.debian.org/pkg/gnome-twitch/)
 * [Fedora](https://copr.fedoraproject.org/coprs/ippytraxx/gnome-twitch/) (You will need to install gstreamer1-libav from RPMFusion)
+* [openSUSE](https://software.opensuse.org/package/gnome-twitch)
 * [Ubuntu (courtesy of GetDeb.net)](http://www.getdeb.net/app/GNOME%20Twitch) (You will need to install the ubuntu-restricted-extras for the h264 decoder)
 * [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/%7Enilarimogard/+archive/ubuntu/webupd8/+index?batch=75&direction=backwards&memo=150&start=75) (Same requirements as above)
 * [Gentoo (courtesy of @TorArneThune)](https://github.com/TorArneThune/gnome-twitch-ebuild)
