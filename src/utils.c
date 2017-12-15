@@ -304,12 +304,21 @@ utils_refresh_cancellable(GCancellable** cancel)
     *cancel = g_cancellable_new();
 }
 
+static void
+weak_ref_notify_cb(gpointer udata, GObject* obj) /* NOTE: This object is no longer valid, can only use the addres */
+{
+    RETURN_IF_FAIL(udata != NULL);
+
+    g_weak_ref_set(udata, NULL);
+}
+
 GWeakRef*
 utils_weak_ref_new(gpointer obj)
 {
     GWeakRef* ref = g_malloc(sizeof(GWeakRef));
 
     g_weak_ref_init(ref, obj);
+    g_object_weak_ref(obj, weak_ref_notify_cb, ref);
 
     return ref;
 }
@@ -317,9 +326,13 @@ utils_weak_ref_new(gpointer obj)
 void
 utils_weak_ref_free(GWeakRef* ref)
 {
-    g_weak_ref_clear(ref);
+    g_autoptr(GObject) obj = g_weak_ref_get(ref);
 
-    g_clear_pointer(&ref, g_free);
+    if (obj)
+        g_object_weak_unref(obj, weak_ref_notify_cb, ref);
+
+    g_weak_ref_clear(ref);
+    g_free(ref);
 }
 
 GDateTime*
