@@ -18,8 +18,7 @@
 
 #include "gt-channel.h"
 #include "gt-app.h"
-#include "gt-win.h"
-#include "gt-resource-downloader.h"
+#include "gt-http.h"
 #include <json-glib/json-glib.h>
 #include <glib/gi18n.h>
 
@@ -191,109 +190,52 @@ handle_preview_download_cb(GObject* source,
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while wating");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     g_autoptr(GError) err = NULL;
 
     priv->preview = gdk_pixbuf_new_from_stream_finish(res, &err);
 
-    if (err)
+    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         WARNING("Unable to download preview because: %s", err->message);
 
         priv->error_message = g_strdup_printf(_("Unable to update preview image"));
         priv->error_details = g_strdup_printf(_("Unable to update preview image because: %s"), err->message);
     }
-    else if (g_object_steal_data(G_OBJECT(self), "save-preview"))
-    {
-        g_autofree gchar* fp = g_build_filename(g_get_user_cache_dir(),
-            "gnome-twitch", "channels", priv->data->id, NULL);
-
-        gdk_pixbuf_save(priv->preview, fp, "jpeg", &err, "quality", "100", NULL);
-
-        /* NOTE: It isn't critical that we show the user this error
-         * because the preview has still been sucessfully downloaded */
-        if (err)
-            WARNING("Unable to save preview image because: %s", err->message);
-    }
 
     notify_preview_cb(self);
 }
 
 static void
-handle_preview_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_preview_response_cb(GtHTTP* http, gpointer ret,
+    GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
-    g_autoptr(SoupMessage) msg = NULL;
+    GInputStream* istream = ret;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
-
-    if (err)
+    if (error)
     {
-        WARNING("Unable to send request to download preview because: %s", err->message);
+        if (!g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+            WARNING("Unable to send request to download preview because: %s", error->message);
 
-        priv->error_message = g_strdup_printf(_("Unable to update preview image"));
-        priv->error_details = g_strdup_printf(_("Unable to update preveiw image because: %s"), err->message);
+            priv->error_message = g_strdup_printf(_("Unable to update preview image"));
+            priv->error_details = g_strdup_printf(_("Unable to update preveiw image because: %s"), error->message);
+        }
 
         notify_preview_cb(self);
 
         return;
-    }
-
-    if ((msg = g_object_steal_data(G_OBJECT(self), "msg")) != NULL)
-    {
-        const gchar* last_modified = NULL;
-
-        last_modified = soup_message_headers_get_one(msg->response_headers, "Last-Modified");
-
-        if (utils_str_empty(last_modified))
-            DEBUG("No 'Last-Modified' header");
-        else
-        {
-            g_autofree gchar* fp = g_build_filename(g_get_user_cache_dir(),
-                "gnome-twitch", "channels", priv->data->id, NULL);
-
-            gint64 timestamp = utils_timestamp_file(fp, &err);
-
-            if (err)
-            {
-                WARNING("Unable to timestamp preview image file because: %s", err->message);
-                timestamp = 0; /* NOTE: This will force a cache miss */
-            }
-
-            if (utils_http_full_date_to_timestamp(last_modified) < timestamp)
-            {
-                DEBUG("Cache hit");
-                return;
-            }
-            else
-            {
-                DEBUG("Cache miss");
-                g_object_set_data(G_OBJECT(self),
-                    "save-preview", GINT_TO_POINTER(TRUE));
-            }
-        }
     }
 
     gdk_pixbuf_new_from_stream_at_scale_async(istream, 320, 180, FALSE,
@@ -310,43 +252,16 @@ update_preview(GtChannel* self)
 
     if (priv->data->online)
     {
-        g_autoptr(SoupMessage) msg = NULL;
-
-        msg = utils_create_twitch_request_v(priv->data->preview_url);
-
-        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
-            msg, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
+        gt_http_get_with_category(main_app->http, priv->data->preview_url, g_object_get_data(G_OBJECT(self), "category"),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self),
+            GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
-        g_autoptr(SoupMessage) msg = NULL;
-        g_autofree gchar* fp = g_build_filename(g_get_user_cache_dir(),
-            "gnome-twitch", "channels", priv->data->id, NULL);
-
-        msg = utils_create_twitch_request_v(priv->data->video_banner_url);
-
-        if (g_file_test(fp, G_FILE_TEST_EXISTS))
-        {
-            g_autoptr(GError) err = NULL;
-
-            priv->preview = gdk_pixbuf_new_from_file_at_scale(fp,
-                320, 180, FALSE, &err);
-
-            /* NOTE: Not important that we show the user this error
-             * because we can still try to download a new preview image */
-            if (err)
-                WARNING("Unable to open preview image from file because: %s", err->message);
-            else
-                notify_preview_cb(self);
-        }
-        else
-        {
-            g_object_set_data(G_OBJECT(self),
-                "save-preview", GINT_TO_POINTER(TRUE));
-        }
-
-        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
-            msg, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
+        g_object_set_data_full(G_OBJECT(self), "category", g_strdup("gt-channel-auto-update"), g_free);
+        gt_http_get_with_category(main_app->http, priv->data->video_banner_url, g_object_get_data(G_OBJECT(self), "category"),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self),
+            GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else
     {
@@ -456,11 +371,7 @@ process_channel_json_cb(GObject* source,
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not processing channel json because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     g_autoptr(JsonReader) reader = NULL;
@@ -495,6 +406,7 @@ process_channel_json_cb(GObject* source,
         WARNING("Unable to update channel data because: %s", err->message);
 
         priv->error_message = g_strdup(_("Unable to update channel data"));
+
         priv->error_details = g_strdup_printf(_("Unable to update channel data because: %s"), err->message);
 
         notify_preview_cb(self);
@@ -506,40 +418,32 @@ process_channel_json_cb(GObject* source,
 }
 
 static void
-handle_channel_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_channel_response_cb(GtHTTP* http, gpointer ret,
+    GError* error, gpointer udata)
 {
-
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(ret));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling channel response because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
+    GInputStream* istream = ret;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
+    else if (error)
     {
-        WARNING("Unable to update channel data because: %s", err->message);
+        WARNING("Unable to update channel data because: %s", error->message);
 
         priv->error_message = g_strdup(_("Unable to update channel data"));
-        priv->error_details = g_strdup_printf(_("Unable to update channel data because: %s"), err->message);
+        priv->error_details = g_strdup_printf(_("Unable to update channel data because: %s"), error->message);
 
         return;
     }
@@ -559,16 +463,12 @@ process_stream_json_cb(GObject* source,
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not processing stream json because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     g_autoptr(JsonReader) reader = NULL;
-    g_autoptr(GError) err = NULL;
     g_autoptr(GtChannelData) chan_data = NULL;
+    g_autoptr(GError) err =NULL;
 
     json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
@@ -607,14 +507,16 @@ process_stream_json_cb(GObject* source,
 
     if (json_reader_get_null_value(reader))
     {
-        g_autoptr(SoupMessage) msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/channels/%s",
-            priv->data->id);
+        g_autofree gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/channels/%s", priv->data->id);
 
-        gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
-            msg, priv->cancel, handle_channel_response_cb, g_steal_pointer(&ref));
+        gt_http_get_with_category(main_app->http, uri, g_object_get_data(G_OBJECT(self), "category"),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_channel_response_cb, g_steal_pointer(&ref),
+            GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else
     {
+        g_autoptr(GError) err = NULL;
+
         chan_data = utils_parse_stream_from_json(reader, &err);
 
         if (err)
@@ -634,39 +536,32 @@ process_stream_json_cb(GObject* source,
 }
 
 static void
-handle_stream_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_stream_response_cb(GtHTTP* http,
+    gpointer ret, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(ret));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtChannel) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
+    GInputStream* istream = ret;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
+    else if (error)
     {
-        WARNING("Could not update channel data because: %s", err->message);
+        WARNING("Could not update channel data because: %s", error->message);
 
         priv->error_message = g_strdup(_("Could not update channel data"));
-        priv->error_details = g_strdup_printf(_("Could not update channel data because: %s"), err->message);
+        priv->error_details = g_strdup_printf(_("Could not update channel data because: %s"), error->message);
 
         notify_preview_cb(self);
 
@@ -1061,6 +956,7 @@ gt_channel_update(GtChannel* self)
 
     GtChannelPrivate* priv = gt_channel_get_instance_private(self);
     g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
 
     utils_refresh_cancellable(&priv->cancel);
 
@@ -1076,10 +972,11 @@ gt_channel_update(GtChannel* self)
     priv->updating = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_UPDATING]);
 
-    msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/%s", priv->data->id);
+    uri = g_strdup_printf("https://api.twitch.tv/kraken/streams/%s", priv->data->id);
 
-    gt_app_queue_soup_message(main_app, g_object_get_data(G_OBJECT(self), "category"),
-        msg, priv->cancel, handle_stream_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, uri, g_object_get_data(G_OBJECT(self), "category"),
+        DEFAULT_TWITCH_HEADERS, priv->cancel, handle_stream_response_cb, utils_weak_ref_new(self),
+        GT_HTTP_FLAG_RETURN_STREAM);
 
     return TRUE;
 }
