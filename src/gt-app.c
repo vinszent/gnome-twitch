@@ -18,6 +18,7 @@
 
 #include "gt-app.h"
 #include "gt-win.h"
+#include "gt-http-soup.h"
 #include "config.h"
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
@@ -429,6 +430,7 @@ dispose(GObject* object)
 
     g_hash_table_unref(priv->soup_inflight_table);
     g_queue_free_full(priv->soup_message_queue, g_object_unref);
+    g_object_unref(self->http);
 
     G_OBJECT_CLASS(gt_app_parent_class)->dispose(object);
 }
@@ -509,6 +511,7 @@ gt_app_init(GtApp* self)
     self->players_engine = peas_engine_get_default();
     peas_engine_enable_loader(self->players_engine, "python3");
     self->soup = soup_session_new();
+    self->http = GT_HTTP(gt_http_soup_new());
 
     gchar* plugin_dir;
 

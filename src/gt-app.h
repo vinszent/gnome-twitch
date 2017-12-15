@@ -31,6 +31,7 @@ G_DECLARE_FINAL_TYPE(GtApp, gt_app, GT, APP, GtkApplication)
 
 #include "gt-follows-manager.h"
 #include "gt-irc.h"
+#include "gt-http.h"
 
 typedef struct
 {
@@ -82,6 +83,8 @@ struct _GtApp
     PeasEngine* players_engine;
 
     SoupSession* soup;
+
+    GtHTTP* http;
 };
 
 typedef struct
