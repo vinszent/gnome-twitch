@@ -133,5 +133,9 @@ int main(int argc, char** argv)
 
     main_app = gt_app_new();
 
-    return g_application_run(G_APPLICATION(main_app), argc, argv);
+    gint ret = g_application_run(G_APPLICATION(main_app), argc, argv);
+
+    g_object_unref(main_app);
+
+    return ret;
 }
