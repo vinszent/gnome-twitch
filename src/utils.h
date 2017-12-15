@@ -72,7 +72,7 @@ void utils_container_clear(GtkContainer* cont);
 guint64 utils_timestamp_filename(const gchar* filename, GError** error);
 guint64 utils_timestamp_file(GFile* file, GError** error);
 gint64 utils_timestamp_now(void);
-gint64 utils_http_full_date_to_timestamp(const char* string);
+guint64 utils_http_full_date_to_timestamp(const char* string);
 void utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterpType interp);
 const gchar* utils_search_key_value_strv(gchar** strv, const gchar* key);
 void utils_connect_mouse_hover(GtkWidget* widget);

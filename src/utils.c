@@ -120,7 +120,7 @@ utils_pixbuf_scale_simple(GdkPixbuf** pixbuf, gint width, gint height, GdkInterp
     *pixbuf = tmp;
 }
 
-gint64
+guint64
 utils_http_full_date_to_timestamp(const char* string)
 {
     gint64 ret = G_MAXINT64;
