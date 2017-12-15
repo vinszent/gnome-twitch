@@ -85,7 +85,7 @@ download_image(GtResourceDownloader* self,
 
     if (priv->filepath && (file_exists = g_file_test(filename, G_FILE_TEST_EXISTS)))
     {
-        file_timestamp = utils_timestamp_file(filename, NULL);
+        file_timestamp = utils_timestamp_filename(filename, NULL);
     }
 
     if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code))

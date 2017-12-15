@@ -137,7 +137,7 @@ handle_preview_response_cb(GObject* source,
             DEBUG("No 'Last-Modified' header");
         else
         {
-            gint64 timestamp = utils_timestamp_file(priv->preview_filepath, &err);
+            guint64 timestamp = utils_timestamp_filename(priv->preview_filepath, &err);
 
             if (err)
             {

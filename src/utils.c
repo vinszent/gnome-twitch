@@ -56,7 +56,7 @@ utils_container_clear(GtkContainer* cont)
 }
 
 guint64
-utils_timestamp_file(const gchar* filename, GError** error)
+utils_timestamp_filename(const gchar* filename, GError** error)
 {
     RETURN_VAL_IF_FAIL(!utils_str_empty(filename), 0);
 
@@ -68,25 +68,32 @@ utils_timestamp_file(const gchar* filename, GError** error)
 
         g_autoptr(GFile) file = g_file_new_for_path(filename);
 
-        g_autoptr(GFileInfo) info = g_file_query_info(file,
-            G_FILE_ATTRIBUTE_TIME_MODIFIED, G_FILE_QUERY_INFO_NONE,
-            NULL, &err);
-
-        if (err)
-        {
-            WARNING("Could not timestamp file because: %s", err->message);
-
-            g_propagate_prefixed_error(error, err, "Could not timestamp file because: ");
-
-            return 0;
-        }
-
-        g_file_info_get_modification_time(info, &time);
-
-        return time.tv_sec;
+        return utils_timestamp_file(file, error);
     }
 
     RETURN_VAL_IF_REACHED(0);
+}
+
+guint64
+utils_timestamp_file(GFile* file, GError** error)
+{
+    g_autoptr(GFileInfo) info = g_file_query_info(file,
+        G_FILE_ATTRIBUTE_TIME_MODIFIED, G_FILE_QUERY_INFO_NONE,
+        NULL, error);
+    GTimeVal time;
+
+    if (error)
+    {
+        g_prefix_error(error, "Could not timestamp file because: ");
+
+        WARNING("%s", (*error)->message);
+
+        return 0;
+    }
+
+    g_file_info_get_modification_time(info, &time);
+
+    return time.tv_sec;
 }
 
 gint64
