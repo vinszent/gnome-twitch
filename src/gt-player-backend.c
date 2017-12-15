@@ -24,29 +24,32 @@ static void
 gt_player_backend_default_init(GtPlayerBackendInterface* iface)
 {
     g_object_interface_install_property(iface,
-                                        g_param_spec_double("volume",
-                                                            "Volume",
-                                                            "Current volume",
-                                                            0, 1.0, 0.3,
-                                                            G_PARAM_READWRITE));
+        g_param_spec_double("volume", "Volume", "Current volume",
+            0, 1.0, 0.3, G_PARAM_READWRITE));
+
     g_object_interface_install_property(iface,
-                                        g_param_spec_boolean("playing",
-                                                             "Playing",
-                                                             "Whether playing",
-                                                             FALSE,
-                                                             G_PARAM_READWRITE));
+        g_param_spec_boolean("playing", "Playing", "Whether playing",
+            FALSE, G_PARAM_READWRITE));
+
     g_object_interface_install_property(iface,
-                                        g_param_spec_string("uri",
-                                                            "Uri",
-                                                            "Current uri",
-                                                            NULL,
-                                                            G_PARAM_READWRITE));
+        g_param_spec_string("uri", "Uri", "Current uri",
+            NULL, G_PARAM_READWRITE));
+
     g_object_interface_install_property(iface,
-                                        g_param_spec_double("buffer-fill",
-                                                            "buffer-fill",
-                                                            "Current buffer fill",
-                                                            0, 1.0, 0,
-                                                            G_PARAM_READWRITE));
+        g_param_spec_double("buffer-fill", "buffer-fill", "Current buffer fill",
+            0, 1.0, 0, G_PARAM_READWRITE));
+
+    g_object_interface_install_property(iface,
+        g_param_spec_int64("duration", "Duration", "Current duration",
+            0, G_MAXINT64, 0, G_PARAM_READABLE));
+
+    g_object_interface_install_property(iface,
+        g_param_spec_int64("position", "Position", "Current position",
+            0, G_MAXINT64, 0, G_PARAM_READWRITE));
+
+    g_object_interface_install_property(iface,
+        g_param_spec_boolean("seekable", "Seekable", "Whether seekable",
+            FALSE, G_PARAM_READABLE));
 }
 
 GtkWidget*
