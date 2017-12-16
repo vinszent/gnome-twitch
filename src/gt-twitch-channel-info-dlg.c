@@ -322,7 +322,7 @@ create_default_panel(GtTwitchChannelInfoDlg* self, GtTwitchChannelInfoPanel* pan
 
     if (panel->link && strlen(panel->link) > 0)
     {
-        utils_connect_link(evt_box, panel->link);
+        /* utils_connect_link(evt_box, panel->link); */
     }
 
     g_signal_connect(panel_text, "motion-notify-event", G_CALLBACK(text_panel_motion_cb), self);

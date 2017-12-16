@@ -190,41 +190,6 @@ utils_mouse_hover_leave_cb(GtkWidget* widget,
     return FALSE;
 }
 
-static gboolean
-utils_mouse_clicked_link_cb(GtkWidget* widget,
-                            GdkEventButton* evt,
-                            gpointer udata)
-{
-    if (evt->button == 1 && evt->type == GDK_BUTTON_PRESS)
-    {
-        GtWin* parent = GT_WIN_TOPLEVEL(widget);
-
-#if GTK_CHECK_VERSION(3, 22, 0)
-        gtk_show_uri_on_window(GTK_WINDOW(parent), (gchar*) udata, GDK_CURRENT_TIME, NULL);
-#else
-        gtk_show_uri(NULL, (gchar*) udata, GDK_CURRENT_TIME, NULL);
-#endif
-
-    }
-
-    return FALSE;
-}
-
-void
-utils_connect_mouse_hover(GtkWidget* widget)
-{
-    g_signal_connect(widget, "enter-notify-event", G_CALLBACK(utils_mouse_hover_enter_cb), NULL);
-    g_signal_connect(widget, "leave-notify-event", G_CALLBACK(utils_mouse_hover_leave_cb), NULL);
-}
-
-void
-utils_connect_link(GtkWidget* widget, const gchar* link)
-{
-    gchar* tmp = g_strdup(link); //TODO: Free this
-    utils_connect_mouse_hover(widget);
-    g_signal_connect(widget, "button-press-event", G_CALLBACK(utils_mouse_clicked_link_cb), tmp);
-}
-
 gboolean
 utils_str_empty(const gchar* str)
 {
@@ -376,37 +341,6 @@ generic_task_data_free(GenericTaskData* data)
     g_free(data->str_3);
 
     g_slice_free(GenericTaskData, data);
-}
-
-SoupMessage*
-utils_create_twitch_request(const gchar* uri)
-{
-    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
-
-    SoupMessage* msg = NULL;
-
-    msg = soup_message_new(SOUP_METHOD_GET, uri);
-
-    soup_message_headers_append(msg->request_headers, "Client-ID", CLIENT_ID);
-    soup_message_headers_append(msg->request_headers, "Accept", "application/vnd.twitchtv.v5+json");
-    soup_message_headers_append(msg->request_headers, "Accept", "image/*");
-
-    return msg;
-}
-
-SoupMessage*
-utils_create_twitch_request_v(const gchar* uri, ...)
-{
-    RETURN_VAL_IF_FAIL(!utils_str_empty(uri), NULL);
-
-    va_list args;
-    g_autofree gchar* uri_formatted = NULL;
-
-    va_start(args, uri);
-    uri_formatted = g_strdup_vprintf(uri, args);
-    va_end(args);
-
-    return utils_create_twitch_request(uri_formatted);
 }
 
 JsonReader*
