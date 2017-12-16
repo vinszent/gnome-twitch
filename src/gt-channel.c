@@ -253,14 +253,14 @@ update_preview(GtChannel* self)
     if (priv->data->online)
     {
         gt_http_get_with_category(main_app->http, priv->data->preview_url, g_object_get_data(G_OBJECT(self), "category"),
-            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, G_CALLBACK(handle_preview_response_cb), utils_weak_ref_new(self),
             GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
         g_object_set_data_full(G_OBJECT(self), "category", g_strdup("gt-channel-auto-update"), g_free);
         gt_http_get_with_category(main_app->http, priv->data->video_banner_url, g_object_get_data(G_OBJECT(self), "category"),
-            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, G_CALLBACK(handle_preview_response_cb), utils_weak_ref_new(self),
             GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else
@@ -510,7 +510,7 @@ process_stream_json_cb(GObject* source,
         g_autofree gchar* uri = g_strdup_printf("https://api.twitch.tv/kraken/channels/%s", priv->data->id);
 
         gt_http_get_with_category(main_app->http, uri, g_object_get_data(G_OBJECT(self), "category"),
-            DEFAULT_TWITCH_HEADERS, priv->cancel, handle_channel_response_cb, g_steal_pointer(&ref),
+            DEFAULT_TWITCH_HEADERS, priv->cancel, G_CALLBACK(handle_channel_response_cb), g_steal_pointer(&ref),
             GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
     }
     else
@@ -975,7 +975,7 @@ gt_channel_update(GtChannel* self)
     uri = g_strdup_printf("https://api.twitch.tv/kraken/streams/%s", priv->data->id);
 
     gt_http_get_with_category(main_app->http, uri, g_object_get_data(G_OBJECT(self), "category"),
-        DEFAULT_TWITCH_HEADERS, priv->cancel, handle_stream_response_cb, utils_weak_ref_new(self),
+        DEFAULT_TWITCH_HEADERS, priv->cancel, G_CALLBACK(handle_stream_response_cb), utils_weak_ref_new(self),
         GT_HTTP_FLAG_RETURN_STREAM);
 
     return TRUE;

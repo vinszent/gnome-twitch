@@ -30,7 +30,8 @@ typedef struct
     gchar* category;
     GCancellable* cancel;
     gulong cancel_cb_id;
-    GtHTTPCallback cb;
+    GtHTTPStreamCallback cb_stream;
+    GtHTTPDataCallback cb_data;
     gpointer udata;
     gint flags;
     gssize content_length;
@@ -55,9 +56,20 @@ static GParamSpec* props[NUM_PROPS];
 
 #define NO_CATEGORY "_NO_CATEGORY"
 
+#define CALL_ERROR_CB(msg, err)                                         \
+    G_STMT_START                                                        \
+    {                                                                   \
+        if (msg->flags & GT_HTTP_FLAG_RETURN_STREAM)                    \
+            msg->cb_stream(GT_HTTP(self), NULL, g_steal_pointer(&err), msg->udata); \
+        else if (msg->flags & GT_HTTP_FLAG_RETURN_DATA)                 \
+            msg->cb_data(GT_HTTP(self), NULL, 0, g_steal_pointer(&err), msg->udata); \
+        else                                                            \
+            RETURN_IF_REACHED();                                        \
+    } G_STMT_END
+
 static SoupCallbackData*
 soup_callback_data_new(GtHTTPSoup* self, SoupMessage* soup_message, const gchar* category,
-    GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags)
+    GCancellable* cancel, GCallback cb, gpointer udata, gint flags)
 {
     SoupCallbackData* data = g_slice_new0(SoupCallbackData);
 
@@ -66,9 +78,14 @@ soup_callback_data_new(GtHTTPSoup* self, SoupMessage* soup_message, const gchar*
     data->uri = soup_uri_to_string(soup_message_get_uri(soup_message), FALSE);
     data->category = g_strdup(category);
     data->cancel = g_object_ref(cancel);
-    data->cb = cb;
     data->udata = udata;
     data->flags = flags;
+    if (flags & GT_HTTP_FLAG_RETURN_STREAM)
+        data->cb_stream = (GtHTTPStreamCallback) cb;
+    else if (flags & GT_HTTP_FLAG_RETURN_DATA)
+        data->cb_data = (GtHTTPDataCallback) cb;
+    else
+        RETURN_VAL_IF_REACHED(NULL);
 
     return data;
 }
@@ -185,7 +202,7 @@ download_stream_fill_cb(GObject* source,
             WARNING("%s", err->message);
         }
 
-        msg->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), msg->udata);
+        CALL_ERROR_CB(msg, err);
 
         return;
     }
@@ -198,33 +215,27 @@ download_stream_fill_cb(GObject* source,
     }
     else
     {
-        const gchar* last_modified = soup_message_headers_get_one(msg->soup_message->response_headers, "Last-Modified");
-        const gchar* etag = soup_message_headers_get_one(msg->soup_message->response_headers, "ETag");
-        const gchar* expires = soup_message_headers_get_one(msg->soup_message->response_headers, "Expires");
+        gsize length;
+        gconstpointer data = g_buffered_input_stream_peek_buffer(bistream, &length);
 
-        g_autoptr(GError) err = NULL;
-        g_autoptr(GDateTime) last_updated = parse_http_time(last_modified);
-
-        if (err)
+        if (msg->flags & GT_HTTP_FLAG_CACHE_RESPONSE)
         {
-            g_prefix_error(&err, "Unable to cache request to '%s' because: ", msg->uri);
+            const gchar* last_modified = soup_message_headers_get_one(msg->soup_message->response_headers, "Last-Modified");
+            const gchar* etag = soup_message_headers_get_one(msg->soup_message->response_headers, "ETag");
+            const gchar* expires = soup_message_headers_get_one(msg->soup_message->response_headers, "Expires");
 
-            WARNING("%s", err->message);
-
-            msg->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), msg->udata);
-        }
-        else
-        {
-            gsize length;
-            gconstpointer data = g_buffered_input_stream_peek_buffer(bistream, &length);
+            g_autoptr(GDateTime) last_updated = parse_http_time(last_modified);
             g_autoptr(GDateTime) expiry = parse_http_time(expires);
 
-            /* TODO: Handle error */
-            RETURN_IF_ERROR(err);
-
             gt_cache_save_data(priv->cache, msg->uri, data, length, last_updated, expiry, etag);
-            msg->cb(GT_HTTP(self), bistream, NULL, msg->udata);
         }
+
+        if (msg->flags & GT_HTTP_FLAG_RETURN_STREAM)
+            msg->cb_stream(GT_HTTP(self), G_INPUT_STREAM(bistream), NULL, msg->udata);
+        else if(msg->flags & GT_HTTP_FLAG_RETURN_DATA)
+            msg->cb_data(GT_HTTP(self), data, length, NULL, msg->udata);
+        else
+            RETURN_IF_REACHED();
     }
 }
 
@@ -237,9 +248,12 @@ download_response(GtHTTPSoup* self, GInputStream* istream, SoupCallbackData* msg
     const gchar* etag = soup_message_headers_get_one(msg->soup_message->response_headers, "etag");
     const gchar* expires = soup_message_headers_get_one(msg->soup_message->response_headers, "expires");
 
-    g_autoptr(GDateTime) last_updated = parse_http_time(last_modified);
+    g_autoptr(GDateTime) last_updated = NULL;
 
-    if (gt_cache_is_data_stale(priv->cache, msg->uri, last_updated, etag))
+    if (!utils_str_empty(last_modified))
+        last_updated = parse_http_time(last_modified);
+
+    if (!last_updated || gt_cache_is_data_stale(priv->cache, msg->uri, last_updated, etag))
     {
         g_autoptr(GBufferedInputStream) bistream = G_BUFFERED_INPUT_STREAM(g_buffered_input_stream_new_sized(istream, BUFFER_SIZE));
 
@@ -253,7 +267,7 @@ download_response(GtHTTPSoup* self, GInputStream* istream, SoupCallbackData* msg
                 "Content length '%ld' greater than buffer size, not downloading response", msg->content_length);
             WARNING("%s", err->message);
 
-            msg->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), msg->udata);
+            CALL_ERROR_CB(msg, err);
 
             return;
         }
@@ -272,11 +286,16 @@ download_response(GtHTTPSoup* self, GInputStream* istream, SoupCallbackData* msg
         {
             g_prefix_error(&err, "Couldn't get data stream for cached file because: ");
             WARNING("%s", err->message);
-            msg->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), msg->udata);
+
+            CALL_ERROR_CB(msg, err);
         }
         else
         {
-            msg->cb(GT_HTTP(self), g_steal_pointer(&fistream), NULL, msg->udata);
+            if (msg->flags & GT_HTTP_FLAG_RETURN_STREAM)
+                msg->cb_stream(GT_HTTP(self), g_steal_pointer(&fistream), NULL, msg->udata);
+            /* TODO: Implement returning data here */
+            else
+                RETURN_IF_REACHED();
             soup_callback_data_free(msg);
         }
     }
@@ -308,8 +327,8 @@ soup_message_cb(GObject* source,
     RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
     RETURN_IF_FAIL(udata != NULL);
 
-    g_autoptr(SoupCallbackData) data = udata;
-    g_autoptr(GtHTTPSoup) self = g_weak_ref_get(data->self);
+    g_autoptr(SoupCallbackData) msg = udata;
+    g_autoptr(GtHTTPSoup) self = g_weak_ref_get(msg->self);
 
     if (!self) { TRACE("Unreffed while waiting"); return; }
 
@@ -317,16 +336,16 @@ soup_message_cb(GObject* source,
     g_autoptr(GInputStream) istream = NULL;
     g_autoptr(GError) err = NULL;
 
-    decrement_inflight_for_category(self, data->category);
+    decrement_inflight_for_category(self, msg->category);
 
     istream = soup_session_send_finish(priv->soup, res, &err);
 
     /* NOTE: Manually handle cancelled request here */
-    if (g_cancellable_is_cancelled(data->cancel))
+    if (g_cancellable_is_cancelled(msg->cancel))
     {
         g_set_error(&err, G_IO_ERROR, G_IO_ERROR_CANCELLED, "Cancelled");
 
-        data->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), data->udata);
+        CALL_ERROR_CB(msg, err);
 
         goto send_next_message;
     }
@@ -336,20 +355,20 @@ soup_message_cb(GObject* source,
         if (!g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         {
             g_prefix_error(&err, "Unable to send message to '%s' with category '%s' because: %s",
-                data->uri, data->category, err->message);
+                msg->uri, msg->category, err->message);
 
             WARNING("%s", err->message);
         }
 
-        data->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), data->udata);
+        CALL_ERROR_CB(msg, err);
 
         goto send_next_message;
     }
 
-    if (!SOUP_STATUS_IS_SUCCESSFUL(data->soup_message->status_code))
+    if (!SOUP_STATUS_IS_SUCCESSFUL(msg->soup_message->status_code))
     {
         gint code = -1;
-        switch (data->soup_message->status_code)
+        switch (msg->soup_message->status_code)
         {
             case GT_HTTP_ERROR_NOT_FOUND:
                 code = GT_HTTP_ERROR_NOT_FOUND;
@@ -357,24 +376,25 @@ soup_message_cb(GObject* source,
             default:
                 code = GT_HTTP_ERROR_UNSUCCESSFUL_RESPONSE;
         }
-        
+
         g_set_error(&err, GT_HTTP_ERROR, code, "Received unsuccesful response '%d:%s' from uri '%s'",
-            data->soup_message->status_code, soup_status_get_phrase(data->soup_message->status_code), data->uri);
+            msg->soup_message->status_code, soup_status_get_phrase(msg->soup_message->status_code), msg->uri);
 
         WARNING("%s", err->message);
 
-        data->cb(GT_HTTP(self), NULL, g_steal_pointer(&err), data->udata);
+        CALL_ERROR_CB(msg, err);
 
         goto send_next_message;
     }
 
-    if (data->flags & GT_HTTP_FLAG_CACHE_RESPONSE && can_cache_response(data->soup_message))
+    if ((msg->flags & GT_HTTP_FLAG_CACHE_RESPONSE && can_cache_response(msg->soup_message))
+        || msg->flags & GT_HTTP_FLAG_RETURN_DATA)
     {
-        data->content_length = soup_message_headers_get_content_length(data->soup_message->response_headers);
-        download_response(self, istream, g_steal_pointer(&data));
+        msg->content_length = soup_message_headers_get_content_length(msg->soup_message->response_headers);
+        download_response(self, istream, g_steal_pointer(&msg));
     }
-    else if (data->flags & GT_HTTP_FLAG_RETURN_STREAM)
-        data->cb(GT_HTTP(self), istream, NULL, data->udata);
+    else if (msg->flags & GT_HTTP_FLAG_RETURN_STREAM)
+        msg->cb_stream(GT_HTTP(self), istream, NULL, msg->udata);
 
 send_next_message:
     send_next_message(self);
@@ -419,7 +439,7 @@ send_next_message(GtHTTPSoup* self)
 
 static void
 get_with_category(GtHTTP* http, const gchar* uri, const gchar* category, gchar** headers,
-    GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags)
+    GCancellable* cancel, GCallback cb, gpointer udata, gint flags)
 {
     RETURN_IF_FAIL(GT_HTTP_SOUP(http));
     RETURN_IF_FAIL(!utils_str_empty(uri));
@@ -457,7 +477,7 @@ get_with_category(GtHTTP* http, const gchar* uri, const gchar* category, gchar**
 
 static void
 get(GtHTTP* http, const gchar* uri, gchar** headers,
-    GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags)
+    GCancellable* cancel, GCallback cb, gpointer udata, gint flags)
 {
     get_with_category(http, uri, NO_CATEGORY, headers, cancel, cb, udata, flags);
 }

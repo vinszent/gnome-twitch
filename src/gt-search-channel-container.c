@@ -237,7 +237,7 @@ request_extra_items(GtItemContainer* item_container,
         g_object_set_data(G_OBJECT(self), "offline", GINT_TO_POINTER(priv->search_offline));
 
         gt_http_get_with_category(main_app->http, uri, "item-container", DEFAULT_TWITCH_HEADERS, priv->cancel,
-            handle_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+            G_CALLBACK(handle_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
     }
 }
 

@@ -542,7 +542,7 @@ process_channels_json_cb(GObject* source,
             info->user_id, 100, priv->current_offset);
 
         gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
-            handle_channels_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
+            G_CALLBACK(handle_channels_response_cb), g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
     else
     {
@@ -669,7 +669,7 @@ process_streams_json_cb(GObject* source,
             info->oauth_token, 100, priv->current_offset);
 
         gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
-            handle_streams_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
+            G_CALLBACK(handle_streams_response_cb), g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
     else
     {
@@ -679,7 +679,7 @@ process_streams_json_cb(GObject* source,
             info->user_id, 100, 0);
 
         gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
-            handle_channels_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
+            G_CALLBACK(handle_channels_response_cb), g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
 }
 
@@ -814,7 +814,7 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
         info->oauth_token, 100, 0);
 
     gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
-        handle_streams_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+        G_CALLBACK(handle_streams_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
 }
 
 void

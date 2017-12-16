@@ -40,7 +40,7 @@ gt_http_default_init(GtHTTPInterface* iface)
 
 void
 gt_http_get(GtHTTP* http, const gchar* uri, gchar** headers,
-        GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags)
+        GCancellable* cancel, GCallback cb, gpointer udata, gint flags)
 {
     RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(GT_HTTP_GET_IFACE(http)->get != NULL);
@@ -50,7 +50,7 @@ gt_http_get(GtHTTP* http, const gchar* uri, gchar** headers,
 
 void
 gt_http_get_with_category(GtHTTP* http, const gchar* uri, const gchar* category, gchar** headers,
-    GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags)
+    GCancellable* cancel, GCallback cb, gpointer udata, gint flags)
 {
     RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(GT_HTTP_GET_IFACE(http)->get != NULL);

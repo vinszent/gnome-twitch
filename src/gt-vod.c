@@ -130,7 +130,7 @@ update_preview(GtVOD* self)
     GtVODPrivate* priv = gt_vod_get_instance_private(self);
 
     gt_http_get_with_category(main_app->http, priv->data->preview.large, "gt-vod", DEFAULT_TWITCH_HEADERS,
-        priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
+        priv->cancel, G_CALLBACK(handle_preview_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
 }
 
 static void

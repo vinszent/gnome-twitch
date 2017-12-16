@@ -29,7 +29,8 @@ G_BEGIN_DECLS
 
 G_DECLARE_INTERFACE(GtHTTP, gt_http, GT, HTTP, GObject);
 
-typedef void (*GtHTTPCallback) (GtHTTP* http, gpointer ret, GError* error, gpointer user_data);
+typedef void (*GtHTTPStreamCallback) (GtHTTP* http, GInputStream* res, GError* error, gpointer user_data);
+typedef void (*GtHTTPDataCallback) (GtHTTP* http, gconstpointer res, gsize length, GError* error, gpointer user_data);
 
 typedef enum
 {
@@ -69,16 +70,16 @@ struct _GtHTTPInterface
     GTypeInterface parent_interface;
 
     void (*get) (GtHTTP* http, const gchar* uri, gchar** headers,
-        GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags);
+        GCancellable* cancel, GCallback cb, gpointer udata, gint flags);
     void (*get_with_category) (GtHTTP* http, const gchar* uri, const gchar* category, gchar** headers,
-        GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags);
+        GCancellable* cancel, GCallback cb, gpointer udata, gint flags);
 };
 
 /* TODO: Add docs */
 void gt_http_get(GtHTTP* http, const gchar* uri, gchar** headers,
-        GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags);
+        GCancellable* cancel, GCallback cb, gpointer udata, gint flags);
 void gt_http_get_with_category(GtHTTP* http, const gchar* uri, const gchar* category, gchar** headers,
-    GCancellable* cancel, GtHTTPCallback cb, gpointer udata, gint flags);
+    GCancellable* cancel, GCallback cb, gpointer udata, gint flags);
 
 G_END_DECLS
 

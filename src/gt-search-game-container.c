@@ -208,7 +208,7 @@ request_extra_items(GtItemContainer* item_container,
             priv->query);
 
         gt_http_get_with_category(main_app->http, uri, "gt-item-container", DEFAULT_TWITCH_HEADERS,
-            priv->cancel, handle_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+            priv->cancel, G_CALLBACK(handle_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
     }
 }
 
