@@ -22,6 +22,7 @@
 #include "gt-app.h"
 #include "gt-enums.h"
 #include "gt-chat.h"
+#include "gt-http.h"
 #include "gnome-twitch/gt-player-backend.h"
 #include "utils.h"
 #include <libpeas-gtk/peas-gtk.h>
@@ -1097,40 +1098,32 @@ plugin_unloaded_cb(PeasEngine* engine,
     } G_STMT_END
 
 static void
-process_playlist_data_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_playlist_response_cb(GtHTTP* http,
+    gconstpointer res, gsize length, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(G_IS_INPUT_STREAM(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtPlayer) self = g_weak_ref_get(ref);
-
-    if (!self)
-    {
-        DEBUG("Unreffed");
-        return;
-    }
-
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     g_autoptr(GtPlaylistEntryList) entries = NULL;
     g_autoptr(GError) err = NULL;
-    g_autofree gchar* data = NULL;
 
-    g_input_stream_read_all_finish(G_INPUT_STREAM(source), res, NULL, &err);
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
-        SHOW_ERROR("Unable to open stream/VOD", "Unable to load playlist data", err);
+    else if (error)
+        SHOW_ERROR("Unable to open stream/VOD", "Unable to handle playlist response", error);
 
-    data = g_object_steal_data(G_OBJECT(self), "playlist-data");
+    RETURN_IF_FAIL(length > 0);
 
-    entries = utils_parse_playlist(data, &err);
+    entries = utils_parse_playlist(res, &err);
 
     if (err)
         SHOW_ERROR("Unable to open stream/VOD", "Unable to parse playlist data", err);
@@ -1138,45 +1131,6 @@ process_playlist_data_cb(GObject* source,
     g_object_set(G_OBJECT(priv->backend), "playing", FALSE, NULL);
     g_object_set(G_OBJECT(priv->backend), "uri", ((GtPlaylistEntry*) entries->data)->uri, NULL);
     g_object_set(G_OBJECT(priv->backend), "playing", TRUE, NULL);
-}
-
-static void
-handle_playlist_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
-{
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
-    RETURN_IF_FAIL(udata != NULL);
-
-    g_autoptr(GWeakRef) ref = udata;
-    g_autoptr(GtPlayer) self = g_weak_ref_get(ref);
-
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
-
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
-
-    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-    {
-        DEBUG("Cancelled");
-        return;
-    }
-    else if (err)
-        SHOW_ERROR("Unable to open stream/VOD", "Unable to handle playlist response", err);
-
-    #define BUFFER_SIZE 4096*2
-
-    g_object_set_data_full(G_OBJECT(self), "playlist-data", g_malloc0(BUFFER_SIZE), NULL);
-
-    g_input_stream_read_all_async(istream, g_object_get_data(G_OBJECT(self), "playlist-data"), BUFFER_SIZE,
-        G_PRIORITY_DEFAULT, priv->cancel, process_playlist_data_cb, g_steal_pointer(&ref));
 }
 
 static void
@@ -1198,7 +1152,6 @@ process_access_token_json_cb(GObject* source,
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     g_autoptr(JsonReader) reader = NULL;
-    g_autoptr(SoupMessage) msg = NULL;
     g_autoptr(GError) err = NULL;
     g_autofree gchar* uri = NULL;
     g_autofree gchar* token = NULL;
@@ -1257,44 +1210,35 @@ process_access_token_json_cb(GObject* source,
         return;
     }
 
-    msg = soup_message_new(SOUP_METHOD_GET, uri);
-
-    gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
-        handle_playlist_response_cb, g_steal_pointer(&ref));
+    gt_http_get_with_category(main_app->http, uri, "gt-player", GT_HTTP_TWITCH_HLS_HEADERS, priv->cancel,
+        G_CALLBACK(handle_playlist_response_cb), g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_DATA);
 }
 
 static void
-handle_access_token_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_access_token_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtPlayer) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
 
-    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
-        SHOW_ERROR("Unable to open VOD", "Unable to handle VOD access token response", err);
+    else if (error)
+        SHOW_ERROR("Unable to open VOD", "Unable to handle VOD access token response", error);
 
-    json_parser_load_from_stream_async(priv->json_parser, istream,
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
+
+    json_parser_load_from_stream_async(priv->json_parser, res,
         priv->cancel, process_access_token_json_cb, g_steal_pointer(&ref));
 }
 
@@ -1514,7 +1458,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     const gchar* id = gt_channel_get_id(chan);
-    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
 
     utils_refresh_cancellable(&priv->cancel);
 
@@ -1556,11 +1500,10 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     update_docked(self);
 
-    msg = utils_create_twitch_request_v("https://api.twitch.tv/api/channels/%s/access_token",
         gt_channel_get_name(chan));
 
-    gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
-        handle_access_token_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, uri, "gt-player", DEFAULT_TWITCH_HEADERS, priv->cancel,
+        G_CALLBACK(handle_access_token_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
 }
 
 void
@@ -1570,7 +1513,7 @@ gt_player_open_vod(GtPlayer* self, GtVOD* vod)
     RETURN_IF_FAIL(GT_IS_VOD(vod));
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
     const gchar* vod_id = NULL;
 
     g_clear_object(&priv->vod);
@@ -1583,11 +1526,11 @@ gt_player_open_vod(GtPlayer* self, GtVOD* vod)
     if (g_ascii_isalpha(vod_id[0]))
         vod_id = vod_id + 1;
 
-    msg = utils_create_twitch_request_v("https://api.twitch.tv/api/vods/%s/access_token",
+    uri = g_strdup_printf("https://api.twitch.tv/api/vods/%s/access_token",
         vod_id);
 
-    gt_app_queue_soup_message(main_app, "gt-player", msg, priv->cancel,
-        handle_access_token_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, uri, "gt-player", DEFAULT_TWITCH_HEADERS, priv->cancel,
+        G_CALLBACK(handle_access_token_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
 }
 
 void
