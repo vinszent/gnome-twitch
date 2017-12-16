@@ -348,7 +348,17 @@ soup_message_cb(GObject* source,
 
     if (!SOUP_STATUS_IS_SUCCESSFUL(data->soup_message->status_code))
     {
-        g_set_error(&err, GT_HTTP_ERROR, GT_HTTP_ERROR_UNSUCCESSFUL_RESPONSE, "Received unsuccesful response '%d:%s' from uri '%s'",
+        gint code = -1;
+        switch (data->soup_message->status_code)
+        {
+            case GT_HTTP_ERROR_NOT_FOUND:
+                code = GT_HTTP_ERROR_NOT_FOUND;
+                break;
+            default:
+                code = GT_HTTP_ERROR_UNSUCCESSFUL_RESPONSE;
+        }
+        
+        g_set_error(&err, GT_HTTP_ERROR, code, "Received unsuccesful response '%d:%s' from uri '%s'",
             data->soup_message->status_code, soup_status_get_phrase(data->soup_message->status_code), data->uri);
 
         WARNING("%s", err->message);
