@@ -19,7 +19,7 @@
 #include "gt-game.h"
 #include "gt-app.h"
 #include "gt-win.h"
-#include "gt-resource-downloader.h"
+#include "gt-http.h"
 #include "utils.h"
 #include <glib/gi18n.h>
 
@@ -83,11 +83,7 @@ handle_preview_download_cb(GObject* source,
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtGame) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling preview download because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtGamePrivate* priv = gt_game_get_instance_private(self);
     g_autoptr(GError) err = NULL;
@@ -100,31 +96,24 @@ handle_preview_download_cb(GObject* source,
 }
 
 static void
-handle_preview_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_preview_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtGame) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling preview response because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtGamePrivate* priv = gt_game_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
+    RETURN_IF_ERROR(error); /* FIXME: Handle error */
 
-    RETURN_IF_FAIL(err == NULL); /* FIXME: Handle error */
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
 
-    gdk_pixbuf_new_from_stream_at_scale_async(istream, 200, 270, FALSE,
+    gdk_pixbuf_new_from_stream_at_scale_async(res, 200, 270, FALSE,
         priv->cancel, handle_preview_download_cb, g_steal_pointer(&ref));
 }
 
@@ -138,10 +127,8 @@ update_preview(GtGame* self)
 
     utils_refresh_cancellable(&priv->cancel);
 
-    msg = utils_create_twitch_request(priv->data->preview_url);
-
-    gt_app_queue_soup_message(main_app, "gt-game", msg,
-        priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, priv->data->preview_url, "gt-game", DEFAULT_TWITCH_HEADERS, priv->cancel,
+        handle_preview_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
 }
 
 static void
