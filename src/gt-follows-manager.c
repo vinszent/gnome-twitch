@@ -18,6 +18,7 @@
 
 #include "gt-follows-manager.h"
 #include "gt-app.h"
+#include "gt-http.h"
 #include "gt-win.h"
 #include "utils.h"
 #include <json-glib/json-glib.h>
@@ -454,8 +455,8 @@ logged_in_cb(GObject* source,
 }
 
 static void
-handle_channels_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata);
+handle_channels_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata);
 
 static void
 process_channels_json_cb(GObject* source,
@@ -479,7 +480,6 @@ process_channels_json_cb(GObject* source,
     g_autoptr(GError) err = NULL;
     gint num_elements;
     gint64 total;
-    g_autoptr(SoupMessage) msg = NULL;
 
     json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
@@ -536,11 +536,13 @@ process_channels_json_cb(GObject* source,
 
     if (priv->current_offset < total)
     {
-        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
+        g_autofree gchar* uri = NULL;
+
+        uri = g_strdup_printf("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
             info->user_id, 100, priv->current_offset);
 
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_channels_response_cb, g_steal_pointer(&ref));
+        gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
+            handle_channels_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
     else
     {
@@ -579,37 +581,30 @@ process_channels_json_cb(GObject* source,
 }
 
 static void
-handle_channels_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_channels_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling followed channels response because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
+    RETURN_IF_ERROR(error); /* FIXME: Handle error */
 
-    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
 
-    json_parser_load_from_stream_async(priv->json_parser, istream, priv->cancel,
+    json_parser_load_from_stream_async(priv->json_parser, res, priv->cancel,
         process_channels_json_cb, g_steal_pointer(&ref));
 }
 
 static void
-handle_streams_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata);
+handle_streams_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata);
 
 static void
 process_streams_json_cb(GObject* source,
@@ -633,7 +628,6 @@ process_streams_json_cb(GObject* source,
     g_autoptr(GError) err = NULL;
     gint num_elements;
     gint64 total;
-    g_autoptr(SoupMessage) msg = NULL;
 
     json_parser_load_from_stream_finish(priv->json_parser, res, &err);
 
@@ -667,53 +661,47 @@ process_streams_json_cb(GObject* source,
 
     const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
 
+    g_autofree gchar* uri = NULL;
+
     if (priv->current_offset < total)
     {
-
-        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
+        uri = g_strdup_printf("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
             info->oauth_token, 100, priv->current_offset);
 
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_streams_response_cb, g_steal_pointer(&ref));
+        gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
+            handle_streams_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
     else
     {
         priv->current_offset = 0;
 
-        msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
+        uri = g_strdup_printf("https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d",
             info->user_id, 100, 0);
 
-        soup_session_send_async(main_app->soup, msg, priv->cancel,
-            handle_channels_response_cb, g_steal_pointer(&ref));
+        gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
+            handle_channels_response_cb, g_steal_pointer(&ref), GT_HTTP_FLAG_RETURN_STREAM);
     }
 }
 
 static void
-handle_streams_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_streams_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtFollowsManager) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling followed channels response because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
+    RETURN_IF_ERROR(error); /* FIXME: Handle error */
 
-    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
 
-    json_parser_load_from_stream_async(priv->json_parser, istream, priv->cancel,
+    json_parser_load_from_stream_async(priv->json_parser, res, priv->cancel,
         process_streams_json_cb, g_steal_pointer(&ref));
 }
 
@@ -811,22 +799,22 @@ gt_follows_manager_load_from_twitch(GtFollowsManager* self)
     RETURN_IF_FAIL(GT_IS_FOLLOWS_MANAGER(self));
 
     GtFollowsManagerPrivate* priv = gt_follows_manager_get_instance_private(self);
-    g_autoptr(SoupMessage) msg = NULL;
 
     priv->loading_follows = TRUE;
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_LOADING_FOLLOWS]);
 
     const GtOAuthInfo* info = gt_app_get_oauth_info(main_app);
+    g_autofree gchar* uri = NULL;
 
     utils_refresh_cancellable(&priv->cancel);
 
     priv->current_offset = 0;
 
-    msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
+    uri = g_strdup_printf("https://api.twitch.tv/kraken/streams/followed?oauth_token=%s&limit=%d&offset=%d&stream_type=live",
         info->oauth_token, 100, 0);
 
-    soup_session_send_async(main_app->soup, msg, priv->cancel,
-        handle_streams_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, uri, "gt-follows-manager", DEFAULT_TWITCH_HEADERS, priv->cancel,
+        handle_streams_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
 }
 
 void
