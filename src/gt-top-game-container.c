@@ -21,7 +21,7 @@
 #include "gt-game.h"
 #include "gt-games-container-child.h"
 #include "gt-app.h"
-#include "gt-twitch.h"
+#include "gt-http.h"
 #include "gt-game-container-view.h"
 #include "utils.h"
 
@@ -148,41 +148,34 @@ process_json_cb(GObject* source,
 }
 
 static void
-handle_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtTopGameContainer) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Not handling response because we were unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
+    else if (error)
     {
-        WARNING("Unable to handle response because: %s", err->message);
-        gt_item_container_show_error(GT_ITEM_CONTAINER(self), err);
+        WARNING("Unable to handle response because: %s", error->message);
+        gt_item_container_show_error(GT_ITEM_CONTAINER(self), error);
         return;
     }
 
-    json_parser_load_from_stream_async(priv->json_parser, istream,
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
+
+    json_parser_load_from_stream_async(priv->json_parser, res,
         priv->cancel, process_json_cb, g_steal_pointer(&ref));
 }
 
@@ -199,15 +192,15 @@ request_extra_items(GtItemContainer* item_container,
 
     GtTopGameContainer* self = GT_TOP_GAME_CONTAINER(item_container);
     GtTopGameContainerPrivate* priv = gt_top_game_container_get_instance_private(self);
-    g_autoptr(SoupMessage) msg = NULL;
+    g_autofree gchar* uri = NULL;
 
     utils_refresh_cancellable(&priv->cancel);
 
-    msg = utils_create_twitch_request_v("https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d",
+    uri = g_strdup_printf("https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d",
         amount, offset);
 
-    gt_app_queue_soup_message(main_app, "gt-item-container",
-        msg, priv->cancel, handle_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, uri, "gt-item-container", DEFAULT_TWITCH_HEADERS,
+        priv->cancel, handle_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
 }
 
 static GtkWidget*
