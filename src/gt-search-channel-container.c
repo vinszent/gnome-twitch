@@ -16,16 +16,16 @@
  *  along with GNOME Twitch. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib/gi18n.h>
 #include "gt-search-channel-container.h"
 #include "gt-top-channel-container.h"
 #include "gt-item-container.h"
-#include "gt-twitch.h"
 #include "gt-app.h"
+#include "gt-http.h"
 #include "gt-win.h"
 #include "gt-channels-container-child.h"
 #include "gt-channel.h"
 #include "utils.h"
+#include <glib/gi18n.h>
 
 #define TAG "GtSearchChannelContainer"
 #include "gnome-twitch/gt-log.h"
@@ -165,43 +165,35 @@ process_json_cb(GObject* source,
 }
 
 static void
-handle_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
-
-    DEBUG("Received response");
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtSearchChannelContainer) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
+    GInputStream* istream = res; /* NOTE: Owned by GtHTTP */
 
-    istream = soup_session_send_finish(SOUP_SESSION(source), res, &err);
-
-    if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
         DEBUG("Cancelled");
         return;
     }
-    else if (err)
+    else if (error)
     {
-        WARNING("Unable to handle response because: %s", err->message);
-        gt_item_container_show_error(GT_ITEM_CONTAINER(self), err);
+        WARNING("Unable to handle response because: %s", error->message);
+        gt_item_container_show_error(GT_ITEM_CONTAINER(self), error);
         return;
     }
 
-    json_parser_load_from_stream_async(priv->json_parser, istream,
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
+
+    json_parser_load_from_stream_async(priv->json_parser, res,
         priv->cancel, process_json_cb, g_steal_pointer(&ref));
 }
 
@@ -218,7 +210,6 @@ request_extra_items(GtItemContainer* item_container,
 
     GtSearchChannelContainer* self = GT_SEARCH_CHANNEL_CONTAINER(item_container);
     GtSearchChannelContainerPrivate* priv = gt_search_channel_container_get_instance_private(self);
-    g_autoptr(SoupMessage) msg = NULL;
     const gint page_amount = priv->search_offline ? 100 : 90;
 
     INFO("Requesting '%d' items at offset '%d' with query '%s'",
@@ -233,19 +224,20 @@ request_extra_items(GtItemContainer* item_container,
     }
     else
     {
-        const gchar* uri = priv->search_offline ?
+        g_autofree gchar* uri = NULL;
+        const gchar* base_uri = priv->search_offline ?
             "https://api.twitch.tv/kraken/search/channels?query=%s&limit=%d&offset=%d" :
             "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d";
 
-        msg = utils_create_twitch_request_v(uri, priv->query,
+        uri = g_strdup_printf(base_uri, priv->query,
             SEARCH_AMOUNT, (offset / page_amount) * SEARCH_AMOUNT);
 
         g_object_set_data(G_OBJECT(self), "amount", GINT_TO_POINTER(amount));
         g_object_set_data(G_OBJECT(self), "offset", GINT_TO_POINTER(offset));
         g_object_set_data(G_OBJECT(self), "offline", GINT_TO_POINTER(priv->search_offline));
 
-        gt_app_queue_soup_message(main_app, "item-container", msg, priv->cancel,
-            handle_response_cb, utils_weak_ref_new(self));
+        gt_http_get_with_category(main_app->http, uri, "item-container", DEFAULT_TWITCH_HEADERS, priv->cancel,
+            handle_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
     }
 }
 
