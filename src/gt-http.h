@@ -46,6 +46,15 @@ typedef enum
     GT_HTTP_ERROR_UNKNOWN,
 } GtHTTPError;
 
+static gchar* GT_HTTP_NO_HEADERS[] = {NULL};
+
+static gchar* GT_HTTP_TWITCH_HLS_HEADERS[] =
+{
+    "Client-ID", CLIENT_ID,
+    "Accept", "application/vnd.apple.mpegurl",
+    NULL,
+};
+
 static gchar* DEFAULT_TWITCH_HEADERS[]  =
 {
     "Client-ID", CLIENT_ID,
