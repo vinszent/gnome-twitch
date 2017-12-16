@@ -17,8 +17,8 @@
  */
 
 #include "gt-vod.h"
-
 #include "gt-app.h"
+#include "gt-http.h"
 #include "utils.h"
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
@@ -102,60 +102,24 @@ handle_preview_download_cb(GObject* source,
 }
 
 static void
-handle_preview_response_cb(GObject* source,
-    GAsyncResult* res, gpointer udata)
+handle_preview_response_cb(GtHTTP* http,
+    gpointer res, GError* error, gpointer udata)
 {
-    RETURN_IF_FAIL(SOUP_IS_SESSION(source));
-    RETURN_IF_FAIL(G_IS_ASYNC_RESULT(res));
+    RETURN_IF_FAIL(GT_IS_HTTP(http));
     RETURN_IF_FAIL(udata != NULL);
 
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtVOD) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtVODPrivate* priv = gt_vod_get_instance_private(self);
-    g_autoptr(GInputStream) istream = NULL;
-    g_autoptr(GError) err = NULL;
-    g_autoptr(SoupMessage) msg = NULL;
 
-    istream = soup_session_send_finish(main_app->soup, res, &err);
+    RETURN_IF_ERROR(error); /* FIXME: Handle error */
 
-    RETURN_IF_ERROR(err); /* FIXME: Handle error */
+    RETURN_IF_FAIL(G_IS_INPUT_STREAM(res));
 
-    if ((msg = g_object_steal_data(G_OBJECT(self), "msg")) != NULL)
-    {
-        const gchar* last_modified = NULL;
-
-        last_modified = soup_message_headers_get_one(msg->response_headers, "Last-Modified");
-
-        if (utils_str_empty(last_modified))
-            DEBUG("No 'Last-Modified' header");
-        else
-        {
-            guint64 timestamp = utils_timestamp_filename(priv->preview_filepath, &err);
-
-            if (err)
-            {
-                WARNING("Unable to timestamp preview image file because: %s", err->message);
-                timestamp = 0; /* NOTE: Force a cache miss */
-            }
-
-            if (utils_http_full_date_to_timestamp(last_modified) < timestamp)
-            {
-                TRACE("Cache hit");
-                return;
-            }
-            else
-                TRACE("Cache miss");
-        }
-    }
-
-    gdk_pixbuf_new_from_stream_at_scale_async(istream, PREVIEW_WIDTH, PREVIEW_HEIGHT,
+    gdk_pixbuf_new_from_stream_at_scale_async(res, PREVIEW_WIDTH, PREVIEW_HEIGHT,
         FALSE, priv->cancel, handle_preview_download_cb, g_steal_pointer(&ref));
 }
 static void
@@ -164,29 +128,9 @@ update_preview(GtVOD* self)
     g_assert(GT_IS_VOD(self));
 
     GtVODPrivate* priv = gt_vod_get_instance_private(self);
-    g_autoptr(GError) err = NULL;
-    g_autoptr(SoupMessage) msg = NULL;
 
-    if (g_file_test(priv->preview_filepath, G_FILE_TEST_EXISTS))
-    {
-        TRACE("Cache hit");
-
-        priv->preview = gdk_pixbuf_new_from_file_at_scale(priv->preview_filepath,
-            PREVIEW_WIDTH, PREVIEW_HEIGHT, FALSE, &err);
-
-        /* NOTE: We don't need to show the user this error as we'll
-         * try to download a new image */
-        if (err)
-            WARNING("Unable to open preview image from file because: %s", err->message);
-        else
-            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PREVIEW]);
-
-    }
-
-    msg = utils_create_twitch_request(priv->data->preview.large);
-
-    gt_app_queue_soup_message(main_app, "gt-vod", msg, priv->cancel,
-        handle_preview_response_cb, utils_weak_ref_new(self));
+    gt_http_get_with_category(main_app->http, priv->data->preview.large, "gt-vod", DEFAULT_TWITCH_HEADERS,
+        priv->cancel, handle_preview_response_cb, utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
 }
 
 static void
