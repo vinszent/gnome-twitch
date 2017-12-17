@@ -698,7 +698,9 @@ utils_parse_playlist(const gchar* str, GError** error)
 
                 if (STRING_EQUALS(*split, "NAME"))
                 {
-                    entry->name = g_strdup(*(split + 1));
+                    /* NOTE: This is to remove quotation marks */
+                    const gchar* name = *(split + 1);
+                    entry->name = g_strndup(name + 1, strlen(name) - 2);
                     break;
                 }
             }
@@ -711,7 +713,8 @@ utils_parse_playlist(const gchar* str, GError** error)
 
                 if (STRING_EQUALS(*split, "RESOLUTION"))
                 {
-                    entry->resolution = g_strdup(*(split + 1));
+                    const gchar* resolution = *(split + 1);
+                    entry->resolution = g_strdup(resolution);
                     break;
                 }
             }
