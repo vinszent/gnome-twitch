@@ -79,8 +79,12 @@
         <child>
           <object class="GtkLabel" id="title_label">
             <property name="visible">true</property>
-            <property name="wrap">true</property>
             <property name="max-width-chars">1</property>
+            <property name="justify">center</property>
+            <property name="ellipsize">end</property>
+            <property name="halign">center</property>
+            <property name="lines">1</property>
+            <property name="width-request">320</property>
           </object>
         </child>
       </object>
