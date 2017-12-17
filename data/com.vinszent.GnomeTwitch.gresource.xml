@@ -20,7 +20,7 @@
       <file preprocess="xml-stripblanks">ui/gt-error-dlg.ui</file>
       <file preprocess="xml-stripblanks">ui/app-menu.ui</file>
       <file>com.vinszent.GnomeTwitch.style.css</file>
-      <file>icons/offline.png</file>
+      <file>icons/offline-cover.png</file>
       <file>icons/gt-camera-symbolic.svg</file>
       <file>icons/gt-film-symbolic.svg</file>
       <file>icons/gt-show-chat-symbolic.svg</file>

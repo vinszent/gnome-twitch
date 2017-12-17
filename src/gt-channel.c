@@ -266,7 +266,7 @@ update_preview(GtChannel* self)
     else
     {
         priv->preview = gdk_pixbuf_new_from_resource_at_scale(
-            "/com/vinszent/GnomeTwitch/icons/offline.png", 320, 180, FALSE, &err);
+            "/com/vinszent/GnomeTwitch/icons/offline-cover.png", 320, 180, FALSE, &err);
 
         if (err)
         {
