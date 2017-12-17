@@ -116,7 +116,6 @@ const GtUserInfo* gt_app_get_user_info(GtApp* self);
 const GtOAuthInfo* gt_app_get_oauth_info(GtApp* self);
 const gchar* gt_app_get_language_filter(GtApp* self);
 gboolean gt_app_should_show_notifications(GtApp* self);
-void gt_app_queue_soup_message(GtApp* self, const gchar* category, SoupMessage* msg, GCancellable* cancel, GAsyncReadyCallback callback, gpointer udata);
 
 GtUserInfo*       gt_user_info_new();
 void              gt_user_info_free(GtUserInfo* info);
