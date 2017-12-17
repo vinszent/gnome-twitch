@@ -121,7 +121,7 @@ enum
     PROP_VOLUME,
     PROP_MUTED,
     PROP_CHANNEL,
-    /* PROP_VOD, */
+    PROP_VOD,
     PROP_PLAYING,
     PROP_MEDIUM,
     PROP_CHAT_VISIBLE,
@@ -910,6 +910,9 @@ get_property(GObject* obj,
         case PROP_CHANNEL:
             g_value_set_object(val, priv->channel);
             break;
+        case PROP_VOD:
+            g_value_set_object(val, priv->vod);
+            break;
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
             break;
@@ -1348,6 +1351,9 @@ gt_player_class_init(GtPlayerClass* klass)
     props[PROP_CHANNEL] = g_param_spec_object("channel", "Channel", "Current channel",
         GT_TYPE_CHANNEL, G_PARAM_READWRITE);
 
+    props[PROP_VOD] = g_param_spec_object("vod", "VOD", "Current VOD",
+        GT_TYPE_CHANNEL, G_PARAM_READWRITE);
+
     props[PROP_PLAYING] = g_param_spec_boolean("playing", "Playing", "Whether playing",
         FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
@@ -1626,6 +1632,7 @@ gt_player_open_vod(GtPlayer* self, GtVOD* vod)
 
     g_clear_object(&priv->vod);
     priv->vod = g_object_ref(vod);
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_VOD]);
 
     utils_refresh_cancellable(&priv->cancel);
 
@@ -1684,7 +1691,7 @@ gt_player_close_channel(GtPlayer* self)
 
     g_object_set(self,
         "channel", NULL,
-        "VOD", NULL,
+        "vod", NULL,
         "edit-chat", FALSE,
         NULL);
 
