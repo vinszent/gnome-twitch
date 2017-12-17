@@ -254,7 +254,7 @@ update_preview(GtChannel* self)
     {
         gt_http_get_with_category(main_app->http, priv->data->preview_url, g_object_get_data(G_OBJECT(self), "category"),
             DEFAULT_TWITCH_HEADERS, priv->cancel, G_CALLBACK(handle_preview_response_cb), utils_weak_ref_new(self),
-            GT_HTTP_FLAG_RETURN_STREAM | GT_HTTP_FLAG_CACHE_RESPONSE);
+            GT_HTTP_FLAG_RETURN_STREAM);
     }
     else if (!utils_str_empty(priv->data->video_banner_url))
     {
