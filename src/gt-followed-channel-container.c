@@ -101,11 +101,8 @@ activate_child(GtItemContainer* item_container,
 
     GtChannelsContainerChild* child = GT_CHANNELS_CONTAINER_CHILD(_child);
 
-    if (gt_channel_is_online(child->channel))
-    {
-        gt_win_open_channel(GT_WIN_ACTIVE,
-            GT_CHANNELS_CONTAINER_CHILD(child)->channel);
-    }
+    gt_win_open_channel(GT_WIN_ACTIVE,
+        GT_CHANNELS_CONTAINER_CHILD(child)->channel);
 }
 
 static void

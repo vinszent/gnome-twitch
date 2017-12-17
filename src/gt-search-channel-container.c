@@ -257,11 +257,8 @@ activate_child(GtItemContainer* item_container,
     g_assert(GT_IS_SEARCH_CHANNEL_CONTAINER(item_container));
     g_assert(GT_IS_CHANNELS_CONTAINER_CHILD(child));
 
-    if (gt_channel_is_online(GT_CHANNELS_CONTAINER_CHILD(child)->channel))
-    {
-        gt_win_open_channel(GT_WIN_ACTIVE,
-            GT_CHANNELS_CONTAINER_CHILD(child)->channel);
-    }
+    gt_win_open_channel(GT_WIN_ACTIVE,
+        GT_CHANNELS_CONTAINER_CHILD(child)->channel);
 }
 
 static void
