@@ -48,8 +48,16 @@ typedef struct
     gdouble docked_handle_pos;
 } GtPlayerChannelSettings;
 
+typedef enum
+{
+    GT_PLAYER_MEDIUM_NONE,
+    GT_PLAYER_MEDIUM_LIVESTREAM,
+    GT_PLAYER_MEDIUM_VOD,
+} GtPlayerMedium;
+
 void                     gt_player_open_channel(GtPlayer* self, GtChannel* chan);
 void                     gt_player_open_vod(GtPlayer* self, GtVOD* vod);
+void                     gt_player_play_livestream(GtPlayer* self);
 void                     gt_player_close_channel(GtPlayer* self);
 void                     gt_player_play(GtPlayer* self);
 void                     gt_player_stop(GtPlayer* self);

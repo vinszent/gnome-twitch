@@ -508,6 +508,21 @@ close_player_cb(GSimpleAction* action,
                                      "browse");
 }
 
+static void
+show_vods_cb(GSimpleAction* action,
+    GVariant* arg, gpointer udata)
+{
+    RETURN_IF_FAIL(G_IS_SIMPLE_ACTION(action));
+    RETURN_IF_FAIL(GT_IS_WIN(udata));
+
+    GtWin* self = GT_WIN(udata);
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    RETURN_IF_FAIL(self->open_channel);
+
+    gtk_stack_set_visible_child(GTK_STACK(priv->channel_stack), priv->channel_vod_container);
+}
+
 static gboolean
 window_state_event_cb(GtkWidget* widget,
     GdkEventWindowState* evt, gpointer udata)
@@ -543,7 +558,8 @@ static GActionEntry win_actions[] =
     {"show_settings_with_view", NULL, "s", "'general'", show_settings_cb},
     {"show_twitch_login", show_twitch_login_cb, NULL, NULL, NULL},
     {"show_channel_info", show_channel_info_cb, NULL, NULL, NULL},
-    {"close_player", close_player_cb, NULL, NULL, NULL},
+    {"close_channel", close_channel_cb, NULL, NULL, NULL},
+    {"show_vods", show_vods_cb, NULL, NULL, NULL},
 };
 
 static void
@@ -626,7 +642,7 @@ gt_win_class_init(GtWinClass* klass)
     object_class->constructed = constructed;
 
     props[PROP_FULLSCREEN] = g_param_spec_boolean("fullscreen", "Fullscreen", "Whether window is fullscreen",
-        FALSE, G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
+        FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_EXPLICIT_NOTIFY);
 
     props[PROP_OPEN_CHANNEL] = g_param_spec_object("open-channel", "Open channel", "Currenly open channel",
         GT_TYPE_CHANNEL, G_PARAM_READWRITE);
@@ -720,32 +736,16 @@ gt_win_open_channel(GtWin* self, GtChannel* chan)
 
     GtWinPrivate* priv = gt_win_get_instance_private(self);
 
-    /* if (gt_player_is_playing(self->player)) */
-    /*     gt_player_close_channel(self->player); */
+    g_object_set(self, "open-channel", chan, NULL);
 
-    if (gt_channel_is_online(chan))
-    {
-        g_object_set(self, "open-channel", chan, NULL);
+    gt_player_open_channel(GT_PLAYER(self->player), chan);
 
-        gt_player_open_channel(GT_PLAYER(self->player), chan);
+    g_object_set(G_OBJECT(priv->channel_vod_container), "channel-id", gt_channel_get_id(chan), NULL);
 
-        g_object_set(G_OBJECT(priv->channel_vod_container), "channel-id", gt_channel_get_id(chan), NULL);
+    gt_item_container_refresh(GT_ITEM_CONTAINER(priv->channel_vod_container));
 
-        gt_item_container_refresh(GT_ITEM_CONTAINER(priv->channel_vod_container));
-
-        gtk_stack_set_visible_child(GTK_STACK(priv->channel_stack), GTK_WIDGET(self->player));
-        gtk_stack_set_visible_child(GTK_STACK(priv->main_stack), priv->channel_stack);
-    }
-    else
-    {
-        gt_win_show_info_message(self, _("Unable to open channel %s because it’s not online"),
-            gt_channel_get_name(chan));
-
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->main_stack),
-            "browse");
-        gtk_stack_set_visible_child_name(GTK_STACK(priv->header_stack),
-            "browse");
-    }
+    gtk_stack_set_visible_child(GTK_STACK(priv->channel_stack), GTK_WIDGET(self->player));
+    gtk_stack_set_visible_child(GTK_STACK(priv->main_stack), priv->channel_stack);
 }
 
 void

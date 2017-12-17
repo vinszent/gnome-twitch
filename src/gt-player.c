@@ -17,7 +17,6 @@
  */
 
 #include "gt-player.h"
-#include "gt-twitch.h"
 #include "gt-win.h"
 #include "gt-app.h"
 #include "gt-enums.h"
@@ -32,13 +31,16 @@
 #define TAG "GtPlayer"
 #include "gnome-twitch/gt-log.h"
 
-#define FULLSCREEN_BAR_REVEAL_HEIGHT 50
+#define PLAYER_CONTROLS_REVEAL_HEIGHT 50
 #define CHAT_RESIZE_HANDLE_SIZE 10
 #define CHAT_MIN_WIDTH 290
 #define CHAT_MIN_HEIGHT 200
 
 #define CHANNEL_SETTINGS_FILE g_build_filename(g_get_user_data_dir(), "gnome-twitch", "channel_settings.json", NULL);
 #define CHANNEL_SETTINGS_FILE_VERSION 1
+
+#define LIVESTREAM_URI "https://api.twitch.tv/api/channels/%s/access_token"
+#define VOD_URI "https://api.twitch.tv/api/vods/%s/access_token"
 
 typedef enum
 {
@@ -54,11 +56,10 @@ typedef struct
 {
     GSimpleActionGroup* action_group;
 
-    gchar* quality;
-
     GtPlayerChannelSettings* cur_channel_settings;
 
     GtkWidget* player_box;
+    GtkWidget* offline_box;
     GtkWidget* error_box;
     GtkWidget* empty_box;
     GtkWidget* player_overlay;
@@ -70,8 +71,14 @@ typedef struct
     GtkWidget* player_widget;
     GtkWidget* reload_button;
 
+    GtkWidget* toggle_playing_button;
     GtkWidget* volume_button;
     GtkWidget* toggle_chat_button;
+    GtkWidget* toggle_fullscreen_button;
+    GtkWidget* seek_bar;
+    GtkWidget* seek_label;
+    GtkWidget* switch_live_button;
+    GtkWidget* stream_quality_box;
 
     GtPlayerBackend* backend;
     PeasPluginInfo* backend_info;
@@ -79,12 +86,15 @@ typedef struct
     GtChannel* channel;
     GtVOD* vod;
 
+    GtPlayerMedium medium;
+
     JsonParser* json_parser;
     GCancellable* cancel;
 
     gchar* vod_id;
 
-    GList* stream_qualities;
+    GtPlaylistEntryList* stream_qualities;
+    const GtPlaylistEntry* quality;
 
     gdouble volume;
     gdouble prev_volume;
@@ -111,7 +121,9 @@ enum
     PROP_VOLUME,
     PROP_MUTED,
     PROP_CHANNEL,
+    /* PROP_VOD, */
     PROP_PLAYING,
+    PROP_MEDIUM,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
     PROP_CHAT_DARK_THEME,
@@ -125,6 +137,26 @@ enum
 static GParamSpec* props[NUM_PROPS];
 
 static GHashTable* channel_settings_table;
+
+static const GEnumValue gt_player_medium_enum_values[] =
+{
+    {GT_PLAYER_MEDIUM_NONE, "GT_PLAYER_MEDIUM_NONE", "none"},
+    {GT_PLAYER_MEDIUM_LIVESTREAM, "GT_PLAYER_MEDIUM_LIVESTREAM", "livestream"},
+    {GT_PLAYER_MEDIUM_VOD, "GT_PLAYER_MEDIUM_VOD", "vod"},
+};
+
+GType
+gt_player_medium_get_type()
+{
+    static GType type = 0;
+
+    if (type == 0)
+        type = g_enum_register_static("GtPlayerMedium", gt_player_medium_enum_values);
+
+    return type;
+}
+
+#define GT_TYPE_PLAYER_MEDIUM gt_player_medium_get_type()
 
 static void
 load_channel_settings()
@@ -441,7 +473,7 @@ motion_cb(GtkWidget* widget,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (evt->y_root > gtk_widget_get_allocated_height(widget) - FULLSCREEN_BAR_REVEAL_HEIGHT)
+    if (evt->y_root > gtk_widget_get_allocated_height(widget) - PLAYER_CONTROLS_REVEAL_HEIGHT)
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), TRUE);
     else
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), FALSE);
@@ -489,7 +521,6 @@ buffer_fill_cb(GObject* source,
     }
     else
         gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), FALSE);
-
 }
 
 static void
@@ -512,8 +543,7 @@ fullscreen_cb(GObject* source,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    if (!gt_win_is_fullscreen(GT_WIN_TOPLEVEL(self)))
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), FALSE);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(priv->controls_revealer), FALSE);
 }
 
 static MousePos
@@ -762,6 +792,41 @@ update_edit_chat(GtPlayer* self)
 }
 
 static void
+medium_changed_cb(GObject* obj,
+    GParamSpec* pspec, gpointer udata)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER(obj));
+    RETURN_IF_FAIL(G_IS_PARAM_SPEC(pspec));
+    RETURN_IF_FAIL(udata == NULL);
+
+    GtPlayer* self = GT_PLAYER(obj);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    gboolean playing_livestream;
+
+    switch (priv->medium)
+    {
+        case GT_PLAYER_MEDIUM_VOD:
+        case GT_PLAYER_MEDIUM_NONE:
+            playing_livestream = FALSE;
+            break;
+        case GT_PLAYER_MEDIUM_LIVESTREAM:
+            playing_livestream = TRUE;
+            break;
+        default:
+            RETURN_IF_REACHED();
+    }
+
+    /* NOTE: Hide chat until we implement chat replay */
+    g_object_set(self, "chat-visible", playing_livestream, NULL);
+
+    gtk_widget_set_visible(priv->toggle_playing_button, !playing_livestream);
+    gtk_widget_set_visible(priv->switch_live_button, !playing_livestream);
+    /* TODO: Until we implement chat replay, hide the toggle chat button */
+    gtk_widget_set_visible(priv->toggle_chat_button, playing_livestream);
+}
+
+static void
 app_shutdown_cb(GApplication* app,
     gpointer udata)
 {
@@ -848,84 +913,51 @@ get_property(GObject* obj,
         case PROP_PLAYING:
             g_value_set_boolean(val, priv->playing);
             break;
+        case PROP_MEDIUM:
+            g_value_set_enum(val, priv->medium);
+            break;
         case PROP_CHAT_DOCKED:
-            g_value_set_boolean(val, priv->cur_channel_settings->docked);
+            if (priv->cur_channel_settings)
+                g_value_set_boolean(val, priv->cur_channel_settings->docked);
+            else
+                g_value_set_boolean(val, TRUE);
             break;
         case PROP_CHAT_OPACITY:
-            g_value_set_double(val, priv->cur_channel_settings->opacity);
+            if (priv->cur_channel_settings)
+                g_value_set_double(val, priv->cur_channel_settings->opacity);
+            else
+                g_value_set_double(val, 1.0);
             break;
         case PROP_CHAT_VISIBLE:
-            g_value_set_boolean(val, priv->cur_channel_settings->visible);
+            if (priv->cur_channel_settings)
+                g_value_set_boolean(val, priv->cur_channel_settings->visible);
+            else
+                g_value_set_boolean(val, TRUE);
             break;
         case PROP_CHAT_DARK_THEME:
-            g_value_set_boolean(val, priv->cur_channel_settings->dark_theme);
+            if (priv->cur_channel_settings)
+                g_value_set_boolean(val, priv->cur_channel_settings->dark_theme);
+            else
+                g_value_set_boolean(val, TRUE);
             break;
         case PROP_DOCKED_HANDLE_POSITION:
-            g_value_set_double(val, priv->cur_channel_settings->docked_handle_pos);
+            if (priv->cur_channel_settings)
+                g_value_set_double(val, priv->cur_channel_settings->docked_handle_pos);
+            else
+                g_value_set_double(val, 0.75);
             break;
         case PROP_EDIT_CHAT:
             g_value_set_boolean(val, priv->edit_chat);
             break;
         case PROP_STREAM_QUALITY:
-            g_value_set_string(val, priv->quality);
+            if (priv->quality)
+                g_value_set_string(val, priv->quality->name);
+            else
+                g_value_set_string(val, "");
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
-}
-
-static void
-streams_list_cb(GObject* source,
-                GAsyncResult* res,
-                gpointer udata)
-{
-    g_assert(GT_IS_PLAYER(udata));
-    g_assert(G_IS_TASK(res));
-    g_assert(GT_IS_TWITCH(source));
-
-    GtPlayer* self = GT_PLAYER(udata);
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    const GtTwitchStreamData* stream_data;
-    g_autoptr(GError) err = NULL;
-
-    priv->stream_qualities = gt_twitch_all_streams_finish(GT_TWITCH(source), res, &err);
-
-    if (err)
-    {
-        GtWin* win = GT_WIN_TOPLEVEL(self);
-
-        RETURN_IF_FAIL(GT_IS_WIN(win));
-
-        if (g_error_matches(err, GT_TWITCH_ERROR, GT_TWITCH_ERROR_SOUP_NOT_FOUND))
-        {
-            /* Translators: %s will be filled with the channel name */
-            gt_win_show_info_message(win, _("Unable to open channel %s because it’s offline"),
-                gt_channel_get_name(priv->channel));
-        }
-        else
-            gt_win_show_error_message(win, _("Error opening stream"), err->message);
-
-        gtk_stack_set_visible_child(GTK_STACK(self), priv->error_box);
-
-        gt_chat_disconnect(GT_CHAT(priv->chat_view));
-
-        return;
-    }
-
-    stream_data = gt_twitch_stream_list_filter_quality(priv->stream_qualities, priv->quality);
-
-    //NOTE: Incase we get back a different quality from what we asked for
-    //eg. when then quality doesn't exist, so we get the first one (normally source)
-    g_free(priv->quality);
-    priv->quality = g_strdup(stream_data->quality);
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_QUALITY]);
-
-    g_object_set(self, "playing", FALSE, NULL);
-    g_object_set(priv->backend, "uri", stream_data->url, NULL);
-    g_object_set(self, "playing", TRUE, NULL);
-
-    priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
-        GTK_WINDOW(GTK_WINDOW(GT_WIN_TOPLEVEL(self))), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
 }
 
 static void
@@ -955,6 +987,12 @@ realize_cb(GtkWidget* widget,
 
     gtk_widget_insert_action_group(GTK_WIDGET(win), "player",
         G_ACTION_GROUP(priv->action_group));
+
+    /* NOTE: To get the images for the  toggle buttons to display
+     * correctly for the first time */
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
+    g_object_notify(G_OBJECT(priv->toggle_fullscreen_button), "active");
+    g_object_notify(G_OBJECT(priv->toggle_playing_button), "active");
 
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
@@ -995,6 +1033,20 @@ motion_event_cb(GtkWidget* widget,
     return G_SOURCE_REMOVE;
 }
 
+static gchar*
+seek_bar_format_cb(GtkScale* scale,
+    gdouble value, gpointer udata)
+{
+    RETURN_VAL_IF_FAIL(GTK_IS_SCALE(scale), NULL);
+    RETURN_VAL_IF_FAIL(udata == NULL, NULL);
+
+    gint64 position = (gint64) value;
+    gint64 duration = (gint64) gtk_adjustment_get_upper(gtk_range_get_adjustment(GTK_RANGE(scale)));
+
+    return g_strdup_printf(_("%ld:%02ld / %ld:%02ld"),
+        position / 60, position % 60, duration / 60, duration % 60);
+}
+
 static void
 plugin_loaded_cb(PeasEngine* engine,
                  PeasPluginInfo* info,
@@ -1006,6 +1058,7 @@ plugin_loaded_cb(PeasEngine* engine,
     if (peas_engine_provides_extension(engine, info, GT_TYPE_PLAYER_BACKEND))
     {
         PeasExtension* ext;
+        GtkAdjustment* seek_adj = NULL;
 
         MESSAGEF("Loaded player backend '%s'", peas_plugin_info_get_name(info));
 
@@ -1025,21 +1078,18 @@ plugin_loaded_cb(PeasEngine* engine,
         g_signal_connect(priv->backend, "notify::buffer-fill",
             G_CALLBACK(buffer_fill_cb), self);
 
-        g_object_bind_property(self, "volume",
-            priv->backend, "volume",
+        g_object_bind_property(self, "volume", priv->backend, "volume",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
-        g_object_bind_property(self, "playing",
-            priv->backend, "playing",
+        g_object_bind_property(self, "playing", priv->backend, "playing",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(self, "chat-opacity",
-            priv->chat_view, "opacity",
+        g_object_bind_property(priv->backend, "seekable", priv->seek_bar, "visible",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(self, "chat-dark-theme",
-            priv->chat_view, "dark-theme",
+
+        seek_adj = gtk_range_get_adjustment(GTK_RANGE(priv->seek_bar));
+        g_object_bind_property(priv->backend, "duration", seek_adj, "upper",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(self, "chat-visible",
-            priv->chat_view, "visible",
-            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+        g_object_bind_property(seek_adj, "value", priv->backend, "position",
+            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
         gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
 
@@ -1108,6 +1158,7 @@ handle_playlist_response_cb(GtHTTP* http,
     g_autoptr(GtPlayer) self = g_weak_ref_get(ref);
     g_autoptr(GtPlaylistEntryList) entries = NULL;
     g_autoptr(GError) err = NULL;
+    g_autofree gchar* default_quality = NULL;
 
     if (!self) {TRACE("Unreffed while waiting"); return;}
 
@@ -1123,14 +1174,55 @@ handle_playlist_response_cb(GtHTTP* http,
 
     RETURN_IF_FAIL(length > 0);
 
+    priv->quality = NULL;
+    priv->stream_qualities = NULL;
+
     entries = utils_parse_playlist(res, &err);
+
+    /* FIXME: Handle this */
+    RETURN_IF_FAIL(g_list_length(entries) > 0);
+
+    utils_container_clear(GTK_CONTAINER(priv->stream_quality_box));
+
+    for (GList* l = entries; l != NULL; l = l->next)
+    {
+        RETURN_IF_FAIL(l->data != NULL);
+
+        GtPlaylistEntry* entry = l->data; /* NOTE: Owned by entries list */
+
+        /* NOTE: Skip over audio only streams */
+        if (utils_str_empty(entry->resolution))
+            continue;
+
+        GtkWidget* button = NULL;
+        GVariant* target_variant = NULL;
+        gchar* text = NULL;
+
+        button = gtk_model_button_new();
+        target_variant = g_variant_new_string(entry->name);
+        text = utils_str_capitalise(entry->name);
+
+        g_object_set(button,
+            "visible", TRUE,
+            "action-name", "player.set_stream_quality",
+            "action-target", target_variant,
+            "text", g_dgettext("gnome-twich", text),
+            NULL);
+
+        gtk_container_add(GTK_CONTAINER(priv->stream_quality_box), button);
+    }
+
+    priv->stream_qualities = g_steal_pointer(&entries);
 
     if (err)
         SHOW_ERROR("Unable to open stream/VOD", "Unable to parse playlist data", err);
 
-    g_object_set(G_OBJECT(priv->backend), "playing", FALSE, NULL);
-    g_object_set(G_OBJECT(priv->backend), "uri", ((GtPlaylistEntry*) entries->data)->uri, NULL);
-    g_object_set(G_OBJECT(priv->backend), "playing", TRUE, NULL);
+    default_quality = g_settings_get_string(main_app->settings, "default-quality");
+
+    gt_player_set_quality(self, default_quality);
+
+    /* NOTE: To get the toggle button into the correct state when changing stream */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_playing_button), TRUE);
 }
 
 static void
@@ -1144,11 +1236,7 @@ process_access_token_json_cb(GObject* source,
     g_autoptr(GWeakRef) ref = udata;
     g_autoptr(GtPlayer) self = g_weak_ref_get(ref);
 
-    if (!self)
-    {
-        TRACE("Unreffed while waiting");
-        return;
-    }
+    if (!self) {TRACE("Unreffed while waiting"); return;}
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     g_autoptr(JsonReader) reader = NULL;
@@ -1261,7 +1349,7 @@ gt_player_class_init(GtPlayerClass* klass)
         GT_TYPE_CHANNEL, G_PARAM_READWRITE);
 
     props[PROP_PLAYING] = g_param_spec_boolean("playing", "Playing", "Whether playing",
-        FALSE, G_PARAM_READWRITE);
+        FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
     props[PROP_CHAT_VISIBLE] = g_param_spec_boolean("chat-visible", "Chat Visible", "Whether chat visible",
         TRUE, G_PARAM_READWRITE);
@@ -1284,6 +1372,9 @@ gt_player_class_init(GtPlayerClass* klass)
     props[PROP_STREAM_QUALITY] = g_param_spec_string("stream-quality", "Stream quality", "Current stream quality",
         NULL, G_PARAM_READWRITE);
 
+    props[PROP_MEDIUM] = g_param_spec_enum("medium", "Medium", "Current medium",
+        GT_TYPE_PLAYER_MEDIUM, GT_PLAYER_MEDIUM_NONE, G_PARAM_READABLE);
+
     g_object_class_install_properties(object_class, NUM_PROPS, props);
 
     gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(klass), "/com/vinszent/GnomeTwitch/ui/gt-player.ui");
@@ -1294,9 +1385,16 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_revealer);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, buffer_label);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, player_box);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, offline_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, error_box);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, reload_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, volume_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, seek_bar);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, switch_live_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_playing_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_chat_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_fullscreen_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, stream_quality_box);
 
     channel_settings_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) gt_player_channel_settings_free);
 
@@ -1348,6 +1446,10 @@ gt_player_init(GtPlayer* self)
 
     gtk_widget_add_events(GTK_WIDGET(self), GDK_POINTER_MOTION_MASK);
 
+    priv->quality = NULL;
+    priv->stream_qualities = NULL;
+    priv->medium = GT_PLAYER_MEDIUM_NONE;
+
     priv->json_parser = json_parser_new();
     priv->cancel = NULL;
 
@@ -1394,12 +1496,18 @@ gt_player_init(GtPlayer* self)
         G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL,
         handle_position_to, handle_position_from, self, NULL);
 
+    g_object_bind_property(self, "chat-opacity", priv->chat_view, "opacity",
+        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self, "chat-dark-theme", priv->chat_view, "dark-theme",
+        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+    g_object_bind_property(self, "chat-visible", priv->chat_view, "visible",
+        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
     g_object_bind_property(self, "volume", priv->volume_button, "value",
         G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
     utils_signal_connect_oneshot(self, "realize", G_CALLBACK(realize_cb), self);
     utils_signal_connect_oneshot_swapped(priv->docking_pane, "size-allocate", G_CALLBACK(update_docked), self);
-    /* g_signal_connect(priv->fullscreen_bar_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self); */
     g_signal_connect(priv->buffer_revealer, "notify::child-revealed", G_CALLBACK(revealer_revealed_cb), self);
     g_signal_connect(priv->player_box, "motion-notify-event", G_CALLBACK(motion_cb), self);
     g_signal_connect_after(main_app->players_engine, "load-plugin", G_CALLBACK(plugin_loaded_cb), self);
@@ -1408,6 +1516,9 @@ gt_player_init(GtPlayer* self)
     g_signal_connect(priv->reload_button, "clicked", G_CALLBACK(reload_button_cb), self);
     g_signal_connect(main_app, "shutdown", G_CALLBACK(app_shutdown_cb), NULL);
     g_signal_connect_object(priv->player_overlay, "get-child-position", G_CALLBACK(update_chat_undocked_position), self, 0);
+    g_signal_connect(self, "notify::medium", G_CALLBACK(medium_changed_cb), NULL);
+    g_signal_connect_object(priv->switch_live_button, "clicked", G_CALLBACK(gt_player_play_livestream), self, G_CONNECT_SWAPPED);
+    g_signal_connect(priv->seek_bar,"format-value", G_CALLBACK(seek_bar_format_cb), NULL);
 
     gchar** c;
     gchar** _c;
@@ -1500,10 +1611,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     update_docked(self);
 
-        gt_channel_get_name(chan));
-
-    gt_http_get_with_category(main_app->http, uri, "gt-player", DEFAULT_TWITCH_HEADERS, priv->cancel,
-        G_CALLBACK(handle_access_token_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+    gt_player_play_livestream(self);
 }
 
 void
@@ -1521,16 +1629,50 @@ gt_player_open_vod(GtPlayer* self, GtVOD* vod)
 
     utils_refresh_cancellable(&priv->cancel);
 
+    gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
+
     vod_id = gt_vod_get_id(priv->vod);
 
     if (g_ascii_isalpha(vod_id[0]))
         vod_id = vod_id + 1;
 
-    uri = g_strdup_printf("https://api.twitch.tv/api/vods/%s/access_token",
-        vod_id);
+    priv->medium = GT_PLAYER_MEDIUM_VOD;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_MEDIUM]);
+
+    uri = g_strdup_printf(VOD_URI, vod_id);
 
     gt_http_get_with_category(main_app->http, uri, "gt-player", DEFAULT_TWITCH_HEADERS, priv->cancel,
         G_CALLBACK(handle_access_token_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+}
+
+void
+gt_player_play_livestream(GtPlayer* self)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER(self));
+
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    g_autofree gchar* uri = NULL;
+
+    utils_refresh_cancellable(&priv->cancel);
+
+    gt_player_stop(self);
+
+    if (gt_channel_is_online(priv->channel))
+    {
+        priv->medium = GT_PLAYER_MEDIUM_LIVESTREAM;
+
+        uri = g_strdup_printf(LIVESTREAM_URI, gt_channel_get_name(priv->channel));
+
+        gt_http_get_with_category(main_app->http, uri, "gt-player", DEFAULT_TWITCH_HEADERS, priv->cancel,
+            G_CALLBACK(handle_access_token_response_cb), utils_weak_ref_new(self), GT_HTTP_FLAG_RETURN_STREAM);
+    }
+    else
+    {
+        priv->medium = GT_PLAYER_MEDIUM_NONE;
+        gtk_stack_set_visible_child(GTK_STACK(self), priv->offline_box);
+    }
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_MEDIUM]);
 }
 
 void
@@ -1542,6 +1684,7 @@ gt_player_close_channel(GtPlayer* self)
 
     g_object_set(self,
         "channel", NULL,
+        "VOD", NULL,
         "edit-chat", FALSE,
         NULL);
 
@@ -1557,19 +1700,34 @@ gt_player_close_channel(GtPlayer* self)
 void
 gt_player_set_quality(GtPlayer* self, const gchar* quality)
 {
-    g_assert(GT_IS_PLAYER(self));
-    g_assert_nonnull(quality);
+    RETURN_IF_FAIL(GT_IS_PLAYER(self));
+    RETURN_IF_FAIL(!utils_str_empty(quality));
 
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    const gchar* name;
 
-    name = gt_channel_get_name(priv->channel);
+    RETURN_IF_FAIL(g_list_length(priv->stream_qualities) > 0);
 
-    g_free(priv->quality);
+    priv->quality = NULL;
 
-    priv->quality = g_strdup(quality);
+    for (GList* l = priv->stream_qualities; l != NULL; l = l->next)
+    {
+        const GtPlaylistEntry* entry = l->data;
 
-    gt_twitch_all_streams_async(main_app->twitch, name, NULL, (GAsyncReadyCallback) streams_list_cb, self);
+        if (STRING_EQUALS(quality, entry->name))
+        {
+            priv->quality = entry;
+            break;
+        }
+    }
+
+    if (!priv->quality)
+        priv->quality = (GtPlaylistEntry*) priv->stream_qualities->data;
+
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_QUALITY]);
+
+    g_object_set(G_OBJECT(priv->backend), "playing", FALSE, NULL);
+    g_object_set(G_OBJECT(priv->backend), "uri", priv->quality->uri, NULL);
+    g_object_set(G_OBJECT(priv->backend), "playing", TRUE, NULL);
 }
 
 void

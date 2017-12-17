@@ -59,6 +59,40 @@
       </object>
     </child>
     <child>
+      <object class="GtkBox" id="offline_box">
+        <property name="visible">true</property>
+        <property name="orientation">vertical</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="spacing">7</property>
+        <property name="name">offline-box</property>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">true</property>
+            <property name="icon-name">gt-offline-symbolic</property>
+            <property name="icon-size">6</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Channel is currently offline</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLinkButton" id="checkout_vod_button">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Click here to checkout this channel's VODs</property>
+            <property name="action-name">win.show_vods</property>
+            <signal name="activate-link" handler="gtk_true"/>
+            <style>
+             <class name="link-sub-label"/>
+            </style>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
       <object class="GtkBox" id="error_box">
         <property name="visible">true</property>
         <property name="orientation">vertical</property>
@@ -69,8 +103,9 @@
         <child>
           <object class="GtkImage">
             <property name="visible">True</property>
-            <property name="icon-name">face-crying-symbolic</property>
+            <property name="icon-name">gt-offline-symbolic</property>
             <property name="icon-size">6</property>
+            <property name="name">player-offline-logo</property>
           </object>
         </child>
         <child>
@@ -188,16 +223,44 @@
                         <property name="visible">true</property>
                         <property name="name">player-controls</property>
                         <child>
-                          <object class="GtkToggleButton" id="toggle_play_button">
+                          <object class="GtkButton" id="switch_live_button">
+                            <property name="visible">true</property>
+                            <property name="label">Open live stream</property>
+                          </object>
+                          <packing>
+                            <property name="pack-type">end</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkToggleButton" id="toggle_playing_button">
                             <property name="visible">true</property>
                             <property name="action-name">player.toggle_playing</property>
                             <style>
                              <class name="image-button"/>
                             </style>
                             <child>
-                              <object class="GtkImage">
+                              <object class="GtkBox">
                                 <property name="visible">true</property>
-                                <property name="icon-name">media-playback-start-symbolic</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_playing_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create|invert-boolean"/>
+                                    <property name="icon-name">media-playback-start-symbolic</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible"
+                                              bind-source="toggle_playing_button"
+                                              bind-property="active"
+                                              bind-flags="default|sync-create"/>
+                                    <property name="icon-name">media-playback-pause-symbolic</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -206,6 +269,18 @@
                           <object class="GtkVolumeButton" id="volume_button">
                             <property name="visible">true</property>
                           </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="seek_bar">
+                            <property name="visible">true</property>
+                            <property name="orientation">horizontal</property>
+                            <property name="draw-value">true</property>
+                            <property name="value-pos">left</property>
+                            <property name="hexpand">true</property>
+                          </object>
+                          <packing>
+                            <property name="pack-type">start</property>
+                          </packing>
                         </child>
                         <child>
                           <object class="GtkMenuButton">
@@ -268,6 +343,7 @@
                             <property name="visible">true</property>
                             <property name="name">toggle-chat</property>
                             <property name="action-name">win.toggle_fullscreen</property>
+                            <property name="active">false</property>
                             <style>
                              <class name="image-button"/>
                             </style>
@@ -281,7 +357,7 @@
                                     <property name="visible"
                                               bind-source="toggle_fullscreen_button"
                                               bind-property="active"
-                                              bind-flags="default|sync-create|invert-boolean"/>
+                                              bind-flags="default|sync-create|invert-boolean">true</property>
                                     <property name="icon-name">view-fullscreen-symbolic</property>
                                   </object>
                                 </child>
@@ -290,7 +366,7 @@
                                     <property name="visible"
                                               bind-source="toggle_fullscreen_button"
                                               bind-property="active"
-                                              bind-flags="default|sync-create"/>
+                                              bind-flags="default|sync-create">false</property>
                                     <property name="icon-name">view-restore-symbolic</property>
                                   </object>
                                 </child>
@@ -420,10 +496,40 @@
         <property name="submenu">edit_chat_menu</property>
       </packing>
     </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">true</property>
+        <property name="orientation">vertical</property>
+        <property name="margin">10</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="menu-name">main</property>
+            <property name="centered">True</property>
+            <property name="inverted">True</property>
+            <property name="text" translatable="yes">Stream quality</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="stream_quality_box">
+            <property name="visible">true</property>
+            <property name="orientation">vertical</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">stream_quality_menu</property>
+      </packing>
+    </child>
   </object>
+
   <object class="GtkAdjustment" id="chat_opacity_adjustment">
     <property name="lower">0.0</property>
     <property name="upper">1.0</property>
-    <property name="value">1.0</property>
+    <property name="value"
+              bind-source="GtPlayer"
+              bind-property="chat-opacity"
+              bind-flags="bidirectional|sync-create"/>
   </object>
 </interface>

@@ -132,10 +132,16 @@
 .gt-item-container #empty-link-button,
 .gt-player #empty-sub-label,
 .gt-player #empty-link-button,
-.gt-channels-container-child #error-link-button
+.gt-channels-container-child #error-link-button,
+.link-sub-label
 {
     font-weight: lighter;
     font-size: small;
+}
+
+button.link-sub-label > label
+{
+    text-decoration-line: none;
 }
 
 #chat-entry.popup-open image
