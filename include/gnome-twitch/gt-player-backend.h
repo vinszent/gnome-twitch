@@ -27,6 +27,38 @@ G_BEGIN_DECLS
 
 G_DECLARE_INTERFACE(GtPlayerBackend, gt_player_backend, GT, PLAYER_BACKEND, GObject)
 
+/**
+ * GtPlayerBackendState:
+ * @GT_PLAYER_BACKEND_STATE_PLAYING: Currently playing
+ * @GT_PLAYER_BACKEND_STATE_PAUSED: Currently paused
+ * @GT_PLAYER_BACKEND_STATE_STOPPED: Currently stopped
+ * @GT_PLAYER_BACKEND_STATE_BUFFERING: Currently buffering
+ * @GT_PLAYER_BACKEND_STATE_LOADING: Currently loading or doing some other miscellaneous work
+ *
+ * The different states that a player backend can be in.
+ */
+typedef enum
+{
+    GT_PLAYER_BACKEND_STATE_PLAYING,
+    GT_PLAYER_BACKEND_STATE_PAUSED,
+    GT_PLAYER_BACKEND_STATE_STOPPED,
+    GT_PLAYER_BACKEND_STATE_BUFFERING,
+    GT_PLAYER_BACKEND_STATE_LOADING,
+} GtPlayerBackendState;
+
+static const GEnumValue gt_player_backend_state_enum_values[] =
+{
+    {GT_PLAYER_BACKEND_STATE_PLAYING, "GT_PLAYER_BACKEND_STATE_PLAYING", "playing"},
+    {GT_PLAYER_BACKEND_STATE_PAUSED, "GT_PLAYER_BACKEND_STATE_PAUSED", "paused"},
+    {GT_PLAYER_BACKEND_STATE_STOPPED, "GT_PLAYER_BACKEND_STATE_STOPPED", "stopped"},
+    {GT_PLAYER_BACKEND_STATE_BUFFERING, "GT_PLAYER_STATE_BACKEND_BUFFERING", "buffering"},
+    {GT_PLAYER_BACKEND_STATE_LOADING, "GT_PLAYER_STATE_BACKEND_LOADING", "loading"},
+};
+
+GType gt_player_backend_state_get_type();
+
+#define GT_TYPE_PLAYER_BACKEND_STATE gt_player_backend_state_get_type()
+
 struct _GtPlayerBackendInterface
 {
     GTypeInterface parent_iface;

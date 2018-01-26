@@ -20,6 +20,17 @@
 
 G_DEFINE_INTERFACE(GtPlayerBackend, gt_player_backend, G_TYPE_OBJECT)
 
+GType
+gt_player_backend_state_get_type()
+{
+    static GType type = 0;
+
+    if (!type)
+        type = g_enum_register_static("GtPlayerBackendState", gt_player_backend_state_enum_values);
+
+    return type;
+}
+
 static void
 gt_player_backend_default_init(GtPlayerBackendInterface* iface)
 {
@@ -34,6 +45,8 @@ gt_player_backend_default_init(GtPlayerBackendInterface* iface)
     g_object_interface_install_property(iface,
         g_param_spec_string("uri", "Uri", "Current uri",
             NULL, G_PARAM_READWRITE));
+    g_object_interface_install_property(iface, g_param_spec_enum("state", "State", "Current state",
+            GT_TYPE_PLAYER_BACKEND_STATE, GT_PLAYER_BACKEND_STATE_STOPPED, G_PARAM_READABLE));
 
     g_object_interface_install_property(iface,
         g_param_spec_double("buffer-fill", "buffer-fill", "Current buffer fill",
