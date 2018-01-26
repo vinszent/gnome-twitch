@@ -53,7 +53,7 @@ static gchar* GT_HTTP_NO_HEADERS[] = {NULL};
 static gchar* GT_HTTP_TWITCH_HLS_HEADERS[] =
 {
     "Client-ID", CLIENT_ID,
-    "Accept", "application/vnd.apple.mpegurl",
+    "Accept", "application/vnd.apple.mpegurl, text/html", /* NOTE: text/html is for when the stream isn't live and HTML is returned instead */
     NULL,
 };
 
