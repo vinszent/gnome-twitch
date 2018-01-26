@@ -23,7 +23,6 @@
 #include "gt-game.h"
 #include "gt-vod.h"
 #include <gtk/gtk.h>
-#include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
 #define REMOVE_STYLE_CLASS(w, n) gtk_style_context_remove_class(gtk_widget_get_style_context(GTK_WIDGET(w)), n)

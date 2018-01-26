@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "config.h"
 #include <glib/gprintf.h>
+#include <libsoup/soup.h>
 
 #define TAG "GtResourceDownloader"
 #include "gnome-twitch/gt-log.h"
