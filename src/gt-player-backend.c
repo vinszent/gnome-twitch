@@ -18,6 +18,9 @@
 
 #include "gnome-twitch/gt-player-backend.h"
 
+#define TAG "GtPlayerBackend"
+#include "gnome-twitch/gt-log.h"
+
 G_DEFINE_INTERFACE(GtPlayerBackend, gt_player_backend, G_TYPE_OBJECT)
 
 GType
@@ -72,4 +75,56 @@ gt_player_backend_get_widget(GtPlayerBackend* backend)
     g_assert_nonnull(GT_PLAYER_BACKEND_GET_IFACE(backend)->get_widget);
 
     return GT_PLAYER_BACKEND_GET_IFACE(backend)->get_widget(backend);
+}
+
+void
+gt_player_backend_play(GtPlayerBackend* backend)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GT_PLAYER_BACKEND_GET_IFACE(backend)->play(backend);
+}
+
+void
+gt_player_backend_stop(GtPlayerBackend* backend)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GT_PLAYER_BACKEND_GET_IFACE(backend)->stop(backend);
+}
+
+void
+gt_player_backend_pause(GtPlayerBackend* backend)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GT_PLAYER_BACKEND_GET_IFACE(backend)->pause(backend);
+}
+
+void
+gt_player_backend_set_uri(GtPlayerBackend* backend, const gchar* uri)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GT_PLAYER_BACKEND_GET_IFACE(backend)->set_uri(backend, uri);
+}
+
+void
+gt_player_backend_set_position(GtPlayerBackend* backend, gint64 position)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GT_PLAYER_BACKEND_GET_IFACE(backend)->set_position(backend, position);
+}
+
+GtPlayerBackendState
+gt_player_backend_get_state(GtPlayerBackend* backend)
+{
+    RETURN_VAL_IF_FAIL(GT_IS_PLAYER_BACKEND(backend), GT_PLAYER_BACKEND_STATE_STOPPED);
+
+    GtPlayerBackendState state;
+
+    g_object_get(backend, "state", &state, NULL);
+
+    return state;
 }

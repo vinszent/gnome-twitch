@@ -64,6 +64,11 @@ struct _GtPlayerBackendInterface
     GTypeInterface parent_iface;
 
     GtkWidget* (*get_widget) (GtPlayerBackend* backend);
+    void (*play) (GtPlayerBackend* backend);
+    void (*pause) (GtPlayerBackend* backend);
+    void (*stop) (GtPlayerBackend* backend);
+    void (*set_uri) (GtPlayerBackend* backend, const gchar* uri);
+    void (*set_position) (GtPlayerBackend* backend, gint64 position);
 };
 
 /**
@@ -74,6 +79,14 @@ struct _GtPlayerBackendInterface
  * Returns a Gtk.Widget that presents the player to the user
  */
 GtkWidget* gt_player_backend_get_widget(GtPlayerBackend* backend);
+
+/* TODO: Doc strings */
+void gt_player_backend_play(GtPlayerBackend* backend);
+void gt_player_backend_pause(GtPlayerBackend* backend);
+void gt_player_backend_stop(GtPlayerBackend* backend);
+void gt_player_backend_set_uri(GtPlayerBackend* backend, const gchar* uri);
+void gt_player_backend_set_position(GtPlayerBackend* backend, gint64 position);
+GtPlayerBackendState gt_player_backend_get_state(GtPlayerBackend* backend);
 
 G_END_DECLS
 
