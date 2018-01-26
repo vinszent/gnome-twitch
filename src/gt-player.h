@@ -65,7 +65,6 @@ void                     gt_player_set_quality(GtPlayer* self, const gchar* qual
 void                     gt_player_toggle_muted(GtPlayer* self);
 GtChannel*               gt_player_get_channel(GtPlayer* self);
 GList*                   gt_player_get_available_stream_qualities(GtPlayer* self);
-gboolean                 gt_player_is_playing(GtPlayer* self);
 GtPlayerChannelSettings* gt_player_channel_settings_new();
 void                     gt_player_channel_settings_free(GtPlayerChannelSettings* settings);
 

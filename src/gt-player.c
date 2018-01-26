@@ -96,10 +96,10 @@ typedef struct
     GtPlaylistEntryList* stream_qualities;
     const GtPlaylistEntry* quality;
 
+    gboolean paused;
     gdouble volume;
     gdouble prev_volume;
     gdouble muted;
-    gboolean playing;
     gboolean edit_chat;
 
     MousePos start_mouse_pos;
@@ -111,6 +111,8 @@ typedef struct
 
     guint inhibitor_cookie;
     guint mouse_source;
+
+    GSimpleAction* toggle_paused_action;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_STACK)
@@ -122,7 +124,6 @@ enum
     PROP_MUTED,
     PROP_CHANNEL,
     PROP_VOD,
-    PROP_PLAYING,
     PROP_MEDIUM,
     PROP_CHAT_VISIBLE,
     PROP_CHAT_DOCKED,
@@ -368,6 +369,7 @@ destroy_cb(GtkWidget* widget,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     g_object_unref(priv->action_group);
+    g_object_unref(priv->toggle_paused_action);
 }
 
 static gboolean
@@ -464,6 +466,31 @@ update_volume(GtPlayer* self)
 
     priv->muted = !(priv->volume > 0);
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_MUTED]);
+}
+
+static void
+player_backend_state_cb(GObject* source,
+    GParamSpec* pspec, gpointer udata)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(source));
+    RETURN_IF_FAIL(G_IS_PARAM_SPEC(pspec));
+    RETURN_IF_FAIL(GT_IS_PLAYER(udata));
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+    GtPlayerBackendState state = gt_player_backend_get_state(priv->backend);
+    GVariant* arg;
+
+    switch (state)
+    {
+        case GT_PLAYER_BACKEND_STATE_PAUSED:
+            arg = g_variant_new_boolean(TRUE);
+            break;
+        default:
+            arg = g_variant_new_boolean(FALSE);
+    }
+
+    /* g_simple_action_set_state(priv->toggle_paused_action, arg); */
 }
 
 static gboolean
@@ -854,12 +881,13 @@ set_property(GObject* obj,
             priv->muted = g_value_get_boolean(val);
             update_muted(self);
             break;
-        case PROP_PLAYING:
-            priv->playing = g_value_get_boolean(val);
-            break;
         case PROP_CHANNEL:
             g_clear_object(&priv->channel);
             priv->channel = g_value_dup_object(val);
+            break;
+        case PROP_VOD:
+            g_clear_object(&priv->vod);
+            priv->vod = g_value_dup_object(val);
             break;
         case PROP_CHAT_DOCKED:
             priv->cur_channel_settings->docked = g_value_get_boolean(val);
@@ -913,9 +941,6 @@ get_property(GObject* obj,
         case PROP_VOD:
             g_value_set_object(val, priv->vod);
             break;
-        case PROP_PLAYING:
-            g_value_set_boolean(val, priv->playing);
-            break;
         case PROP_MEDIUM:
             g_value_set_enum(val, priv->medium);
             break;
@@ -964,6 +989,35 @@ get_property(GObject* obj,
 }
 
 static void
+toggle_paused_cb(GSimpleAction* action,
+    GVariant* arg, gpointer udata)
+{
+    RETURN_IF_FAIL(G_IS_SIMPLE_ACTION(action));
+    RETURN_IF_FAIL(g_variant_is_of_type(arg, G_VARIANT_TYPE_STRING));
+    RETURN_IF_FAIL(GT_IS_PLAYER(udata));
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    priv->paused = !priv->paused;
+}
+
+static gboolean
+seek_bar_value_cb(GtkRange* range, GtkScrollType scroll_type,
+    gdouble value, gpointer udata)
+{
+    RETURN_VAL_IF_FAIL(GTK_IS_RANGE(range), GDK_EVENT_PROPAGATE);
+    RETURN_VAL_IF_FAIL(GT_IS_PLAYER(udata), GDK_EVENT_PROPAGATE);
+
+    GtPlayer* self = GT_PLAYER(udata);
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    gt_player_backend_set_position(priv->backend, value);
+
+    return GDK_EVENT_PROPAGATE;
+}
+
+static void
 reload_button_cb(GtkButton* button,
     GtPlayer* self)
 {
@@ -993,7 +1047,6 @@ realize_cb(GtkWidget* widget,
 
     /* NOTE: To get the images for the  toggle buttons to display
      * correctly for the first time */
-    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_PLAYING]);
     g_object_notify(G_OBJECT(priv->toggle_fullscreen_button), "active");
     g_object_notify(G_OBJECT(priv->toggle_playing_button), "active");
 
@@ -1080,19 +1133,22 @@ plugin_loaded_cb(PeasEngine* engine,
 
         g_signal_connect(priv->backend, "notify::buffer-fill",
             G_CALLBACK(buffer_fill_cb), self);
+        g_signal_connect_object(priv->backend, "notify::state",
+            G_CALLBACK(player_backend_state_cb), self, 0);
 
         g_object_bind_property(self, "volume", priv->backend, "volume",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
-        g_object_bind_property(self, "playing", priv->backend, "playing",
-            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
         g_object_bind_property(priv->backend, "seekable", priv->seek_bar, "visible",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
         seek_adj = gtk_range_get_adjustment(GTK_RANGE(priv->seek_bar));
         g_object_bind_property(priv->backend, "duration", seek_adj, "upper",
             G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
-        g_object_bind_property(seek_adj, "value", priv->backend, "position",
-            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
+        g_object_bind_property(priv->backend, "position", seek_adj, "value",
+            G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
+
+        g_signal_connect_object(priv->seek_bar, "change-value",
+            G_CALLBACK(seek_bar_value_cb), self, 0);
 
         gtk_stack_set_visible_child(GTK_STACK(self), priv->player_box);
 
@@ -1224,6 +1280,8 @@ handle_playlist_response_cb(GtHTTP* http,
 
     gt_player_set_quality(self, default_quality);
 
+    priv->paused = FALSE;
+
     /* NOTE: To get the toggle button into the correct state when changing stream */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_playing_button), TRUE);
 }
@@ -1354,9 +1412,6 @@ gt_player_class_init(GtPlayerClass* klass)
     props[PROP_VOD] = g_param_spec_object("vod", "VOD", "Current VOD",
         GT_TYPE_CHANNEL, G_PARAM_READWRITE);
 
-    props[PROP_PLAYING] = g_param_spec_boolean("playing", "Playing", "Whether playing",
-        FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
-
     props[PROP_CHAT_VISIBLE] = g_param_spec_boolean("chat-visible", "Chat Visible", "Whether chat visible",
         TRUE, G_PARAM_READWRITE);
 
@@ -1446,12 +1501,13 @@ static void
 gt_player_init(GtPlayer* self)
 {
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-    GPropertyAction* action;
+    GAction* action;
 
     gtk_widget_init_template(GTK_WIDGET(self));
 
     gtk_widget_add_events(GTK_WIDGET(self), GDK_POINTER_MOTION_MASK);
 
+    priv->paused = FALSE;
     priv->quality = NULL;
     priv->stream_qualities = NULL;
     priv->medium = GT_PLAYER_MEDIUM_NONE;
@@ -1473,28 +1529,28 @@ gt_player_init(GtPlayer* self)
 
     priv->action_group = g_simple_action_group_new();
 
-    action = g_property_action_new("toggle_playing", self, "playing");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    priv->toggle_paused_action = g_simple_action_new("toggle_paused", NULL);
+    g_signal_connect_object(priv->toggle_paused_action, "change-state", G_CALLBACK(toggle_paused_cb), self, 0);
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(priv->toggle_paused_action));
+
+    action = G_ACTION(g_property_action_new("toggle_chat", self, "chat-visible"));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
     g_object_unref(action);
 
-    action = g_property_action_new("toggle_chat", self, "chat-visible");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    action = G_ACTION(g_property_action_new("dock_chat", self, "chat-docked"));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
     g_object_unref(action);
 
-    action = g_property_action_new("dock_chat", self, "chat-docked");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    action = G_ACTION(g_property_action_new("dark_theme_chat", self, "chat-dark-theme"));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
     g_object_unref(action);
 
-    action = g_property_action_new("dark_theme_chat", self, "chat-dark-theme");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    action = G_ACTION(g_property_action_new("edit_chat", self, "edit-chat"));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
     g_object_unref(action);
 
-    action = g_property_action_new("edit_chat", self, "edit-chat");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
-    g_object_unref(action);
-
-    action = g_property_action_new("set_stream_quality", self, "stream-quality");
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(action));
+    action = G_ACTION(g_property_action_new("set_stream_quality", self, "stream-quality"));
+    g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
     g_object_unref(action);
 
     g_object_bind_property_full(self, "docked-handle-position",
@@ -1549,7 +1605,8 @@ gt_player_play(GtPlayer* self)
     else
     {
         MESSAGE("Playing");
-        g_object_set(priv->backend, "playing", TRUE, NULL);
+        priv->paused = FALSE;
+        gt_player_backend_play(priv->backend);
     }
 }
 
@@ -1563,7 +1620,7 @@ gt_player_stop(GtPlayer* self)
     else
     {
         MESSAGE("Stopping");
-        g_object_set(priv->backend, "playing", FALSE, NULL);
+        gt_player_backend_stop(priv->backend);
     }
 }
 
@@ -1732,9 +1789,10 @@ gt_player_set_quality(GtPlayer* self, const gchar* quality)
 
     g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STREAM_QUALITY]);
 
-    g_object_set(G_OBJECT(priv->backend), "playing", FALSE, NULL);
-    g_object_set(G_OBJECT(priv->backend), "uri", priv->quality->uri, NULL);
-    g_object_set(G_OBJECT(priv->backend), "playing", TRUE, NULL);
+    /* TODO: This needs to happen async */
+    gt_player_backend_stop(priv->backend);
+    gt_player_backend_set_uri(priv->backend, priv->quality->uri);
+    gt_player_backend_play(priv->backend);
 }
 
 void
@@ -1764,16 +1822,6 @@ gt_player_get_available_stream_qualities(GtPlayer* self)
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     return priv->stream_qualities;
-}
-
-gboolean
-gt_player_is_playing(GtPlayer* self)
-{
-    g_assert(GT_IS_PLAYER(self));
-
-    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
-
-    return priv->playing;
 }
 
 GtPlayerChannelSettings*

@@ -234,7 +234,7 @@
                         <child>
                           <object class="GtkToggleButton" id="toggle_playing_button">
                             <property name="visible">true</property>
-                            <property name="action-name">player.toggle_playing</property>
+                            <property name="action-name">player.toggle_paused</property>
                             <style>
                              <class name="image-button"/>
                             </style>
