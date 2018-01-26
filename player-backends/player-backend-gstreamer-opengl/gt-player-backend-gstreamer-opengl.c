@@ -36,13 +36,13 @@ typedef struct
     GtkWidget* widget;
 
     gchar* uri;
-
+    GtPlayerBackendState state;
     gdouble volume;
-    gboolean playing;
     gdouble buffer_fill;
     gboolean seekable;
     gint64 duration;
     gint64 position;
+
     guint position_tick_id;
 } GtPlayerBackendGstreamerOpenGLPrivate;
 
@@ -57,12 +57,11 @@ enum
 {
     PROP_0,
     PROP_VOLUME,
-    PROP_PLAYING,
-    PROP_URI,
     PROP_BUFFER_FILL,
     PROP_DURATION,
     PROP_POSITION,
     PROP_SEEKABLE,
+    PROP_STATE,
     NUM_PROPS
 };
 
@@ -120,7 +119,8 @@ gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
 
             gst_message_parse_buffering(msg, &perc);
             gst_element_set_state(priv->playbin, perc < 100 ? GST_STATE_PAUSED : GST_STATE_PLAYING);
-            g_object_set(self, "buffer-fill", ((gdouble) perc) / 100.0, NULL);
+            priv->buffer_fill = ((gdouble) perc) / 100.0;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_BUFFER_FILL]);
 
             break;
         }
@@ -134,6 +134,24 @@ gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
             if (old_state == new_state) break;
 
             reconfigure_position_tick(self, new_state <= GST_STATE_PAUSED ? 0 : 200);
+
+            switch (new_state)
+            {
+                case GST_STATE_PAUSED:
+                    priv->state = GT_PLAYER_BACKEND_STATE_PAUSED;
+                    break;
+                case GST_STATE_READY:
+                case GST_STATE_NULL:
+                    priv->state = GT_PLAYER_BACKEND_STATE_STOPPED;
+                    break;
+                case GST_STATE_PLAYING:
+                    priv->state = GT_PLAYER_BACKEND_STATE_PLAYING;
+                    break;
+                default:
+                    break;
+            }
+
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 
             break;
         }
@@ -167,19 +185,65 @@ gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
 }
 
 static void
-play(GtPlayerBackendGstreamerOpenGL* self)
+play(GtPlayerBackend* backend)
 {
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND_GSTREAMER_OPENGL(backend));
+
+    GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(backend);
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
     gst_element_set_state(priv->playbin, GST_STATE_PLAYING);
+
+    /* NOTE: Set state as loading until we confirm we are playing in the message callback*/
+    priv->state = GT_PLAYER_BACKEND_STATE_LOADING;
+    g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
 }
 
 static void
-stop(GtPlayerBackendGstreamerOpenGL* self)
+stop(GtPlayerBackend* backend)
 {
+    RETURN_IF_FAIL(GT_PLAYER_BACKEND_GSTREAMER_OPENGL(backend));
+
+    GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(backend);
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
     gst_element_set_state(priv->playbin, GST_STATE_NULL);
+}
+
+/* NOTE: We need the underscore because pause is already defined in unistd.h */
+static void
+_pause(GtPlayerBackend* backend)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND_GSTREAMER_OPENGL(backend));
+
+    /* TODO: Implement */
+}
+
+static void
+set_uri(GtPlayerBackend* backend, const gchar* uri)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND_GSTREAMER_OPENGL(backend));
+
+    GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(backend);
+    GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
+
+    g_free(priv->uri);
+    priv->uri = g_strdup(uri);
+
+    g_object_set(priv->playbin, "uri", priv->uri, NULL);
+}
+
+static void
+set_position(GtPlayerBackend* backend, gint64 position)
+{
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND(backend));
+
+    GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(backend);
+    GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
+
+    gst_element_set_state(priv->playbin, GST_STATE_PAUSED);
+    gst_element_seek_simple(priv->playbin, GST_FORMAT_TIME,
+        GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT, position * GST_SECOND);
 }
 
 static GtkWidget*
@@ -192,16 +256,16 @@ get_widget(GtPlayerBackend* backend)
 }
 
 static void
-finalise(GObject* obj)
+finalize(GObject* obj)
 {
     GtPlayerBackendGstreamerOpenGL* self = GT_PLAYER_BACKEND_GSTREAMER_OPENGL(obj);
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
-    MESSAGE("Finalise");
+    MESSAGE("Finalize");
 
     G_OBJECT_CLASS(gt_player_backend_gstreamer_opengl_parent_class)->finalize(obj);
 
-    stop(self);
+    stop(GT_PLAYER_BACKEND(self));
 
     reconfigure_position_tick(self, 0);
 
@@ -231,12 +295,6 @@ get_property(GObject* obj,
         case PROP_VOLUME:
             g_value_set_double(val, priv->volume);
             break;
-        case PROP_PLAYING:
-            g_value_set_boolean(val, priv->playing);
-            break;
-        case PROP_URI:
-            g_value_set_string(val, priv->uri);
-            break;
         case PROP_BUFFER_FILL:
             g_value_set_double(val, priv->buffer_fill);
             break;
@@ -248,6 +306,9 @@ get_property(GObject* obj,
             break;
         case PROP_SEEKABLE:
             g_value_set_boolean(val, priv->seekable);
+            break;
+        case PROP_STATE:
+            g_value_set_enum(val, priv->state);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
@@ -268,23 +329,6 @@ set_property(GObject* obj,
         case PROP_VOLUME:
             priv->volume = g_value_get_double(val);
             break;
-        case PROP_PLAYING:
-            priv->playing = g_value_get_boolean(val);
-            priv->playing ? play(self) : stop(self);
-            break;
-        case PROP_URI:
-            g_free(priv->uri);
-            priv->uri = g_value_dup_string(val);
-            break;
-        case PROP_BUFFER_FILL:
-            priv->buffer_fill = g_value_get_double(val);
-            break;
-        case PROP_POSITION:
-            priv->position = g_value_get_int64(val);
-            gst_element_set_state(priv->playbin, GST_STATE_PAUSED);
-            gst_element_seek_simple(priv->playbin, GST_FORMAT_TIME,
-                GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT, priv->position * GST_SECOND);
-            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, prop, pspec);
     }
@@ -294,6 +338,11 @@ static void
 gt_player_backend_iface_init(GtPlayerBackendInterface* iface)
 {
     iface->get_widget = get_widget;
+    iface->play = play;
+    iface->stop = stop;
+    iface->pause = _pause;
+    iface->set_uri = set_uri;
+    iface->set_position = set_position;
 }
 
 static void
@@ -308,38 +357,34 @@ gt_player_backend_gstreamer_opengl_class_init(GtPlayerBackendGstreamerOpenGLClas
 {
     GObjectClass* obj_class = G_OBJECT_CLASS(klass);
 
-    obj_class->finalize = finalise;
+    obj_class->finalize = finalize;
     obj_class->get_property = get_property;
     obj_class->set_property = set_property;
 
     props[PROP_VOLUME] = g_param_spec_double("volume", "Volume", "Volume of player",
         0.0, 1.0, 0.3, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
-    props[PROP_PLAYING] = g_param_spec_boolean("playing", "Playing", "Whether playing",
-        FALSE, G_PARAM_READABLE | G_PARAM_CONSTRUCT);
-
-    props[PROP_URI] = g_param_spec_string("uri", "Uri", "Current uri",
-        "", G_PARAM_READWRITE);
-
     props[PROP_BUFFER_FILL] = g_param_spec_double("buffer-fill", "Buffer Fill", "Current buffer fill",
-        0, 1.0, 0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+        0, 1.0, 0, G_PARAM_READABLE);
 
     props[PROP_DURATION] = g_param_spec_int64("duration", "Duration", "Current duration",
         0, G_MAXINT64, 0, G_PARAM_READABLE);
 
     props[PROP_POSITION] = g_param_spec_int64("position", "Position", "Current position",
-        0, G_MAXINT64, 0, G_PARAM_READWRITE);
+        0, G_MAXINT64, 0, G_PARAM_READABLE);
 
     props[PROP_SEEKABLE] = g_param_spec_boolean("seekable", "Seekable", "Whether seekable",
         FALSE, G_PARAM_READABLE);
 
+    props[PROP_STATE] = g_param_spec_enum("state", "State", "Current state",
+        GT_TYPE_PLAYER_BACKEND_STATE, GT_PLAYER_BACKEND_STATE_STOPPED, G_PARAM_READABLE);
+
     g_object_class_override_property(obj_class, PROP_VOLUME, "volume");
-    g_object_class_override_property(obj_class, PROP_PLAYING, "playing");
-    g_object_class_override_property(obj_class, PROP_URI, "uri");
     g_object_class_override_property(obj_class, PROP_BUFFER_FILL, "buffer-fill");
     g_object_class_override_property(obj_class, PROP_DURATION, "duration");
     g_object_class_override_property(obj_class, PROP_POSITION, "position");
     g_object_class_override_property(obj_class, PROP_SEEKABLE, "seekable");
+    g_object_class_override_property(obj_class, PROP_STATE, "state");
 
     if (!gst_is_initialized())
         gst_init(NULL, NULL);
@@ -350,7 +395,11 @@ gt_player_backend_gstreamer_opengl_init(GtPlayerBackendGstreamerOpenGL* self)
 {
     GtPlayerBackendGstreamerOpenGLPrivate* priv = gt_player_backend_gstreamer_opengl_get_instance_private(self);
 
-    MESSAGE("{GtPlayerBackendGstreamerOpenGL} Init");
+    MESSAGE("Init");
+
+    priv->uri = NULL;
+    priv->state = GT_PLAYER_BACKEND_STATE_STOPPED;
+    priv->buffer_fill = 0.0;
 
     priv->playbin = gst_element_factory_make("playbin", NULL);
     priv->video_sink = gst_element_factory_make("gtkglsink", NULL);
@@ -373,8 +422,6 @@ gt_player_backend_gstreamer_opengl_init(GtPlayerBackendGstreamerOpenGL* self)
 
     g_object_bind_property(self, "volume", priv->playbin, "volume",
         G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
-    g_object_bind_property(self, "uri", priv->playbin, "uri",
-        G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 }
 
 G_MODULE_EXPORT
