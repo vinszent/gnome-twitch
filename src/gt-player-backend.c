@@ -23,6 +23,16 @@
 
 G_DEFINE_INTERFACE(GtPlayerBackend, gt_player_backend, G_TYPE_OBJECT)
 
+static const GEnumValue gt_player_backend_state_enum_values[] =
+{
+    {GT_PLAYER_BACKEND_STATE_PLAYING, "GT_PLAYER_BACKEND_STATE_PLAYING", "playing"},
+    {GT_PLAYER_BACKEND_STATE_PAUSED, "GT_PLAYER_BACKEND_STATE_PAUSED", "paused"},
+    {GT_PLAYER_BACKEND_STATE_STOPPED, "GT_PLAYER_BACKEND_STATE_STOPPED", "stopped"},
+    {GT_PLAYER_BACKEND_STATE_BUFFERING, "GT_PLAYER_STATE_BACKEND_BUFFERING", "buffering"},
+    {GT_PLAYER_BACKEND_STATE_LOADING, "GT_PLAYER_STATE_BACKEND_LOADING", "loading"},
+    {0, NULL, NULL},
+};
+
 GType
 gt_player_backend_state_get_type()
 {

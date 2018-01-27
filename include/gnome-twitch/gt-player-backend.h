@@ -23,9 +23,9 @@
 
 G_BEGIN_DECLS
 
-#define GT_TYPE_PLAYER_BACKEND (gt_player_backend_get_type())
+GType gt_player_backend_state_get_type();
 
-G_DECLARE_INTERFACE(GtPlayerBackend, gt_player_backend, GT, PLAYER_BACKEND, GObject)
+#define GT_TYPE_PLAYER_BACKEND_STATE (gt_player_backend_state_get_type())
 
 /**
  * GtPlayerBackendState:
@@ -46,18 +46,9 @@ typedef enum
     GT_PLAYER_BACKEND_STATE_LOADING,
 } GtPlayerBackendState;
 
-static const GEnumValue gt_player_backend_state_enum_values[] =
-{
-    {GT_PLAYER_BACKEND_STATE_PLAYING, "GT_PLAYER_BACKEND_STATE_PLAYING", "playing"},
-    {GT_PLAYER_BACKEND_STATE_PAUSED, "GT_PLAYER_BACKEND_STATE_PAUSED", "paused"},
-    {GT_PLAYER_BACKEND_STATE_STOPPED, "GT_PLAYER_BACKEND_STATE_STOPPED", "stopped"},
-    {GT_PLAYER_BACKEND_STATE_BUFFERING, "GT_PLAYER_STATE_BACKEND_BUFFERING", "buffering"},
-    {GT_PLAYER_BACKEND_STATE_LOADING, "GT_PLAYER_STATE_BACKEND_LOADING", "loading"},
-};
+#define GT_TYPE_PLAYER_BACKEND (gt_player_backend_get_type())
 
-GType gt_player_backend_state_get_type();
-
-#define GT_TYPE_PLAYER_BACKEND_STATE gt_player_backend_state_get_type()
+G_DECLARE_INTERFACE(GtPlayerBackend, gt_player_backend, GT, PLAYER_BACKEND, GObject)
 
 struct _GtPlayerBackendInterface
 {
