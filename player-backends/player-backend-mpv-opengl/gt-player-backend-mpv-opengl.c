@@ -309,7 +309,7 @@ set_position(GtPlayerBackend* backend, gint64 position)
 
     const gchar* mpv_cmd[] = {"seek", seconds, "absolute", NULL};
 
-    check_mpv_error(mpv_command(priv->mpv, mpv_cmd));
+    check_mpv_error(mpv_command_async(priv->mpv, 0, mpv_cmd));
 }
 
 static GtkWidget*
