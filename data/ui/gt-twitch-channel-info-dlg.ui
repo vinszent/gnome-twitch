@@ -23,7 +23,7 @@
     <property name="modal">True</property>
     <property name="default-width">1024</property>
     <property name="default-height">720</property>
-    <property name="title">Channel info</property>
+    <property name="title" translatable="yes">Channel info</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <child>

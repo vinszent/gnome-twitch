@@ -225,7 +225,7 @@
                         <child>
                           <object class="GtkButton" id="switch_live_button">
                             <property name="visible">true</property>
-                            <property name="label">Open live stream</property>
+                            <property name="label" translatable="yes">Open live stream</property>
                           </object>
                           <packing>
                             <property name="pack-type">end</property>

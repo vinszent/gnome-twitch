@@ -8,13 +8,15 @@ data/ui/gt-channels-container-child.ui
 data/ui/gt-chat.ui
 data/ui/gt-error-dlg.ui
 data/ui/gt-item-container.ui
-data/ui/gt-player-header-bar.ui
 data/ui/gt-player.ui
 data/ui/gt-settings-dlg.ui
+data/ui/gt-twitch-channel-info-dlg.ui
 data/ui/gt-win.ui
 src/gt-app.c
+src/gt-channel.c
 src/gt-channel-container-view.c
 src/gt-channels-container-child.c
+src/gt-channel-vod-container.c
 src/gt-chat.c
 src/gt-followed-channel-container.c
 src/gt-follows-manager.c
@@ -23,7 +25,6 @@ src/gt-game-channel-container.c
 src/gt-games-container-child.c
 src/gt-item-container.c
 src/gt-player.c
-src/gt-player-header-bar.c
 src/gt-search-channel-container.c
 src/gt-search-game-container.c
 src/gt-settings-dlg.c
