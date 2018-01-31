@@ -140,13 +140,17 @@ notify_prop_cb(gpointer udata)
     return G_SOURCE_REMOVE;
 }
 
-#define NOTIFY_PROP(self, pprop)                                         \
+#define NOTIFY_PROP(self, pprop)                                        \
     G_STMT_START                                                        \
     {                                                                   \
-        g_param_spec_set_qdata_full(pprop, g_quark_from_string("_gt_self"), \
-            utils_weak_ref_new(self), (GDestroyNotify) utils_weak_ref_free); \
-        g_idle_add_full(G_PRIORITY_DEFAULT, notify_prop_cb,             \
-            g_param_spec_ref(pprop), (GDestroyNotify) g_param_spec_unref); \
+        /* NOTE: Only fire of the notify if one isn't running already */ \
+        if (g_param_spec_get_qdata(pprop, g_quark_from_string("_gt_self")) == NULL) \
+        {                                                               \
+            g_param_spec_set_qdata_full(pprop, g_quark_from_string("_gt_self"), \
+                utils_weak_ref_new(self), (GDestroyNotify) utils_weak_ref_free); \
+            g_idle_add_full(G_PRIORITY_DEFAULT, notify_prop_cb,         \
+                g_param_spec_ref(pprop), (GDestroyNotify) g_param_spec_unref); \
+        }                                                               \
     } G_STMT_END
 
 static gboolean
