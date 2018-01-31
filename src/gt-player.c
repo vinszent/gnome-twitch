@@ -74,6 +74,7 @@ typedef struct
     GtkWidget* toggle_playing_button;
     GtkWidget* volume_button;
     GtkWidget* toggle_chat_button;
+    GtkWidget* edit_chat_button;
     GtkWidget* toggle_fullscreen_button;
     GtkWidget* seek_bar;
     GtkWidget* seek_label;
@@ -850,6 +851,7 @@ medium_changed_cb(GObject* obj,
     gtk_widget_set_visible(priv->toggle_playing_button, !playing_livestream);
     gtk_widget_set_visible(priv->switch_live_button, !playing_livestream);
     /* TODO: Until we implement chat replay, hide the toggle chat button */
+    gtk_widget_set_visible(priv->edit_chat_button, playing_livestream);
     gtk_widget_set_visible(priv->toggle_chat_button, playing_livestream);
 }
 
@@ -1454,6 +1456,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, switch_live_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_playing_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_chat_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, edit_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_fullscreen_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, stream_quality_box);
 
