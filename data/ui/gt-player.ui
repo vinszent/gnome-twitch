@@ -232,9 +232,8 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToggleButton" id="toggle_playing_button">
+                          <object class="GtkToggleButton" id="toggle_paused_button">
                             <property name="visible">true</property>
-                            <property name="action-name">player.toggle_paused</property>
                             <style>
                              <class name="image-button"/>
                             </style>
@@ -246,7 +245,7 @@
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible"
-                                              bind-source="toggle_playing_button"
+                                              bind-source="toggle_paused_button"
                                               bind-property="active"
                                               bind-flags="default|sync-create|invert-boolean"/>
                                     <property name="icon-name">media-playback-start-symbolic</property>
@@ -255,7 +254,7 @@
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible"
-                                              bind-source="toggle_playing_button"
+                                              bind-source="toggle_paused_button"
                                               bind-property="active"
                                               bind-flags="default|sync-create"/>
                                     <property name="icon-name">media-playback-pause-symbolic</property>

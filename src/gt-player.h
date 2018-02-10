@@ -60,6 +60,7 @@ void                     gt_player_open_vod(GtPlayer* self, GtVOD* vod);
 void                     gt_player_play_livestream(GtPlayer* self);
 void                     gt_player_close_channel(GtPlayer* self);
 void                     gt_player_play(GtPlayer* self);
+void                     gt_player_pause(GtPlayer* self);
 void                     gt_player_stop(GtPlayer* self);
 void                     gt_player_set_quality(GtPlayer* self, const gchar* quality);
 void                     gt_player_toggle_muted(GtPlayer* self);

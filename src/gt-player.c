@@ -71,7 +71,7 @@ typedef struct
     GtkWidget* player_widget;
     GtkWidget* reload_button;
 
-    GtkWidget* toggle_playing_button;
+    GtkWidget* toggle_paused_button;
     GtkWidget* volume_button;
     GtkWidget* toggle_chat_button;
     GtkWidget* edit_chat_button;
@@ -112,8 +112,6 @@ typedef struct
 
     guint inhibitor_cookie;
     guint mouse_source;
-
-    GSimpleAction* toggle_paused_action;
 } GtPlayerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtPlayer, gt_player, GTK_TYPE_STACK)
@@ -370,7 +368,6 @@ destroy_cb(GtkWidget* widget,
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
     g_object_unref(priv->action_group);
-    g_object_unref(priv->toggle_paused_action);
 }
 
 static gboolean
@@ -480,15 +477,33 @@ player_backend_state_cb(GObject* source,
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
     GtPlayerBackendState state = gt_player_backend_get_state(priv->backend);
-    GVariant* arg;
 
     switch (state)
     {
-        case GT_PLAYER_BACKEND_STATE_PAUSED:
-            arg = g_variant_new_boolean(TRUE);
+        /* TODO: Update play/pause button state */
+        case GT_PLAYER_BACKEND_STATE_PLAYING:
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), FALSE);
+
+            priv->paused = FALSE;
+            gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_paused_button), !priv->paused);
             break;
-        default:
-            arg = g_variant_new_boolean(FALSE);
+        case GT_PLAYER_BACKEND_STATE_PAUSED:
+            priv->paused = TRUE;
+            gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_paused_button), !priv->paused);
+            break;
+        case GT_PLAYER_BACKEND_STATE_LOADING:
+            gtk_label_set_label(GTK_LABEL(priv->buffer_label), _("Loading"));
+            gtk_widget_set_visible(priv->buffer_revealer, TRUE);
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
+            break;
+        case GT_PLAYER_BACKEND_STATE_BUFFERING:
+            gtk_label_set_label(GTK_LABEL(priv->buffer_label), _("Buffering"));
+            gtk_widget_set_visible(priv->buffer_revealer, TRUE);
+            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
+            break;
+        case GT_PLAYER_BACKEND_STATE_STOPPED:
+            /* NOTE: Do nothing */
+            break;
     }
 
     /* g_simple_action_set_state(priv->toggle_paused_action, arg); */
@@ -536,19 +551,11 @@ buffer_fill_cb(GObject* source,
 
     if (perc < 1.0)
     {
-        gchar* text;
+        g_autofree gchar* text;
 
         text = g_strdup_printf(_("Buffered %d%%"), (gint) (perc*100.0));
         gtk_label_set_label(GTK_LABEL(priv->buffer_label), text);
-        g_free(text);
-
-        gtk_widget_set_visible(priv->buffer_revealer, TRUE);
-
-        if (!gtk_revealer_get_child_revealed(GTK_REVEALER(priv->buffer_revealer)))
-            gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), TRUE);
     }
-    else
-        gtk_revealer_set_reveal_child(GTK_REVEALER(priv->buffer_revealer), FALSE);
 }
 
 static void
@@ -848,7 +855,7 @@ medium_changed_cb(GObject* obj,
     /* NOTE: Hide chat until we implement chat replay */
     g_object_set(self, "chat-visible", playing_livestream, NULL);
 
-    gtk_widget_set_visible(priv->toggle_playing_button, !playing_livestream);
+    gtk_widget_set_visible(priv->toggle_paused_button, !playing_livestream);
     gtk_widget_set_visible(priv->switch_live_button, !playing_livestream);
     /* TODO: Until we implement chat replay, hide the toggle chat button */
     gtk_widget_set_visible(priv->edit_chat_button, playing_livestream);
@@ -990,18 +997,22 @@ get_property(GObject* obj,
     }
 }
 
-static void
-toggle_paused_cb(GSimpleAction* action,
-    GVariant* arg, gpointer udata)
+static gboolean
+toggle_paused_cb(GtkWidget* button,
+    GdkEvent* evt, gpointer udata)
 {
-    RETURN_IF_FAIL(G_IS_SIMPLE_ACTION(action));
-    RETURN_IF_FAIL(g_variant_is_of_type(arg, G_VARIANT_TYPE_STRING));
-    RETURN_IF_FAIL(GT_IS_PLAYER(udata));
+    RETURN_VAL_IF_FAIL(GTK_IS_TOGGLE_BUTTON(button), GDK_EVENT_PROPAGATE);
+    RETURN_VAL_IF_FAIL(GT_IS_PLAYER(udata), GDK_EVENT_PROPAGATE);
 
     GtPlayer* self = GT_PLAYER(udata);
     GtPlayerPrivate* priv = gt_player_get_instance_private(self);
 
-    priv->paused = !priv->paused;
+    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(priv->toggle_paused_button)))
+        gt_player_pause(self);
+    else
+        gt_player_play(self);
+
+    return GDK_EVENT_PROPAGATE;
 }
 
 static gboolean
@@ -1050,7 +1061,7 @@ realize_cb(GtkWidget* widget,
     /* NOTE: To get the images for the  toggle buttons to display
      * correctly for the first time */
     g_object_notify(G_OBJECT(priv->toggle_fullscreen_button), "active");
-    g_object_notify(G_OBJECT(priv->toggle_playing_button), "active");
+    g_object_notify(G_OBJECT(priv->toggle_paused_button), "active");
 
     g_signal_connect(win, "notify::fullscreen", G_CALLBACK(fullscreen_cb), self);
 }
@@ -1285,7 +1296,7 @@ handle_playlist_response_cb(GtHTTP* http,
     priv->paused = FALSE;
 
     /* NOTE: To get the toggle button into the correct state when changing stream */
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_playing_button), TRUE);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->toggle_paused_button), TRUE);
 }
 
 static void
@@ -1454,7 +1465,7 @@ gt_player_class_init(GtPlayerClass* klass)
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, volume_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, seek_bar);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, switch_live_button);
-    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_playing_button);
+    gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_paused_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, edit_chat_button);
     gtk_widget_class_bind_template_child_private(GTK_WIDGET_CLASS(klass), GtPlayer, toggle_fullscreen_button);
@@ -1530,11 +1541,10 @@ gt_player_init(GtPlayer* self)
     priv->chat_view = GTK_WIDGET(gt_chat_new());
     g_object_ref(priv->chat_view); //TODO: Unref in finalise
 
-    priv->action_group = g_simple_action_group_new();
+    g_signal_connect_object(priv->toggle_paused_button, "button-release-event",
+        G_CALLBACK(toggle_paused_cb), self, 0);
 
-    priv->toggle_paused_action = g_simple_action_new("toggle_paused", NULL);
-    g_signal_connect_object(priv->toggle_paused_action, "change-state", G_CALLBACK(toggle_paused_cb), self, 0);
-    g_action_map_add_action(G_ACTION_MAP(priv->action_group), G_ACTION(priv->toggle_paused_action));
+    priv->action_group = g_simple_action_group_new();
 
     action = G_ACTION(g_property_action_new("toggle_chat", self, "chat-visible"));
     g_action_map_add_action(G_ACTION_MAP(priv->action_group), action);
@@ -1610,6 +1620,21 @@ gt_player_play(GtPlayer* self)
         MESSAGE("Playing");
         priv->paused = FALSE;
         gt_player_backend_play(priv->backend);
+    }
+}
+
+void
+gt_player_pause(GtPlayer* self)
+{
+    GtPlayerPrivate* priv = gt_player_get_instance_private(self);
+
+    if (!priv->backend)
+        MESSAGE("Can't pause, no backend loaded");
+    else
+    {
+        MESSAGE("Pausing");
+        priv->paused = TRUE;
+        gt_player_backend_pause(priv->backend);
     }
 }
 
