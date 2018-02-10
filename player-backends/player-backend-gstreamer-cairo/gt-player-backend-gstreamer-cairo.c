@@ -116,6 +116,8 @@ gst_message_cb(GstBus* bus, GstMessage* msg, gpointer udata)
             gst_message_parse_buffering(msg, &perc);
             gst_element_set_state(priv->playbin, perc < 100 ? GST_STATE_PAUSED : GST_STATE_PLAYING);
             priv->buffer_fill = ((gdouble) perc) / 100.0;
+            priv->state = GT_PLAYER_BACKEND_STATE_BUFFERING;
+            g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
             g_object_notify_by_pspec(G_OBJECT(self), props[PROP_BUFFER_FILL]);
 
             break;
@@ -212,7 +214,10 @@ _pause(GtPlayerBackend* backend)
 {
     RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND_GSTREAMER_CAIRO(backend));
 
-    /* TODO: Implement */
+    GtPlayerBackendGstreamerCairo* self = GT_PLAYER_BACKEND_GSTREAMER_CAIRO(backend);
+    GtPlayerBackendGstreamerCairoPrivate* priv = gt_player_backend_gstreamer_cairo_get_instance_private(self);
+
+    gst_element_set_state(priv->playbin, GST_STATE_PAUSED);
 }
 
 static void

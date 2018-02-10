@@ -179,7 +179,9 @@ mpv_event_cb(gpointer udata)
                 else if (g_strcmp0(prop->name, "cache-buffering-state") == 0)
                 {
                     if (prop->data) priv->buffer_fill = *((gint64*) prop->data) / 100.0;
+                    if (priv->buffer_fill < 1.0) priv->state = GT_PLAYER_BACKEND_STATE_BUFFERING;
                     NOTIFY_PROP(self, props[PROP_BUFFER_FILL]);
+                    NOTIFY_PROP(self, props[PROP_STATE]);
                 }
                 else if (g_strcmp0(prop->name, "time-pos") == 0)
                 {
@@ -200,12 +202,25 @@ mpv_event_cb(gpointer udata)
                 }
                 else if (g_strcmp0(prop->name, "pause") == 0)
                 {
+                    if (prop->data)
+                    {
+                        priv->state = *((gboolean*) prop->data) ?
+                            GT_PLAYER_BACKEND_STATE_PAUSED : GT_PLAYER_BACKEND_STATE_PLAYING;
+                    }
+                    NOTIFY_PROP(self, props[PROP_STATE]);
                 }
                 else if (g_strcmp0(prop->name, "unpause") == 0)
                 {
+                    g_print("Unpaused\n");
                 }
-                else if (g_strcmp0(prop->name, "core-idle") == 0)
+                else if (g_strcmp0(prop->name, "paused-for-cache") == 0)
                 {
+                    if (prop->data)
+                    {
+                        priv->state = *((gboolean*) prop->data) ?
+                            GT_PLAYER_BACKEND_STATE_BUFFERING : GT_PLAYER_BACKEND_STATE_PLAYING;
+                    }
+                    NOTIFY_PROP(self, props[PROP_STATE]);
                 }
                 else if (g_strcmp0(prop->name, "playback-abort") == 0)
                 {
@@ -248,15 +263,22 @@ play(GtPlayerBackend* backend)
     GtPlayerBackendMpvOpenGL* self = GT_PLAYER_BACKEND_MPV_OPENGL(backend);
     GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
 
-    if (priv->uri)
+    if (priv->state == GT_PLAYER_BACKEND_STATE_PAUSED)
+    {
+        gboolean paused = FALSE;
+        mpv_set_property_async(priv->mpv, 0, "pause", MPV_FORMAT_FLAG, &paused);
+    }
+    else if (priv->uri)
     {
         const gchar* mpv_cmd[] = {"loadfile", priv->uri, "replace", NULL};
 
-        check_mpv_error(mpv_command(priv->mpv, mpv_cmd));
+        check_mpv_error(mpv_command_async(priv->mpv, 0, mpv_cmd));
 
         priv->state = GT_PLAYER_BACKEND_STATE_LOADING;
         g_object_notify_by_pspec(G_OBJECT(self), props[PROP_STATE]);
     }
+    else
+        WARNING("Trying to play when no URI is set");
 }
 
 static void
@@ -276,7 +298,13 @@ stop(GtPlayerBackend* backend)
 static void
 _pause(GtPlayerBackend* backend)
 {
-    /* TODO: Implement */
+    RETURN_IF_FAIL(GT_IS_PLAYER_BACKEND_MPV_OPENGL(backend));
+
+    GtPlayerBackendMpvOpenGL* self = GT_PLAYER_BACKEND_MPV_OPENGL(backend);
+    GtPlayerBackendMpvOpenGLPrivate* priv = gt_player_backend_mpv_opengl_get_instance_private(self);
+
+    gboolean paused = TRUE;
+    mpv_set_property_async(priv->mpv, 0, "pause", MPV_FORMAT_FLAG, &paused);
 }
 
 static void
@@ -314,6 +342,8 @@ set_position(GtPlayerBackend* backend, gint64 position)
     const gchar* mpv_cmd[] = {"seek", seconds, "absolute", NULL};
 
     check_mpv_error(mpv_command_async(priv->mpv, 0, mpv_cmd));
+
+    /* TODO: Start playing again, like in the GStreamer backends */
 }
 
 static GtkWidget*
@@ -576,6 +606,7 @@ gt_player_backend_mpv_opengl_init(GtPlayerBackendMpvOpenGL* self)
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "unpause", MPV_FORMAT_FLAG));
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "core-idle", MPV_FORMAT_FLAG));
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "playback-abort", MPV_FORMAT_FLAG));
+    check_mpv_error(mpv_observe_property(priv->mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG));
 
     check_mpv_error(mpv_initialize(priv->mpv));
 
