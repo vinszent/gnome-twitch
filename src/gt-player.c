@@ -1702,6 +1702,9 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     update_docked(self);
 
+    priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
+        GTK_WINDOW(GT_WIN_TOPLEVEL(self)), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
+
     gt_player_play_livestream(self);
 }
 
