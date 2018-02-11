@@ -1705,6 +1705,11 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
     priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
         GTK_WINDOW(GT_WIN_TOPLEVEL(self)), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
 
+    if (priv->inhibitor_cookie == 0)
+        WARNING("Unable to inhibit idle");
+    else
+        INFO("Idle is now inhibited");
+
     gt_player_play_livestream(self);
 }
 
@@ -1789,6 +1794,7 @@ gt_player_close_channel(GtPlayer* self)
     {
         gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
         priv->inhibitor_cookie = 0;
+        INFO("Idle is now uninhibited");
     }
 }
 
