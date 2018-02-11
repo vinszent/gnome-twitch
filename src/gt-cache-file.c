@@ -458,10 +458,27 @@ constructed(GObject* obj)
     RETURN_IF_FAIL(GT_IS_CACHE_FILE(obj));
 
     GtCacheFile* self = GT_CACHE_FILE(obj);
-
-    load_db(self);
+    GtCacheFilePrivate* priv = gt_cache_file_get_instance_private(self);
 
     G_OBJECT_CLASS(gt_cache_file_parent_class)->constructed(obj);
+
+    if (!g_file_test(priv->cache_directory, G_FILE_TEST_EXISTS))
+    {
+        g_autoptr(GFile) cache_dir = g_file_new_for_path(priv->cache_directory);
+        g_autoptr(GError) err = NULL;
+
+        g_file_make_directory_with_parents(cache_dir, priv->cancel, &err);
+
+        if (err)
+        {
+            WARNING("Unable to create cache directory at %s because: %s",
+                priv->cache_directory, err->message);
+            /* TODO: Put us in some kind of 'unable to cache' state */
+            return;
+        }
+    }
+
+    load_db(self);
 }
 
 static void
