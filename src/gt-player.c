@@ -110,7 +110,6 @@ typedef struct
     guint mouse_released_handler_id;
     guint mouse_moved_handler_id;
 
-    guint inhibitor_cookie;
     guint mouse_source;
 } GtPlayerPrivate;
 
@@ -1702,13 +1701,7 @@ gt_player_open_channel(GtPlayer* self, GtChannel* chan)
 
     update_docked(self);
 
-    priv->inhibitor_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
-        GTK_WINDOW(GT_WIN_TOPLEVEL(self)), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
-
-    if (priv->inhibitor_cookie == 0)
-        WARNING("Unable to inhibit idle");
-    else
-        INFO("Idle is now inhibited");
+    gt_win_inhibit_screensaver(GT_WIN_TOPLEVEL(self));
 
     gt_player_play_livestream(self);
 }
@@ -1790,12 +1783,7 @@ gt_player_close_channel(GtPlayer* self)
 
     gt_player_stop(self);
 
-    if (priv->inhibitor_cookie)
-    {
-        gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibitor_cookie);
-        priv->inhibitor_cookie = 0;
-        INFO("Idle is now uninhibited");
-    }
+    gt_win_uninhibit_screensaver(GT_WIN_TOPLEVEL(self));
 }
 
 void

@@ -51,6 +51,8 @@ void gt_win_show_info_message(GtWin* self, const gchar* msg_fmt, ...);
 void gt_win_show_error_message(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
 void gt_win_show_error_dialogue(GtWin* self, const gchar* secondary, const gchar* details_fmt, ...);
 void gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata);
+void gt_win_inhibit_screensaver(GtWin* self);
+void gt_win_uninhibit_screensaver(GtWin* self);
 
 G_END_DECLS
 

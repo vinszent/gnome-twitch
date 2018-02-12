@@ -19,6 +19,7 @@
 #include "gt-win.h"
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+#include <gio/gio.h>
 #include "gt-twitch.h"
 #include "gt-player.h"
 #include "gt-browse-header-bar.h"
@@ -77,6 +78,8 @@ typedef struct
 
     GBinding* search_binding;
     GBinding* back_binding;
+
+    guint inhibit_cookie;
 } GtWinPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GtWin, gt_win, GTK_TYPE_APPLICATION_WINDOW)
@@ -847,4 +850,96 @@ gt_win_ask_question(GtWin* self, const gchar* msg, GCallback cb, gpointer udata)
 
     if (!gtk_revealer_get_reveal_child(GTK_REVEALER(priv->info_revealer)))
         show_info_bar(self);
+}
+
+void
+gt_win_inhibit_screensaver(GtWin* self)
+{
+    RETURN_IF_FAIL(GT_IS_WIN(self));
+
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (priv->inhibit_cookie > 0)
+    {
+        WARNING("Already inhibiting screensaver");
+        return;
+    }
+
+    priv->inhibit_cookie = gtk_application_inhibit(GTK_APPLICATION(main_app),
+        GTK_WINDOW(self), GTK_APPLICATION_INHIBIT_IDLE, "Playing a stream");
+
+    if (priv->inhibit_cookie == 0)
+    {
+        INFO("Unable to inhibit screensaver via application, attempting via DBus");
+
+        g_autoptr(GError) err = NULL;
+        g_autoptr(GDBusProxy) proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
+            "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", NULL, &err);
+        g_autoptr(GVariant) ret = NULL;
+
+        if (err)
+        {
+            WARNING("Unable to create DBus proxy to inhibit screensaver because: %s", err->message);
+            return;
+        }
+
+        ret = g_dbus_proxy_call_sync(proxy, "Inhibit",
+            g_variant_new("(ss)", "GNOME Twitch", "Playing a stream"),
+            G_DBUS_CALL_FLAGS_NONE, -1, NULL, &err);
+
+        if (err)
+        {
+            WARNING("Unable to call inhibit function on DBus proxy because: %s", err->message);
+            return;
+        }
+
+        g_variant_get(ret, "(u)", &priv->inhibit_cookie);
+    }
+
+    if (priv->inhibit_cookie > 0)
+        INFO("Successfully inhibited screensaver");
+}
+
+void
+gt_win_uninhibit_screensaver(GtWin* self)
+{
+    RETURN_IF_FAIL(GT_IS_WIN(self));
+
+    GtWinPrivate* priv = gt_win_get_instance_private(self);
+
+    if (priv->inhibit_cookie == 0)
+    {
+        WARNING("Not currently inhibiting screensaver");
+        return;
+    }
+
+    if (gtk_application_is_inhibited(GTK_APPLICATION(main_app), GTK_APPLICATION_INHIBIT_IDLE))
+        gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibit_cookie);
+    else
+    {
+        g_autoptr(GError) err = NULL;
+        g_autoptr(GDBusProxy) proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
+            "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", NULL, &err);
+        g_autoptr(GVariant) ret = NULL;
+
+        if (err)
+        {
+            WARNING("Unable to create DBus proxy to uninhibit screensaver because: %s", err->message);
+            return;
+        }
+
+        ret = g_dbus_proxy_call_sync(proxy, "UnInhibit",
+            g_variant_new("(u)", priv->inhibit_cookie),
+            G_DBUS_CALL_FLAGS_NONE, -1, NULL, &err);
+
+        if (err)
+        {
+            WARNING("Unable to call uninhibit function on DBus proxy because: %s", err->message);
+            return;
+        }
+    }
+
+    INFO("Successfully uninhibited screensaver");
+
+    priv->inhibit_cookie = 0;
 }
