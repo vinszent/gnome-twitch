@@ -872,6 +872,7 @@ gt_win_inhibit_screensaver(GtWin* self)
     {
         INFO("Unable to inhibit screensaver via application, attempting via DBus");
 
+        /* TODO: Use the async versions of the dbus funcs */
         g_autoptr(GError) err = NULL;
         g_autoptr(GDBusProxy) proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
             "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", NULL, &err);
@@ -915,7 +916,9 @@ gt_win_uninhibit_screensaver(GtWin* self)
 
     if (gtk_application_is_inhibited(GTK_APPLICATION(main_app), GTK_APPLICATION_INHIBIT_IDLE))
         gtk_application_uninhibit(GTK_APPLICATION(main_app), priv->inhibit_cookie);
-    else
+
+    /* NOTE: If we are still inhibited, try uninhibiting via DBus */
+    if (gtk_application_is_inhibited(GTK_APPLICATION(main_app), GTK_APPLICATION_INHIBIT_IDLE))
     {
         g_autoptr(GError) err = NULL;
         g_autoptr(GDBusProxy) proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
