@@ -138,9 +138,7 @@ pkg.generate(
   name : 'gnome-twitch',
   description : 'Library used for building GNOME Twitch plugins',
   version : meson.project_version(), # Until we hit 1.0
-  requires : ['gtk+-3.0', 'libpeas-1.0'],
-  install : true,
-  version : meson.project_version())
+  requires : ['gtk+-3.0', 'libpeas-1.0'])
 
 gnome.generate_gir(gt_library,
   sources: [join_paths('..', 'include', 'gnome-twitch', 'gt-player-backend.h')],
