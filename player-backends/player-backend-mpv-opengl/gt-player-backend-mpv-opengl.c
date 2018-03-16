@@ -409,9 +409,11 @@ render_cb(GtkGLArea* area,
     int width;
     int height;
     int fbo;
+    int scale;
 
-    width = gtk_widget_get_allocated_width(GTK_WIDGET(area));
-    height = (-1)*gtk_widget_get_allocated_height(GTK_WIDGET(area));
+    scale = gtk_widget_get_scale_factor(GTK_WIDGET(area));
+    width = gtk_widget_get_allocated_width(GTK_WIDGET(area)) * scale;
+    height = (-1)*gtk_widget_get_allocated_height(GTK_WIDGET(area)) * scale;
     fbo = -1;
 
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
