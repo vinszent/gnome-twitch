@@ -34,8 +34,8 @@
 //TODO: Use https://streams.twitch.tv/kraken/streams/{channel}?stream_type=all instead to get is_playlist info
 //TODO: Use https://tmi.twitch.tv/servers?channel=%s to get chat server info
 
-#define ACCESS_TOKEN_URI       "http://api.twitch.tv/api/channels/%s/access_token"
-#define STREAM_PLAYLIST_URI    "http://usher.twitch.tv/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
+#define ACCESS_TOKEN_URI       "https://api.twitch.tv/api/channels/%s/access_token"
+#define STREAM_PLAYLIST_URI    "https://usher.ttvnw.net/api/channel/hls/%s.m3u8?player=twitchweb&token=%s&sig=%s&allow_audio_only=true&allow_source=true&type=any&allow_spectre=true&p=%d"
 #define TOP_CHANNELS_URI       "https://api.twitch.tv/kraken/streams?limit=%d&offset=%d&game=%s&broadcaster_language=%s"
 #define TOP_GAMES_URI          "https://api.twitch.tv/kraken/games/top?limit=%d&offset=%d"
 #define SEARCH_STREAMS_URI     "https://api.twitch.tv/kraken/search/streams?query=%s&limit=%d&offset=%d"
@@ -45,7 +45,7 @@
 #define FETCH_CHANNEL_URI      "https://api.twitch.tv/kraken/channels/%s"
 #define CHAT_BADGES_URI        "https://api.twitch.tv/kraken/chat/%s/badges/"
 #define TWITCH_EMOTE_URI       "https://static-cdn.jtvnw.net/emoticons/v1/%d/%d.0"
-#define CHANNEL_INFO_URI       "http://api.twitch.tv/api/channels/%s/panels"
+#define CHANNEL_INFO_URI       "https://api.twitch.tv/api/channels/%s/panels"
 #define CHAT_SERVERS_URI       "https://api.twitch.tv/api/channels/%s/chat_properties"
 #define FOLLOWED_STREAMS_URI   "https://api.twitch.tv/kraken/streams/followed?limit=%d&offset=%d&oauth_token=%s&stream_type=live"
 #define FOLLOWED_CHANNELS_URI  "https://api.twitch.tv/kraken/users/%s/follows/channels?limit=%d&offset=%d"
