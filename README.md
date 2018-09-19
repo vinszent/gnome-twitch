@@ -60,8 +60,8 @@ ninja -C build install
 
 ### Packages
 * [Flatpak (courtesy of @TingPing)](https://github.com/vinszent/gnome-twitch/wiki/How-to-install-FlatPak-package)
-* [Arch linux](https://aur.archlinux.org/packages/gnome-twitch/)
-* [Arch linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
+* [Arch Linux](https://www.archlinux.org/packages/community/x86_64/gnome-twitch/)
+* [Arch Linux (git)](https://aur.archlinux.org/packages/gnome-twitch-git/)
 * [Debian (courtesy of @dengelt)](https://tracker.debian.org/pkg/gnome-twitch/)
 * [Ubuntu (courtesy of WebUpd8.org)](https://launchpad.net/%7Enilarimogard/+archive/ubuntu/webupd8/+index?batch=75&direction=backwards&memo=150&start=75) (Same requirements as above)
 * [Gentoo (courtesy of @TorArneThune)](https://github.com/TorArneThune/gnome-twitch-ebuild)
