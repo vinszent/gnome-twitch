@@ -601,8 +601,6 @@ gt_player_backend_mpv_opengl_init(GtPlayerBackendMpvOpenGL* self)
     check_mpv_error(mpv_set_option_string(priv->mpv, "title", ""));
     check_mpv_error(mpv_set_option_string(priv->mpv, "vo", "opengl-cb"));
     check_mpv_error(mpv_set_option_string(priv->mpv, "hwdec", "auto"));
-    check_mpv_error(mpv_set_option_string(priv->mpv, "softvol", "yes"));
-    check_mpv_error(mpv_set_option_string(priv->mpv, "softvol-max", "100"));
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "volume", MPV_FORMAT_DOUBLE));
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "cache-buffering-state", MPV_FORMAT_INT64));
     check_mpv_error(mpv_observe_property(priv->mpv, 0, "time-pos", MPV_FORMAT_INT64));
