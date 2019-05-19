@@ -120,7 +120,9 @@ check_mpv_error(int status)
         ERRORF("Mpv error %s\n", mpv_error_string(status));
 }
 
+#if !GLIB_CHECK_VERSION(2,57,1)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(GParamSpec, g_param_spec_unref);
+#endif
 
 /* NOTE: This is so that we notify properies on the GLib main thread,
   * otherwise bad things can happen */
