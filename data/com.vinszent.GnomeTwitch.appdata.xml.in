@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop">
-  <id>com.vinszent.GnomeTwitch.desktop</id>
+<component type="desktop-application">
+  <id>com.vinszent.GnomeTwitch</id>
   <translation type="gettext">gnome-twitch</translation>
   <name>GNOME Twitch</name>
   <developer_name>GNOME Twitch</developer_name>
   <summary>Twitch desktop client</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
+  <launchable type="desktop-id">com.vinszent.GnomeTwitch.desktop</launchable>
   <description>
     <p>
       Allows searching for and watching Twitch streams from the desktop.
@@ -31,6 +32,27 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release date="2018-05-19" version="0.4.2">
+      <description>
+        <p>Stop gap release to fix some minor bugs until v0.5.0.</p>
+      </description>
+    </release>
+    <release date="2017-05-10" version="0.4.1">
+      <description>
+        <p>
+          Minor bug fixes and translation updates for v0.4.1.
+        </p>
+        <ul>
+          <li>Updated translations for Dutch, German, Polish, Portugese, Russian, Serbian and Spanish.</li>
+          <li>Fixed UI lag when updating channels.</li>
+          <li>Fixed bug that causes the header bar to be shown when hovering over the chat input.</li>
+          <li>Removed indirect restrictions on window width.</li>
+          <li>Fixed a crash when opening a offline channel.</li>
+          <li>Fix some minor GCC warnings.</li>
+          <li>Fix bug where the fullscreen bar is visible twice.</li>
+        </ul>
+      </description>
+    </release>
     <release date="2017-04-01" version="0.4.0">
       <description>
         <p>
@@ -48,7 +70,6 @@
     </release>
   </releases>
   <kudos>
-    <kudo>AppMenu</kudo>
     <kudo>HiDpiIcon</kudo>
     <kudo>ModernToolkit</kudo>
     <kudo>Notifications</kudo>
